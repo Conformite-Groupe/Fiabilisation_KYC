@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="min-h-screen bg-[#f1f5f9] space-y-8 p-4 lg:p-8 pb-24 text-slate-800">
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)] border border-white">
+        <div class="space-y-1">
+            <h1 class="text-2xl font-black tracking-tight uppercase text-slate-900">
+                Performance <span class="text-indigo-600 font-light italic">Stock KYC</span>
+            </h1>
+            <div class="flex items-center gap-2">
+                <span class="h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    {{ selected_filiale|default:user.filiale }} — État du Stock
+                </p>
+            </div>
+        </div>
+
+        {% if liste_filiales %}
+        <form method="get" id="filialeForm" class="relative group">
+            <select name="filiale" onchange="this.form.submit()" class="appearance-none bg-white px-5 py-3 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-slate-200 shadow-sm outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all cursor-pointer pr-12">
+                <option value="">Choisir Filiale</option>
+                {% for f in liste_filiales %}<option value="{{ f }}" {% if f == selected_filiale %}selected{% endif %}>{{ f }}</option>{% endfor %}
+            </select>
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="bg-white/70 backdrop-blur-md sticky top-6 z-40 px-2 rounded-[1.5rem] border border-white/50 shadow-sm no-print">
+        <nav class="flex flex-wrap items-center justify-between gap-2 p-1.5">
+            <div class="flex gap-2">
+                <button onclick="switchTab('tab-overview')" id="btn-overview" class="tab-btn active-tab px-8 py-3.5 text-[10px] font-black uppercase tracking-[0.15em] rounded-xl transition-all">Vue d'ensemble</button>
+                <button onclick="switchTab('tab-charts')" id="btn-charts" class="tab-btn inactive-tab px-8 py-3.5 text-[10px] font-black uppercase tracking-[0.15em] rounded-xl transition-all hover:bg-white/50">Analyses</button>
+                <button onclick="switchTab('tab-data')" id="btn-data" class="tab-btn inactive-tab px-8 py-3.5 text-[10px] font-black uppercase tracking-[0.15em] rounded-xl transition-all hover:bg-white/50">Données</button>
+            </div>
+            <a href="{% url 'statistiques' %}" class="flex items-center gap-3 bg-emerald-600 text-white px-6 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/30">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                Stats Agents
+            </a>
+        </nav>
+    </div>
+
+    <div class="space-y-8">
+
+        <div id="tab-overview" class="tab-content space-y-6 animate-fadeIn">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-[0_30px_60px_-15px_rgba(15,23,42,0.3)] relative overflow-hidden flex flex-col justify-between h-72 border border-slate-800">
+                    <div class="relative z-10 space-y-4">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 rounded-2xl bg-indigo-500 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-500/20">
+                                {% if selected_expl %}{{ selected_expl|slice:":1"|upper }}{% else %}?{% endif %}
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-black text-indigo-400 uppercase tracking-widest opacity-70">Collaborateur</p>
+                                <h3 class="text-sm font-black uppercase">{% if selected_expl %}{{ selected_expl }}{% else %}Sélection...{% endif %}</h3>
+                            </div>
+                        </div>
+                        <form method="get" id="agentForm" class="no-print">
+                            <input type="hidden" name="filiale" value="{{ selected_filiale }}">
+                            <select name="expl" onchange="this.form.submit()" class="w-full bg-white/5 border border-white/10 text-white text-[10px] font-black py-3 px-4 rounded-2xl outline-none transition-all cursor-pointer">
+                                <option value="" class="text-slate-900">-- Choisir un agent --</option>
+                                {% for e in liste_expl %}
+                                <option value="{{ e }}" {% if e == selected_expl %}selected{% endif %} class="text-slate-900">{{ e }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </div>
+
+                    <div class="relative z-10 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[9px] font-black text-slate-400 uppercase">Appréciation Stock</span>
+                            <span class="text-[10px] font-black text-white italic uppercase">
+                                {% if notation %}{{ notation.0.note }}{% else %}N/A{% endif %}
+                            </span>
+                        </div>
+                        {% with note=notation.0.note %}
+                        <div class="flex gap-1.5">
+                            <div class="h-1.5 flex-1 rounded-full transition-all duration-700 {% if notation and note != 'N/A' %}bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.4)]{% else %}bg-white/10{% endif %}"></div>
+                            <div class="h-1.5 flex-1 rounded-full transition-all duration-700 {% if notation and note != 'Insuffisant' and note != 'N/A' %}bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]{% else %}bg-white/10{% endif %}"></div>
+                            <div class="h-1.5 flex-1 rounded-full transition-all duration-700 {% if notation and note == 'Bien' or note == 'Très Bien' %}bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]{% else %}bg-white/10{% endif %}"></div>
+                            <div class="h-1.5 flex-1 rounded-full transition-all duration-700 {% if notation and note == 'Très Bien' %}bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.6)]{% else %}bg-white/10{% endif %}"></div>
+                        </div>
+                        {% endwith %}
+                    </div>
+                </div>
+
+                {% if selected_expl %}
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.08)] border-l-[12px] border-emerald-500 flex flex-col justify-between h-72 border-y border-r border-slate-100 transition-all">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Stock Particuliers</p>
+                            <div id="varPP" class="flex items-center gap-1 mt-1 text-[10px] font-black uppercase"></div>
+                        </div>
+                        <div class="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 font-black">PP</div>
+                    </div>
+                    <h3 class="text-6xl font-black text-slate-900 tracking-tighter" id="valPP">--%</h3>
+                    <div class="pt-4 border-t border-slate-50 flex justify-between items-center text-[10px] font-black uppercase">
+                        <span class="text-slate-400 italic">Objectif Groupe</span>
+                        <span class="text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">100%</span>
+                    </div>
+                </div>
+
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.08)] border-l-[12px] border-orange-500 flex flex-col justify-between h-72 border-y border-r border-slate-100 transition-all">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Stock Entreprises</p>
+                            <div id="varPM" class="flex items-center gap-1 mt-1 text-[10px] font-black uppercase"></div>
+                        </div>
+                        <div class="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 font-black">PM</div>
+                    </div>
+                    <h3 class="text-6xl font-black text-slate-900 tracking-tighter" id="valPM">--%</h3>
+                    <div class="pt-4 border-t border-slate-50 flex justify-between items-center text-[10px] font-black uppercase">
+                        <span class="text-slate-400 italic">Objectif Groupe</span>
+                        <span class="text-orange-600 bg-orange-50 px-3 py-1 rounded-full">100%</span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="md:col-span-2 bg-white/40 border-4 border-dashed border-slate-200 rounded-[2.5rem] flex flex-col items-center justify-center p-8 text-center h-72">
+                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Veuillez sélectionner un agent pour les données Stock</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="tab-charts" class="tab-content hidden animate-fadeIn">
+            {% if selected_expl %}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                    <div class="flex justify-between items-center mb-8">
+                        <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-widest">Performances Stock PP</h4>
+                        <span class="text-[9px] font-black text-emerald-600 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100">Cible 100%</span>
+                    </div>
+                    <div class="h-[380px]"><canvas id="canvasPP"></canvas></div>
+                </div>
+                <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                    <div class="flex justify-between items-center mb-8">
+                        <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-widest">Performances Stock PM</h4>
+                        <span class="text-[9px] font-black text-orange-600 px-3 py-1 bg-orange-50 rounded-full border border-orange-100">Cible 100%</span>
+                    </div>
+                    <div class="h-[380px]"><canvas id="canvasPM"></canvas></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div id="tab-data" class="tab-content hidden animate-fadeIn">
+            {% if selected_expl %}
+            <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
+                <table class="w-full text-center">
+                    <thead class="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400">
+                        <tr>
+                            <th class="px-10 py-6">Date d'arrêté</th>
+                            <th class="px-10 py-6">Fiabilité PP</th>
+                            <th class="px-10 py-6">Fiabilité PM</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-50 text-sm font-bold text-slate-700">
+                        </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .tab-btn { color: #94a3b8; }
+    .active-tab { background: #0f172a; color: white; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.4); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fadeIn { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    ::-webkit-scrollbar { display: none; }
+</style>
+
+
+<script>
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
+    document.getElementById(tabId).classList.remove('hidden');
+    document.getElementById('btn-' + tabId.replace('tab-', '')).classList.add('active-tab');
+}
+
+{% if selected_expl %}
+document.addEventListener('DOMContentLoaded', function() {
+    const datesPP = {{ dates_pp|safe }};
+    const tauxPP = {{ taux_pp|safe }};
+    const datesPM = {{ dates_pm|safe }};
+    const tauxPM = {{ taux_pm|safe }};
+
+    // 1. KPI & Variations
+    const updateKPI = (idVal, idVar, data) => {
+        if(data.length > 0) {
+            const last = data[data.length - 1];
+            const prev = data.length > 1 ? data[data.length - 2] : last;
+            const diff = (last - prev).toFixed(2);
+            document.getElementById(idVal).innerText = last + '%';
+
+            let html = '';
+            if(diff > 0) html = `<span class="text-emerald-500">▲ +${diff}%</span> <span class="text-slate-300 font-bold ml-1">(Vs préc.)</span>`;
+            else if(diff < 0) html = `<span class="text-rose-500">▼ ${diff}%</span> <span class="text-slate-300 font-bold ml-1">(Vs préc.)</span>`;
+            else html = `<span class="text-slate-300">= 0%</span>`;
+            document.getElementById(idVar).innerHTML = html;
+        }
+    };
+    updateKPI('valPP', 'varPP', tauxPP);
+    updateKPI('valPM', 'varPM', tauxPM);
+
+    // 2. Tableau
+    const tbody = document.getElementById('tableBody');
+    datesPP.forEach((date, i) => {
+        const row = `<tr class="hover:bg-slate-50 transition-all">
+            <td class="px-10 py-5">${date}</td>
+            <td class="px-10 py-5"><span class="bg-emerald-50 text-emerald-600 px-4 py-1.5 rounded-xl text-xs font-black">${tauxPP[i]}%</span></td>
+            <td class="px-10 py-5"><span class="bg-orange-50 text-orange-600 px-4 py-1.5 rounded-xl text-xs font-black">${tauxPM[i]}%</span></td>
+        </tr>`;
+        tbody.insertAdjacentHTML('afterbegin', row);
+    });
+
+    // 3. Graphiques
+    const getOptions = (lineColor) => ({
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: {
+                min: 0, max: 115,
+                ticks: { stepSize: 20, color: '#94a3b8', font: { weight: 'bold', size: 10 }, callback: (v) => v <= 100 ? v + '%' : '' },
+                grid: { color: (ctx) => ctx.tick.value === 100 ? lineColor : '#f1f5f9', lineWidth: (ctx) => ctx.tick.value === 100 ? 2 : 1, borderDash: (ctx) => ctx.tick.value === 100 ? [5, 5] : [] }
+            },
+            x: { ticks: { color: '#94a3b8', font: { weight: 'bold', size: 10 } }, grid: { display: false } }
+        }
+    });
+
+    function createChart(id, labels, data, baseColor) {
+        const ctx = document.getElementById(id).getContext('2d');
+        const colorScale = (val) => val >= 90 ? '#10b981' : '#f97316';
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    fill: true,
+                    backgroundColor: 'rgba(99, 102, 241, 0.03)',
+                    tension: 0.4,
+                    borderWidth: 5,
+                    segment: { borderColor: (ctx) => colorScale(ctx.p1.parsed.y) },
+                    pointRadius: 4,
+                    pointBackgroundColor: (ctx) => colorScale(ctx.parsed.y),
+                    pointBorderColor: 'white',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: getOptions(baseColor)
+        });
+    }
+
+    createChart('canvasPP', datesPP, tauxPP, '#10b981');
+    createChart('canvasPM', datesPM, tauxPM, '#f97316');
+});
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load tailwind_filters %}
+
+{% block content %}
+
+    <div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+    <div class="flex flex-col lg:flex-row gap-4 items-stretch justify-between">
+
+        <div class="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <div>
+                <h1 class="text-2xl font-black text-gray-800 tracking-tight uppercase">
+                    Revue | <span class="text-green-700 font-light">Scoring</span>
+                </h1>
+                <div class="flex items-center space-x-2 mt-1">
+                    <span class="px-3 py-1 bg-red-50 text-red-600 text-[10px] font-black rounded-lg border border-red-100 uppercase tracking-wider">
+                        {{ donnees.paginator.count }} Dossiers à traiter
+                    </span>
+                </div>
+            </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+
+                        <a href="{% url 'export_csv_scoring_clients' %}?{{ request.GET.urlencode }}" class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
+                            <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            Exporter
+                        </a>
+                    </div>
+        </div>
+
+      {% if notation %}
+    {% with derniere_note=notation.0 %} {# On récupère la note la plus récente #}
+    <div class="flex items-center rounded-2xl shadow-xl border-4 border-white min-w-[240px] overflow-hidden group transition-all
+        {% if derniere_note.note == 'Très Bien' %} bg-emerald-600 text-white
+        {% elif derniere_note.note == 'Bien' %} bg-green-600 text-white
+        {% elif derniere_note.note == 'Passable' %} bg-amber-500 text-white
+        {% elif derniere_note.note == 'Insuffisant' %} bg-orange-600 text-white
+        {% else %} bg-slate-600 text-white {% endif %}">
+
+        <div class="px-6 py-3 flex-1">
+            <p class="text-[9px] font-black uppercase tracking-widest opacity-80 mb-1">
+                Note Actuelle
+            </p>
+            <div class="flex items-baseline gap-2">
+                <p class="text-3xl font-black tracking-widest uppercase">
+                    {{ derniere_note.note }}
+                </p>
+            </div>
+            <p class="text-[8px] font-bold opacity-70 uppercase tracking-tighter">
+                Mise à jour le {{ derniere_note.date_notation|date:"d/m/Y" }}
+            </p>
+        </div>
+
+        <div class="bg-black/10 h-full px-4 flex items-center justify-center self-stretch">
+             <svg class="w-8 h-8 drop-shadow-md animate-pulse
+                {% if derniere_note.note == 'Très Bien' %} text-emerald-200
+                {% elif derniere_note.note == 'Bien' %} text-green-200
+                {% elif derniere_note.note == 'Passable' %} text-amber-200
+                {% else %} text-white {% endif %}"
+                fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+             </svg>
+        </div>
+    </div>
+    {% endwith %}
+{% endif %}
+    </div>
+
+
+
+    <div class="flex justify-center">
+        <div class="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
+            <a href="{% url 'clients_scorer' %}" class="px-8 py-3 text-[10px] font-black rounded-xl transition-all uppercase {% if 'sans_classe_s' not in request.path %} nav-link-active text-green-700 shadow-sm {% else %} text-slate-500 hover:text-slate-800 {% endif %}">Revue Scoring</a>
+            <a href="{% url 'sans_classe_s' %}" class="px-8 py-3 text-[10px] font-black rounded-xl transition-all uppercase {% if 'sans_classe_s' in request.path %} nav-link-active text-green-700 shadow-sm {% else %} text-slate-500 hover:text-slate-800 {% endif %}">Clients sans classe</a>
+        </div>
+    </div>
+
+        <form method="get" class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-100">
+    <div class="flex flex-wrap lg:flex-nowrap items-end gap-3">
+
+        <div class="flex-1 min-w-[140px] space-y-1.5">
+            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Échéance</label>
+            <select name="periode" onchange="this.form.submit()" class="w-full bg-slate-50 border-slate-100 rounded-xl text-[11px] font-bold text-slate-700 focus:ring-2 focus:ring-green-500 transition-all py-2 px-3 appearance-none">
+                <option value="">Toutes périodes</option>
+                <option value="today" {% if periode == "today" %}selected{% endif %}>Échues</option>
+                <option value="3m" {% if periode == "3m" %}selected{% endif %}>Dans 3 mois</option>
+                <option value="6m" {% if periode == "6m" %}selected{% endif %}>Dans 6 mois</option>
+                <option value="1y" {% if periode == "1y" %}selected{% endif %}>Dans 1 an</option>
+            </select>
+        </div>
+
+        <div class="flex-1 min-w-[140px] space-y-1.5">
+            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Filiale</label>
+            {% if can_pick_filiale %}
+            <select name="filiale" onchange="this.form.submit()" class="w-full bg-slate-50 border-slate-100 rounded-xl text-[11px] font-bold text-slate-700 focus:ring-2 focus:ring-green-500 transition-all py-2 px-3 appearance-none">
+                <option value="">Toutes filiales</option>
+                {% for f in filiales %}<option value="{{ f }}" {% if filiale_param == f %}selected{% endif %}>{{ f }}</option>{% endfor %}
+            </select>
+            {% else %}
+            <div class="w-full bg-slate-100 border border-slate-50 px-3 py-2 rounded-xl text-[11px] font-black text-slate-500 uppercase truncate h-[36px] flex items-center">{{ filiale_param }}</div>
+            <input type="hidden" name="filiale" value="{{ filiale_param }}">
+            {% endif %}
+        </div>
+
+        <div class="flex-1 min-w-[140px] space-y-1.5">
+            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Exploitant</label>
+            {% if can_pick_expl %}
+            <select name="expl" onchange="this.form.submit()" class="w-full bg-slate-50 border-slate-100 rounded-xl text-[11px] font-bold text-slate-700 focus:ring-2 focus:ring-green-500 transition-all py-2 px-3 appearance-none">
+                <option value="">Tous exploitants</option>
+                {% for e in exploitants %}<option value="{{ e }}" {% if expl_param == e %}selected{% endif %}>{{ e }}</option>{% endfor %}
+            </select>
+            {% else %}
+            <div class="w-full bg-slate-100 border border-slate-50 px-3 py-2 rounded-xl text-[11px] font-black text-slate-500 uppercase truncate h-[36px] flex items-center">{{ expl_param }}</div>
+            <input type="hidden" name="expl" value="{{ expl_param }}">
+            {% endif %}
+        </div>
+
+        <div class="flex-none">
+            <a href="{{ request.path }}" class="bg-slate-800 hover:bg-black text-white font-black py-2 px-6 rounded-xl text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 h-[36px]">
+               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+               Réinitialiser
+            </a>
+        </div>
+
+    </div>
+</form>
+
+    {% if donnees.paginator.count > 0 %}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="px-6 py-3 bg-slate-50/50 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Page <span class="text-slate-900">{{ donnees.number }}</span> sur {{ donnees.paginator.num_pages }}
+        </span>
+
+        <div class="flex items-center gap-2">
+            {% if donnees.has_previous %}
+            <a href="?page={{ donnees.previous_page_number }}&{{ get_params }}" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black text-slate-600 hover:bg-green-700 hover:text-white transition-all shadow-sm group">
+                <svg class="w-3 h-3 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
+                PRÉCÉDENT
+            </a>
+            {% endif %}
+
+            {% if donnees.has_next %}
+            <a href="?page={{ donnees.next_page_number }}&{{ get_params }}" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black text-slate-600 hover:bg-green-700 hover:text-white transition-all shadow-sm group">
+                SUIVANT
+                <svg class="w-3 h-3 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="overflow-x-auto overflow-y-auto max-h-[500px] relative custom-scrollbar bg-white">
+    <table class="w-full border-separate border-spacing-0 text-[10px]">
+                <thead>
+                <tr class="sticky top-0 z-50">
+                            {% if user.organe not in user_filiale %}
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Filiale</th>
+                                    {% endif %}
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Agence</th>
+                            
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Agencelib</th>
+                            
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Exploitant</th>
+                            <th class="px-4 py-3 text-center font-black text-white uppercase tracking-widest sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[130px] border-b border-green-900">
+                                Client
+                            </th>
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Prochaine Date Revue (*)</th>
+
+                        </tr>
+                    </thead>
+                            <tbody class="divide-y divide-gray-100 bg-white text-center">
+                                {% for item in donnees.object_list %}
+                            <tr class="group {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-green-50 transition-colors">
+
+                                {% if user.organe not in user_filiale %}
+                                <td class="px-2 py-2 text-gray-500 whitespace-nowrap">{{ item.FILIALE }}</td>
+                                        {% endif %}
+                                <td class="px-2 py-2 text-gray-500 whitespace-nowrap">{{ item.AGENCE }}</td>
+
+                                <td class="px-2 py-2 text-gray-500 whitespace-nowrap">{{ item.LIB_AGENCE }}</td>
+                                <td class="px-2 py-2 text-center border-b border-slate-100 {% if not item.EXPL %}bg-red-50 text-red-600 font-bold{% else %}text-slate-500{% endif %}">
+                                {{ item.EXPL|default:"-" }}
+                            </td>
+
+                                <td class="group-hover:bg-green-600 group-hover:text-gray-100 px-4 py-3 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-[2px_0_5px_rgba(0,0,0,0.02)]
+                        ">
+                                {{ item.CLIENT|default:"NOM MANQUANT" }}
+                        </td>
+
+                            
+                                <td class="px-4 py-3 text-center font-mono font-bold {% if not item.DATEREV %}bg-orange-50 text-orange-600{% else %}text-blue-700{% endif %}">
+                                        {{ item.DATEREV|default:"Non planifiée" }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+            </table>
+
+        
+    </div>
+
+    <div class="px-4 py-2 bg-slate-50 border-t border-gray-100 text-[8px] font-bold text-slate-400 uppercase">
+        (*) Date de la dernière revue de conformité effectuée.
+    </div>
+</div>
+
+
+
+    {% else %}
+    <div class="bg-white py-24 rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center text-center px-6">
+        <div class="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+            <svg class="h-8 w-8 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Aucun résultat pour ces critères</h3>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>
+<style>
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #15803d; }
+
+    /* Pour éviter que les lignes ne "passent à travers" l'entête au scroll */
+    th { box-shadow: inset 0 -1px 0 #1e293b; }
+</style>
+
+{% if messages %}
+<script>
+    {% for message in messages %}
+    alert("{{ message }}");
+    {% endfor %}
+</script>
+{% endif %}
+
+{% endblock %}

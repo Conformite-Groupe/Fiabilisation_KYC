@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load tailwind_filters %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-br from-white via-white to-green-50/60 p-6 rounded-2xl shadow-md border border-gray-200/80">
+        <div>
+            <div class="flex items-center gap-3">
+
+                <div>
+                    <h1 class="text-xl font-black text-gray-900 tracking-tight uppercase flex items-center gap-2">
+                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-green-600 text-white text-[11px] font-black shadow-sm">KYC</span>Anomalies | <span class="text-green-700 font-light">PPE</span></h1>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ">Détection des incohérences de données (Âge, EER, CIN)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'export_csv_anom_ppe' %}?{{ request.GET.urlencode }}"          class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
+                     <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Exporter
+                </a>
+        </div>
+    </div>
+
+    <div class="flex flex-wrap justify-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-200 max-w-3xl mx-auto">
+        <a href="{% url 'ppe' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all bg-gray-50 text-gray-400 hover:bg-gray-100 uppercase tracking-widest">
+            Champs manquants
+        </a>
+        <a href="{% url 'anom_ppe' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all nav-link-active text-white shadow-lg uppercase tracking-widest border-x border-gray-100">
+            Champs en anomalie
+        </a>
+        <a href="{% url 'daterev_ppe' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all bg-gray-50 text-gray-400 hover:bg-gray-100 uppercase tracking-widest">
+            Revue scoring
+        </a>
+    </div>
+
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+        <form method="get" class="flex flex-wrap items-center justify-center gap-4">
+            {% if user.organe in users_groupe %}
+            <div class="min-w-[160px]">
+                <select name="filiale" class="w-full text-[11px] font-bold text-gray-700 border-gray-200 rounded-xl focus:ring-green-600 focus:border-green-600 bg-gray-50">
+                    <option value="">Toutes filiales</option>
+                    {% for f in filiales %}
+                        <option value="{{ f }}" {% if request.GET.filiale == f %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            {% if user.organe in user_groupe or user.organe in user_filiale_oc_ %}
+            <div class="min-w-[160px]">
+                <select name="agence" class="w-full text-[11px] font-bold text-gray-700 border-gray-200 rounded-xl focus:ring-green-600 focus:border-green-600 bg-gray-50">
+                    <option value="">Toutes agences</option>
+                    {% for a in agences %}
+                        <option value="{{ a }}" {% if request.GET.agence == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="min-w-[160px]">
+                <select name="expl" class="w-full text-[11px] font-bold text-gray-700 border-gray-200 rounded-xl focus:ring-green-600 focus:border-green-600 bg-gray-50">
+                    <option value="">Tous les exploitants</option>
+                    {% for e in exploitants %}
+                        <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="bg-gray-800 text-white p-2.5 rounded-xl hover:nav-link-active transition-all shadow-md active:scale-95">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </button>
+        </form>
+    </div>
+    <!-- TABLEAU + PAGINATION -->
+
+
+        <!-- contenu du tableau -->
+<div class="overflow-x-auto overflow-y-auto max-h-[600px] relative custom-scrollbar rounded-xl border border-slate-200 shadow-sm bg-white">
+<div class="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+
+            <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
+                {{ donnees|length }} résultat(s)
+            </span>
+        </div>
+        <table class="w-full border-separate border-spacing-0 text-[9px]">
+            <thead>
+                <tr class="sticky top-0 z-50">
+                    {% if user.organe not in user_filiale %}
+                    <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Filiale</th>
+                    {% endif %}
+        
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black tracking-tighter">Agence</th>
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black tracking-tighter max-w-[80px]">Lib. Agence</th>
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black tracking-tighter max-w-[80px]">Exploit.</th>
+                    
+                    <th class="px-2 py-2 text-center text-white bg-green-800 uppercase font-black sticky left-0 z-[60] min-w-[100px] shadow-md">
+                        Client
+                    </th>
+        
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black border-l border-slate-700 tracking-tighter">Âge</th>
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black border-l border-slate-700 tracking-tighter">EER</th>
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black border-l border-slate-700 tracking-tighter">CIN</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white">
+                {% for item in donnees %}
+                <tr class="hover:bg-slate-50 transition-colors group">
+                    {% if user.organe not in user_filiale %}
+                    <td class="px-1 py-1 text-gray-500 whitespace-nowrap text-center">{{ item.FILIALE }}</td>
+                    {% endif %}
+                    <td class="px-1 py-1 text-center border-b border-slate-100 text-gray-500 whitespace-nowrap">{{ item.AGENCE }}</td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 text-gray-500 truncate max-w-[80px]" title="{{ item.LIB_AGENCE }}">{{ item.LIB_AGENCE }}</td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 text-gray-500 truncate max-w-[80px]" title="{{ item.EXPL }}">{{ item.EXPL }}</td>
+                    <td class="group-hover:bg-green-600 group-hover:text-gray-100 px-2 py-2 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-md bg-inherit truncate max-w-[120px]">
+                        {{ item.CLIENT|default:"-" }}
+                    </td>
+        
+                    <td class="px-1 py-1 text-center border-b border-slate-100 font-bold border-l border-slate-50 {% if item.ANOMALIE_AGE %}text-orange-600 bg-orange-50{% else %}text-gray-200{% endif %}">
+                        {{ item.ANOMALIE_AGE|default:"-" }}
+                    </td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 font-bold border-l border-slate-50 {% if item.ANOMALIE_DATE_EER %}text-orange-600 bg-orange-50{% else %}text-gray-200{% endif %}">
+                        {{ item.ANOMALIE_DATE_EER|default:"-" }}
+                    </td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 font-bold border-l border-slate-50 {% if item.ANOMALIE_CIN %}text-orange-600 bg-orange-50{% else %}text-gray-200{% endif %}">
+                        {{ item.ANOMALIE_CIN|default:"-" }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="py-10 text-center font-black text-gray-300 uppercase tracking-widest text-xs">Aucune anomalie trouvée</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+</div>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    th { box-shadow: inset 0 -1px 0 #334155; }
+</style>
+
+{% endblock %}

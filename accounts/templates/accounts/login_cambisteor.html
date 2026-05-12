@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div id="wrap" class=" oe_structure oe_empty"  >
+    <section class="bg-white">
+
+         <div class="flex justify-between items-center ">
+
+                        </div>
+        <div class="flex flex-col justify-center items-center">
+            <div class=" centrage py-16 sm:py-24 xl:max-w-7xl xl:mx-auto xl:px-8">
+                  <div class="ml-4 mr-4 p-14 bg-cyan-900 border border-green-900 rounded-3xl shadow-sm flex flex-col shadow-lg mt-5 ">
+
+                <form method="POST">
+ <div class="flex justify-center">
+                             <img class="w-40"
+                                             src="/media/images/boa.png">
+
+                         </div>
+                    <br>
+                    <br>
+                    <div class="bg-green-600 h-2 w-full"></div>
+
+                     <br>
+                    <br>
+
+                    <h1 class="text-2xl text-center tracking-tight text-green-600">FIABILISATION KYC </h1>
+
+                    <h1 class="text-2xl  text-center tracking-tight text-green-600"> PLATEFORME DE NOTATION <br> </h1>
+
+<br>
+               
+                    {% if error %}
+                   <p class="error text-red-700">{{ error }}</p>
+                 {% endif %}
+                     <div class="mt-4"><input required aria-label="Email" id="email" type="text" name="email" placeholder="Email"
+                              class="text-sm text-gray-base w-full
+                              mr-3 py-5 px-4 h-2 border
+                              border-gray-200 rounded mb-2" /></div>
+
+                        <div><input required aria-label="Mot de passe" id="password" type="password" name="password" placeholder="Mot de psse"
+                       class="text-sm text-gray-base w-full mr-3
+                              py-5 px-4 h-2 border border-gray-200
+                              rounded mb-2" /></div>
+
+
+                       <div> <button type="submit" class="bg-green-700 hover:green-600 tracking-normal py-3 px-3 text-gray-200
+                              text-center  border border-gray-900 rounded-md shadow-lg font-bold w-full mt-6
+                                focus:outline focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-700 focus:ring-green-700">
+                       Connexion
+                  </button></div>
+             </form>
+         </div>
+            </div>
+            <div class="mt-10 text-red-900"> </div>
+          <div class="mt-10 text-red-900"> </div>
+             <div class="mt-10 text-red-900"> </div>
+          <div class="mt-10 text-red-900"> </div>
+        </div>
+    </section>
+</div>
+
+
+
+
+{% endblock %}
+

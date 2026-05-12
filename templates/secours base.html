@@ -1,0 +1,375 @@
+{% load tailwind_tags %}
+<!DOCTYPE html>
+
+<html lang="fr" >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plateforme KYC</title>
+    {% tailwind_css %}
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.2/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+<style>
+  [x-cloak] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+</style>
+
+
+</head>
+
+<body class="bg-transparent">
+
+    <nav class="bg-gray-200 rounded-md p-2 mt-0 fixed w-full z-10 top-0 border border-green-700 shadow-lg">
+
+			<div class="max-w-6xl mx-auto px-4">
+				<div class="flex justify-between">
+					    <div class="flex justify-between items-center ">
+
+                            <img class="h-10 inline -mr-8" src="/media/images/logo.png">
+
+
+                        </div>
+
+						<!-- Primary Navbar items -->
+
+					<!-- Secondary Navbar items -->
+
+					<!-- Mobile menu button -->
+					<div class="md:hidden flex items-center" >
+
+
+						<button class="outline-none mobile-menu-button shadow rounded-2xl">
+                                <svg class=" w-10 h-10 text-gray-200 hover:text-gray-500 "
+                                    x-show="!showMenu"
+                                    fill="none"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path d="M4 6h16M4 12h16M4 18h16"></path>
+                                </svg>
+				    	</button>
+					</div>
+	    		</div>
+			<!-- mobile menu -->
+
+            </div>
+    </nav>
+
+
+<section>
+    {% with current_name=request.resolver_match.url_name %}
+    {% if current_name != "accueil" %}
+              <div class="md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
+            <!-- Sidebar component, swap this element with another sidebar if you like -->
+            <div class="flex-1 flex flex-col min-h-0 nav-link-active">
+              <div class="flex items-center h-16 flex-shrink-0 px-4 ">
+              </div>
+              <div class="flex-1 flex flex-col overflow-y-auto">
+                <nav class="flex-1 px-2 py-4 space-y-1">
+                  <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:nav-link-active hover:text-white" -->
+
+
+                   {% if user.organe not in user_stat %}
+                        <a href="{% url 'agent' %}" class="{% if current_name == 'agent' or current_name == 'agent_stock' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+
+                    <svg class="text-white  mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                       <h1 class="">Agents</h1>
+                  </a>
+                    {% endif %}
+                       <a href="{% url 'non_rens' %}" class="{% if current_name == 'non_rens' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+
+                    <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                       <h1 class="">Champs non-renseignés</h1>
+                  </a>
+
+                  <a href="/non_anom" class="{% if current_name == 'non_anom' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                    <!-- Heroicon name: outline/folder -->
+                    <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                       <h1 class="">Champs en anomalie</h1>
+                  </a>
+
+              <a href="/statistiques" class="{% if current_name == 'statistiques' or current_name == 'statistiques_stock' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white tracking-normal hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
+                    <!-- Heroicon name: outline/chart-bar -->
+                    <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Statistiques
+                  </a>
+                        {% if user.organe == "Contrôle Permanent" %}
+                      <a href="/notation" class="{% if current_name == 'notation' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm  rounded-md">
+                    <!-- Heroicon name: outline/folder -->
+                    <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" />
+                      </svg>
+                    Notation
+                  </a>
+
+                       <a href="/historique" class="{% if current_name == 'historique' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white tracking-normal hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
+                    <!-- Heroicon name: outline/chart-bar -->
+                    <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" />
+</svg>
+
+
+                    Historique notation
+                  </a>
+
+                    {% endif %}
+
+                {% if user.organe == "Conformité" or user.organe == "Conformité Groupe" %}
+
+                            <!-- Menu Conformité -->
+<div x-data="{ open: false }" class="relative">
+    <!-- Bouton principal -->
+    <button @click="open = !open"
+        class="w-full flex items-center justify-between px-2 py-2 text-sm font-medium text-white rounded-md hover:bg-cyan-800 transition">
+        <span class="flex items-center">
+            <!-- Icône dossier -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 7h4l2-2h8l2 2h4v12H3V7z" />
+            </svg>
+            Conformité
+        </span>
+        <!-- Flèche -->
+        <svg :class="{'rotate-180': open}" class="h-5 w-5 transform transition-transform text-white"
+             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 9l-7 7-7-7" />
+        </svg>
+    </button>
+
+    <!-- Sous-menu -->
+    <div x-show="open" x-cloak @click.away="open = false"
+         x-transition.opacity.duration.150ms
+         class="mt-1 ml-4 space-y-1">
+
+        <!-- Scoring -->
+        <a href="{% url 'scoring' %}"
+           @click.prevent="open = false; $nextTick(() => window.location.href = $el.getAttribute('href'))"
+           class="{% if current_name == 'scoring' or current_name == 'sans_classe' %}bg-cyan-800{% endif %} flex items-center px-2 py-2 text-sm rounded-md text-white hover:bg-cyan-700 transition">
+            <svg class="h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M11.35 3.836c-.065.21-.1.433..." />
+            </svg>
+            Scoring
+        </a>
+
+        <!-- PPE -->
+        <a href="{% url 'ppe' %}"
+           @click.prevent="open = false; $nextTick(() => window.location.href = $el.getAttribute('href'))"
+           class="{% if current_name == 'ppe' or current_name == 'daterev_ppe' %}bg-cyan-800{% endif %} flex items-center px-2 py-2 text-sm rounded-md text-white hover:bg-cyan-700 transition">
+            <svg class="h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M18 18.72a9.094 9.094..." />
+            </svg>
+            PPE
+        </a>
+
+        <!-- Comptes spécifiques -->
+        <a href="{% url 'devise' %}"
+           @click.prevent="open = false; $nextTick(() => window.location.href = $el.getAttribute('href'))"
+           class="{% if current_name in 'devise devise_pm non_resid non_resid_pm' %}bg-cyan-800{% endif %} flex items-center px-2 py-2 text-sm rounded-md text-white hover:bg-cyan-700 transition">
+            <svg class="h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 6v12m-3-2.818..." />
+            </svg>
+            Comptes spécifiques
+        </a>
+    </div>
+</div>
+
+                    {% endif %}
+              {% if user.organe != "PASS" %}
+
+                    <a href="{% url 'profil' %}" class="{% if current_name == 'profil' or current_name == 'modify-pw' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
+                      <!-- Heroicon name: outline/users -->
+                      <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      Mon profil
+                    </a>
+                    {% endif %}
+
+
+
+                     {% if user.organe == "PASS" %}
+
+                       <a href="/user_list" class="{% if current_name == 'user_list' or current_name == 'register' or current_name == 'edit_user' or current_name == 'reset_user_password' or current_name == 'user_statistics' %}bg-cyan-800{% endif %}  hover:scale-105 transition-transform duration-200  text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
+                    <!-- Heroicon name: outline/users -->
+
+                    <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 0 15 0m-15 0a7.5 7.5 0 1 1 15 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077 1.41-.513m14.095-5.13 1.41-.513M5.106 17.785l1.15-.964m11.49-9.642 1.149-.964M7.501 19.795l.75-1.3m7.5-12.99.75-1.3m-6.063 16.658.26-1.477m2.605-14.772.26-1.477m0 17.726-.26-1.477M10.698 4.614l-.26-1.477M16.5 19.794l-.75-1.299M7.5 4.205 12 12m6.894 5.785-1.149-.964M6.256 7.178l-1.15-.964m15.352 8.864-1.41-.513M4.954 9.435l-1.41-.514M12.002 12l-3.75 6.495" />
+</svg>
+
+                                           <h1 class="">Paramètres</h1>
+
+                  </a>
+
+                    {% endif %}
+<br>
+                     <h1 class=" text-cyan-900 tracking-normal text-center  group flex items-center px-2 py-2 text-sm   rounded-md">
+
+
+                            Bienvenue {{ user.first_name }} <br> {{ user.organe }} ( {{ user.filiale }} )
+
+                  </h1>
+
+                    <div class="flex flex-col justify-center items-center">
+                                  <a href="/logout" class="bg-white hover:bg-red-500 mt-8 block  py-2 px-2 border border-transparent rounded-md text-center  text-cyan-800 tracking-normal  hover:text-gray-200
+                                  focus:outline focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-700 focus:ring-red-700 hover:scale-105 transition transform duration-200"> <h1>Déconnexion</h1></a>
+                           </div>
+                </nav>
+              </div>
+            </div>
+          </div>
+    {% endif %}
+    {% endwith %}
+
+</section>
+
+      <section>
+          <div>
+              {% block content %}
+              {% endblock %}
+          </div>
+      </section>
+
+    <section class="bg-gray-200">
+
+              <div class="bg-white">
+                    <br>
+        <br>  <br>
+        <br>
+
+                  <div><br></div>
+                   <div><br></div>
+                    <br>
+        <br>  <br>
+
+              </div>
+
+
+
+    </section>
+
+<section class="bg-white">
+
+
+ <footer class="border border-gray-900 rounded-md shadow-lg">
+
+</footer>
+
+
+</section>
+  <script>
+      const btn = document.querySelector("button.mobile-menu-button");
+      const menu = document.querySelector(".mobile-menu");
+
+      btn.addEventListener("click", () => {
+          menu.classList.toggle("hidden");
+      });
+  </script>
+
+<script>
+  const scrollTop = document.getElementById('scrollTop');
+  const scrollContainer = document.getElementById('scrollContainer');
+
+  scrollTop.addEventListener('scroll', () => {
+    scrollContainer.scrollLeft = scrollTop.scrollLeft;
+  });
+
+  scrollContainer.addEventListener('scroll', () => {
+    scrollTop.scrollLeft = scrollContainer.scrollLeft;
+  });
+</script>
+
+
+ {% if selected_expl %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Données PM
+    const datesPM = JSON.parse('{{ dates_pm|escapejs }}');
+    const tauxPM = JSON.parse('{{ taux_pm|escapejs }}');
+
+    const ctxPM = document.getElementById('tauxChartPM').getContext('2d');
+    new Chart(ctxPM, {
+        type: 'line',
+        data: {
+            labels: datesPM,
+            datasets: [{
+                label: 'Taux PM',
+                data: tauxPM,
+                borderColor: '#F97316',
+                backgroundColor: 'rgba(255, 212, 153, 0.2)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            scales: {
+                x: { type: 'category', title: { display: true, text: 'Date' }},
+                y: { beginAtZero: true, title: { display: true, text: 'Taux' }}
+            },
+            plugins: {
+                legend: { labels: { color: '#000000' }}
+            }
+        }
+    });
+
+    // Données PP
+    const datesPP = JSON.parse('{{ dates_pp|escapejs }}');
+    const tauxPP = JSON.parse('{{ taux_pp|escapejs }}');
+
+    const ctxPP = document.getElementById('tauxChartPP').getContext('2d');
+    new Chart(ctxPP, {
+        type: 'line',
+        data: {
+            labels: datesPP,
+            datasets: [{
+                label: 'Taux PP',
+                data: tauxPP,
+                borderColor: '#04BD25',
+                backgroundColor: 'rgba(251, 191, 36, 0.2)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            scales: {
+                x: { type: 'category', title: { display: true, text: 'Date' }},
+                y: { beginAtZero: true, title: { display: true, text: 'Taux' }}
+            },
+            plugins: {
+                legend: { labels: { color: '#000000' }}
+            }
+        }
+    });
+});
+</script>
+
+{% endif %}
+
+
+
+</body>
+
+</html>

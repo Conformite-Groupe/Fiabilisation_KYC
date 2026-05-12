@@ -1,0 +1,10 @@
+@echo on
+
+echo Fermeture de Django...
+taskkill /F /IM python.exe /T
+echo Django est fermé ! 
+
+cd /d "C:\Fiabilisation KYC\Python\Fiabilisation_kyc"
+call venv\Scripts\activate
+python manage.py runserver 10.170.82.20:8080
+pause

@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load tailwind_filters %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div>
+            <div class="flex items-center gap-3">
+
+                <div>
+                    <h1 class="text-xl font-black text-gray-800 tracking-tight uppercase">Comptes | <span class="text-green-700 font-light">Devise (PP)</span></h1>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ">Comptes en devise à fiabiliser</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'export_devise_pp' %}?{{ request.GET.urlencode }}"          class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
+                     <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Exporter
+                </a>
+        </div>
+    </div>
+
+    <div class="flex flex-wrap justify-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-200 max-w-4xl mx-auto">
+        <a href="{% url 'devise' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all {% if 'devise' in request.path %}nav-link-active text-white shadow-lg{% else %}bg-gray-50 text-gray-400 hover:bg-gray-100{% endif %} uppercase tracking-widest">
+            Comptes en devise
+        </a>
+        <a href="{% url 'non_resid' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all {% if 'non_resid' in request.path %}nav-link-active text-white shadow-lg{% else %}bg-gray-50 text-gray-400 hover:bg-gray-100{% endif %} uppercase tracking-widest border-l border-gray-100">
+            Comptes Non-Résidents
+        </a>
+    </div>
+
+    <div class="flex justify-center">
+        <div class="inline-flex p-1 bg-gray-200 rounded-xl shadow-inner">
+            <a href="/devise" class="px-6 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all {% if 'devise_pm' not in request.path %}bg-gray-800 text-gray-200 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">PP</a>
+            <a href="/devise_pm" class="px-6 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all {% if 'devise_pm' in request.path %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">PM</a>
+        </div>
+    </div>
+
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 max-w-5xl mx-auto">
+        <form method="get" class="flex flex-wrap items-center justify-center gap-4">
+            {% if user.organe in users_groupe %}
+            <div class="min-w-[160px]">
+                <select name="filiale" class="w-full text-[11px] font-bold text-gray-700 border-gray-200 rounded-xl focus:ring-green-600 focus:border-green-600 bg-gray-50">
+                    <option value="">Toutes filiales</option>
+                    {% for f in filiales %}
+                        <option value="{{ f }}" {% if request.GET.filiale == f %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="min-w-[160px]">
+                <select name="agence" class="w-full text-[11px] font-bold text-gray-700 border-gray-200 rounded-xl focus:ring-green-600 focus:border-green-600 bg-gray-50">
+                    <option value="">Toutes agences</option>
+                    {% for a in agences %}
+                        <option value="{{ a }}" {% if request.GET.agence == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="min-w-[160px]">
+                <select name="expl" class="w-full text-[11px] font-bold text-gray-700 border-gray-200 rounded-xl focus:ring-green-600 focus:border-green-600 bg-gray-50">
+                    <option value="">Tous les exploitants</option>
+                    {% for e in exploitants %}
+                        <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="bg-gray-800 text-white p-2.5 rounded-xl hover:nav-link-active transition-all shadow-md active:scale-95">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </button>
+
+
+        </form>
+    </div>
+
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4">
+        <div class="flex items-center gap-2">
+            <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
+                {{ donnees.paginator.count }} client(s)
+            </span>
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Page {{ donnees.number }} / {{ donnees.paginator.num_pages }}
+            </span>
+        </div>
+
+        <div class="flex items-center bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {% if donnees.has_previous %}
+                <a href="?page={{ donnees.previous_page_number }}&{{ get_params }}" class="px-2 py-2 text-[8px] font-black text-gray-600 hover:bg-gray-50 border-r border-gray-100 transition-colors uppercase tracking-widest">Précédent</a>
+            {% else %}
+                <span class="px-2 py-2 text-[8px] font-black text-gray-300 bg-gray-50 cursor-not-allowed border-r border-gray-100 uppercase tracking-widest">Précédent</span>
+            {% endif %}
+
+            {% if donnees.has_next %}
+                <a href="?page={{ donnees.next_page_number }}&{{ get_params }}" class="px-2 py-2 text-[8px] font-black text-gray-600 hover:bg-gray-50 transition-colors uppercase tracking-widest">Suivant</a>
+            {% else %}
+                <span class="px-2 py-2 text-[8px] font-black text-gray-300 bg-gray-50 cursor-not-allowed uppercase tracking-widest">Suivant</span>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <div class="overflow-x-auto overflow-y-auto max-h-[550px] relative custom-scrollbar">
+        <table class="w-full border-separate border-spacing-0 text-[9px]">
+            <thead>
+                {% if user.organe not in user_filiale %}
+                <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Filiale</th>
+                {% endif %}
+                <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Agence</th>
+                <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700 max-w-[80px]">Lib. Agence</th>
+                
+                <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Exploit.</th>
+                
+                <th class="px-2 py-2 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[100px] border-b border-green-900">
+                    Client
+                </th>
+                
+                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">IDP</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Codape</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Profession</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Salaire</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Orig. Revenu</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Validité</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Contact</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Datouv</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Devise</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 bg-white">
+                {% for item in donnees %}
+                <tr class="group {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-green-50 transition-colors">
+                    {% if user.organe not in user_filiale %}
+                    <td class="px-1 py-1 text-gray-500 whitespace-nowrap text-center">{{ item.FILIALE }}</td>
+                    {% endif %}
+                    <td class="px-1 py-1 text-gray-500 whitespace-nowrap text-center">{{ item.AGENCE }}</td>
+                    <td class="px-1 py-1 text-gray-500 truncate max-w-[80px]" title="{{ item.LIB_AGENCE }}">{{ item.LIB_AGENCE }}</td>
+                       <td class="px-1 py-1 text-center border-b border-slate-100 text-[8px] {{ item.EXPL|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                        {{ item.EXPL|default:"-" }}
+                    </td>
+        
+                    <td class="group-hover:bg-green-600 group-hover:text-gray-100 px-2 py-2 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-md bg-inherit truncate max-w-[120px]">
+                        {{ item.CLIENT|default:"-" }}
+                    </td>
+          <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.IDP|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                        {{ item.IDP|default:"-" }}
+                    </td>
+                 
+                    <td class="px-2 py-2 text-center {% if not item.CODAPE %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.CODAPE|default:"-" }}</td>
+                    <td class="px-2 py-2 truncate max-w-[90px] {% if not item.PROFESSION %}bg-red-50 text-red-700 font-black{% endif %}" title="{{ item.PROFESSION }}">{{ item.PROFESSION|default:"-" }}</td>
+                    <td class="px-2 py-2 text-center {% if not item.SALAIRE %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.SALAIRE|default:"-" }}</td>
+                    <td class="px-2 py-2 text-center {% if not item.ORIGINE_REV %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.ORIGINE_REV|default:"-" }}</td>
+                    <td class="px-2 py-2 text-center {% if not item.DATVALID %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.DATVALID|default:"-" }}</td>
+                    <td class="px-2 py-2 text-center {% if not item.TEL %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.TEL|default:"-" }}</td>
+                    <td class="px-2 py-2 text-center {% if not item.DATOUV %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.DATOUV|default:"-" }}</td>
+                    <td class="px-2 py-2 text-center}">      <span class="px-2 py-1 bg-green-100 text-green-700 rounded-md font-black">{{ item.DEVISE|default:"-" }}</span>
+                      </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div id="successMessage" class="hidden">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+</div>
+
+<script>
+    const msgBox = document.getElementById("successMessage");
+    if (msgBox && msgBox.innerText.trim() !== "") {
+        alert("💰 " + msgBox.innerText);
+    }
+</script>
+{% endblock %}

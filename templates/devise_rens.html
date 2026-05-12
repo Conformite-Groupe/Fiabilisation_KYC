@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% load tailwind_filters %}
+
+{% block content %}
+
+<div id="wrap" class="bg-white oe_structure oe_empty"  >
+    <section class="bg-white">
+  <!-- Static sidebar for desktop -->
+        <div class="mt-8 md:pl-64 flex flex-col">
+
+                <main class="flex-1">
+
+                  <div class="py-6">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                     </div>
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                      <div class="py-4">
+                        <div >
+                          <div class="relative items-center justify-center">
+                       <br>
+                       <div class="shadow-lg flex items-center justify-center">
+                          <span class="text-2xl sm:text-4xl text-gray-500 font-extrabold tracking-tight text-center ">CHAMPS NON RENSEIGNES.</span>
+                       </div>
+                       <br>
+
+                   <div class="flex items-center justify-center">
+                      <span class="text-gray-500 text-2xl text-center font-extrabold tracking-normal "></span>
+                   </div>
+                                  <div>
+
+
+       <a href="{% url 'export_csv_pp' %}" class="bg-orange-500 shadow-lg text-white px-4 py-2 rounded">
+  Exporter
+</a>
+        </div>
+                  <br>
+
+
+     <div class="flex col-flex justify-center">
+
+ <div class="flex space-x-2">
+      <a href="\non_rens" class="nav-link-active text-gray-200 hover:text-gray-200 px-4 py-2 border border-gray-900 rounded-l hover:scale-105 transition transform duration-200">PP</a>
+
+ </div>
+       <div class="flex space-x-2">
+
+           <a href="\non_rens_pm" class="bg-gray-200 hover:bg-cyan-800 text-gray-900 hover:text-gray-200 px-4 py-2 border border-gray-900  rounded-r hover:scale-105 transition transform duration-200">PM</a>
+       </div>
+
+   </div>
+                                <br>
+
+<div class="p-6">
+  <!-- Titre -->
+
+  <!-- Formulaire de filtres -->
+<!-- Formulaire de filtres -->
+
+<form method="get" class="bg-gray-100 p-4 rounded-xl shadow-md w-full max-w-2xl mx-auto mb-6">
+  <div class="flex flex-wrap gap-6 items-end justify-center">
+
+    <!-- Filiale : visible uniquement pour les contrôleurs -->
+    {% if user.organe in users_groupe %}
+      <div class="flex flex-col">
+
+        <select name="filiale" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+          <option value="">Toutes filiales</option>
+          {% for f in filiales %}
+            <option value="{{ f }}" {% if request.GET.filiale == f %}selected{% endif %}>{{ f }}</option>
+          {% endfor %}
+        </select>
+      </div>
+           <div class="flex flex-col">
+
+        <select name="agence" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+          <option value="">Toutes les agences</option>
+          {% for a in agences %}
+            <option value="{{ a }}" {% if request.GET.agence == a %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+        </select>
+       </div>
+
+          <div class="flex flex-col">
+
+        <select name="expl" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+          <option value="">Tous les exploitants</option>
+          {% for e in exploitants %}
+            <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
+          {% endfor %}
+        </select>
+          </div>
+          <!-- Bouton Rechercher -->
+    <div class="flex items-end">
+      <button type="submit" class="nav-link-active hover:nav-link-active text-white text-sm font-semibold px-5 py-2 rounded-md transition duration-200 shadow">
+        Rechercher
+      </button>
+    </div>
+    {% endif %}
+
+    <!-- Agence : visible pour les profils autorisés avec filtrage dynamique -->
+    {% if user.organe in users_filiale %}
+    <div class="flex flex-col">
+
+        <select name="agence" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+          <option value="">Toutes les agences</option>
+          {% for a in agences %}
+            <option value="{{ a }}" {% if request.GET.agence == a %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+        </select>
+       </div>
+
+          <div class="flex flex-col">
+
+        <select name="expl" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+          <option value="">Tous les exploitants</option>
+          {% for e in exploitants %}
+            <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
+          {% endfor %}
+        </select>
+          </div>
+          <!-- Bouton Rechercher -->
+    <div class="flex items-end">
+      <button type="submit" class="nav-link-active hover:nav-link-active text-white text-sm font-semibold px-5 py-2 rounded-md transition duration-200 shadow">
+        Rechercher
+      </button>
+    </div>
+
+    {% endif %}
+
+        {% if user.organe == "Directeur Agence" %}
+
+          <div class="flex flex-col">
+
+        <select name="expl" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+          <option value="">Tous les exploitants</option>
+          {% for e in exploitants %}
+            <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
+          {% endfor %}
+        </select>
+          </div>
+          <!-- Bouton Rechercher -->
+    <div class="flex items-end">
+      <button type="submit" class="nav-link-active hover:nav-link-active text-white text-sm font-semibold px-5 py-2 rounded-md transition duration-200 shadow">
+        Rechercher
+      </button>
+    </div>
+
+    {% endif %}
+
+
+
+  </div>
+</form>
+
+    <br>
+
+
+<div class="mb-2 text-orange-600 font-semibold tracking-tight  ">{{ donnees|length }} client(s) trouvé(s)</div>
+
+<!-- Scroll synchronisé en haut -->
+
+
+  {% if donnees %}
+
+
+<!-- Conteneur principal avec overflow -->
+<div id="scrollContainer" class="overflow-x-auto overflow-y-auto max-h-[400px] relative">
+<table class="min-w-[1200px] text-xs text-center border border-gray-300">
+  <thead class="sticky top-0 nav-link-active text-white z-10">
+      <tr class="text-center">
+              <th class="px-2 py-1 border border-gray-300">Filiale</th>
+           <th class="px-2 py-1 border border-gray-300">Agence</th>
+        <th class="px-2 py-1 border border-gray-300 sticky left-0 nav-link-active ">Client</th>
+
+        <th class="px-2 py-1 border border-gray-300">Exploitant</th>
+        <th class="px-2 py-1 border border-gray-300">Codape</th>
+        <th class="px-2 py-1 border border-gray-300">Idp</th>
+        <th class="px-2 py-1 border border-gray-300">Pays Nais</th>
+        <th class="px-2 py-1 border border-gray-300">Profession</th>
+        <th class="px-2 py-1 border border-gray-300">Adresse</th>
+        <th class="px-2 py-1 border border-gray-300">Pays Resid</th>
+          <th class="px-2 py-1 border border-gray-300">Num Cin</th>
+        <th class="px-2 py-1 border border-gray-300">Salaire</th>
+        <th class="px-2 py-1 border border-gray-300">Origine Revenu</th>
+        <th class="px-2 py-1 border border-gray-300">Validité Cin</th>
+           <th class="px-2 py-1 border border-gray-300">Téléphone</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in donnees %}
+      <tr class="hover:bg-gray-200 transition-colors duration-200 ease-in-out">
+          <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center">{{ item.FILIALE }}</td>
+          <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center">{{ item.AGENCE }}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center bg-gray-200 sticky left-0 ">{{ item.CLIENT }}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.EXPL %}bg-orange-500{% endif %}">{{ item.EXPL|default:"-" }}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.CODAPE %}bg-orange-500{% endif %}">{{ item.CODAPE |default:"-"}}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.IDP  %}bg-orange-500{% endif %}">{{ item.IDP |default:"-"}}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.PAYNAIS  %}bg-orange-500{% endif %}">{{ item.PAYNAIS|default:"-" }}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.PROFESSION  %}bg-orange-500{% endif %}">{{ item.PROFESSION|default:"-" }}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.ADRESSE %}bg-orange-500{% endif %}">{{ item.ADRESSE |default:"-"}}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.PAYS_RESID %}bg-orange-500{% endif %}">{{ item.PAYS_RESID |default:"-"}}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.NUMID  %}bg-orange-500{% endif %}">{{ item.NUMID|default:"-" }}</td>
+          <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.SALAIRE  %}bg-orange-500{% endif %}">{{ item.SALAIRE|default:"-" }}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.ORIGINE_REV %}bg-orange-500{% endif %}">{{ item.ORIGINE_REV |default:"-"}}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.DATVALID %}bg-orange-500{% endif %}">{{ item.DATVALID |default:"-"}}</td>
+        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.TEL  %}bg-orange-500{% endif %}">{{ item.TEL|default:"-" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+
+</div>
+
+  {% else %}
+    <p class="text-gray-600">Aucune donnée disponible pour les critères sélectionnés.</p>
+  {% endif %}
+</div>
+{% if messages %}
+<ul class="bg-white text-white">
+  {% for message in messages %}
+    <li id="successMessage">{{ message }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+
+
+              </div>
+                        </div>
+                      </div>
+                      <!-- /End replace -->
+                    </div>
+                  </div>
+                </main>
+              </div>
+    </section>
+
+</div>
+
+<script>
+    // Récupérer l'élément contenant le message
+    const successMessage = document.getElementById("successMessage");
+
+    // Si l'élément existe et qu'il contient un message, afficher une alerte
+    if (successMessage && successMessage.innerText.trim() !== "") {
+        alert(successMessage.innerText);
+    }
+</script>
+
+
+
+
+{% endblock %}
+

@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% load tailwind_filters %}
+
+{% block content %}
+
+<div id="wrap" class=" oe_structure oe_empty"  >
+    <section class="bg-white">
+
+         <div class="flex justify-between items-center ">
+
+                        </div>
+        <div class="flex flex-col justify-center items-center">
+            <div class=" centrage py-16 sm:py-24 xl:max-w-7xl xl:mx-auto xl:px-8">
+                  <div class="ml-4 mr-4 p-14 bg-white border border-green-900 rounded-3xl shadow-sm flex flex-col shadow-lg mt-5 ">
+
+                <form method="POST">
+ <div class="flex justify-center">
+                             <img class="w-40"
+                                             src="/media/images/boa.png">
+
+                         </div>
+                    <br>
+                    <br>
+                    <div class="bg-green-600 h-2 w-full"></div>
+
+                     <br>
+                    <br>
+
+                    <h1 class="text-2xl text-center tracking-tight text-green-600">FIABILISATION KYC </h1>
+
+                    <h1 class="text-2xl  text-center tracking-tight text-green-600"> PLATEFORME DE NOTATION <br> </h1>
+
+                    {% if user.organe == "PASS" %}
+                    <h1 class="text-2xl  text-center tracking-tight text-green-600"> INSCRIRE UN UTILISATEUR <br> </h1>
+
+<br>
+            
+                      {% if error %}
+                   <p class="error text-red-700">{{ error }}</p>
+                 {% endif %}
+           <div class="mt-5  text-gray-500 flex flex-col mb-8" >
+                            
+
+                                    {{ formCamb}}
+
+
+
+                              {% if error %}
+                              <p class="error">{{ error }}</p>
+                              {% endif %}
+                         </div>
+
+
+                          <div class="mt-4">
+                              <button type="submit" class=" mt-4 bg-cyan-900 tracking-normal py-3 px-3 text-gray-200
+                              text-center hover:bg-cyan-600 border border-sky-900 rounded-md shadow-lg font-bold  w-full
+                                focus:outline focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-700 focus:ring-green-700" >
+                                  Connexion
+                              </button>
+                          </div>
+
+                    {% else %}
+   <div class="mt-5">
+                             <a href="{% url 'agent' %}" class="text-green-700 hover:text-green-500 mt-8
+                           ">Vous n'êtes pas autorisé à consulter cette page.<span aria-hidden="true"> <br> Revenir à l'accueil &rarr;</span></h1>
+                         </div>
+                    {% endif %}
+
+
+               </form>
+
+          <div class="mt-10 text-red-900"> </div>
+          <div class="mt-10 text-red-900"> </div>
+             <div class="mt-10 text-red-900"> </div>
+          <div class="mt-10 text-red-900"> </div>
+      </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% endblock %}
+

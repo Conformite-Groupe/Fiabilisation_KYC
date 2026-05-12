@@ -1,0 +1,108 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Regles de Controle Qualite KYC</title>
+    <style>
+        @page { size: A4; margin: 1cm; }
+        body { font-family: Helvetica, Arial, sans-serif; color: #333; line-height: 1.4; font-size: 10px; }
+        .header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #1a202c; padding-bottom: 10px; }
+        .header h1 { margin: 0; font-size: 20px; text-transform: uppercase; color: #1a202c; }
+        .header p { margin: 5px 0 0; color: #718096; font-weight: bold; }
+        .meta { margin-bottom: 16px; font-style: italic; }
+        .rule-block { margin-bottom: 20px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; page-break-inside: avoid; }
+        .rule-title { font-size: 14px; font-weight: bold; color: #2d3748; margin-bottom: 10px; border-bottom: 1px solid #edf2f7; padding-bottom: 5px; }
+        .stats-box { background-color: #f7fafc; padding: 10px; border-radius: 5px; margin-top: 10px; border-left: 4px solid #48bb78; }
+        .stats-title { font-weight: bold; text-transform: uppercase; font-size: 9px; margin-bottom: 5px; color: #2f855a; }
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 8px; color: #a0aec0; border-top: 1px solid #edf2f7; padding-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_path %}
+        <div style="text-align:center; margin-bottom: 10px;">
+            <img src="{{ logo_path }}" alt="BOA" style="height: 42px;">
+        </div>
+        {% endif %}
+        <h1>Regles de Controle Qualite KYC</h1>
+        <p>Filiale : {{ filiale }} | Date : {{ date|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    <div class="meta">
+        Document genere par {{ user.get_full_name|default:user.username }}
+    </div>
+
+    {% for item in rules %}
+    <div class="rule-block" style="border: 2px solid #1a202c;">
+        <div class="rule-title" style="background-color: #f8fafc; padding: 8px; border-bottom: 2px solid #1a202c; margin: -15px -15px 15px -15px; border-radius: 6px 6px 0 0;">
+            <span style="color: #1a202c;">#{{ forloop.counter }}</span> | {{ item.rule.name }}
+            <span style="float: right; font-size: 9px; color: {% if item.rule.active %}#2f855a{% else %}#718096{% endif %};">
+                [{% if item.rule.active %}ACTIVE{% else %}INACTIVE{% endif %}]
+            </span>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+            <tr>
+                <td style="width: 30%; border: 1px solid #e2e8f0; padding: 8px; background-color: #f7fafc; font-weight: bold;">Segment cible</td>
+                <td style="width: 70%; border: 1px solid #e2e8f0; padding: 8px;">{{ item.rule.get_applicability_display }}</td>
+            </tr>
+            {% if item.rule.description %}
+            <tr>
+                <td style="border: 1px solid #e2e8f0; padding: 8px; background-color: #f7fafc; font-weight: bold;">Description</td>
+                <td style="border: 1px solid #e2e8f0; padding: 8px; font-style: italic;">{{ item.rule.description }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td style="border: 1px solid #e2e8f0; padding: 8px; background-color: #f7fafc; font-weight: bold;">Auteur</td>
+                <td style="border: 1px solid #e2e8f0; padding: 8px;">
+                    {% if item.rule.created_by %}
+                    {{ item.rule.created_by.get_full_name|default:item.rule.created_by.username|default:"Utilisateur inconnu" }} ({{ item.rule.created_by.filiale|default:"Filiale non renseignee" }})
+                    {% else %}
+                    Utilisateur inconnu (Filiale non renseignee)
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+
+        {% if item.rule.conditions.exists %}
+        <div style="margin-bottom: 5px; font-weight: bold; text-transform: uppercase; font-size: 9px; color: #4a5568;">Logique de la regle :</div>
+        <div style="border: 1px dashed #cbd5e1; padding: 10px; border-radius: 4px; background-color: #fff; margin-bottom: 15px;">
+            {% for cond in item.rule.conditions.all %}
+            <div style="margin-bottom: 4px; padding-left: 10px; border-left: 3px solid #cbd5e1;">
+                Champ <strong>{{ cond.field_name }}</strong> {{ cond.get_operator_display }} {% if cond.value %}<strong>"{{ cond.value }}"</strong>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="stats-box" style="border: 1px solid {% if item.stat.compliance_rate >= 80 %}#48bb78{% elif item.stat.compliance_rate >= 50 %}#ecc94b{% else %}#f56565{% endif %}; border-left: 8px solid {% if item.stat.compliance_rate >= 80 %}#48bb78{% elif item.stat.compliance_rate >= 50 %}#ecc94b{% else %}#f56565{% endif %};">
+            <div class="stats-title">Taux de conformite</div>
+            <table style="width: 100%; text-align: center;">
+                <tr>
+                    <td style="padding: 5px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #1a202c;">{{ item.stat.compliance_rate|default_if_none:0|floatformat:1 }}%</div>
+                        <div style="font-size: 7px; color: #718096; text-transform: uppercase;">Taux</div>
+                    </td>
+                    <td style="padding: 5px; border-left: 1px solid #e2e8f0;">
+                        <div style="font-size: 14px; font-weight: bold; color: #2f855a;">{{ item.stat.ok_count|default:0 }}</div>
+                        <div style="font-size: 7px; color: #718096; text-transform: uppercase;">Conformes</div>
+                    </td>
+                    <td style="padding: 5px; border-left: 1px solid #e2e8f0;">
+                        <div style="font-size: 14px; font-weight: bold; color: #c53030;">{{ item.stat.fail_count|default:0 }}</div>
+                        <div style="font-size: 7px; color: #718096; text-transform: uppercase;">Anomalies</div>
+                    </td>
+                    <td style="padding: 5px; border-left: 1px solid #e2e8f0;">
+                        <div style="font-size: 14px; font-weight: bold; color: #2d3748;">{{ item.stat.total|default:0 }}</div>
+                        <div style="font-size: 7px; color: #718096; text-transform: uppercase;">Total</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="footer">
+        (c) BANK OF AFRICA - Plateforme de Fiabilisation KYC v2 - Page <pdf:pagenumber>
+    </div>
+</body>
+</html>

@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { size: a4 landscape; margin: 1cm; }
+        body { font-family: Arial, sans-serif; font-size: 10px; }
+        h1 { text-align: center; text-transform: uppercase; margin: 0 0 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    {% if logo_path %}
+    <div style="text-align:center; margin-bottom: 8px;">
+        <img src="{{ logo_path }}" alt="BOA" style="height: 40px;">
+    </div>
+    {% endif %}
+    <h1>Audit des Controles - KYC Portal</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Date & Heure</th>
+                <th>Utilisateur</th>
+                <th>Regle</th>
+                <th>Action</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for audit in audits %}
+            <tr>
+                <td>{{ audit.timestamp|date:"d/m/Y H:i:s" }}</td>
+                <td>{% if audit.user %}{{ audit.user.username }}{% else %}System{% endif %}</td>
+                <td>{{ audit.rule_name|default:"-" }}</td>
+                <td>{{ audit.action|default:"-" }}</td>
+                <td>{{ audit.details|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">Aucune donnee d'audit disponible.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

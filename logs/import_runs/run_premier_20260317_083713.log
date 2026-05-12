@@ -1,0 +1,19 @@
+CMD: ['C:\\Users\\mamsylla\\OneDrive - BANK OF AFRICA(1)\\Documents\\Projets\\2025\\Plateforme notatio kyc v2\\Fiabilisation_kyc - Copie\\venv\\Scripts\\python.exe', 'C:\\Users\\mamsylla\\OneDrive - BANK OF AFRICA(1)\\Documents\\Projets\\2025\\Plateforme notatio kyc v2\\Fiabilisation_kyc - Copie\\import_premier.py']
+START: 2026-03-17 08:37:13
+RETURN: 0
+DATA_DIR: 
+FILIALES: SN
+ONLY: daterev
+BULK_SIZE: 
+TAUX_CLEAR: False
+
+--- STDOUT ---
+2026-03-17 08:37:14,831 - INFO - START DATEREV
+2026-03-17 08:37:14,832 - WARNING - missing file: scoring_SN.csv
+2026-03-17 08:37:14,832 - INFO - DATEREV total: 0 rows
+2026-03-17 08:37:14,832 - INFO - IMPORT DONE
+
+--- STDERR ---
+Invalid line: SECRET_KEY = env("SECRET_KEY")
+Invalid line: DEBUG = env.bool("DEBUG")
+Invalid line: ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')

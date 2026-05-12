@@ -1,0 +1,349 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load tailwind_filters %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+    <header class="glass-panel rounded-[2.5rem] p-6 lg:p-8 flex flex-col lg:flex-row items-center justify-between gap-6 border border-white/40">
+        <div class="flex items-center gap-6">
+            <div class="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center shadow-2xl">
+                <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M3 13h8V3H3v10zm10 8h8V11h-8v10zM3 21h8v-6H3v6zm10-10h8V3h-8v8z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none">
+                    TABLEAU DE BORD <span class="text-emerald-500 font-light">{{ mode|upper }}</span> 
+                </h1>
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.35em]">
+                        Statistiques par agent
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 px-4 py-3 bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                {{ selected_filiale|default:user.filiale }}
+            </p>
+            <span class="h-1 w-1 rounded-full bg-slate-300"></span>
+            <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+                {{ quality_scope_label|default:"N/A" }}
+            </p>
+        </div>
+    </header>
+ <div class="bg-white/50 backdrop-blur-md sticky top-4 z-30 px-2 rounded-2xl border border-white/20 shadow-sm no-print">
+        <nav class="flex flex-wrap items-center justify-between gap-2 p-1">
+            <div class="flex gap-2">
+
+            <button onclick="switchTab('tab-overview')" id="btn-overview" class="tab-btn active-tab px-8 py-4 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Vue d'ensemble</button>
+            <button onclick="switchTab('tab-charts')" id="btn-charts" class="tab-btn inactive-tab px-8 py-4 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">ANalyses graphiques</button>
+            <button onclick="switchTab('tab-data')" id="btn-data" class="tab-btn inactive-tab px-8 py-4 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Historique</button>
+         </div>
+
+             {% if user.organe not in user_stat %}
+            <a href="{% url 'evolution_filiale' %}" class="flex items-center nav-link-active px-5 py-2.5 rounded-2xl text-[10px] border border-green-800 font-black uppercase tracking-widest hover:bg-green-900 transition-all shadow-md">
+
+                  Stats Banque
+
+                <svg class="ml-2 h-4 w-4 " fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path class="" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819" />
+</svg>
+
+
+            </a>
+              {% endif %}
+
+        </nav>
+    </div>
+
+
+    <div class="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
+
+          <div class="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
+                  <a href="?mode=Flux{% if selected_expl %}&expl={{ selected_expl }}{% endif %}{% if selected_filiale %}&filiale={{ selected_filiale }}{% endif %}"
+               class="px-6 py-2 text-[11px] font-black uppercase rounded-xl transition-all {% if not is_stock %}nav-link-active shadow-lg text-slate-900{% else %}text-slate-400 hover:text-slate-600{% endif %}">
+                Flux
+            </a>
+            <a href="?mode=Stock{% if selected_expl %}&expl={{ selected_expl }}{% endif %}{% if selected_filiale %}&filiale={{ selected_filiale }}{% endif %}"
+               class="px-6 py-2 text-[11px] font-black uppercase rounded-xl transition-all {% if is_stock %}nav-link-active shadow-lg text-slate-900{% else %}text-slate-400 hover:text-slate-600{% endif %}">
+                Stock
+            </a>
+        </div>
+
+    </div>
+
+    <div class="space-y-4">
+        <div id="tab-overview" class="tab-content space-y-4 animate-fadeIn">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+         <div class="premium-rate-card rate-neutral min-h-[14rem] relative overflow-hidden">
+    <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-50 rounded-full blur-3xl opacity-60"></div>
+
+    <div class="relative z-10 space-y-4">
+        <div class="flex items-center gap-4">
+            <div class="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center font-black text-white text-xl shadow-md shadow-slate-300">
+                {% if selected_expl %}{{ agent_nom|slice:":1" }}{% else %}?{% endif %}
+            </div>
+            <div>
+                <p class="rate-subtitle text-slate-600">Collaborateur</p>
+                <h3 class="text-xs font-black text-slate-800 uppercase tracking-tight">{% if selected_expl %}{{ agent_nom }}{% else %}Sélection agent{% endif %}</h3>
+            </div>
+        </div>
+
+<form method="get" class="space-y-2 no-print">
+    <input type="hidden" name="mode" value="{{ mode }}">
+
+    {% if user.organe in user_groupe %}
+    <select name="filiale" onchange="this.form.submit()"
+        class="w-full bg-slate-50 px-3 py-2.5 text-[10px] font-bold rounded-xl border border-slate-200 text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all">
+        <option value="">Filiale</option>
+        {% for f in liste_filiales %}
+            <option value="{{ f }}" {% if f == selected_filiale %}selected{% endif %}>{{ f }}</option>
+        {% endfor %}
+    </select>
+    {% endif %}
+
+    <select name="expl" onchange="this.form.submit()"
+        {% if user.organe == 'Chargé Client' %}disabled{% endif %}
+        class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold py-2.5 px-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all {% if user.organe == 'Chargé Client' %}opacity-50 cursor-not-allowed{% endif %}">
+        <option value="">Choisir Agent</option>
+        {% for e in liste_expl_display %}
+            <option value="{{ e.code }}" {% if e.code == selected_expl %}selected{% endif %}>{{ e.label }}</option>
+        {% endfor %}
+    </select>
+
+    {% if user.organe == 'Chargé Client' %}
+        <input type="hidden" name="filiale" value="{{ selected_filiale }}">
+        <input type="hidden" name="expl" value="{{ selected_expl }}">
+    {% endif %}
+</form>
+    </div>
+
+    <div class="relative z-10 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Notation Contrôle Permanent</span>
+            <span class="text-[9px] font-black text-emerald-600 uppercase">{{ agent_note }}</span>
+        </div>
+        <div class="flex gap-1.5 h-1.5">
+            <div class="flex-1 rounded-full transition-all duration-500 {% if agent_note != 'N/A' %} bg-rose-400 {% else %} bg-slate-200 {% endif %}"></div>
+            <div class="flex-1 rounded-full transition-all duration-500 {% if agent_note == 'Passable' or agent_note == 'Bien' or agent_note == 'Très Bien' %} bg-orange-400 {% else %} bg-slate-200 {% endif %}"></div>
+            <div class="flex-1 rounded-full transition-all duration-500 {% if agent_note == 'Bien' or agent_note == 'Très Bien' %} bg-emerald-400 {% else %} bg-slate-200 {% endif %}"></div>
+            <div class="flex-1 rounded-full transition-all duration-500 {% if agent_note == 'Très Bien' %} bg-emerald-600 {% else %} bg-slate-200 {% endif %}"></div>
+        </div>
+    </div>
+</div>
+                {% if selected_expl %}
+                <div class="premium-rate-card rate-pp min-h-[14rem]">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <p class="rate-title">{{ mode }} PP</p>
+                            <div class="flex items-center gap-2">
+                                {% if var_pp > 0 %}<span class="rate-badge up">▲ +{{ var_pp }}%</span>
+                                {% elif var_pp < 0 %}<span class="rate-badge down">▼ {{ var_pp }}%</span>
+                                {% else %}<span class="rate-badge neutral">Stable</span>{% endif %}
+                            </div>
+                        </div>
+                        <div class="rate-chip chip-pp">PP</div>
+                    </div>
+                    <h3 class="rate-value">{{ last_pp_expl }}<span class="text-2xl text-slate-300 ml-1">%</span></h3>
+                    <div class="rate-footer">Taux Banque : {{ last_pp_fil }}%</div>
+                </div>
+
+                <div class="premium-rate-card rate-pm min-h-[14rem]">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <p class="rate-title">{{ mode }} PM</p>
+                            <div class="flex items-center gap-2">
+                                {% if var_pm > 0 %}<span class="rate-badge up">▲ +{{ var_pm }}%</span>
+                                {% elif var_pm < 0 %}<span class="rate-badge down">▼ {{ var_pm }}%</span>
+                                {% else %}<span class="rate-badge neutral">Stable</span>{% endif %}
+                            </div>
+                        </div>
+                        <div class="rate-chip chip-pm">PM</div>
+                    </div>
+                    <h3 class="rate-value">{{ last_pm_expl }}<span class="text-2xl text-slate-300 ml-1">%</span></h3>
+                    <div class="rate-footer">Taux Banque : {{ last_pm_fil }}%</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="premium-rate-card rate-pp min-h-[10rem]">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <p class="rate-title">Conformité Qualité PP</p>
+                            <p class="rate-subtitle text-emerald-600">Typologie règles PP</p>
+                        </div>
+                        <div class="rate-chip chip-pp">PP</div>
+                    </div>
+                    <h3 class="rate-value">{{ quality_rate_pp|default:0|floatformat:1 }}<span class="text-2xl text-slate-300 ml-1">%</span></h3>
+                    <div class="rate-footer">Périmètre : {{ quality_scope_label|default:"N/A" }}</div>
+                </div>
+
+                <div class="premium-rate-card rate-pm min-h-[10rem]">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <p class="rate-title">Conformité Qualité PM</p>
+                            <p class="rate-subtitle text-orange-600">Typologie règles PM</p>
+                        </div>
+                        <div class="rate-chip chip-pm">PM</div>
+                    </div>
+                    <h3 class="rate-value">{{ quality_rate_pm|default:0|floatformat:1 }}<span class="text-2xl text-slate-300 ml-1">%</span></h3>
+                    <div class="rate-footer">Périmètre : {{ quality_scope_label|default:"N/A" }}</div>
+                </div>
+            </div>
+        </div>
+
+      <div id="tab-charts" class="tab-content hidden animate-fadeIn">
+    {% if selected_expl %}
+        <div class="flex flex-col items-center w-full max-w-6xl mx-auto">
+
+            <div class="flex items-center gap-4 mb-6">
+                <div class="h-12 w-12 rounded-xl nav-link-active flex items-center justify-center font-black text-slate-900 text-xl shadow-lg">
+                    {{ agent_nom|slice:":1" }}
+                </div>
+                <div class="text-left"> <p class="text-[9px] font-black text-green-800 uppercase tracking-widest opacity-70">Collaborateur</p>
+                    <h3 class="text-xs font-black uppercase tracking-tight">{{ agent_nom }} - {{ selected_expl }}</h3>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col items-center">
+                    <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-6">TAUX PP</h4>
+                    <div class="h-[240px] w-full"><canvas id="canvasPP"></canvas></div>
+                </div>
+
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col items-center">
+                    <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-6">TAUX PM</h4>
+                    <div class="h-[240px] w-full"><canvas id="canvasPM"></canvas></div>
+                </div>
+            </div>
+
+        </div>
+    {% endif %}
+</div>
+
+        <div id="tab-data" class="tab-content hidden animate-fadeIn">
+            {% if selected_expl %}
+            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden text-[11px]">
+                <table class="w-full text-center">
+                    <thead class="bg-slate-50 border-b border-slate-100 font-black uppercase text-slate-400">
+                        <tr><th class="px-6 py-4">Date</th><th class="px-6 py-4">Taux PP</th><th class="px-6 py-4">Taux PM</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50 font-bold">
+                        
+                        {% for date, pp, pm in historique %}
+                        
+                        <tr class="hover:bg-slate-50 transition-all">
+                            <td class="px-6 py-4 text-slate-600 font-medium">{{ date }}</td>
+                            <td class="px-6 py-4 text-emerald-600">{{ pp }}%</td>
+                            <td class="px-6 py-4 text-orange-600">{{ pm }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+    }
+    .premium-rate-card {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-left-width: 10px;
+        border-radius: 1.5rem;
+        padding: 1.25rem;
+        box-shadow: 0 14px 30px -16px rgba(15, 23, 42, 0.35);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+    .rate-pp { border-left-color: #10b981; }
+    .rate-pm { border-left-color: #f97316; }
+    .rate-neutral { border-left-color: #0f172a; }
+    .rate-title { font-size: 10px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: .15em; }
+    .rate-subtitle { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+    .rate-value { font-size: 3rem; font-weight: 900; color: #0f172a; letter-spacing: -0.04em; line-height: 1; }
+    .rate-footer { padding-top: .65rem; border-top: 1px solid #f1f5f9; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #64748b; }
+    .rate-chip { height: 2rem; width: 2rem; border-radius: .75rem; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; border: 1px solid; }
+    .chip-pp { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+    .chip-pm { background: #fff7ed; color: #ea580c; border-color: #fed7aa; }
+    .chip-neutral { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+    .rate-badge { font-size: 10px; font-weight: 900; padding: .2rem .55rem; border-radius: .6rem; border: 1px solid; }
+    .rate-badge.up { color: #059669; background: #ecfdf5; border-color: #a7f3d0; }
+    .rate-badge.down { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+    .rate-badge.neutral { color: #64748b; background: #f8fafc; border-color: #e2e8f0; }
+    .tab-btn { color: #94a3b8; }
+    .active-tab { background: #0f172a; color: white; box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.2); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+    ::-webkit-scrollbar { display: none; }
+    select option { background-color: white !important; color: #0f172a !important; }
+</style>
+
+
+<script>
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active-tab');
+        b.classList.add('inactive-tab');
+    });
+    document.getElementById(tabId).classList.remove('hidden');
+    document.getElementById('btn-' + tabId.replace('tab-', '')).classList.add('active-tab');
+}
+
+{% if selected_expl %}
+document.addEventListener('DOMContentLoaded', function() {
+    const labels = {{ labels_json|safe }};
+    const dataPP = {{ data_expl_pp|safe }};
+    const dataPM = {{ data_expl_pm|safe }};
+
+    const getOptions = () => ({
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f172a', padding: 12, borderRadius: 12 } },
+        scales: {
+            y: { min: 0, max: 100, ticks: { stepSize: 25, font: { weight: '800', size: 9 }, color: '#94a3b8', callback: (v) => v + '%' }, grid: { color: '#f1f5f9' } },
+            x: { ticks: { font: { weight: '800', size: 9 }, color: '#94a3b8' }, grid: { display: false } }
+        }
+    });
+
+    function createChart(id, data, baseColor) {
+        const ctx = document.getElementById(id).getContext('2d');
+        const colorScale = (val) => val >= 90 ? '#10b981' : '#f97316';
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    borderColor: baseColor,
+                    backgroundColor: 'rgba(15, 23, 42, 0.02)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 5,
+                    segment: { borderColor: (ctx) => colorScale(ctx.p1.parsed.y) },
+                    pointRadius: 3, pointBackgroundColor: (ctx) => colorScale(ctx.parsed.y), pointBorderColor: '#fff', pointBorderWidth: 2
+                }]
+            },
+            options: getOptions()
+        });
+    }
+    createChart('canvasPP', dataPP, '#10b981');
+    createChart('canvasPM', dataPM, '#f97316');
+});
+{% endif %}
+</script>
+{% endblock %}

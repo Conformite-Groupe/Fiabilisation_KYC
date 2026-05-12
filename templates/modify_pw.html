@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load tailwind_filters %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div>
+            <h1 class="text-2xl font-black text-gray-800 tracking-tight uppercase">
+                Sécurité <span class="text-green-700 font-light">& Compte</span>
+            </h1>
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Mise à jour de vos accès personnels</p>
+        </div>
+
+        {% if notation %}
+        <div class="flex items-center space-x-3">
+            <span class="text-[10px] font-black text-gray-400 uppercase mr-2 ">Mon Évaluation :</span>
+            {% for note in notation %}
+            <span class="inline-block px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest shadow-sm border
+                {% if note.note == 'Très Bien' %}
+                    bg-green-100 text-green-700 border-green-200
+                {% elif note.note == 'Bien' %}
+                    bg-blue-100 text-blue-700 border-blue-200
+                {% elif note.note == 'Passable' %}
+                    bg-orange-100 text-orange-700 border-orange-200
+                {% elif note.note == 'Insuffisant' %}
+                    bg-red-100 text-red-700 border-red-200
+                {% else %}
+                    bg-gray-100 text-gray-700 border-gray-200
+                {% endif %}">
+                {{ note.note }}
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+<div class="max-w-md mx-auto mt-6"> {# MESSAGES DE SUCCÈS / ERREUR #}
+    {% if success_message %}
+    <div class="mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div class="bg-green-50 border border-green-200 text-green-700 p-3 rounded-xl flex items-center gap-2 shadow-sm">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+            <p class="text-[9px] font-black uppercase tracking-tight">{{ success_message }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-[1.5rem] shadow-lg shadow-gray-200/40 border border-gray-100 overflow-hidden">
+
+        <div class="bg-gray-800 p-6 text-white relative">
+            <div class="relative z-10">
+                <h2 class="text-sm font-black uppercase tracking-widest">Modifier le mot de passe</h2>
+                <p class="text-[9px] text-gray-400 mt-0.5 font-medium">Nouveaux identifiants requis</p>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+
+                {% if form.errors %}
+                <div class="p-3 bg-red-50 border border-red-100 rounded-xl mb-4 text-red-700 text-[9px] font-bold uppercase tracking-tight">
+                    Erreur de saisie détectée.
+                </div>
+                {% endif %}
+
+                <div class="pw-custom-fields space-y-3 text-gray-700 text-xs">
+                    {{ form|crispy }}
+                </div>
+
+                <div class="pt-4 flex flex-col gap-2">
+                    <button type="submit"
+                            class="w-full nav-link-active text-white py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-green-800 transition-all shadow-md shadow-green-100 active:scale-95">
+                        Mettre à jour
+                    </button>
+
+                    <a href="javascript:history.back()"
+                       class="w-full text-center py-2 text-gray-400 text-[9px] font-black uppercase tracking-widest hover:text-gray-600 transition-all">
+                        Retour
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+
+<style>
+    /* Styling avancé des champs Crispy */
+    .pw-custom-fields input {
+        width: 100% !important;
+        border-radius: 1rem !important;
+        border: 1px solid #e5e7eb !important;
+        background-color: #f9fafb !important;
+        padding: 1rem !important;
+        font-size: 0.85rem !important;
+        font-weight: 800 !important;
+        transition: all 0.3s ease;
+    }
+
+    .pw-custom-fields input:focus {
+        border-color: #15803d !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 0 0 4px rgba(21, 128, 61, 0.1) !important;
+        outline: none !important;
+    }
+
+    /* Labels */
+    .pw-custom-fields label {
+        display: block !important;
+        font-size: 9px !important;
+        font-weight: 900 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.1em !important;
+        color: #9ca3af !important;
+        margin-bottom: 0.5rem !important;
+        margin-left: 0.25rem !important;
+    }
+
+    .pw-custom-fields .mb-3 { margin-bottom: 1.5rem !important; }
+
+    /* Textes d'aide Django */
+    .helptext {
+        font-size: 9px !important;
+        color: #9ca3af !important;
+        font-weight: 600 !important;
+        margin-top: 0.5rem !important;
+        display: block;
+    }
+</style>
+
+<script>
+    // Alerte automatique pour le message de succès
+    {% if success_message %}
+        alert("{{ success_message|escapejs }}");
+    {% endif %}
+</script>
+{% endblock %}

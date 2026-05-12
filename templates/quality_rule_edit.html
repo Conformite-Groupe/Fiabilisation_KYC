@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #f8fafc;
+        background-image:
+            radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
+            radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    }
+
+    .premium-input input,
+    .premium-input select,
+    .premium-input textarea {
+        @apply w-full bg-slate-50 border-slate-200 rounded-2xl px-6 py-4 text-sm font-semibold text-slate-700 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all !important;
+        border-width: 1px !important;
+    }
+
+    .premium-label label {
+        @apply text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 ml-1 block !important;
+    }
+
+    .btn-glow-blue:hover {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    }
+</style>
+
+<div class="min-h-screen py-12 px-4 lg:px-8 max-w-[1600px] mx-auto space-y-8">
+
+    <!-- HEADER -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center gap-6">
+            <div
+                class="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-blue-200 rotate-3">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                    </path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none uppercase">Modification de la
+                    <span class="text-blue-600 font-light">Règle</span>
+                </h1>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-2">Ajustement de
+                    l'algorithme de contrôle qualité</p>
+            </div>
+        </div>
+        <a href="{% url 'kyc:quality_control' %}"
+            class="px-8 py-4 bg-white border border-slate-200 rounded-2xl text-slate-900 text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
+            Retour
+        </a>
+    </div>
+
+    <!-- FORM CARD -->
+    <form method="post" class="glass-panel rounded-[2.5rem] border-4 border-slate-900 overflow-hidden shadow-2xl">
+        {% csrf_token %}
+        <div class="p-8 lg:p-12 premium-input premium-label">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                <!-- Left: Parameters -->
+                <div class="space-y-10">
+                    <div class="bg-slate-50/50 p-10 rounded-[3rem] border border-slate-100 space-y-8">
+                        <div class="flex items-center gap-4 mb-2">
+                            <div class="w-1.5 h-6 bg-slate-900 rounded-full"></div>
+                            <h3 class="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">Configuration</h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="md:col-span-2">{{ form.name|as_crispy_field }}</div>
+                            <div class="md:col-span-2">{{ form.applicability|as_crispy_field }}</div>
+                            <div class="md:col-span-2">{{ form.description|as_crispy_field }}</div>
+                            {{ form.control_type }}
+                            {{ form.field_name }}
+                            {{ form.parameter }}
+                        </div>
+
+                        <div
+                            class="p-6 bg-white rounded-3xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="flex items-center gap-4">
+                                <span class="text-xs font-black text-slate-900 uppercase tracking-widest">Activer la
+                                    Règle</span>
+                                {{ form.active }}
+                            </div>
+                            <div class="flex items-center gap-3 px-4 py-2 bg-slate-900 rounded-2xl shadow-lg">
+                                <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                                <span class="text-[9px] font-black text-white uppercase tracking-widest">
+                                    {{ rule.created_by.get_full_name|default:rule.created_by.username|default:"Utilisateur inconnu" }}
+                                </span>
+                                <span
+                                    class="px-2 py-0.5 bg-white/10 text-white text-[8px] font-black rounded uppercase">
+                                    {{ rule.created_by.filiale|default:"Filiale non renseignée" }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Engine Logic -->
+                <div id="conditions_column" class="space-y-10">
+                    <div class="bg-blue-50/50 p-10 rounded-[3rem] border border-blue-100 space-y-8">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-4">
+                                <div class="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+                                <h3 class="text-xs font-black text-blue-600 uppercase tracking-[0.3em]">Conditions
+                                    logiques</h3>
+                            </div>
+                            <button type="button" id="addCondition"
+                                class="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-width="3" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                <span class="text-[10px] font-black uppercase tracking-widest">Ajouter conditions</span>
+                            </button>
+                        </div>
+
+                        {{ formset.management_form }}
+                        <div id="conditionContainer"
+                            class="space-y-6 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
+                            {% for f in formset %}
+                            <div
+                                class="condition-row p-8 bg-white rounded-[2.5rem] border-2 border-slate-100 shadow-sm space-y-6 hover:border-blue-400 transition-all relative group">
+                                <div class="flex items-center gap-4">
+                                    <span
+                                        class="w-10 h-10 flex items-center justify-center rounded-2xl bg-blue-50 text-blue-600 text-sm font-black shadow-inner">
+                                        #{{ forloop.counter0|add:1 }}
+                                    </span>
+                                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Noeud
+                                    </h4>
+                                </div>
+                                <div class="grid grid-cols-2 gap-6">
+                                    {{ f.field_name|as_crispy_field }}
+                                    {{ f.operator|as_crispy_field }}
+                                </div>
+                                <div
+                                    class="condition-value-block bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-col md:flex-row items-end gap-6">
+                                    <div class="flex-1 w-full">{{ f.value|as_crispy_field }}</div>
+                                </div>
+                                {% if f.instance.pk %}
+                                <div class="flex justify-end pt-2">
+                                    <div
+                                        class="flex items-center gap-2 text-red-400 hover:text-red-600 cursor-pointer transition-colors">
+                                        {{ f.DELETE }}
+                                        <span class="text-[10px] font-black uppercase">Terminer le Noeud</span>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {{ f.id }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex gap-6 justify-end mt-16 pt-12 border-t border-slate-100">
+                <a href="{% url 'kyc:quality_control' %}"
+                    class="px-10 py-5 text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">Annuler</a>
+                <button type="submit" id="submitEditBtn"
+                    class="px-20 py-6 bg-slate-900 text-white text-xs font-black uppercase tracking-[0.4em] rounded-3xl hover:bg-blue-600 shadow-2xl hover:shadow-blue-900/40 transition-all active:scale-95 btn-glow-blue flex items-center gap-3">
+                    <span class="btn-text">Mettre à jour</span>
+                    <div class="hidden btn-loader">
+                        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Labels en français
+        const fieldLabels = {
+            id_name: 'Nom de la règle',
+            id_applicability: 'Segment Cible',
+            id_field_name: 'Champ de Contrôle Principal',
+            id_control_type: 'Algorithme d\'Audit',
+            id_parameter: 'Valeur de Base',
+            id_description: 'Description',
+            id_active: 'Mode Production'
+        };
+
+        Object.entries(fieldLabels).forEach(([id, label]) => {
+            const el = document.querySelector(`label[for="${id}"]`);
+            if (el) el.textContent = label;
+        });
+
+        const fieldOptions = {
+            PP: [['CODAPE', 'Code APE'], ['IDP', 'Identifiant PP'], ['PAYNAIS', 'Pays Naissance'], ['PROFESSION', 'Profession'], ['ADRESSE', 'Adresse'], ['PAYS_RESID', 'Pays Résidence'], ['NUMID', 'Numéro ID'], ['SALAIRE', 'Salaire'], ['DATVALID', 'Date Validité'], ['DATNAIS', 'Date Naissance'], ['TEL', 'Téléphone'], ['DATOUV', 'Date Ouverture'], ['PPE', 'Statut PPE'], ['DEVISE', 'Devise'], ['RESID', 'Résidence']],
+            PM: [['CODAPE', 'Code APE'], ['AGEC', 'Code AGEC'], ['IDM', 'Identifiant PM'], ['RCSNO', 'Numéro RCS'], ['CAPITAL', 'Capital Social'], ['CA', 'Chiffre d\'Affaires'], ['DATOUV', 'Date Ouverture'], ['TEL', 'Téléphone'], ['DEVISE', 'Devise'], ['RESID', 'Résidence']]
+        };
+
+        const applicabilitySelect = document.querySelector('#id_applicability');
+        const controlTypeSelect = document.querySelector('select[name="control_type"]');
+        const parameterContainer = document.getElementById('parameter_container');
+
+        function updateFieldsInRow(row) {
+            const select = row.querySelector('select[name$="-field_name"]');
+            if (!select || !applicabilitySelect) return;
+
+            const val = applicabilitySelect.value;
+            const opts = fieldOptions[val] || [];
+            const currentVal = select.value;
+
+            select.innerHTML = '<option value="">Choisir un champ</option>' +
+                opts.map(([v, l]) => `<option value="${v}" ${v === currentVal ? 'selected' : ''}>${l}</option>`).join('');
+        }
+
+        function handleOperatorChange(row) {
+            const op = row.querySelector('select[name$="-operator"]')?.value;
+            const valBlock = row.querySelector('.condition-value-block');
+            if (!valBlock) return;
+
+            const noValueOperators = ['is_empty', 'is_not_empty', 'expired'];
+            if (noValueOperators.includes(op)) {
+                valBlock.style.opacity = '0.3';
+                valBlock.style.pointerEvents = 'none';
+                valBlock.querySelector('input, select, textarea').value = '';
+            } else {
+                valBlock.style.opacity = '1';
+                valBlock.style.pointerEvents = 'auto';
+            }
+        }
+
+        function refreshAllNodes() {
+            document.querySelectorAll('.condition-row').forEach(row => {
+                updateFieldsInRow(row);
+                handleOperatorChange(row);
+            });
+        }
+
+        applicabilitySelect?.addEventListener('change', refreshAllNodes);
+
+        // Handle Form Loading
+        const editForm = document.querySelector('form');
+        const submitBtn = document.getElementById('submitEditBtn');
+        if (editForm && submitBtn) {
+            editForm.addEventListener('submit', function () {
+                const text = submitBtn.querySelector('.btn-text');
+                const loader = submitBtn.querySelector('.btn-loader');
+                if (text) text.textContent = 'Mise à jour...';
+                if (loader) loader.classList.remove('hidden');
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            });
+        }
+
+        document.addEventListener('change', (e) => {
+            if (e.target.name && e.target.name.endsWith('-operator')) {
+                handleOperatorChange(e.target.closest('.condition-row'));
+            }
+        });
+
+        // Forcer le type composite et cacher le champ
+        if (controlTypeSelect) {
+            controlTypeSelect.value = 'composite';
+            controlTypeSelect.parentElement.style.display = 'none';
+        }
+        if (parameterContainer) parameterContainer.style.display = 'none';
+
+        const addBtn = document.getElementById('addCondition');
+        const container = document.getElementById('conditionContainer');
+        const totalFormsInput = document.getElementById('id_conditions-TOTAL_FORMS');
+
+        if (addBtn && container) {
+            addBtn.addEventListener('click', () => {
+                const rows = container.getElementsByClassName('condition-row');
+                const newRow = rows[rows.length - 1].cloneNode(true);
+                const formIdx = rows.length;
+                newRow.innerHTML = newRow.innerHTML.replace(/conditions-(\d+)-/g, `conditions-${formIdx}-`);
+
+                newRow.querySelectorAll('input:not([type="checkbox"]), select, textarea').forEach(i => i.value = '');
+                newRow.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked = false);
+                const idInput = newRow.querySelector('input[type="hidden"][name$="-id"]');
+                if (idInput) idInput.remove();
+
+                container.appendChild(newRow);
+                totalFormsInput.value = formIdx + 1;
+
+                updateFieldsInRow(newRow);
+                handleOperatorChange(newRow);
+            });
+        }
+
+        refreshAllNodes();
+
+        // Handle Form Loading
+        const ruleForm = document.getElementById('ruleForm');
+        const submitRuleBtn = document.getElementById('submitRuleBtn');
+        if (ruleForm && submitRuleBtn) {
+            ruleForm.addEventListener('submit', function () {
+                const text = submitRuleBtn.querySelector('.btn-text');
+                const loader = submitRuleBtn.querySelector('.btn-loader');
+                if (text) text.textContent = 'Traitement...';
+                if (loader) loader.classList.remove('hidden');
+                submitRuleBtn.disabled = true;
+                submitRuleBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            });
+        }
+    });
+</script>
+
+<style>
+    input[type="checkbox"] {
+        @apply w-14 h-7 bg-slate-200 rounded-full appearance-none cursor-pointer transition-all relative checked:bg-blue-600 !important;
+    }
+
+    input[type="checkbox"]::before {
+        content: '';
+        @apply absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-all shadow-sm !important;
+    }
+
+    input[type="checkbox"]:checked::before {
+        @apply translate-x-7 !important;
+    }
+</style>
+{% endblock %}

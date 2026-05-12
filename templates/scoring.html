@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load tailwind_filters %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+    <div>
+          <h1 class="text-2xl font-black text-gray-800 tracking-tight uppercase">
+                  Scoring | <span class="text-green-700 font-light">Analyse Risque</span>
+        </h1>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Surveillance des dates de revue scoring & classe de risque</p>
+    </div>
+
+    <div class="flex items-center space-x-4 no-print">
+        <div class="inline-flex p-1 bg-gray-100 rounded-xl border border-gray-200">
+            <a href="{% url 'scoring' %}" class="px-5 py-2 text-[10px] font-black rounded-lg transition-all {% if 'sans_classe' not in request.path %} nav-link-active text-white shadow-md {% else %} text-gray-400 hover:text-green-700 {% endif %}">
+                REVUE SCORING
+            </a>
+            <a href="{% url 'sans_classe' %}" class="px-5 py-2 text-[10px] font-black rounded-lg transition-all {% if 'sans_classe' in request.path %} nav-link-active text-white shadow-md {% else %} text-gray-500 hover:text-green-700 {% endif %}">
+                SANS CLASSE
+            </a>
+        </div>
+
+        <a href="{% url 'export_scoring' %}?{{ request.GET.urlencode }}"
+           class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
+                     <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Exporter
+                </a>
+    </div>
+</div>
+
+    <section class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100 mb-6">
+    <form method="get" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Échéance</label>
+                <select name="periode" onchange="this.form.submit()" class="w-full bg-slate-50 border-slate-200 rounded-xl text-[11px] font-bold text-green-700 focus:ring-2 focus:ring-green-500 py-2.5 px-3 appearance-none transition-all">
+                    <option value="">Toutes les périodes</option>
+                    <option value="today" {% if periode == "today" %}selected{% endif %}>Échues (à ce jour)</option>
+                    <option value="3m" {% if periode == "3m" %}selected{% endif %}>Dans 3 mois</option>
+                    <option value="6m" {% if periode == "6m" %}selected{% endif %}>Dans 6 mois</option>
+                    <option value="1y" {% if periode == "1y" %}selected{% endif %}>Dans 1 an</option>
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Filiale</label>
+                <select name="filiale" {% if not can_pick_filiale %}disabled{% endif %} onchange="this.form.submit()" class="w-full bg-slate-50 border-slate-200 rounded-xl text-[11px] font-bold text-green-700 focus:ring-2 focus:ring-green-500 py-2.5 px-3 appearance-none transition-all disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed">
+                    <option value="">Toutes les filiales</option>
+                    {% for f in filiales %}
+                        <option value="{{ f }}" {% if filiale_param == f %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Agence</label>
+                <select name="agence" {% if not can_pick_agence %}disabled{% endif %} onchange="this.form.submit()" class="w-full bg-slate-50 border-slate-200 rounded-xl text-[11px] font-bold text-green-700 focus:ring-2 focus:ring-green-500 py-2.5 px-3 appearance-none transition-all disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed">
+                    <option value="">Toutes les agences</option>
+                    {% for a in agences %}
+                        <option value="{{ a }}" {% if agence_param == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Exploitant</label>
+                <select name="expl" {% if not can_pick_expl %}disabled{% endif %} onchange="this.form.submit()" class="w-full bg-slate-50 border-slate-200 rounded-xl text-[11px] font-bold text-green-700 focus:ring-2 focus:ring-green-500 py-2.5 px-3 appearance-none transition-all disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed">
+                    <option value="">Tous les exploitants</option>
+                    {% for e in exploitants %}
+                        <option value="{{ e }}" {% if expl_param == e %}selected{% endif %}>{{ e }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-3 border-t border-slate-50">
+            <div class="flex items-center gap-2">
+                <span class="flex h-2 w-2 rounded-full bg-green-500"></span>
+                <span class="text-[10px] font-black text-slate-600 uppercase tracking-tight">
+                    {{ donnees.paginator.count }} Client(s) identifié(s)
+                </span>
+            </div>
+
+            <a href="{% url 'scoring' %}" class="group flex items-center gap-2 text-[9px] font-black text-gray-400 hover:text-red-500 transition-all uppercase tracking-widest">
+                <svg class="h-3 w-3 transition-transform group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Réinitialiser les filtres
+            </a>
+        </div>
+    </form>
+</section>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+
+        <div class="px-6 py-3 flex items-center justify-between border-b border-gray-100 bg-gray-50/50">
+            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Page {{ donnees.number }} / {{ donnees.paginator.num_pages }}</span>
+            <div class="flex items-center space-x-1">
+                {% if donnees.has_previous %}
+                <a href="?page={{ donnees.previous_page_number }}&{{ get_params }}" class="p-2 text-gray-500 hover:nav-link-active hover:text-white rounded-lg transition-all border border-gray-200">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M15 19l-7-7 7-7" /></svg>
+                </a>
+                {% endif %}
+
+                <div class="px-4 text-[10px] font-black text-green-700 uppercase tracking-tighter">Navigation</div>
+
+                {% if donnees.has_next %}
+                <a href="?page={{ donnees.next_page_number }}&{{ get_params }}" class="p-2 text-gray-500 hover:nav-link-active hover:text-white rounded-lg transition-all border border-gray-200">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M9 5l7 7-7 7" /></svg>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if donnees.object_list %}
+         <div class="overflow-x-auto overflow-y-auto max-h-[550px] custom-scrollbar">
+       <table class="w-full border-separate border-spacing-0 text-[10px]">
+                <thead>
+                <tr class="sticky top-0 z-50">
+                            {% if user.organe not in user_filiale %}
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Filiale</th>
+                                    {% endif %}
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Agence</th>
+                            
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Agencelib</th>
+                            
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Exploitant</th>
+                            <th class="px-4 py-3 text-center font-black text-white uppercase tracking-widest sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[130px] border-b border-green-900">
+                                Client
+                            </th>
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Prochaine Date Revue (*)</th>
+
+                        </tr>
+                    </thead>
+                            <tbody class="divide-y divide-gray-100 bg-white">
+                                {% for item in donnees.object_list %}
+                            <tr class="group {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-green-50 transition-colors">
+
+                                {% if user.organe not in user_filiale %}
+                                <td class="px-2 py-2 text-gray-500 whitespace-nowrap">{{ item.FILIALE }}</td>
+                                        {% endif %}
+                                <td class="px-2 py-2 text-gray-500 whitespace-nowrap">{{ item.AGENCE }}</td>
+
+                                <td class="px-2 py-2 text-gray-500 whitespace-nowrap">{{ item.LIB_AGENCE }}</td>
+                                <td class="px-2 py-2 text-center border-b border-slate-100 {% if not item.EXPL %}bg-red-50 text-red-600 font-bold{% else %}text-slate-500{% endif %}">
+                                {{ item.EXPL|default:"-" }}
+                            </td>
+
+                                <td class="group-hover:bg-green-600 group-hover:text-gray-100 px-4 py-3 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-[2px_0_5px_rgba(0,0,0,0.02)]
+                        ">
+                                {{ item.CLIENT|default:"NOM MANQUANT" }}
+                        </td>
+
+                            
+                                <td class="px-4 py-3 text-center font-mono font-bold {% if not item.DATEREV %}bg-orange-50 text-orange-600{% else %}text-blue-700{% endif %}">
+                                        {{ item.DATEREV|default:"Non planifiée" }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+            </table>
+        </div>
+        <div class="p-4 bg-gray-50 border-t border-gray-100 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+            (*) Date prévisionnelle à laquelle le scoring du client doit être obligatoirement réévalué.
+        </div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center py-24">
+            <svg class="w-12 h-12 text-gray-200 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <p class="text-gray-400 font-bold uppercase tracking-widest text-xs">Aucun dossier trouvé pour ces critères.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if messages %}
+<script>
+    {% for message in messages %}
+        console.log("Système: {{ message|escapejs }}");
+    {% endfor %}
+</script>
+{% endif %}
+
+{% endblock %}

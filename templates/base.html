@@ -1,0 +1,732 @@
+{% load tailwind_tags %}
+{% load static %}
+{% load country_flag %}
+
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-[#F8FAFC]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYC Portal | BOA Group</title>
+    {% tailwind_css %}
+   <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+        [x-cloak] { display: none !important; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #15803d; border-radius: 10px; }
+
+        /* Ã‰tat actif des liens avec dégradé institutionnel */
+        .nav-link-active {
+            background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+            color: white !important;
+            box-shadow: 0 10px 15px -3px rgba(21, 128, 61, 0.2);
+        }
+
+        /* Animation douce pour les menus */
+        .nav-link { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+    <script src="{% static 'js/chart.min.js' %}"></script>
+    <script src="{% static 'js/alpine.min.js' %}" defer></script>
+</head>
+
+<body class="h-full overflow-hidden text-slate-900" x-data="{ mobileMenu: false }">
+
+    <nav class="bg-white/80 backdrop-blur-md border-b border-slate-100 fixed w-full z-40 top-0 h-16 md:hidden shadow-sm">
+        <div class="px-6 h-full flex items-center justify-between">
+            <img class="h-7" src="/media/images/logo.png" alt="Logo BOA">
+            <button @click="mobileMenu = !mobileMenu" class="p-2 rounded-xl bg-slate-50 text-gray-400 hover:text-green-700 transition-all">
+                <svg x-show="!mobileMenu" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                <svg x-show="mobileMenu" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+    </nav>
+
+    <div class="flex h-full p-0 md:p-4">
+        {% with current_name=request.resolver_match.url_name %}
+        {% if current_name != "accueil" %}
+
+        <aside class="hidden md:flex md:w-72 md:flex-col z-30 mr-4">
+            <div class="flex-1 flex flex-col min-h-0 bg-white border border-slate-100 rounded-[1rem] shadow-lg overflow-hidden">
+
+
+                {% if user.is_authenticated %}
+                <div class="p-4 mb-6 ">
+                    <a href="{% url 'profil' %}">
+
+                    <div class=" bg-green-50 text-gray-400 hover:bg-green-100 hover:text-green-700 rounded-[2rem] p-4 border border-slate-100 hover:bg-green-50 transition-all  shadow-inner">
+
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="h-10 w-10 rounded-2xl bg-slate-900 flex items-center justify-center text-white font-black text-xs shadow-lg">
+                                {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
+                            </div>
+                            <div class="truncate">
+                                <p class="text-[10px] font-black text-slate-900 uppercase tracking-tight">{{ user.first_name }} {{ user.last_name }}</p>
+                                {% if user.organe %}
+                                <p class="text-[8px] text-green-700 font-bold uppercase tracking-widest">{{ user.organe }}
+                                 {% if user.organe in user_stat %} 
+
+                                 |
+
+                                 Agence {{ user.agence }}
+                                    {% endif %}
+
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+                            <span class="text-[9px] font-black text-gray-700 uppercase">{{ user.filiale }}</span>
+                            {% with user.filiale|filiale_flag_path as flag_path %}
+                                {% if flag_path %}<img src="{% static flag_path %}" class="h-5 rounded-sm shadow-sm">{% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                        </a>
+
+                </div>
+                {% endif %}
+                <div class="flex-1 flex flex-col overflow-y-auto custom-scrollbar px-3 pb-6">
+                    <nav class="space-y-8">
+
+                        <div>
+                            <div class="flex items-center gap-2 px-3 mb-4">
+                                <span class="h-4 w-1.5 bg-green-600 rounded-full"></span>
+                                <p class="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">Analyse & Suivi</p>
+                            </div>
+                           <div class="space-y-1 px-2 border-l border-slate-200 ml-4">
+
+                              {% if user.organe in user_stat %}
+
+                                     <a href="/statistiques"
+                                   class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'evolution_filiale' or current_name == 'statistiques' or current_name == 'statistiques_stock' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    Tableau de bord
+                                </a>
+                                 <a href="{% url 'clients_scorer' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'clients_scorer' or current_name == 'sans_classe_s' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    Scoring Clients
+                                </a>
+
+                                {% else %}
+
+                                   <a href="/evolution_filiale"
+                                   class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'evolution_filiale'  or current_name == 'evolution_filiale_stock' or current_name == 'statistiques' or current_name == 'statistiques_stock' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    Tableau de bord
+                                </a>
+
+
+                                {% endif %}
+
+
+
+                                {% if user.organe not in user_stat %}
+                                <a href="{% url 'agent' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'agent' or current_name == 'agent_stock' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    Agents notés
+                                </a>
+                                {% endif %}
+
+                                <a href="{% url 'non_rens' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'non_rens' or current_name == 'non_rens_pm' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    Champs non-renseignés
+                                </a>
+                                     <a href="{% url 'non_anom' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'non_anom' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    Clients en anomalie
+                                </a>
+                                {% if user.organe == "Contrôle Permanent" or user.organe == "Conformité" or user.organe == "Qualité" or user.organe == "DSI" or user.organe == "Risques" or user.organe == "DAI" %}
+                                 <a href="{% url 'kyc:quality_control' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'quality_control' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    Contrôle qualité
+                                </a>
+                                {% endif %}
+
+
+
+
+
+                            </div>
+                        </div>
+
+                        {% if user.organe == "ContrÃ´le Permanent" %}
+                        <div>
+                            <div class="flex items-center gap-2 px-3 mb-4">
+                                <span class="h-4 w-1.5 bg-green-600 rounded-full"></span>
+                                <p class="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">Audit & Notation</p>
+                            </div>
+                             <div class="space-y-1 px-2 border-l border-slate-200 ml-4">
+                                          <a href="/notation" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'notation' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">Nouvelle Notation</a>
+                                <a href="/historique" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'historique' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">Historique</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if user.organe == "Conformité" or user.organe == "Conformité Groupe" %}
+                        <div>
+                            <div class="flex items-center gap-2 px-3 mb-4">
+                                <span class="h-4 w-1.5 bg-green-600 rounded-full"></span>
+                                <p class="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">Conformité</p>
+                            </div>
+                            
+                            <div class="space-y-1 px-2 border-l border-slate-200 ml-4">
+                                <a href="{% url 'scoring' %}" 
+                                   class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'scoring' or current_name == 'sans_classe' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    Scoring
+                                </a>
+                                
+                                <a href="{% url 'ppe' %}" 
+                                   class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'ppe' or current_name == 'anom_ppe' or current_name == 'daterev_ppe' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    PPE
+                                </a>
+                                
+                                <a href="{% url 'devise' %}" 
+                                   class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'devise' or current_name == 'non_resid' or current_name == 'non_resid_pm' or current_name == 'devise_pm'%}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    Comptes spécifiques
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if user.organe == "PASS" or user.organe == "DSI" %}
+                        <div>
+                              <div class="flex items-center gap-2 px-3 mb-4">
+                                <span class="h-4 w-1.5 bg-green-600 rounded-full"></span>
+                                <p class="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">Administration</p>
+                            </div>
+                            <a href="/user_list" class="ml-4 nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'user_list' or current_name == 'register' or current_name == 'bulk_user_upload' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                Param&egrave;tres Syst&egrave;me
+                            </a>
+                            <a href="/user_statistics" class="ml-4 nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'user_statistics' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                Historique connexions
+                            </a>
+                          {# {% if user.is_superuser %} #}
+                            {# <a href="{% url 'import_page' %}" class="ml-4 nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'import_page' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}"> #}
+                            {#     Importation #}
+                            {# </a> #}
+                            {# {% endif %} #}
+                        </div>
+                        {% endif %}
+
+
+                    </nav>
+
+
+                </div>
+
+
+                   <div class="mb-10 px-2 py-2">
+                         <a href="/logout" class="flex items-center justify-center px-2 py-2 bg-red-50 text-red-600 rounded-2xl text-[9px] font-black hover:bg-red-600 hover:text-white transition-all uppercase tracking-[0.2em]">
+                        Déconnexion
+                    </a>
+                   </div>
+
+            </div>
+        </aside>
+        {% endif %}
+        {% endwith %}
+
+        <main class="flex-1 relative overflow-y-auto focus:outline-none custom-scrollbar {% with c=request.resolver_match.url_name %}{% if c != 'accueil' %}pt-20 md:pt-0{% endif %}{% endwith %}">
+            <div class="py-4 md:py-0 h-full">
+                <div class="max-w-[1600px] mx-auto h-full">
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- TOAST NOTIFICATIONS -->
+    <div id="toast-container" class="fixed top-6 right-6 z-[200] space-y-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="toast-item transform transition-all duration-500 ease-out translate-x-full opacity-0 flex items-center gap-4 px-6 py-4 rounded-2xl shadow-2xl border-l-4 min-w-[320px] bg-white 
+                    {% if message.tags == 'success' %}border-emerald-500{% elif message.tags == 'error' %}border-red-500{% else %}border-blue-500{% endif %}">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center 
+                        {% if message.tags == 'success' %}bg-emerald-50 text-emerald-600{% elif message.tags == 'error' %}bg-red-50 text-red-600{% else %}bg-blue-50 text-blue-600{% endif %}">
+                        {% if message.tags == 'success' %}
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        {% elif message.tags == 'error' %}
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        {% else %}
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Notification</p>
+                        <p class="text-[11px] font-bold text-slate-900">{{ message }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    {% block extra_js %}{% endblock %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toasts = document.querySelectorAll('.toast-item');
+            toasts.forEach((toast, index) => {
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-full', 'opacity-0');
+                    toast.classList.add('translate-x-0', 'opacity-100');
+                    
+                    // Auto hide après 5 secondes
+                    setTimeout(() => {
+                        toast.classList.add('translate-x-full', 'opacity-0');
+                        setTimeout(() => toast.remove(), 500);
+                    }, 5000);
+                }, index * 200);
+            });
+        });
+    </script>
+
+  <script>
+      const btn = document.querySelector("button.mobile-menu-button");
+      const menu = document.querySelector(".mobile-menu");
+
+      btn.addEventListener("click", () => {
+          menu.classList.toggle("hidden");
+      });
+  </script>
+
+<script>
+  const scrollTop = document.getElementById('scrollTop');
+  const scrollContainer = document.getElementById('scrollContainer');
+
+  scrollTop.addEventListener('scroll', () => {
+    scrollContainer.scrollLeft = scrollTop.scrollLeft;
+  });
+
+  scrollContainer.addEventListener('scroll', () => {
+    scrollTop.scrollLeft = scrollContainer.scrollLeft;
+  });
+</script>
+
+
+ {% if selected_expl %}
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const datesPM = JSON.parse('{{ dates_pm|default:"[]"|escapejs }}');
+    const tauxPM  = JSON.parse('{{ taux_pm |default:"[]"|escapejs }}').map(v => (v > 100 ? 100 : v));
+    const datesPP = JSON.parse('{{ dates_pp|default:"[]"|escapejs }}');
+    const tauxPP  = JSON.parse('{{ taux_pp |default:"[]"|escapejs }}').map(v => (v > 100 ? 100 : v));
+
+    // Mise Ã  jour des KPI boxes (on garde l'affichage individuel en haut)
+    if (datesPP.length > 0) {
+        document.getElementById('lastRatePP').innerText = tauxPP[tauxPP.length - 1];
+        document.getElementById('lastDatePP').innerText = `Dernier : ${datesPP[datesPP.length - 1]}`;
+    }
+    if (datesPM.length > 0) {
+        document.getElementById('lastRatePM').innerText = tauxPM[tauxPM.length - 1];
+        document.getElementById('lastDatePM').innerText = `Dernier : ${datesPM[datesPM.length - 1]}`;
+    }
+
+    const ctx = document.getElementById('combinedChart').getContext('2d');
+
+    // Gradients pour le remplissage (Optionnel, pour le style)
+    const gradPP = ctx.createLinearGradient(0, 0, 0, 400);
+    gradPP.addColorStop(0, 'rgba(16, 185, 129, 0.1)');
+    gradPP.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+    const gradPM = ctx.createLinearGradient(0, 0, 0, 400);
+    gradPM.addColorStop(0, 'rgba(245, 158, 11, 0.1)');
+    gradPM.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: datesPP.length > datesPM.length ? datesPP : datesPM, // Utilise l'axe le plus long
+            datasets: [
+                {
+                    label: 'PP',
+                    data: tauxPP,
+                    borderColor: '#10b981', // Emerald 500
+                    backgroundColor: gradPP,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#10b981',
+                    pointRadius: 4
+                },
+                {
+                    label: 'PM',
+                    data: tauxPM,
+                    borderColor: '#f59e0b', // Amber 500
+                    backgroundColor: gradPM,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#f59e0b',
+                    pointRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: { display: false }, // On utilise notre légende HTML personnalisée
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    padding: 12,
+                    cornerRadius: 8,
+                    bodySpacing: 8,
+                    callbacks: {
+                        label: (context) => ` ${context.dataset.label}: ${context.raw}%`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 10, weight: '600' }, color: '#94a3b8' }
+                },
+                y: {
+                    min: 0,
+                    max: 105,
+                    grid: { color: '#f1f5f9' },
+                    border: { display: false },
+                    ticks: {
+                        stepSize: 20,
+                        font: { size: 10, weight: '600' },
+                        color: '#94a3b8',
+                        callback: v => v <= 100 ? v + '%' : ''
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+<script>
+  document.getElementById('filiale').addEventListener('change', function() {
+    let filiale = this.value;
+    if (filiale) {
+      fetch(`/get_agences/?filiale=${filiale}`)
+        .then(response => response.json())
+        .then(data => {
+          let agenceSelect = document.getElementById('agence');
+          agenceSelect.innerHTML = '<option value="">Toutes</option>';
+          data.forEach(agence => {
+            let option = document.createElement('option');
+            option.value = agence.AGENGE;
+            option.textContent = agence.AGENGE;
+            agenceSelect.appendChild(option);
+          });
+        });
+    }
+  });
+</script>
+
+
+
+{% endif %}
+
+
+<script>
+function createLineChart(canvasId, label, labels, data, borderColor, backgroundColor) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: label,
+                data: data,
+                borderColor: borderColor,
+                backgroundColor: backgroundColor,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { labels: { color: '#000000' }},
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.raw + " %";
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Date' } },
+                y: { beginAtZero: true, title: { display: true, text: 'Taux (%)' }, max: 100 }
+            }
+        }
+    });
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Récupération des données (assure-toi que ces variables sont envoyées par ta vue)
+    const labels = {{ labels_json|safe }};
+    const dataPM = {{ data_pm_json|safe }}.map(v => (v > 100 ? 100 : v));
+    const dataPP = {{ data_pp_json|safe }}.map(v => (v > 100 ? 100 : v));
+
+    // Mise Ã  jour des boites KPI
+    if (labels.length > 0) {
+        const lastIdx = labels.length - 1;
+        document.getElementById('lastRatePM').innerText = dataPM[lastIdx] || '0';
+        document.getElementById('lastDatePM').innerText = `Situation au ${labels[lastIdx]}`;
+
+        document.getElementById('lastRatePP').innerText = dataPP[lastIdx] || '0';
+        document.getElementById('lastDatePP').innerText = `Situation au ${labels[lastIdx]}`;
+    }
+
+    const ctx = document.getElementById('stockCanvas').getContext('2d');
+
+    // Dégradés harmonisés (Amber pour PM, Emerald pour PP)
+    const gradPM = ctx.createLinearGradient(0, 0, 0, 350);
+    gradPM.addColorStop(0, 'rgba(245, 158, 11, 0.1)');
+    gradPM.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+    const gradPP = ctx.createLinearGradient(0, 0, 0, 350);
+    gradPP.addColorStop(0, 'rgba(16, 185, 129, 0.1)');
+    gradPP.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'PM',
+                    data: dataPM,
+                    borderColor: '#f59e0b',
+                    backgroundColor: gradPM,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#f59e0b',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'PP',
+                    data: dataPP,
+                    borderColor: '#10b981',
+                    backgroundColor: gradPP,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#10b981',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    align: 'end',
+                    labels: { boxWidth: 8, usePointStyle: true, font: { size: 10, weight: '700' } }
+                },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    padding: 12,
+                    cornerRadius: 10,
+                    callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${ctx.raw}%` }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 9, weight: '600' }, color: '#94a3b8' } },
+                y: {
+                    min: 0, max: 105,
+                    grid: { color: '#f1f5f9' },
+                    border: { display: false },
+                    ticks: {
+                        stepSize: 20,
+                        font: { size: 9, weight: '600' },
+                        color: '#94a3b8',
+                        callback: v => v <= 100 ? v + '%' : ''
+                    }
+                }
+            }
+        }
+    });
+
+    const select = document.getElementById('filialeSelect');
+    if(select) {
+        select.addEventListener('change', () => document.getElementById('filialeForm').submit());
+    }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const labels = {{ labels_json|safe }};
+    const dataPM = {{ data_pm_json|safe }}.map(v => (v > 100 ? 100 : v));
+    const dataPP = {{ data_pp_json|safe }}.map(v => (v > 100 ? 100 : v));
+
+    if (labels.length > 0) {
+        const lastIdx = labels.length - 1;
+        document.getElementById('lastRatePM').innerText = dataPM[lastIdx] || '0';
+        document.getElementById('lastDatePM').innerText = `Le ${labels[lastIdx]}`;
+        document.getElementById('lastRatePP').innerText = dataPP[lastIdx] || '0';
+        document.getElementById('lastDatePP').innerText = `Le ${labels[lastIdx]}`;
+    }
+
+    const ctx = document.getElementById('fluxCanvas').getContext('2d');
+
+    // Gradients
+    const gradPM = ctx.createLinearGradient(0, 0, 0, 350);
+    gradPM.addColorStop(0, 'rgba(245, 158, 11, 0.1)'); // Amber
+    gradPM.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+    const gradPP = ctx.createLinearGradient(0, 0, 0, 350);
+    gradPP.addColorStop(0, 'rgba(16, 185, 129, 0.1)'); // Emerald
+    gradPP.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+    window.fluxChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: ' PM',
+                    data: dataPM,
+                    borderColor: '#f59e0b',
+                    backgroundColor: gradPM,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#f59e0b',
+                    pointRadius: 4
+                },
+                {
+                    label: ' PP',
+                    data: dataPP,
+                    borderColor: '#10b981',
+                    backgroundColor: gradPP,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#10b981',
+                    pointRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    align: 'end',
+                    labels: { boxWidth: 8, usePointStyle: true, font: { size: 10, weight: '700' } }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 9, weight: '600' }, color: '#94a3b8' } },
+                y: {
+                    min: 0, max: 105,
+                    grid: { color: '#f1f5f9' },
+                    border: { display: false },
+                    ticks: {
+                        stepSize: 20,
+                        font: { size: 9, weight: '600' },
+                        color: '#94a3b8',
+                        callback: v => v <= 100 ? v + '%' : ''
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableContainer = document.getElementById('tableContainer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // Fonction pour charger la page via AJAX
+        function loadPage(url) {
+            loadingOverlay.classList.remove('hidden');
+
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest', // Header pour indiquer Ã  Django que c'est de l'AJAX
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur de réseau ou de serveur.');
+                }
+                return response.text();
+            })
+            .then(html => {
+                // 1. Remplacer le contenu du conteneur du tableau
+                tableContainer.innerHTML = html;
+
+                // 2. Remonter en haut de la page (comportement demandé)
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                // 3. Réattacher les écouteurs d'événements aux nouveaux liens de pagination
+                // Ceci est crucial car l'ancien HTML a été remplacé
+                attachPaginationListeners();
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement des données:', error);
+                // Utiliser une alerte simple pour les erreurs critiques utilisateur
+                alert("Erreur lors du chargement de la page.");
+            })
+            .finally(() => {
+                loadingOverlay.classList.add('hidden');
+            });
+        }
+
+        // Fonction pour attacher les écouteurs d'événements aux liens
+        function attachPaginationListeners() {
+            // Sélectionner tous les liens de pagination dans le conteneur #paginationControls qui est remplacé par AJAX
+            const paginationLinks = document.querySelectorAll('#paginationControls .page-link');
+
+            paginationLinks.forEach(link => {
+                // S'assurer que le gestionnaire n'est pas attaché deux fois
+                link.removeEventListener('click', handlePaginationClick);
+
+                // Ajouter le nouvel écouteur
+                link.addEventListener('click', handlePaginationClick);
+            });
+        }
+
+        // Gestionnaire de clic
+        function handlePaginationClick(event) {
+            event.preventDefault(); // EmpÃªcher la navigation classique
+            const url = event.currentTarget.getAttribute('href');
+            loadPage(url);
+        }
+
+        // Attacher les écouteurs au chargement initial
+        attachPaginationListeners();
+
+        // Gérer la soumission du formulaire de filtre (qui recharge toute la page)
+        const filterForms = document.querySelectorAll('form[method="get"]');
+        filterForms.forEach(form => {
+            form.addEventListener('submit', function() {
+                // Afficher l'overlay avant la soumission du formulaire
+                loadingOverlay.classList.remove('hidden');
+            });
+        });
+    });
+</script>
+
+</body>
+
+</html>
+
+

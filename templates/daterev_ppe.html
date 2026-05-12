@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load tailwind_filters %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div>
+            <div class="flex items-center gap-3">
+
+                <div>
+                    <h1 class="text-xl font-black text-gray-800 tracking-tight uppercase">Revue | <span class="text-green-700 font-light">Scoring PPE</span></h1>
+
+         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ">Suivi des dates d'anniversaire de scoring</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'export_csv_scoring_ppe' %}?{{ request.GET.urlencode }}"  class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
+                     <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Exporter
+                </a>
+        </div>
+    </div>
+
+    <div class="flex flex-wrap justify-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-200 max-w-3xl mx-auto">
+        <a href="{% url 'ppe' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all bg-gray-50 text-gray-400 hover:bg-gray-100 uppercase tracking-widest">
+            Champs manquants
+        </a>
+        <a href="{% url 'anom_ppe' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all bg-gray-50 text-gray-400 hover:bg-gray-100 uppercase tracking-widest border-x border-gray-100">
+            Champs en anomalie
+        </a>
+        <a href="{% url 'daterev_ppe' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all nav-link-active text-white shadow-lg uppercase tracking-widest">
+            Revue scoring
+        </a>
+    </div>
+
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+        <form method="get" class="flex flex-wrap items-center justify-center gap-3">
+
+            <div class="min-w-[140px]">
+                <select name="periode" onchange="this.form.submit()" class="w-full text-[11px] font-bold text-gray-700 border-gray-200 rounded-xl focus:ring-green-600 focus:border-green-600 bg-gray-50">
+                    <option value="">Toute échéance</option>
+                    <option value="today" {% if periode == "today" %}selected{% endif %}>Échues (Auj.)</option>
+                    <option value="3m" {% if periode == "3m" %}selected{% endif %}>Dans 3 mois</option>
+                    <option value="6m" {% if periode == "6m" %}selected{% endif %}>Dans 6 mois</option>
+                    <option value="1y" {% if periode == "1y" %}selected{% endif %}>Dans 1 an</option>
+                </select>
+            </div>
+
+            <div class="min-w-[140px]">
+                {% if can_pick_filiale %}
+                    <select name="filiale" onchange="this.form.submit()" class="w-full text-[11px] font-bold text-gray-700 border-gray-200 rounded-xl focus:ring-green-600 focus:border-green-600 bg-gray-50">
+                        <option value="">Toutes filiales</option>
+                        {% for f in filiales %}
+                            <option value="{{ f }}" {% if filiale_param == f %}selected{% endif %}>{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                {% else %}
+                    <div class="px-4 py-2 bg-gray-100 border border-gray-100 text-[11px] font-bold text-gray-400 rounded-xl cursor-not-allowed">{{ filiale_param }}</div>
+                    <input type="hidden" name="filiale" value="{{ filiale_param }}">
+                {% endif %}
+            </div>
+
+            <div class="min-w-[140px]">
+                {% if can_pick_agence %}
+                    <select name="agence" onchange="this.form.submit()" class="w-full text-[11px] font-bold text-gray-700 border-gray-200 rounded-xl focus:ring-green-600 focus:border-green-600 bg-gray-50">
+                        <option value="">Toutes agences</option>
+                        {% for a in agences %}
+                            <option value="{{ a }}" {% if agence_param == a %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                {% else %}
+                    <div class="px-4 py-2 bg-gray-100 border border-gray-100 text-[11px] font-bold text-gray-400 rounded-xl cursor-not-allowed">{{ agence_param }}</div>
+                    <input type="hidden" name="agence" value="{{ agence_param }}">
+                {% endif %}
+            </div>
+
+            <div class="min-w-[140px]">
+                {% if can_pick_expl %}
+                    <select name="expl" onchange="this.form.submit()" class="w-full text-[11px] font-bold text-gray-700 border-gray-200 rounded-xl focus:ring-green-600 focus:border-green-600 bg-gray-50">
+                        <option value="">Tous exploitants</option>
+                        {% for e in exploitants %}
+                            <option value="{{ e }}" {% if expl_param == e %}selected{% endif %}>{{ e }}</option>
+                        {% endfor %}
+                    </select>
+                {% else %}
+                    <div class="px-4 py-2 bg-gray-100 border border-gray-100 text-[11px] font-bold text-gray-400 rounded-xl cursor-not-allowed">{{ expl_param }}</div>
+                    <input type="hidden" name="expl" value="{{ expl_param }}">
+                {% endif %}
+            </div>
+
+            <a href="{% url 'daterev_ppe' %}" class="bg-gray-900 text-gray-500 p-2.5 rounded-xl hover:bg-gray-200 transition-all active:scale-95" title="Réinitialiser">
+                <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </a>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+
+
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
+            <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
+                {{ donnees|length }} résultat(s)
+            </span>
+        
+            {% if count_risque_non_eleve > 0 %}
+                <span class="inline-flex items-center px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-[10px] font-black uppercase tracking-normal border border-orange-200 whitespace-nowrap">
+                    <span class="mr-2 w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
+                    PPE non classée à risque élevé : <strong class="ml-1">{{ count_risque_non_eleve }}</strong>
+                </span>
+            {% else %}
+                <span class="inline-flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-full text-[10px] font-black uppercase tracking-normal shadow-sm whitespace-nowrap">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Toutes les PPE sont à risque élevé
+                </span>
+            {% endif %}
+        </div>
+
+        {% if donnees %}
+        <div class="overflow-x-auto overflow-y-auto max-h-[550px] custom-scrollbar">
+      <table class="w-full border-separate border-spacing-0 text-[10px]">
+        <thead>
+            <tr class="sticky top-0 z-50">
+
+                 {% if user.organe not in user_filiale %}
+                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Filiale</th>
+                          {% endif %}
+                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Agence</th>
+                
+                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Agencelib</th>
+                
+                   <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Exploitant</th>
+                <th class="px-4 py-3 text-center font-black text-white uppercase tracking-widest sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[130px] border-b border-green-900">
+                    Client
+                </th>
+                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Classe de risque</th>
+
+                   <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Prochaine Date Revue (*)</th>
+                  
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 bg-white">
+                    {% for item in donnees %}
+                    <tr class="group transition-colors 
+                        {% if item.RISQUE != 'Risque eleve' %}
+                            bg-orange-100 hover:bg-orange-200
+                        {% else %}
+                            {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-green-50
+                        {% endif %}">
+                
+                        {% if user.organe not in user_filiale %}
+                        <td class="px-2 py-2 text-gray-500 whitespace-nowrap text-center">{{ item.FILIALE }}</td>
+                        {% endif %}
+                        
+                        <td class="px-2 py-2 text-gray-500 whitespace-nowrap text-center">{{ item.AGENCE }}</td>
+                        <td class="px-2 py-2 text-gray-500 whitespace-nowrap">{{ item.LIB_AGENCE }}</td>
+                        
+                        <td class="px-2 py-2 text-center border-b border-slate-100 {% if not item.EXPL %}bg-red-50 text-red-600 font-bold{% else %}text-slate-500{% endif %}">
+                            {{ item.EXPL|default:"-" }}
+                        </td>
+                
+                        <td class="group-hover:bg-green-600 group-hover:text-gray-100 px-2 py-2 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-md truncate max-w-[120px] 
+                            {% if item.RISQUE != 'Risque eleve' %} bg-orange-100 {% else %} bg-white {% endif %}">
+                            {{ item.CLIENT|default:"-" }}
+                        </td>
+                
+                        <td class="text-center px-2 py-2 text-gray-500 whitespace-nowrap">{{ item.RISQUE }}</td>
+                
+                        <td class="px-4 py-3 text-center font-mono font-bold {% if not item.DATEREV %}bg-orange-50 text-orange-600{% else %}text-blue-700{% endif %}">
+                            {{ item.DATEREV|default:"Non planifiée" }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="p-4 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-500  font-medium">
+            (*) Date limite recommandée pour effectuer le renouvellement du scoring de conformité.
+        </div>
+        {% else %}
+        <div class="p-20 text-center">
+            <div class="h-20 w-20 bg-gray-50 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-gray-200">
+                <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Aucune revue planifiée pour cette période.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div id="successMessage" class="hidden">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+</div>
+
+<script>
+    const msgBox = document.getElementById("successMessage");
+    if (msgBox && msgBox.innerText.trim() !== "") {
+        alert("ℹ️ " + msgBox.innerText);
+    }
+</script>
+{% endblock %}

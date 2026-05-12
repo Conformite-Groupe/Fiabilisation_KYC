@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div>
+            <h1 class="text-2xl font-black text-gray-800 tracking-tight uppercase">
+                Paramètrage | <span class="text-green-700 font-light">Utilisateurs</span>
+            </h1>
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Page d'administration des utilisateurs</p>
+        </div>
+
+        <div class="flex gap-4">
+    <div class="text-right border-r pr-4 border-gray-100">
+                <p class="text-[9px] font-black text-gray-400 uppercase">Utilisateurs</p>
+                <span class="text-xl font-black text-gray-800">{{ total_users }}</span>
+            </div>
+              <div class="text-right">
+                <p class="text-[9px] font-black text-green-600 uppercase">En Ligne</p>
+                <span class="text-xl font-black text-green-700">{{ connected_count }}</span>
+            </div>
+
+
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+    <div class="lg:col-span-7">
+        <form method="GET" class="flex items-center gap-3">
+            <div class="relative group flex-1">
+                <span class="absolute inset-y-0 left-0 pl-5 flex items-center text-gray-400">
+                    <svg class="h-5 w-5 group-focus-within:text-green-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </span>
+                <input type="text" name="q" placeholder="Rechercher un collaborateur..." value="{{ query }}"
+                       class="block w-full pl-14 pr-4 py-4 border-none rounded-2xl text-sm font-bold bg-white shadow-sm focus:ring-4 focus:ring-green-700/5 transition-all outline-none">
+            </div>
+            <button type="submit"
+                    class="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl bg-gray-900 text-white hover:bg-gray-800 transition-all shadow-sm">
+                Rechercher
+            </button>
+        </form>
+    </div>
+
+    <div class="lg:col-span-2 flex items-center gap-2">
+        <a href="/register"
+           class="flex-1 min-w-[180px] flex items-center justify-center gap-2 px-7 py-4 nav-link-active uppercase text-white text-[10px] font-black rounded-2xl tracking-[0.15em] whitespace-nowrap hover:bg-green-800 transition-all shadow-lg shadow-green-100 hover:-translate-y-0.5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-width="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            <span>Créer un compte</span>
+        </a>
+
+    
+    </div>
+</div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <div class="lg:col-span-4 space-y-6">
+            <div class="bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 bg-gray-800 text-white flex justify-between items-center">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest  animate-pulse">Sessions Actives    <span class="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span></h3>
+
+                </div>
+                <div class="divide-y divide-gray-50 max-h-[500px] overflow-y-auto custom-scrollbar">
+                    {% for u in connected_users %}
+                    <div class="p-4 flex items-center gap-3 hover:bg-green-50/50 transition-colors">
+                        <div class="h-10 w-10 bg-green-100 text-green-700 rounded-xl flex items-center justify-center font-black text-xs">
+                            {{ u.first_name|slice:":1" }}{{ u.last_name|slice:":1" }}
+                        </div>
+                        <div class="truncate">
+                            <p class="text-[11px] font-black text-gray-800 uppercase truncate">{{ u.first_name }} {{ u.last_name }}</p>
+                            <p class="text-[9px] text-gray-400 font-bold">{{ u.username }}</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-10 text-center text-[10px] font-bold text-gray-400 uppercase ">Aucun connecté</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-8">
+            <div class="bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden">
+         <div class="overflow-hidden bg-white rounded-[2rem] border border-slate-100 shadow-sm">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-900">
+            <thead class="bg-slate-50/50">
+                <tr class="border-b bg-slate-50 border-green-600">
+                    <th class="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Utilisateurs</th>
+                    <th class="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions de gestion</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for u in page_obj %}
+                <tr class="group hover:bg-slate-50/80 transition-all duration-300">
+                    <td class="px-8 py-4">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-black text-sm shadow-lg shadow-slate-200 group-hover:scale-105 transition-transform">
+                                {{ u.first_name|slice:":1" }}{{ u.last_name|slice:":1" }}
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <p class="text-xs font-black text-slate-800 uppercase tracking-tight">{{ u.first_name }} {{ u.last_name }}</p>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{{ u.organe }}</p>
+                                    <span class="h-1 w-1 bg-slate-300 rounded-full"></span>
+                                    <p class="text-[9px] font-bold text-green-700 uppercase">{{ u.filiale }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-8 py-4">
+                        <div class="flex justify-end gap-3">
+                            <a href="{% url 'edit_user' u.id %}"
+                               title="Modifier les informations"
+                               class="flex items-center gap-2 p-2.5 px-4 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-900 hover:text-white transition-all shadow-sm hover:shadow-md group/btn">
+                                <svg class="w-3.5 h-3.5 transition-transform group-hover/btn:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                </svg>
+                                <span class="text-[9px] font-black uppercase tracking-widest">Modifier infos </span>
+                            </a>
+
+                            <a href="{% url 'reset_user_password' u.id %}"
+                               title="Réinitialiser le mot de passe"
+                               class="flex items-center gap-2 p-2.5 px-4 bg-green-50 text-green-700 rounded-xl hover:bg-green-700 hover:text-white transition-all shadow-sm hover:shadow-md">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                                <span class="text-[9px] font-black uppercase tracking-widest">Mot de passe</span>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+                <div class="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
+                    <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                    <div class="flex gap-2">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[9px] font-black text-gray-600 hover:bg-gray-800 hover:text-white transition-all">PRÉC.</a>
+                        {% endif %}
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[9px] font-black text-gray-600 hover:bg-gray-800 hover:text-white transition-all">SUIV.</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+</style>
+
+{% if messages %}
+    {% for message in messages %}
+        <div id="successMessage" class="hidden">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<script>
+    const msgBox = document.getElementById("successMessage");
+    if (msgBox && msgBox.innerText.trim() !== "") {
+        alert(msgBox.innerText);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,125 @@
+﻿{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load tailwind_filters %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div>
+            <h1 class="text-2xl font-black text-gray-800 tracking-tight uppercase">
+                Base <span class="text-green-700 font-light">Utilisateurs</span>
+            </h1>
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Répertoire complet et gestion des privilÃ¨ges d'accÃ¨s</p>
+        </div>
+
+        <div class="bg-gray-100 px-4 py-2 rounded-xl border border-gray-200 shadow-sm flex items-center gap-2">
+            <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Total : {{ total_users }} Comptes</span>
+        </div>
+    </div>
+
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 lg:p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-5">
+            <div>
+                <h2 class="text-[11px] font-black text-gray-700 uppercase tracking-widest">Historique des connexions</h2>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mt-1">
+                    Nombre de personnes connectees par jour ({{ history_days }} jour{{ history_days|pluralize }})
+                </p>
+            </div>
+            <span class="inline-flex items-center px-3 py-1 rounded-lg bg-green-50 text-green-700 text-[10px] font-black uppercase tracking-widest border border-green-100">
+                Aujourd'hui : {{ connected_count }} connecte{{ connected_count|pluralize }}
+            </span>
+        </div>
+
+        <div class="h-64">
+            <canvas id="connectionsHistoryChart"></canvas>
+        </div>
+
+        <div class="mt-5 rounded-xl border border-gray-100 overflow-hidden">
+            <div class="max-h-72 overflow-y-auto">
+                <table class="min-w-full divide-y divide-gray-100">
+                    <thead class="bg-gray-50 sticky top-0 z-10">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest">Jour</th>
+                            <th class="px-4 py-3 text-right text-[9px] font-black text-gray-400 uppercase tracking-widest">Personnes connectees</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        {% for row in connection_history_rows %}
+                        <tr>
+                            <td class="px-4 py-3 text-[11px] font-bold text-gray-700">{{ row.date }}</td>
+                            <td class="px-4 py-3 text-right text-[11px] font-black text-green-700">{{ row.count }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" class="px-4 py-8 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                                Aucun historique disponible pour le moment
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-200 overflow-hidden min-h-[200px]">
+    </div>
+</div>
+
+{# GESTION DES NOTIFICATIONS SCRIPT #}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const labels = JSON.parse('{{ connection_history_labels|default:"[]"|escapejs }}');
+        const values = JSON.parse('{{ connection_history_values|default:"[]"|escapejs }}');
+        const chartCanvas = document.getElementById('connectionsHistoryChart');
+
+        if (chartCanvas && labels.length > 0) {
+            const ctx = chartCanvas.getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Personnes connectees / jour',
+                        data: values,
+                        borderColor: '#166534',
+                        backgroundColor: 'rgba(22, 101, 52, 0.12)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2.5,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    }
+                }
+            });
+        }
+
+        const successMessage = document.getElementById("successMessage");
+        if (successMessage && successMessage.innerText.trim() !== "") {
+            // Optionnel : remplacer l'alerte par une notification plus douce si vous le souhaitez
+            alert(successMessage.innerText);
+        }
+    });
+</script>
+
+<style>
+    /* Custom Scrollbar pour le tableau sur mobile */
+    .overflow-x-auto::-webkit-scrollbar { height: 4px; }
+    .overflow-x-auto::-webkit-scrollbar-track { background: transparent; }
+    .overflow-x-auto::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+</style>
+{% endblock %}

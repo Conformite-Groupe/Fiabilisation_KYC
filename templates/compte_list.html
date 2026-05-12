@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div id="wrap" class="bg-white oe_structure oe_empty"  >
+    <section class="bg-white">
+  <!-- Static sidebar for desktop -->
+          <div class="md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
+            <!-- Sidebar component, swap this element with another sidebar if you like -->
+            <div class="flex-1 flex flex-col min-h-0 nav-link-active">
+              <div class="flex items-center h-16 flex-shrink-0 px-4 ">
+              </div>
+              <div class="flex-1 flex flex-col overflow-y-auto">
+                <nav class="flex-1 px-2 py-4 space-y-1">
+                  <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:nav-link-active hover:text-white" -->
+                  <a href="{% url 'agent' %}" class="bg-cyan-800 font-bold text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                    <!--
+                      Heroicon name: outline/home
+
+                      Current: "text-gray-300", Default: "text-gray-400 group-hover:text-gray-300"
+                    -->
+                    <svg class="text-white  mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    <h1 class="font-bold">Accueil</h1>
+                  </a>
+
+                    {% if user.organe == "Contrôle Permanent" %}
+                  <a href="/notation" class="font-bold text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                    <!-- Heroicon name: outline/folder -->
+                    <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                       <h1 class="font-bold">Notation</h1>
+                  </a>
+
+                  <a href="/historique" class="font-bold text-white tracking-normal hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
+                    <!-- Heroicon name: outline/chart-bar -->
+                    <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Historique
+                  </a>
+                           <a href="{% url 'profil' %}" class="font-bold text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
+                    <!-- Heroicon name: outline/users -->
+                    <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    Mon profil
+                  </a>
+                    {% endif %}
+
+                    {% if user.organe == "Directeur Réseau" or user.organe == "Conformité" %}
+
+                    <a href="{% url 'profil' %}" class="font-bold text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
+                      <!-- Heroicon name: outline/users -->
+                      <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      Mon profil
+                    </a>
+                    {% endif %}
+
+
+              {% if user.organe == "PASS" %}
+
+                       <a href="/user_list" class="font-bold text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
+                    <!-- Heroicon name: outline/users -->
+
+                    <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 0 15 0m-15 0a7.5 7.5 0 1 1 15 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077 1.41-.513m14.095-5.13 1.41-.513M5.106 17.785l1.15-.964m11.49-9.642 1.149-.964M7.501 19.795l.75-1.3m7.5-12.99.75-1.3m-6.063 16.658.26-1.477m2.605-14.772.26-1.477m0 17.726-.26-1.477M10.698 4.614l-.26-1.477M16.5 19.794l-.75-1.299M7.5 4.205 12 12m6.894 5.785-1.149-.964M6.256 7.178l-1.15-.964m15.352 8.864-1.41-.513M4.954 9.435l-1.41-.514M12.002 12l-3.75 6.495" />
+</svg>
+
+                                           <h1 class="font-bold">Paramètres</h1>
+
+                  </a>
+
+                    {% endif %}
+
+                     <h1 class="font-bold text-cyan-900 tracking-normal   group flex items-center px-2 py-2 text-sm   rounded-md">
+
+
+                            Bienvenue {{ user.first_name }} <br> {{ user.organe }} ( {{ user.filiale }} )
+
+                  </h1>
+
+                    <div class="flex flex-col justify-center items-center">
+                                  <a href="/logout" class="bg-white hover:bg-red-500 mt-8 block  py-2 px-2 border border-transparent rounded-md text-center font-bold text-cyan-800 tracking-normal  hover:text-gray-200
+                                  focus:outline focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-700 focus:ring-green-700 hover:scale-105 transition transform duration-200"> <h1>Déconnexion</h1></a>
+                           </div>
+                </nav>
+              </div>
+            </div>
+          </div>
+              <div class="mt-8 md:pl-64 flex flex-col">
+
+                <main class="flex-1">
+                  <br>
+                  <br>
+                  <br>
+                  <div class="py-6">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                     </div>
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                      <div class="py-4">
+                        <div class="">
+                          <div class="relative items-center justify-center">
+                       <br>
+                       <div class="shadow-lg flex items-center justify-center">
+                          <span class="text-4xl sm:text-5xl text-gray-500 font-extrabold tracking-tight text-center ">LISTE DES AGENTS.</span>
+                       </div>
+                       <br>
+
+                   <div class="flex items-center justify-center">
+                      <span class="text-gray-500 text-2xl text-center font-extrabold tracking-normal ">Pour rechercher un agent, veuillez renseigner son code exploitant.</span>
+                   </div>
+                  <br>
+
+ <h2>Rapport de complétude KYC</h2>
+  <table border="1" cellspacing="0" cellpadding="4">
+    <thead>
+      <tr>
+        <th>Email</th><th>Code</th><th>Filiale</th><th>Complétude</th><th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for agent in agents %}
+      <tr>
+        <td>{{ agent.email }}</td>
+        <td>{{ agent.code_exploitant }}</td>
+        <td>{{ agent.filiale }}</td>
+        <td>{{ agent.taux_completude }}%</td>
+        <td>{{ agent.date_evaluation }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+                                <br>
+
+<div class="flex col-flex justify-center">
+
+         <form method="GET">
+            <div>
+                <input type="text" name="q" placeholder="Code exploitant" value="{{ query }}"
+                       class="shadow-md text-sm text-gray-base w-30
+                              mr-3 py-5 px-4 h-2 border
+                              border-green-700 rounded mb-2" />
+            <button type="submit" class="bg-cyan-800 shadow-lg text-white px-4 py-2 rounded shadow">Rechercher</button>
+        </div>
+        </form>
+    </div>
+
+<br>
+<br>
+
+<div class="flex justify-center mt-8">
+  <div class="w-full max-w-6xl overflow-x-auto bg-gray-50 shadow-lg rounded-lg">
+    {% if notes %}
+    <table class="min-w-full border-collapse">
+      <thead class="bg-cyan-800 text-white">
+        <tr>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Filiale</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Exploitant</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Nom et Prénom</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Agence</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Email</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Note</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Dernière notation</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white">
+        {% for note in notes %}
+        <tr class="even:bg-gray-100 odd:bg-white hover:bg-gray-200 transition-colors duration-200 ease-in-out">
+          <td class="border-b-2 px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ note.note_par.filiale }}</td>
+          <td class="border-b-2 px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ note.agent.expl }}</td>
+          <td class="border-b-2 px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ note.agent.nom }}</td>
+          <td class="border-b-2 px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ note.agent.agence }}</td>
+          <td class="border-b-2 px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ note.agent.email }}</td>
+          <td class="border-b-2 px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ note.note }}</td>
+          <td class="border-b-2 px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ note.date_notation|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-700 mt-4">Aucun exploitant trouvé.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if messages %}
+<ul class="bg-green-500 text-white p-4 rounded-lg shadow-lg mt-4">
+  {% for message in messages %}
+    <li id="successMessage">{{ message }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+
+
+              </div>
+                        </div>
+                      </div>
+                      <!-- /End replace -->
+                    </div>
+                  </div>
+                </main>
+              </div>
+    </section>
+
+</div>
+
+<script>
+    // Si un message de succès est présent, afficher une alerte avec un pop-up
+    const successMessage = document.getElementById("successMessage");
+    if (successMessage) {
+        alert(successMessage.innerText);
+    }
+</script>
+
+
+
+
+{% endblock %}
+

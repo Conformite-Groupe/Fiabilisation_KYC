@@ -1,0 +1,785 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<!-- Premium Fonts & Styles -->
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.3);
+        --premium-dark: #0f172a;
+        --premium-accent: #10b981;
+        --premium-blue: #3b82f6;
+        --premium-red: #ef4444;
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #f8fafc;
+        background-image:
+            radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%);
+    }
+
+    .glass-panel {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    }
+
+    .premium-card {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid transparent;
+    }
+
+    .premium-card:hover {
+        transform: translateY(-4px) scale(1.01);
+        border-color: rgba(16, 185, 129, 0.2);
+        box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-glow-emerald {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+    }
+
+    .stat-glow-blue {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+    }
+
+    .stat-glow-red {
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+    }
+
+    .btn-premium {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .btn-premium::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 300%;
+        height: 300%;
+        background: rgba(255, 255, 255, 0.1);
+        transform: translate(-50%, -50%) rotate(45deg) translateY(100%);
+        transition: transform 0.6s ease;
+    }
+
+    .btn-premium:hover::after {
+        transform: translate(-50%, -50%) rotate(45deg) translateY(0);
+    }
+
+    .progress-glow-circle {
+        filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.4));
+    }
+
+    .rule-number {
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .premium-input input,
+    .premium-input select,
+    .premium-input textarea {
+        @apply w-full bg-slate-50 border-slate-200 rounded-2xl px-6 py-4 text-sm font-semibold text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all !important;
+        border-width: 1px !important;
+    }
+
+    .premium-label label {
+        @apply text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 ml-1 block !important;
+    }
+</style>
+
+<div class="min-h-screen p-4 lg:p-8 space-y-8 max-w-[1600px] mx-auto">
+
+    <!-- HEADER AREA -->
+    <header
+        class="glass-panel rounded-[2.5rem] p-6 lg:p-8 flex flex-col lg:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-6">
+            <div class="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center shadow-2xl">
+                <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                    </path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none">
+                    CONTRÔLE <span class="text-emerald-500 font-light">QUALITÉ</span> KYC
+                </h1>
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Gestion des
+                        règles de contrôle qualité KYC</p>
+                </div>
+            </div>
+        </div>
+
+        {% if can_manage %}
+        <div class="flex flex-wrap items-center justify-end gap-2">
+            <button id="openRuleModal"
+                class="btn-premium flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-xl shadow-xl hover:shadow-emerald-900/20 active:scale-95 transition-all">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <span class="text-[10px] font-black uppercase tracking-widest">Nouvelle règle</span>
+            </button>
+            <a href="{% url 'kyc:export_rules_pdf' %}"
+                class="btn-premium flex items-center gap-2 px-5 py-3 bg-blue-400 text-white rounded-xl hover:bg-blue-600 shadow-lg shadow-red-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2"
+                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                    </path>
+                </svg>
+                <span class="text-[10px] font-black uppercase tracking-widest">LISTE DES règles</span>
+            </a>
+            <a href="{% url 'kyc:quality_control_audits' %}"
+                class="btn-premium flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 shadow-sm">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+                    </path>
+                </svg>
+                <span class="text-[10px] font-black uppercase tracking-widest">Logs d'Audit</span>
+            </a>
+        </div>
+        {% endif %}
+    </header>
+
+    <!-- STATISTICS GRID -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="glass-panel premium-card p-8 rounded-[2.5rem] border-l-8 border-slate-900 group">
+            <div class="flex justify-between items-start mb-4">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Total Règles</p>
+                <div
+                    class="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-900 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+            <p class="text-5xl font-black text-slate-900 tracking-tighter">{{ total_rules }}</p>
+        </div>
+
+        <div
+            class="glass-panel premium-card p-8 rounded-[2.5rem] border-l-8 border-emerald-500 group stat-glow-emerald">
+            <div class="flex justify-between items-start mb-4">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">Opérationnelles</p>
+                <div class="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+            </div>
+            <p class="text-5xl font-black text-slate-900 tracking-tighter">{{ active_rules }}</p>
+        </div>
+
+        <div class="glass-panel premium-card p-8 rounded-[2.5rem] border-l-8 border-blue-500 group stat-glow-blue">
+            <div class="flex justify-between items-start mb-4">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">Score Global</p>
+                <div class="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+            </div>
+            <p class="text-5xl font-black text-slate-900 tracking-tighter">
+                {% if global_compliance_rate %}{{ global_compliance_rate }}<span
+                    class="text-2xl ml-1 text-slate-400">%</span>{% else %}--{% endif %}
+            </p>
+        </div>
+
+        <div class="glass-panel premium-card p-8 rounded-[2.5rem] border-l-8 border-red-500 group stat-glow-red">
+            <div class="flex justify-between items-start mb-4">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-red-600">Clients non conformes</p>
+                <div class="w-10 h-10 bg-red-50 rounded-2xl flex items-center justify-center text-red-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+            <p class="text-5xl font-black text-slate-900 tracking-tighter">{{ total_failures }}</p>
+        </div>
+    </div>
+
+    <!-- RULES LISTING -->
+    <div class="space-y-6">
+        <div class="flex items-center gap-4 px-4">
+            <h2 class="text-sm font-black text-slate-400 uppercase tracking-[0.4em]">Bibliothèque des Règles</h2>
+            <div class="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent"></div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6">
+            {% if rules %}
+            {% for item in rules %}
+            {% with rule=item.rule stat=item.stat %}
+            <article
+                class="glass-panel premium-card rounded-[2.5rem] overflow-hidden {% if not rule.active %}opacity-60 saturate-50{% endif %}">
+                <div class="p-6 lg:p-8 flex flex-col lg:flex-row gap-8">
+
+                    <!-- RULE CORE INFO -->
+                    <div class="flex-1 space-y-6">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-5">
+                                <div class="relative group/icon">
+                                    <div
+                                        class="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-white shadow-2xl transition-all duration-500 group-hover:rotate-12">
+                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-width="2"
+                                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                    <span
+                                        class="rule-number absolute -top-3 -left-3 w-8 h-8 bg-white border-4 border-slate-900 rounded-2xl flex items-center justify-center text-xs font-black text-slate-900 shadow-xl">
+                                        {{ forloop.counter }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-black text-slate-900 tracking-tight leading-tight mb-0.5">
+                                        {{ rule.name }}
+                                    </h3>
+                                    <div class="flex items-center gap-3">
+                                        {% if rule.active %}
+                                        <span
+                                            class="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[8px] font-black uppercase tracking-widest border border-emerald-100">
+                                            <span class="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            Active
+                                        </span>
+                                        {% else %}
+                                        <span
+                                            class="flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[8px] font-black uppercase tracking-widest border border-slate-200">
+                                            <span class="w-1 h-1 rounded-full bg-slate-400"></span> Inactive
+                                        </span>
+                                        {% endif %}
+                                        <span
+                                            class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[8px] font-black uppercase tracking-widest border border-blue-100">
+                                            {{ rule.get_applicability_display }}
+                                        </span>
+                                        <span
+                                            class="px-2 py-0.5 bg-red-50 text-red-900 rounded-full text-[8px] font-black uppercase tracking-widest border border-blue-100">
+                                            {{ item.condition_groups|length }} Condition(s)
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if can_manage %}
+                            <div class="flex items-center gap-2">
+                                <a href="{% url 'kyc:edit_quality_rule' rule.id %}"
+                                    class="w-12 h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-2xl hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm"
+                                    title="Modifier">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                        </path>
+                                    </svg>
+                                </a>
+                                <a href="{% url 'kyc:delete_quality_rule' rule.id %}"
+                                    class="w-12 h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-2xl hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-sm"
+                                    title="Supprimer" onclick="return confirm('Supprimer cette règle ?')">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                        </path>
+                                    </svg>
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+
+
+
+                        <p
+                            class="text-slate-500 text-xs leading-relaxed font-medium bg-slate-50/50 p-4 rounded-[1.5rem] border border-slate-100 italic">
+                            {% if rule.description %}
+                            {{ rule.description }}
+                            {% else %}
+                            Aucune description configurée.
+                            {% endif %}
+                        </p>
+
+                        {% if item.condition_groups %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {% for cond in item.condition_groups %}
+                            <div
+                                class="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-emerald-200 transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="text-[9px] font-black text-slate-900 uppercase">
+                                        {{ cond.field_name }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="text-[8px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded uppercase">
+                                        {{ cond.operator_display }}
+                                    </span>
+
+                                    {% if cond.values %}
+                                    <span class="text-[9px] font-black text-slate-700">
+                                        {{ cond.values|join:", " }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-[9px] font-black text-slate-400">
+                                        Sans paramètre
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- RULE STATS SIDEBAR -->
+                    <div class="w-full lg:w-80 space-y-3">
+                        <div class="grid grid-cols-5 gap-3">
+                            <!-- Gauge Block (Left) -->
+                            <div
+                                class="col-span-3 bg-slate-900 p-4 rounded-[2rem] shadow-2xl relative overflow-hidden group/gauge flex flex-col items-center justify-center">
+                                <div class="relative z-10 text-center">
+                                    <div
+                                        class="inline-flex items-center justify-center w-20 h-20 rounded-full border-2 border-emerald-500/20 mb-2 p-1.5 relative">
+                                        <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 112 112">
+                                            <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor"
+                                                stroke-width="10" class="text-white/5"></circle>
+                                            <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor"
+                                                stroke-width="10" class="text-emerald-500 progress-glow-circle"
+                                                stroke-dasharray="314" stroke-dashoffset="314"
+                                                data-rate="{{ stat.compliance_rate|default_if_none:0|default:'0'|floatformat:0 }}"
+                                                stroke-linecap="round">
+                                            </circle>
+                                        </svg>
+                                        <span class="text-xs font-black text-white tracking-tighter">
+                                            {{ stat.compliance_rate|default_if_none:0|default:'0'|floatformat:0 }}%
+                                        </span>
+                                    </div>
+                                    <p class="text-[7px] font-black text-emerald-500 uppercase tracking-widest">
+                                        Conformité</p>
+                                </div>
+                            </div>
+
+                            <!-- Stats Vertical Block (Right) -->
+                            <div class="col-span-2 flex flex-col gap-3">
+                                <div
+                                    class="flex-1 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                                    <p class="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                                        Volume</p>
+                                    <p class="text-base font-black text-slate-900 leading-none">{{ stat.total }}</p>
+                                </div>
+                                <div
+                                    class="flex-1 bg-red-50 p-3 rounded-2xl border border-red-100 shadow-sm flex flex-col items-center justify-center text-center">
+                                    <p class="text-[6px] font-black text-red-400 uppercase tracking-widest mb-0.5">
+                                        Alertes</p>
+                                    <p class="text-base font-black text-red-600 leading-none">{{ stat.fail_count }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if stat.fail_count > 0 %}
+                        <a href="{% url 'kyc:export_rule_failures' rule.id %}" onclick="handleExportClick(this)"
+                            class="w-full py-2 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl text-[8px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 group/dl shadow-lg">
+                            <svg class="w-3.5 h-3.5 text-emerald-400 group-hover/dl:translate-y-1 transition-transform export-icon"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-width="2.5"
+                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            <svg class="w-3.5 h-3.5 text-white animate-spin hidden export-spinner"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            <span class="export-text">Exporter Anomalies</span>
+                        </a>
+                        {% else %}
+                        <div
+                            class="w-full py-3 bg-emerald-500/5 text-emerald-600 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 border border-emerald-500/10">
+                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-width="3" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Conforme</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+            {% endwith %}
+            {% endfor %}
+            {% else %}
+            <div class="glass-panel p-32 rounded-[4rem] text-center">
+                <div
+                    class="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-10 shadow-inner">
+                    <svg class="w-16 h-16 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="1.5"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                        </path>
+                    </svg>
+                </div>
+                <h3 class="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">Aucune Règle Configurée
+                </h3>
+                <p class="text-slate-400 font-medium text-lg">Votre espace de conformité attend ses premières
+                    instructions.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- PREMIUM MODAL -->
+<div id="ruleModal"
+    class="fixed inset-0 z-[100] hidden overflow-y-auto bg-slate-900/80 backdrop-blur-xl p-4 lg:p-12 animate-in fade-in duration-500">
+    <div class="flex items-start justify-center min-h-full">
+        <div
+            class="relative w-full max-w-7xl bg-white rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden transform transition-all my-8 animate-in zoom-in-95 duration-500">
+            <!-- Modal Header -->
+            <div class="px-10 py-8 bg-slate-900 flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-black text-white uppercase tracking-widest">Création de règle
+                        </h2>
+                        <p class="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">Paramètrage des
+                            règles de Contrôle</p>
+                    </div>
+                </div>
+                <button id="closeRuleModal"
+                    class="h-12 w-12 flex items-center justify-center rounded-2xl bg-white/5 hover:bg-white/10 text-white transition-all">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form method="post" id="ruleForm" class="p-6 lg:p-8 premium-input premium-label">
+                {% csrf_token %}
+                <div id="modal_form_grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Left: Parameters -->
+                    <div class="space-y-6">
+                        <div class="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-6">
+                            <div class="flex items-center gap-4 mb-2">
+                                <div class="w-1.5 h-6 bg-slate-900 rounded-full"></div>
+                                <h3 class="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">Paramètres de
+                                    Base</h3>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="md:col-span-2">{{ form.name|as_crispy_field }}</div>
+                                <div class="md:col-span-2">{{ form.applicability|as_crispy_field }}</div>
+                                <div class="md:col-span-2">{{ form.description|as_crispy_field }}</div>
+                                {{ form.control_type }}
+                                {{ form.field_name }}
+                                {{ form.parameter }}
+                            </div>
+                        </div>
+
+                        <div class="p-6 bg-slate-900 rounded-3xl flex items-center justify-between">
+
+                            <div class="flex items-center gap-4">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Activer en
+                                    Production</span>
+                                {{ form.active }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Logic Engine -->
+                    <div id="conditions_column" class="space-y-6">
+                        <div class="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 space-y-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+                                    <h3 class="text-xs font-black text-blue-600 uppercase tracking-[0.3em]">Conditions
+                                        Logiques</h3>
+                                </div>
+                                <button type="button" id="addCondition"
+                                    class="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-width="3" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    <span class="text-[10px] font-black uppercase tracking-widest">Ajouter
+                                        Logique</span>
+                                </button>
+                            </div>
+
+                            {{ formset.management_form }}
+                            <div id="conditionContainer"
+                                class="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
+                                {% for f in formset %}
+                                <div
+                                    class="condition-row p-6 bg-white rounded-3xl border-2 border-slate-100 shadow-sm space-y-4 hover:border-blue-300 transition-all relative group">
+                                    <div class="flex items-center gap-4 mb-2">
+                                        <span
+                                            class="w-10 h-10 flex items-center justify-center rounded-2xl bg-blue-50 text-blue-600 text-sm font-black shadow-inner">#</span>
+                                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            Noeud Logique</h4>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-6">
+                                        <div class="condition-field-container">{{ f.field_name|as_crispy_field }}</div>
+                                        <div class="condition-operator-container">{{ f.operator|as_crispy_field }}</div>
+                                    </div>
+                                    <div
+                                        class="condition-value-block bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col md:flex-row items-end gap-4">
+                                        <div class="flex-1 w-full">{{ f.value|as_crispy_field }}</div>
+                                    </div>
+                                    {% if f.instance.pk %}
+                                    <div class="flex justify-end pt-2">
+                                        <div
+                                            class="flex items-center gap-2 text-red-400 hover:text-red-600 cursor-pointer transition-colors">
+                                            {{ f.DELETE }}
+                                            <span class="text-[10px] font-black uppercase">Supprimer Noeud</span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="flex gap-4 justify-end mt-10 pt-8 border-t border-slate-100">
+                    <button id="closeRuleModalFooter" type="button"
+                        class="px-10 py-4 text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">Annuler</button>
+                    <button type="submit" id="submitRuleBtn"
+                        class="px-16 py-5 bg-slate-900 text-white text-xs font-black uppercase tracking-[0.3em] rounded-3xl hover:bg-emerald-600 shadow-2xl hover:shadow-emerald-900/40 transition-all active:scale-95 flex items-center gap-3">
+                        <span class="btn-text">Créer règle</span>
+                        <div class="hidden btn-loader">
+                            <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Circle progress animation
+        document.querySelectorAll('circle.progress-glow-circle').forEach(circle => {
+            const rate = parseFloat(circle.getAttribute('data-rate') || 0);
+            const circumference = 314; // 2 * PI * r (r=50)
+            const offset = circumference - (rate / 100) * circumference;
+
+            circle.style.strokeDashoffset = circumference;
+            setTimeout(() => {
+                circle.style.transition = 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                circle.style.strokeDashoffset = offset;
+            }, 300);
+        });
+
+        const modal = document.getElementById('ruleModal');
+        const openBtn = document.getElementById('openRuleModal');
+        const closeBtns = [
+            document.getElementById('closeRuleModal'),
+            document.getElementById('closeRuleModalFooter')
+        ];
+
+        const toggleModal = (show) => {
+            if (show) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+        };
+
+        openBtn.addEventListener('click', () => toggleModal(true));
+        closeBtns.forEach(btn => btn?.addEventListener('click', () => toggleModal(false)));
+
+        // Labels en français
+        const fieldLabels = {
+            id_name: 'Nom de la règle',
+            id_applicability: 'Segment Cible',
+            id_field_name: 'Champ de Contrôle Principal',
+            id_control_type: 'Algorithme d\'Audit',
+            id_parameter: 'Valeur de Base',
+            id_description: 'Description',
+            id_active: 'Mode Production'
+        };
+
+        Object.entries(fieldLabels).forEach(([id, label]) => {
+            const el = document.querySelector(`label[for="${id}"]`);
+            if (el) el.textContent = label;
+        });
+
+        const fieldOptions = {
+            PP: [['CODAPE', 'Code APE'], ['IDP', 'Identifiant PP'], ['PAYNAIS', 'Pays Naissance'], ['PROFESSION', 'Profession'], ['ADRESSE', 'Adresse'], ['PAYS_RESID', 'Pays Résidence'], ['NUMID', 'Numéro ID'], ['SALAIRE', 'Salaire'], ['DATVALID', 'Date Validité'], ['DATNAIS', 'Date Naissance'], ['TEL', 'Téléphone'], ['DATOUV', 'Date Ouverture'], ['PPE', 'Statut PPE'], ['DEVISE', 'Devise'], ['RESID', 'Résidence']],
+            PM: [['CODAPE', 'Code APE'], ['AGEC', 'Code AGEC'], ['IDM', 'Identifiant PM'], ['RCSNO', 'Numéro RCS'], ['CAPITAL', 'Capital Social'], ['CA', 'Chiffre d\'Affaires'], ['DATOUV', 'Date Ouverture'], ['TEL', 'Téléphone'], ['DEVISE', 'Devise'], ['RESID', 'Résidence']]
+        };
+
+        const applicabilitySelect = document.querySelector('#id_applicability');
+        const controlTypeSelect = document.querySelector('select[name="control_type"]');
+
+        function updateFieldsInRow(row) {
+            const select = row.querySelector('select[name$="-field_name"]');
+            if (!select || !applicabilitySelect) return;
+
+            const val = applicabilitySelect.value;
+            const opts = fieldOptions[val] || [];
+            const currentVal = select.value;
+
+            select.innerHTML = '<option value="">Choisir un champ</option>' +
+                opts.map(([v, l]) => `<option value="${v}" ${v === currentVal ? 'selected' : ''}>${l}</option>`).join('');
+        }
+
+        function handleOperatorChange(row) {
+            const op = row.querySelector('select[name$="-operator"]')?.value;
+            const valBlock = row.querySelector('.condition-value-block');
+            if (!valBlock) return;
+
+            const noValueOperators = ['is_empty', 'is_not_empty', 'expired'];
+            if (noValueOperators.includes(op)) {
+                valBlock.style.opacity = '0.3';
+                valBlock.style.pointerEvents = 'none';
+                valBlock.querySelector('input, select, textarea').value = '';
+            } else {
+                valBlock.style.opacity = '1';
+                valBlock.style.pointerEvents = 'auto';
+            }
+        }
+
+        function refreshAllNodes() {
+            document.querySelectorAll('.condition-row').forEach(row => {
+                updateFieldsInRow(row);
+                handleOperatorChange(row);
+            });
+        }
+
+        applicabilitySelect?.addEventListener('change', refreshAllNodes);
+
+        document.addEventListener('change', (e) => {
+            if (e.target.name && e.target.name.endsWith('-operator')) {
+                handleOperatorChange(e.target.closest('.condition-row'));
+            }
+        });
+
+        // Forcer le type composite et cacher le champ
+        if (controlTypeSelect) {
+            controlTypeSelect.value = 'composite';
+            controlTypeSelect.closest('.hidden').classList.remove('hidden'); // Ensure it's rendered but hidden via CSS or parent
+            controlTypeSelect.parentElement.style.display = 'none';
+        }
+
+        // Formset Logic
+        const addBtn = document.getElementById('addCondition');
+        const container = document.getElementById('conditionContainer');
+        const totalFormsInput = document.getElementById('id_conditions-TOTAL_FORMS');
+
+        if (addBtn && container) {
+            addBtn.addEventListener('click', () => {
+                const rows = container.getElementsByClassName('condition-row');
+                const newRow = rows[rows.length - 1].cloneNode(true);
+                const formIdx = rows.length;
+                newRow.innerHTML = newRow.innerHTML.replace(/conditions-(\d+)-/g, `conditions-${formIdx}-`);
+
+                newRow.querySelectorAll('input:not([type="checkbox"]), select, textarea').forEach(i => i.value = '');
+                newRow.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked = false);
+
+                container.appendChild(newRow);
+                totalFormsInput.value = formIdx + 1;
+
+                updateFieldsInRow(newRow);
+                handleOperatorChange(newRow);
+
+                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            });
+        }
+
+        refreshAllNodes();
+
+        // Handle Form Loading
+        const ruleForm = document.getElementById('ruleForm');
+        const submitBtn = document.getElementById('submitRuleBtn');
+        if (ruleForm && submitBtn) {
+            ruleForm.addEventListener('submit', function () {
+                const text = submitBtn.querySelector('.btn-text');
+                const loader = submitBtn.querySelector('.btn-loader');
+                if (text) text.textContent = 'Traitement...';
+                if (loader) loader.classList.remove('hidden');
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            });
+        }
+    });
+</script>
+
+<style>
+    /* Premium Input Styling */
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+        @apply w-full bg-slate-50 border-slate-200 rounded-2xl px-6 py-4 text-sm font-semibold text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all !important;
+        border-width: 1px !important;
+    }
+
+    label {
+        @apply text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 ml-1 block !important;
+    }
+
+    input[type="checkbox"] {
+        @apply w-14 h-7 bg-slate-200 rounded-full appearance-none cursor-pointer transition-all relative checked:bg-emerald-500 !important;
+    }
+
+    input[type="checkbox"]::before {
+        content: '';
+        @apply absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-all shadow-sm !important;
+    }
+
+    input[type="checkbox"]:checked::before {
+        @apply translate-x-7 !important;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+</style>
+{% endblock %}

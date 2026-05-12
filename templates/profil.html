@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div>
+            <h1 class="text-2xl font-black text-gray-800 tracking-tight uppercase">
+                Mon <span class="text-green-700 font-light">Profil</span>
+            </h1>
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Informations personnelles</p>
+        </div>
+
+{% if notation %}
+    {% for note in notation %}
+        {% if note.recommandation %}
+        <div class="mt-6 p-5 bg-amber-50 rounded-2xl border-l-4 border-amber-400 shadow-sm transition-all hover:shadow-md">
+            <div class="flex items-center gap-2 mb-2">
+                <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="text-[10px] font-black text-amber-700 uppercase tracking-widest">Recommandation du Contrôleur</p>
+            </div>
+            <p class="text-sm italic text-gray-700 leading-relaxed font-medium">
+                "{{ note.recommandation }}"
+            </p>
+            <div class="mt-3 flex justify-between items-center">
+                <span class="text-[9px] text-amber-600/60 font-bold uppercase">Note associée : {{ note.note }}</span>
+                <span class="text-[9px] text-gray-400 font-bold uppercase italic">Le {{ note.date_notation|date:"d/m/Y" }}</span>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+    </div>
+
+    <div class="max-w-2xl mx-auto mt-10">
+        <div class="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-200 overflow-hidden">
+
+            <div class="h-32 bg-gray-800 relative">
+                <div class="absolute -bottom-12 left-1/2 -translate-x-1/2">
+                    <div class="relative inline-block">
+                        <img src="/media/images/logo.png" alt="Avatar"
+                             class="w-32 h-32 rounded-3xl border-8 border-white bg-white object-contain shadow-lg">
+                        <div class="absolute bottom-2 right-2 w-5 h-5 bg-green-500 border-4 border-white rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-16 pb-10 px-10">
+                <div class="text-center mb-10">
+                    <h2 class="text-2xl font-black text-gray-800 uppercase tracking-tight">{{ user.first_name }} {{ user.last_name }}</h2>
+                    <span class="px-3 py-1 bg-green-50 text-green-700 text-[10px] font-black rounded-lg border border-green-100 uppercase tracking-widest mt-2 inline-block">
+                        {{ user.organe|default:"Collaborateur" }} -  {{ user.filiale|default:"Collaborateur" }}
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="group p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-green-700/30 transition-all">
+                        <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Identifiant Email</p>
+                        <p class="text-sm font-bold text-gray-700">{{ user.username }}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-4 bg-gray-50 rounded-2xl border border-transparent">
+                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Téléphone</p>
+                            <p class="text-sm font-bold text-gray-700">{{ user.téléphone|default:"Non renseigné" }}</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded-2xl border border-transparent">
+                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Filiale</p>
+                            <p class="text-sm font-bold text-gray-700">{{ user.filiale }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 flex flex-col gap-3">
+                    <a href="{% url 'modify-pw' %}"
+                       class="flex items-center justify-center gap-3 bg-gray-800 hover:bg-black text-white font-black py-4 px-6 rounded-2xl transition-all shadow-lg text-[11px] uppercase tracking-widest">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                        Changer mon mot de passe
+                    </a>
+                </div>
+
+                {% if messages %}
+                <div class="mt-6">
+                    {% for message in messages %}
+                    <div class="flex items-center gap-3 p-4 bg-green-50 text-green-700 rounded-2xl border border-green-100 text-xs font-bold uppercase tracking-tight animate-pulse">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Alerte automatique si un message de succès existe
+    window.onload = function() {
+        {% if messages %}
+            {% for message in messages %}
+                alert("{{ message|escapejs }}");
+            {% endfor %}
+        {% endif %}
+    }
+</script>
+{% endblock %}

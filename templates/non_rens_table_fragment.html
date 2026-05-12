@@ -1,0 +1,95 @@
+<div class="p-6">
+
+    <!-- NOUVEAU CONTENEUR POUR LA PARTIE DYNAMIQUE (Remplacé par AJAX) -->
+    <div id="tableContainer">
+
+        <!-- Affichage du total items -->
+        <div class=" text-orange-600 font-semibold tracking-tight">
+            {{ donnees.paginator.count }} client(s) trouvé(s)
+        </div>
+
+        {% if donnees.paginator.count > 0 %}
+        <!-- Conteneur principal avec overflow X uniquement pour le scroll horizontal -->
+        <div class="overflow-x-auto relative border border-gray-300 rounded-lg shadow-lg">
+            <table class="min-w-[1200px] text-xs text-center">
+                <thead class="sticky top-0 nav-link-active text-white z-10 shadow-md">
+                    <tr class="text-center">
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Filiale</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Agence</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap sticky left-0 nav-link-active z-20">Client</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Exploitant</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Codape</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Idp</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Pays Nais</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Profession</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Adresse</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Pays Resid</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Num Cin</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Salaire</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Origine Revenu</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Validité Cin</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Téléphone</th>
+                    </tr>
+                </thead>
+                <!-- Le contexte 'donnees' est maintenant l'objet Page -->
+                <tbody>
+                    {% for item in donnees %}
+                    <tr class="hover:bg-gray-200 transition-colors duration-200 ease-in-out">
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center">{{ item.FILIALE }}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center">{{ item.AGENCE }}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center bg-gray-200 sticky left-0 ">{{ item.CLIENT }}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.EXPL %}bg-orange-500{% endif %}">{{ item.EXPL|default:"-" }}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.CODAPE %}bg-orange-500{% endif %}">{{ item.CODAPE |default:"-"}}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.IDP  %}bg-orange-500{% endif %}">{{ item.IDP |default:"-"}}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.PAYNAIS  %}bg-orange-500{% endif %}">{{ item.PAYNAIS|default:"-" }}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.PROFESSION  %}bg-orange-500{% endif %}">{{ item.PROFESSION|default:"-" }}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.ADRESSE %}bg-orange-500{% endif %}">{{ item.ADRESSE |default:"-"}}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.PAYS_RESID %}bg-orange-500{% endif %}">{{ item.PAYS_RESID |default:"-"}}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.NUMID  %}bg-orange-500{% endif %}">{{ item.NUMID|default:"-" }}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.SALAIRE  %}bg-orange-500{% endif %}">{{ item.SALAIRE|default:"-" }}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.ORIGINE_REV %}bg-orange-500{% endif %}">{{ item.ORIGINE_REV |default:"-"}}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.DATVALID %}bg-orange-500{% endif %}">{{ item.DATVALID |default:"-"}}</td>
+                        <td class="border-b-2 px-1 py-1 whitespace-nowrap border border-gray-300 text-xs text-gray-700 text-center {% if not item.TEL  %}bg-orange-500{% endif %}">{{ item.TEL|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- CONTRÔLES DE PAGINATION CLASSIQUE -->
+        <div id="paginationControls" class="flex justify-center items-center py-4 space-x-2">
+            {% if donnees.has_previous %}
+                <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                   data-page="1" class="page-link px-3 py-1 text-sm rounded-md bg-gray-200 hover:bg-gray-300 transition duration-150">&laquo; Première</a>
+                <a href="?page={{ donnees.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                   data-page="{{ donnees.previous_page_number }}" class="page-link px-3 py-1 text-sm rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition duration-150">Précédente</a>
+            {% endif %}
+
+            <span class="text-sm font-semibold text-gray-700 px-4 py-1 border border-gray-300 rounded-md bg-white shadow-sm">
+                Page {{ donnees.number }} sur {{ donnees.paginator.num_pages }}
+            </span>
+
+            {% if donnees.has_next %}
+                <a href="?page={{ donnees.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                   data-page="{{ donnees.next_page_number }}" class="page-link px-3 py-1 text-sm rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition duration-150">Suivante</a>
+                <a href="?page={{ donnees.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                   data-page="{{ donnees.paginator.num_pages }}" class="page-link px-3 py-1 text-sm rounded-md bg-gray-200 hover:bg-gray-300 transition duration-150">Dernière &raquo;</a>
+            {% endif %}
+        </div>
+
+        {% else %}
+        <p class="text-gray-600">Aucune donnée disponible pour les critères sélectionnés.</p>
+        {% endif %}
+    </div> <!-- Fin de #tableContainer -->
+
+    <!-- Indicateur de chargement pour l'AJAX -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-70 flex items-center justify-center z-50 hidden">
+        <div class="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-green-700 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+            <span class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Chargement...</span>
+        </div>
+    </div>
+
+
+    <!-- SCRIPTS JAVASCRIPT POUR LA PAGINATION AJAX PARTIELLE -->
+
+</div>

@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load tailwind_filters %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+    <div class="flex flex-col lg:flex-row gap-4 items-stretch justify-between">
+
+        <div class="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-br from-white via-white to-green-50/60 p-6 rounded-2xl shadow-md border border-gray-200/80">
+            <div>
+                <h1 class="text-2xl font-black text-gray-900 tracking-tight uppercase flex items-center gap-2">
+                    Données | <span class="text-green-700 font-light">à fiabiliser</span>
+                </h1>
+                <div class="flex items-center space-x-2 mt-1">
+                    <span class="px-3 py-1 bg-red-50/80 text-red-700 text-[10px] font-black rounded-lg border border-red-200 uppercase tracking-wider shadow-sm">
+                        {{ donnees.paginator.count }} Dossiers à traiter
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                 <div class="inline-flex p-1.5 bg-gray-100 rounded-2xl border border-gray-100 shadow-inner">
+                    <a href="/non_rens" class="px-6 py-2 text-[10px] font-black rounded-lg transition-all {% if 'non_rens_pm' not in request.path %} nav-link-active text-white shadow-inner {% else %} text-gray-500 hover:text-gray-700 {% endif %}">
+                        PARTICULIERS (PP)
+                    </a>
+                    <a href="/non_rens_pm" class="px-6 py-2 text-[10px] font-black rounded-lg transition-all {% if 'non_rens_pm' in request.path %} nav-link-active text-white shadow-inner {% else %} text-gray-500 hover:text-gray-700 {% endif %}">
+                        ENTREPRISES (PM)
+                    </a>
+                </div>
+
+                <a href="{% url 'export_csv_pp' %}?{{ request.GET.urlencode }}" class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
+                    <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Exporter
+                </a>
+            </div>
+        </div>
+
+
+          {% if notation and user.organe in user_stat %}
+    {% with derniere_note=notation.0 %}
+    <div class="flex items-center rounded-2xl shadow-xl border-4 border-white min-w-[240px] overflow-hidden group transition-all
+        {% if derniere_note.note == 'Très Bien' %} bg-emerald-600 text-white
+        {% elif derniere_note.note == 'Bien' %} bg-green-600 text-white
+        {% elif derniere_note.note == 'Passable' %} bg-amber-500 text-white
+        {% elif derniere_note.note == 'Insuffisant' %} bg-orange-600 text-white
+        {% else %} bg-slate-600 text-white {% endif %}">
+
+        <div class="px-6 py-3 flex-1">
+            <p class="text-[9px] font-black uppercase tracking-widest opacity-80 mb-1">
+                Note Actuelle
+            </p>
+            <div class="flex items-baseline gap-2">
+                <p class="text-3xl font-black tracking-widest uppercase">
+                    {{ derniere_note.note }}
+                </p>
+            </div>
+            <p class="text-[8px] font-bold opacity-70 uppercase tracking-tighter">
+                Mise à jour le {{ derniere_note.date_notation|date:"d/m/Y" }}
+            </p>
+        </div>
+
+        <div class="bg-black/10 h-full px-4 flex items-center justify-center self-stretch">
+             <svg class="w-8 h-8 drop-shadow-md animate-pulse
+                {% if derniere_note.note == 'Très Bien' %} text-emerald-200
+                {% elif derniere_note.note == 'Bien' %} text-green-200
+                {% elif derniere_note.note == 'Passable' %} text-amber-200
+                {% else %} text-white {% endif %}"
+                fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+             </svg>
+        </div>
+    </div>
+    {% endwith %}
+{% endif %}
+
+    </div>
+
+    <section class="bg-gradient-to-br from-white via-white to-green-50/60 p-6 rounded-2xl shadow-md border border-gray-200/80">
+    <form id="filterForm" method="get">
+        <div class="flex flex-wrap items-end justify-center gap-4">
+
+            {% if user.organe in users_groupe %}
+            <div class="w-full md:w-40 lg:w-48 relative group">
+                <label class="block text-[9px] font-black text-gray-400 uppercase mb-1.5 ml-1">Filiale</label>
+                <select name="filiale" onchange="this.form.submit()" class="appearance-none block w-full pl-3 pr-10 py-2.5 text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-700 focus:outline-none transition-all">
+                    <option value="">Toutes les filiales</option>
+                    {% for f in filiale_list %}
+                    <option value="{{ f }}" {% if request.GET.filiale == f %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            {% if user.organe in user_groupe or user.organe in user_filiale_oc_ %}
+            <div class="w-full md:w-40 lg:w-48 relative group">
+                <label class="block text-[9px] font-black text-gray-400 uppercase mb-1.5 ml-1">Agence / Entité</label>
+                <select name="agence" onchange="this.form.submit()" class="appearance-none block w-full pl-3 pr-10 py-2.5 text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-700 focus:outline-none transition-all">
+                    <option value="">Toutes les agences</option>
+                    {% for a in agence_list %}
+                    <option value="{{ a }}" {% if request.GET.agence == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+
+            <div class="w-full md:w-40 lg:w-48 relative group">
+                <label class="block text-[9px] font-black text-gray-400 uppercase mb-1.5 ml-1">Exploitant</label>
+                <select name="expl" class="appearance-none block w-full pl-3 pr-10 py-2.5 text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-700 focus:outline-none transition-all">
+                    <option value="">Tous les gestionnaires</option>
+                    {% for e in expl_list %}
+                    <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+                  {% endif %}
+
+            {% if user.organe == 'Directeur Agence' %}
+            <div class="w-full md:w-40 lg:w-48 relative group">
+                <label class="block text-[9px] font-black text-gray-400 uppercase mb-1.5 ml-1">Exploitant</label>
+                    <select name="expl" class="appearance-none block w-full pl-3 pr-10 py-2.5 text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-700 focus:outline-none transition-all">
+                        <option value="">Tous les gestionnaires</option>
+                        {% for e in expl_list %}
+                        <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
+                        {% endfor %}
+                    </select>
+            </div>
+                  {% endif %}
+
+
+            <div class="w-full md:w-32 lg:w-40 relative group">
+                <label class="block text-[9px] font-black text-gray-400 uppercase mb-1.5 ml-1 transition-colors group-focus-within:text-green-700">Date Ouverture</label>
+                <input type="text"
+                       name="datouv"
+                       value="{{ request.GET.datouv|default:'' }}"
+                       placeholder="AAAA-mm-jj"
+                       class="block w-full px-3 py-2.5 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-700 focus:outline-none transition-all"
+                       maxlength="10">
+            </div>
+
+                  <div class="flex gap-3 w-full lg:w-auto">
+                <button type="submit" class="flex-1 lg:w-32 nav-link-active hover:bg-green-800 text-white font-black py-3 rounded-xl text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-green-100 flex items-center justify-center gap-2">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    Filtrer
+                </button>
+
+                <a href="{{ request.path }}" class="flex-1 lg:w-32 bg-slate-800 hover:bg-black text-white font-black py-3 rounded-xl text-[10px] uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 text-center">
+                   <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                   Réinitialiser
+                </a>
+            </div>
+
+        </div>
+    </section>
+
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="px-6 py-3 flex items-center justify-between border-b border-gray-100 bg-gray-50/50">
+        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Page {{ donnees.number }} sur {{ donnees.paginator.num_pages }}</span>
+        <div class="flex items-center space-x-1">
+            {% if donnees.has_previous %}
+            <a href="?page={{ donnees.previous_page_number }}{% if get_params %}&{{ get_params }}{% endif %}" class="p-1.5 text-gray-500 hover:nav-link-active hover:text-white rounded-lg transition-all border border-gray-200">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M15 19l-7-7 7-7" /></svg>
+            </a>
+            {% endif %}
+            <div class="px-3 text-[9px] font-black text-gray-800 uppercase tracking-widest">Navigation</div>
+            {% if donnees.has_next %}
+            <a href="?page={{ donnees.next_page_number }}{% if get_params %}&{{ get_params }}{% endif %}" class="p-1.5 text-gray-500 hover:nav-link-active hover:text-white rounded-lg transition-all border border-gray-200">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M9 5l7 7-7 7" /></svg>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+<div class="overflow-x-auto overflow-y-auto max-h-[600px] relative custom-scrollbar rounded-xl border border-slate-200 shadow-sm bg-white">
+
+    <table class="w-full border-separate border-spacing-0 text-[9px]"> <thead>
+        <tr class="sticky top-0 z-50">
+            {% if user.organe not in user_filiale %}
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Filiale</th>
+            {% endif %}
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Agence</th>
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700 max-w-[80px]">Lib. Agence</th>
+            
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Exploit.</th>
+            
+            <th class="px-2 py-2 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[100px] border-b border-green-900">
+                Client
+            </th>
+            
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">IDP</th>
+
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Codape</th>
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Profession</th>
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Salaire</th>
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Origine</th>
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Valid. CIN</th>
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Contact</th>
+            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Datouv</th>
+        </tr>
+        <tr class="bg-slate-900/90">
+            {% if user.organe not in user_filiale %}
+            <th class="px-1 py-1 bg-slate-900"></th>
+            {% endif %}
+            <th class="px-1 py-1 bg-slate-900"></th>
+            <th class="px-1 py-1 bg-slate-900">
+                <input name="lib_agence" value="{{ request.GET.lib_agence|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-1 bg-slate-900"></th>
+            <th class="px-1 py-1 bg-green-900/80 sticky left-0 z-[60]">
+                <input name="client" value="{{ request.GET.client|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-1 bg-slate-900">
+                <input name="idp" value="{{ request.GET.idp|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-1 bg-slate-900">
+                <input name="codape" value="{{ request.GET.codape|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-1 bg-slate-900">
+                <input name="profession" value="{{ request.GET.profession|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-1 bg-slate-900">
+                <input name="salaire" value="{{ request.GET.salaire|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-1 bg-slate-900">
+                <input name="origine_rev" value="{{ request.GET.origine_rev|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-1 bg-slate-900">
+                <input name="datvalid" value="{{ request.GET.datvalid|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-1 bg-slate-900">
+                <input name="tel" value="{{ request.GET.tel|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-1 bg-slate-900"></th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for item in donnees %}
+        <tr class="group {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-green-50 transition-colors">
+            {% if user.organe not in user_filiale %}
+            <td class="px-1 py-1 text-gray-500 whitespace-nowrap text-center">{{ item.FILIALE }}</td>
+            {% endif %}
+            <td class="px-1 py-1 text-gray-500 whitespace-nowrap text-center">{{ item.AGENCE }}</td>
+            <td class="px-1 py-1 text-gray-500 truncate max-w-[80px]" title="{{ item.LIB_AGENCE }}">{{ item.LIB_AGENCE }}</td>
+               <td class="px-1 py-1 text-center border-b border-slate-100 text-[8px] {{ item.EXPL|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                {{ item.EXPL|default:"-" }}
+            </td>
+
+            <td class="group-hover:bg-green-600 group-hover:text-gray-100 px-2 py-2 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-md bg-inherit truncate max-w-[120px]">
+                {{ item.CLIENT|default:"-" }}
+            </td>
+  <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.IDP|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                {{ item.IDP|default:"-" }}
+            </td>
+         
+
+            <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.CODAPE|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                {{ item.CODAPE|default:"-" }}
+            </td>
+
+          
+
+            <td class="px-1 py-1 text-center border-b border-slate-100 truncate max-w-[70px] {{ item.PROFESSION|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                {{ item.PROFESSION|default:"-" }}
+            </td>
+
+            <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.SALAIRE|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                {{ item.SALAIRE|default:"-" }}
+            </td>
+
+            <td class="px-1 py-1 text-center border-b border-slate-100 truncate max-w-[70px] {{ item.ORIGINE_REV|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                {{ item.ORIGINE_REV|default:"-" }}
+            </td>
+
+            <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.DATVALID|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                {{ item.DATVALID|default:"-" }}
+            </td>
+
+            <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.TEL|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                {{ item.TEL|default:"-" }}
+            </td>
+
+            <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.DATOUV|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                {{ item.DATOUV|default:"-" }}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #1e293b; }
+    th { box-shadow: inset 0 -1px 0 #334155; }
+</style>
+
+<style>
+    /* Scrollbar ultra-fine et moderne */
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #1e293b; }
+
+    /* Fix pour les bordures de l'entête lors du scroll */
+    th { box-shadow: inset 0 -1px 0 #334155; }
+</style>
+    <div class="px-4 py-2 bg-gray-50 border-t border-gray-100 flex justify-between items-center text-[8px] font-bold text-gray-400 uppercase">
+        <div class="flex items-center gap-3">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 bg-red-100 border border-red-200 rounded-xs"></span> Anomalie KYC</span>
+        </div>
+        <span class="text-[7px] text-gray-300">Utilisez le scroll horizontal pour voir toutes les colonnes</span>
+    </div>
+</div>
+    </form>
+
+<style>
+    /* Optimisation du scroll pour le fixe */
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #1e293b; }
+
+    /* Empêche le décalage des bordures avec le sticky */
+    th { box-shadow: inset 0 -1px 0 #1e293b; }
+</style>
+
+
+</div>
+
+{% if messages %}
+<script>
+    {% for message in messages %}
+        console.log("Notif: {{ message|escapejs }}");
+    {% endfor %}
+</script>
+{% endif %}
+{% endblock %}

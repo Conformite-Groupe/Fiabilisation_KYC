@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Vue Globale</h1>
+<div class="grid grid-cols-3 gap-4">
+    <!-- KPI Cards -->
+    <div class="bg-white p-4 shadow rounded">
+        <h2 class="text-lg font-semibold">Total Anomalies</h2>
+        <p class="text-2xl font-bold text-red-500">1,234</p>
+    </div>
+    <div class="bg-white p-4 shadow rounded">
+        <h2 class="text-lg font-semibold">Taux d'Évolution</h2>
+        <p class="text-2xl font-bold text-green-500">+12%</p>
+    </div>
+    <div class="bg-white p-4 shadow rounded">
+        <h2 class="text-lg font-semibold">Filiales Impactées</h2>
+        <p class="text-2xl font-bold text-blue-500">45</p>
+    </div>
+</div>
+
+<!-- Graphs Section -->
+<div class="mt-8">
+    <h2 class="text-xl font-bold mb-4">Graphiques</h2>
+    <div class="bg-white p-4 shadow rounded">
+        <canvas id="anomaliesChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Exemple de graphique avec Chart.js
+    const ctx = document.getElementById('anomaliesChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+            datasets: [{
+                label: 'Anomalies',
+                data: [12, 19, 3, 5, 2],
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+            }
+        }
+    });
+</script>
+{% endblock %}

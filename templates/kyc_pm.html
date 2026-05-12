@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% load tailwind_filters %}
+
+{% block content %}
+
+<div id="wrap" class="bg-white oe_structure oe_empty"  >
+    <section class="bg-white">
+  <!-- Static sidebar for desktop -->
+        <div class="mt-8 md:pl-64 flex flex-col">
+
+                <main class="flex-1">
+
+                  <div class="py-6">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                     </div>
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                      <div class="py-4">
+                        <div >
+                          <div class="relative items-center justify-center">
+                       <br>
+                       <div class="shadow-lg flex items-center justify-center">
+                          <span class="text-4xl sm:text-5xl text-gray-500 font-extrabold tracking-tight text-center ">AGENTS & NOTATION.</span>
+                       </div>
+                       <br>
+
+                   <div class="flex items-center justify-center">
+                      <span class="text-gray-500 text-2xl text-center font-extrabold tracking-normal "></span>
+                   </div>
+                                  <div>
+
+
+            <button type="submit" class="bg-orange-500 shadow-lg text-white px-4 py-2 rounded">Exporter</button>
+        </div>
+                  <br>
+
+
+     <div class="flex col-flex justify-center">
+
+ <div class="flex space-x-2">
+      <a href="#" class="nav-link-active text-gray-200 hover:text-gray-200 px-4 py-2 border border-gray-900 rounded-l hover:scale-105 transition transform duration-200">Flux</a>
+
+ </div>
+       <div class="flex space-x-2">
+
+           <a href="#" class="bg-gray-200 hover:bg-cyan-800 text-gray-900 hover:text-gray-200 px-4 py-2 border border-gray-900  rounded-r hover:scale-105 transition transform duration-200">Stock</a>
+       </div>
+
+   </div>
+                                <br>
+
+<div class="flex col-flex justify-center">
+         <form method="GET">
+            <div>
+                <input type="text" name="q" placeholder="Racine Client" value="{{ query }}"
+                       class="text-sm text-gray-base w-30
+                              mr-3 py-5 px-4 h-2 border
+                              border-green-700 rounded mb-2 shadow-lg" />
+
+            <button type="submit" class="nav-link-active shadow-lg text-white px-4 py-2 rounded">Rechercher</button>
+        </div>
+        </form>
+    </div>
+<br>
+<br>
+
+
+<div class="p-6 bg-white min-h-screen">
+  <h2 class="text-2xl font-bold text-green-700 mb-6">Données KYC</h2>
+
+  <!-- Filtres -->
+  <form method="get" class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div>
+      <label class="block text-green-700 font-semibold">Filiale</label>
+      <select name="filiale" class="w-full border rounded px-3 py-2">
+        <option value="">Toutes</option>
+        {% for f in filiales %}
+        <option value="{{ f }}" {% if filiale == f %}selected{% endif %}>{{ f }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-green-700 font-semibold">Agence</label>
+      <select name="agence" class="w-full border rounded px-3 py-2">
+        <option value="">Toutes</option>
+        {% for a in agences %}
+        <option value="{{ a }}" {% if agence == a %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-green-700 font-semibold">Code Exploitant</label>
+      <input type="text" name="expl" value="{{ expl }}" class="w-full border rounded px-3 py-2" placeholder="EXPL">
+    </div>
+
+    <div class="flex items-end">
+      <button type="submit" class="nav-link-active text-white px-4 py-2 rounded">Filtrer</button>
+    </div>
+  </form>
+
+  <!-- Tableau -->
+  <div class="overflow-x-auto rounded-xl shadow">
+    <table class="min-w-full text-sm text-center bg-white">
+      <thead class="nav-link-active text-white">
+        <tr>
+          <th class="px-4 py-2">Filiale</th>
+          <th class="px-4 py-2">Agence</th>
+          <th class="px-4 py-2">Exploitant</th>
+          <th class="px-4 py-2">Client</th>
+          <th class="px-4 py-2">AGEC</th>
+          <th class="px-4 py-2">CAPITAL</th>
+          <th class="px-4 py-2">CA</th>
+          <th class="px-4 py-2">RESULTAT</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ligne in page_obj %}
+        <tr class="border-b hover:bg-green-50">
+          <td class="px-4 py-2">{{ ligne.FILIALE }}</td>
+          <td class="px-4 py-2">{{ ligne.AGENCE }}</td>
+          <td class="px-4 py-2">{{ ligne.EXPL }}</td>
+          <td class="px-4 py-2">{{ ligne.CLIENT }}</td>
+          <td class="px-4 py-2">{{ ligne.AGEC }}</td>
+          <td class="px-4 py-2">{{ ligne.CAPITAL }}</td>
+          <td class="px-4 py-2">{{ ligne.CA }}</td>
+          <td class="px-4 py-2">{{ ligne.RESULTAT }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="text-center py-4 text-gray-500">Aucune donnée trouvée.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="mt-6 flex justify-center space-x-2">
+    {% if page_obj.has_previous %}
+    <a href="?{% if filiale %}filiale={{ filiale }}&{% endif %}{% if agence %}agence={{ agence }}&{% endif %}{% if expl %}expl={{ expl }}&{% endif %}page={{ page_obj.previous_page_number }}"
+      class="px-4 py-2 nav-link-active text-white rounded">Précédent</a>
+    {% endif %}
+
+    <span class="px-4 py-2 bg-green-100 text-green-700 rounded">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+    <a href="?{% if filiale %}filiale={{ filiale }}&{% endif %}{% if agence %}agence={{ agence }}&{% endif %}{% if expl %}expl={{ expl }}&{% endif %}page={{ page_obj.next_page_number }}"
+      class="px-4 py-2 nav-link-active text-white rounded">Suivant</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if messages %}
+<ul class="bg-white text-white">
+  {% for message in messages %}
+    <li id="successMessage">{{ message }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+
+
+              </div>
+                        </div>
+                      </div>
+                      <!-- /End replace -->
+                    </div>
+                  </div>
+                </main>
+              </div>
+    </section>
+
+</div>
+
+<script>
+    // Récupérer l'élément contenant le message
+    const successMessage = document.getElementById("successMessage");
+
+    // Si l'élément existe et qu'il contient un message, afficher une alerte
+    if (successMessage && successMessage.innerText.trim() !== "") {
+        alert(successMessage.innerText);
+    }
+</script>
+
+
+
+
+{% endblock %}
+

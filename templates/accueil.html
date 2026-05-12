@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+
+<body class="bg-white">
+
+<div class="bg-white" >
+
+    <!-- Page Header -->
+  <div class="flex justify-between items-center">
+
+           <div class="p1-20 max-w-4xl mx-auto py-24 px-4 sm:px-6 lg:max-w-7xl lg:py-32 lg:px-18">
+              <div class="relative items-center justify-center">
+                       <br>
+                       <div class="flex items-center justify-center">
+                          <span class="text-4xl sm:text-5xl text-green-600 font-extrabold tracking-tight text-center ">NOTATION DES AGENTS.</span>
+                       </div>
+                       <br>
+
+                   <div class="flex items-center justify-center">
+                      <span class="text-green-600 text-2xl text-center font-extrabold tracking-normal ">Veuillez rentrer le code exploitant EXPL d'un agent.</span>
+                   </div>
+                  <br>
+
+              </div>
+           </div>
+
+   </div>
+
+
+    <h2>Rechercher un agent</h2>
+<form method="POST">
+  {% csrf_token %}
+  <label for="expl">Code Exploitant :</label>
+  <input type="text" id="expl" name="expl" value="{% if agent %}{{ agent.expl }}{% endif %}">
+  <button type="submit">Rechercher</button>
+</form>
+
+{% if message %}
+  <p>{{ message }}</p>
+{% endif %}
+
+{% if agent %}
+  <h3>Informations de l'agent :</h3>
+  <p>Exploitant : {{ agent.expl }}</p>
+  <p>Agence : {{ agent.agence_lib }}</p>
+
+  {% if form %}
+    <h3>Noter l'agent</h3>
+    <form method="POST">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Noter</button>
+    </form>
+  {% endif %}
+{% endif %}
+
+
+</div>
+</body>
+
+{% endblock %}

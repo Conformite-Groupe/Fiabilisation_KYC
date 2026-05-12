@@ -1,0 +1,201 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #f8fafc;
+        background-image:
+            radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%);
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    }
+
+    .audit-table thead th {
+        @apply bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] py-6 px-8;
+    }
+
+    .audit-row {
+        transition: all 0.3s ease;
+    }
+
+    .audit-row:hover {
+        @apply bg-white shadow-xl scale-[1.01] z-10 relative;
+        border-color: transparent;
+    }
+
+    .btn-premium {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .btn-premium:hover {
+        transform: translateY(-2px);
+    }
+</style>
+
+<div class="min-h-screen py-12 px-4 lg:px-8 max-w-[1600px] mx-auto space-y-12">
+
+    <!-- HEADER -->
+    <header class="glass-panel rounded-[2.5rem] p-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-6">
+            <div class="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-2xl">
+                <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+                    </path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase">Historique d'<span
+                        class="text-emerald-500 font-light">Audit</span></h1>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-2">Logs de tracabilite
+                    complete du systeme</p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-3">
+            <a href="{% url 'kyc:export_audits_excel' %}"
+                class="btn-premium flex items-center gap-2 px-5 py-3 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2"
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+                <span class="text-[10px] font-black uppercase tracking-widest">Exporter Excel</span>
+            </a>
+            <a href="{% url 'kyc:export_audits_pdf' %}"
+                class="btn-premium flex items-center gap-2 px-5 py-3 bg-red-500 text-white rounded-xl shadow-lg shadow-red-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2"
+                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                    </path>
+                </svg>
+                <span class="text-[10px] font-black uppercase tracking-widest">Exporter PDF</span>
+            </a>
+            <a href="{% url 'kyc:quality_control' %}"
+                class="btn-premium px-6 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl hover:bg-slate-50 shadow-sm">
+                <span class="text-[10px] font-black uppercase tracking-widest">Retour</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- AUDIT TABLE -->
+    <div class="glass-panel rounded-[3.5rem] overflow-hidden border-4 border-slate-900 shadow-2xl">
+        <table class="w-full text-left border-collapse audit-table">
+            <thead>
+                <tr>
+                    <th class="rounded-tl-[3.5rem]">Chronologie</th>
+                    <th>Operateur</th>
+                    <th>Cible</th>
+                    <th>Action</th>
+                    <th class="rounded-tr-[3.5rem]">Details des Modifications</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white/50">
+                {% for audit in audits %}
+                <tr class="audit-row group">
+                    <td class="px-8 py-8">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-1.5 h-10 bg-slate-200 group-hover:bg-emerald-500 rounded-full transition-colors">
+                            </div>
+                            <div>
+                                <div class="text-sm font-black text-slate-900">
+                                    {% if audit.timestamp %}{{ audit.timestamp|date:"d M Y" }}{% else %}N/A{% endif %}
+                                </div>
+                                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{{ audit.time_display }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-8 py-8">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-xs font-black text-emerald-400 shadow-lg">
+                                {% if audit.user %}
+                                {{ audit.user.username|slice:":2"|upper }}
+                                {% else %}
+                                SY
+                                {% endif %}
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-sm font-black text-slate-900">
+                                    {% if audit.user %}
+                                    {{ audit.user.get_full_name|default:audit.user.username }}
+                                    {% else %}
+                                    System
+                                    {% endif %}
+                                </span>
+                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                    {% if audit.user %}
+                                    {{ audit.user.filiale|default:"Unite Centrale" }}
+                                    {% else %}
+                                    Unite Centrale
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-8 py-8">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-black text-slate-900 uppercase tracking-tighter">{{ audit.rule_name_display }}</span>
+                            <span class="text-[9px] text-slate-400 font-medium">ID Regle: #{{ audit.id }}</span>
+                        </div>
+                    </td>
+                    <td class="px-8 py-8">
+                        {% if audit.action == 'CREATION' %}
+                        <span
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-xl border border-emerald-100 uppercase tracking-widest">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Creation
+                        </span>
+                        {% elif audit.action == 'MODIFICATION' %}
+                        <span
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-black rounded-xl border border-blue-100 uppercase tracking-widest">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span> Modification
+                        </span>
+                        {% else %}
+                        <span
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-[10px] font-black rounded-xl border border-red-100 uppercase tracking-widest">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> Suppression
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-8 py-8">
+                        <div
+                            class="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 text-[11px] font-medium text-slate-600 leading-relaxed max-w-lg group-hover:bg-white transition-colors">
+                            {{ audit.details }}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-8 py-32 text-center">
+                        <div class="flex flex-col items-center gap-4 opacity-30">
+                            <svg class="w-20 h-20 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-width="1.5"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            <div class="text-sm font-black uppercase tracking-[0.3em]">Aucune donnee d'audit disponible
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+

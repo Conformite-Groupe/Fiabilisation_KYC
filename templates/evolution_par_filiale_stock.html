@@ -1,0 +1,343 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+
+    <header class="glass-panel rounded-[2.5rem] p-6 lg:p-8 flex flex-col lg:flex-row items-center justify-between gap-6">
+        <!-- PARTIE GAUCHE (Inchangée) -->
+        <div class="flex items-center gap-6">
+            <div class="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center shadow-2xl">
+                <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 16l3-3 3 2 4-5"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none">
+                    TABLEAU DE BORD <span class="text-emerald-500 font-light">STOCK</span> 
+                </h1>
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.35em]">
+                        Taux de complétude et de qualité des données KYC
+                    </p>
+                </div>
+            </div>
+        </div>
+    
+        <!-- PARTIE DROITE AMÉLIORÉE -->
+        <div class="flex items-center gap-6 bg-white/50 backdrop-blur-md px-6 py-4 rounded-[2rem] border border-white shadow-sm">
+            <!-- Bloc Filiale -->
+            <div class="flex flex-col border-r border-slate-200 pr-6">
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Filiale</span>
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                    <span class="text-sm font-black text-slate-900 uppercase tracking-tight">{{ filiale_sel }}</span>
+                </div>
+            </div>
+            
+            <!-- Bloc Date -->
+            <div class="flex flex-col">
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-right">Mise à jour</span>
+                <div class="flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span class="text-sm font-bold text-slate-600 italic">
+                        {{ queryset.0.date|date:"d F Y" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="bg-white/50 backdrop-blur-md sticky top-4 z-30 px-2 rounded-2xl border border-white/20 shadow-sm no-print">
+        <nav class="flex flex-wrap items-center justify-between gap-2 p-1">
+            <div class="flex gap-2">
+                <button onclick="switchTab('tab-overview')" id="btn-overview" class="tab-btn active-tab px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Vue d'ensemble</button>
+                <button onclick="switchTab('tab-charts')" id="btn-charts" class="tab-btn inactive-tab px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Analyses Graphiques</button>
+                <button onclick="switchTab('tab-data')" id="btn-data" class="tab-btn inactive-tab px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Historique</button>
+            </div>
+          <a href="{% url 'statistiques' %}" class="flex items-center nav-link-active px-5 py-2.5 rounded-2xl text-[10px] border border-green-800 font-black uppercase tracking-widest hover:bg-green-900 transition-all shadow-md">
+                        Stats Agents
+                        <svg class="ml-2 h-4 w-4 " fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path class="" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+
+                    </a>
+        </nav>
+    </div>
+
+
+        <div class="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
+
+          <div class="flex flex-wrap items-center gap-4 no-print">
+            <form method="get" id="filialeForm" class="relative group">
+                <select name="filiale" onchange="this.form.submit()"
+                    class="appearance-none bg-slate-50 pl-4 pr-10 py-2.5 text-xs font-black text-slate-700 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-green-500 transition-all cursor-pointer">
+                    {% for f in filiales %}
+                    <option value="{{ f }}" {% if f == filiale_sel %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+
+            <div class="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
+                <a href="{% url 'evolution_filiale' %}"
+                   class="px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase {% if 'evolution_filiale_stock' not in request.path %} nav-link-active text-white shadow-sm {% else %} text-slate-500 hover:text-slate-800 {% endif %}">
+                    Flux
+                </a>
+                <a href="{% url 'evolution_filiale_stock' %}"
+                   class="px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase {% if 'evolution_filiale_stock' in request.path %} nav-link-active text-white shadow-sm {% else %} text-slate-500 hover:text-slate-800 {% endif %}">
+                    Stock
+                </a>
+            </div>
+        </div>
+
+        </div>
+
+   
+<!-- VUE D'ENSEMBLE CENTRÉE ET HARMONISÉE -->
+<div id="tab-overview" class="tab-content space-y-6 animate-fadeIn max-w-4xl mx-auto ">
+        
+    <!-- SECTION COMPLÉTUDE (LIGNE 1) -->
+     
+    <div class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Bloc Flux PP -->
+        <div class="premium-rate-card rate-pp p-5 rounded-2xl bg-white border border-slate-100 shadow-sm border-l-4 border-l-emerald-500">
+            <p class="text-[10px] font-black text-gray-600 uppercase tracking-widest">Taux de complétude - Flux PP</p>
+            
+            <div class="flex items-end justify-between mt-3">
+                <h3 class="text-4xl font-black text-emerald-600 tracking-tighter">{{ kpi_pp.last }}%</h3>
+                <span class="px-2 py-1 rounded-lg text-[10px] font-bold {% if kpi_pp.diff > 0 %}bg-green-400 text-green-400  {% elif kpi_pp.diff < 0 %} bg-red-50 text-red-600 {% else %} text-gray-600 {% endif %}">
+                    Variation : {% if kpi_pp.diff > 0 %}+{% endif %}{{ kpi_pp.diff }}%
+                </span>
+            </div>
+        </div>
+
+        <!-- Bloc Flux PM -->
+        <div class="premium-rate-card rate-pm p-5 rounded-2xl bg-white border border-slate-100 shadow-sm border-l-4 border-l-orange-500">
+            <p class="text-[10px] font-black text-gray-600 uppercase tracking-widest">Taux de complétude - Flux PM</p>
+            <div class="flex items-end justify-between mt-3">
+                <h3 class="text-4xl font-black text-orange-600 tracking-tighter">{{ kpi_pm.last }}%</h3>
+                <span class="px-2 py-1 rounded-lg text-[10px] font-bold {% if kpi_pm.diff > 0 %}bg-green-400 text-green-400  {% elif kpi_pm.diff < 0 %} bg-red-50 text-red-600 {% else %} text-gray-600 {% endif %}">
+                    Variation : {% if kpi_pm.diff > 0 %}+{% endif %}{{ kpi_pm.diff }}%
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION QUALITÉ (LIGNE 2) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Bloc Qualité PP -->
+        <div class="premium-rate-card rate-pp p-5 rounded-2xl bg-emerald-50/30 border border-emerald-100 border-l-4 border-l-emerald-400">
+            <div class="flex justify-between items-start mb-2">
+                <div class="space-y-0.5">
+                    <p class="text-[10px] font-black text-gray-600 uppercase tracking-widest">Taux de qualité - Stock PP</p>
+                    <p class="text-[9px] font-medium text-gray-600 italic">Selon règles défnies pour les contrôles de qualité</p>
+                </div>
+               
+            </div>
+            <h3 class="text-4xl font-black text-emerald-600 tracking-tighter">
+                {{ quality_rate_pp|default:0|floatformat:1 }}<span class="text-xl text-emerald-300 ml-0.5">%</span>
+            </h3>
+        </div>
+
+        <!-- Bloc Qualité PM -->
+        <div class="premium-rate-card rate-pm p-5 rounded-2xl bg-orange-50/30 border border-orange-100 border-l-4 border-l-orange-400">
+            <div class="flex justify-between items-start mb-2">
+                <div class="space-y-0.5">
+                    <p class="text-[10px] font-black text-gray-600 uppercase tracking-widest">Taux de qualité - Stock PM</p>
+                    <p class="text-[9px] font-medium text-gray-600 italic">Selon règles défnies pour les contrôles de qualité</p>
+                </div>
+            </div>
+            <h3 class="text-4xl font-black text-orange-600 tracking-tighter">
+                {{ quality_rate_pm|default:0|floatformat:1 }}<span class="text-xl text-orange-300 ml-0.5">%</span>
+            </h3>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Simplification des styles pour l'harmonie */
+.premium-rate-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.premium-rate-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.04);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+</style>
+
+    <div id="tab-charts" class="tab-content hidden animate-fadeIn">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-6">
+                    <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-widest ">Stock PP</h4>
+                    <span class="text-[9px] font-black text-green-600 px-3 py-1 bg-green-50 rounded-full">Objectif 100%</span>
+                </div>
+                <div class="h-[380px]"><canvas id="canvasPP"></canvas></div>
+            </div>
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-6">
+                    <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-widest ">Stock PM</h4>
+                    <span class="text-[9px] font-black text-orange-600 px-3 py-1 bg-orange-50 rounded-full">Objectif 100%</span>
+                </div>
+                <div class="h-[380px]"><canvas id="canvasPM"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-data" class="tab-content hidden animate-fadeIn">
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <table class="w-full text-center">
+                <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+                    <tr>
+                        <th class="px-8 py-5">Date</th>
+                        <th class="px-8 py-5">Taux PM</th>
+                        <th class="px-8 py-5">Taux PP</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for item in queryset %}
+                    <tr class="hover:bg-slate-50 transition-all group">
+                        <td class="px-8 py-4 font-bold text-slate-700">{{ item.date|date:"d/m/Y" }}</td>
+                        <td class="px-8 py-4 font-black text-orange-600">{{ item.flux_PM }}%</td>
+                        <td class="px-8 py-4 font-black text-green-600">{{ item.flux_PP }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+    }
+    .premium-rate-card {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-left-width: 10px;
+        border-radius: 1.5rem;
+        padding: 1.25rem;
+        box-shadow: 0 14px 30px -16px rgba(15, 23, 42, 0.35);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+    .rate-pp { border-left-color: #10b981; }
+    .rate-pm { border-left-color: #f97316; }
+    .rate-neutral { border-left-color: #0f172a; }
+    .rate-title { font-size: 10px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: .15em; }
+    .rate-subtitle { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+    .rate-value { font-size: 3rem; font-weight: 900; color: #0f172a; letter-spacing: -0.04em; line-height: 1; }
+    .rate-footer { padding-top: .65rem; border-top: 1px solid #f1f5f9; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #64748b; }
+    .rate-chip { height: 2rem; width: 2rem; border-radius: .75rem; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; border: 1px solid; }
+    .chip-pp { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+    .chip-pm { background: #fff7ed; color: #ea580c; border-color: #fed7aa; }
+    .chip-neutral { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+    .rate-badge { font-size: 10px; font-weight: 900; padding: .2rem .55rem; border-radius: .6rem; border: 1px solid; }
+    .rate-badge.up { color: #059669; background: #ecfdf5; border-color: #a7f3d0; }
+    .rate-badge.down { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+    .tab-btn { color: #94a3b8; border: 1px solid transparent; }
+    .active-tab { background: #0f172a; color: white; box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2); }
+    .inactive-tab:hover { background: #f1f5f9; color: #1e293b; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+</style>
+
+
+<script>
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active-tab');
+        b.classList.add('inactive-tab');
+    });
+    document.getElementById(tabId).classList.remove('hidden');
+    document.getElementById('btn-' + tabId.replace('tab-', '')).classList.add('active-tab');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const labels = JSON.parse('{{ labels_json|default:"[]"|escapejs }}');
+    const dataPM = JSON.parse('{{ data_pm_json|default:"[]"|escapejs }}');
+    const dataPP = JSON.parse('{{ data_pp_json|default:"[]"|escapejs }}');
+
+    const getOptions = (lineColor) => ({
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: '#0f172a',
+                padding: 12,
+                borderRadius: 12,
+                displayColors: false
+            }
+        },
+        scales: {
+            y: {
+                min: 0, max: 115, // ABAISSE LA COURBE pour voir les 100%
+                ticks: {
+                    stepSize: 20,
+                    color: '#94a3b8',
+                    font: { weight: 'bold', size: 10 },
+                    callback: (v) => v <= 100 ? v + '%' : ''
+                },
+                grid: {
+                    color: (ctx) => ctx.tick.value === 100 ? lineColor : '#f1f5f9',
+                    lineWidth: (ctx) => ctx.tick.value === 100 ? 2 : 1,
+                    borderDash: (ctx) => ctx.tick.value === 100 ? [5, 5] : []
+                }
+            },
+            x: {
+                ticks: { color: '#94a3b8', font: { weight: 'bold', size: 10 } },
+                grid: { display: false }
+            }
+        }
+    });
+
+    function createChart(id, data, baseColor) {
+        const ctx = document.getElementById(id).getContext('2d');
+        const colorScale = (val) => val >= 90 ? '#22c55e' : '#f97316';
+
+        const grad = ctx.createLinearGradient(0, 0, 0, 400);
+        grad.addColorStop(0, 'rgba(15, 23, 42, 0.03)');
+        grad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    fill: true,
+                    backgroundColor: grad,
+                    tension: 0.4,
+                    borderWidth: 5,
+                    segment: { borderColor: (ctx) => colorScale(ctx.p1.parsed.y) },
+                    pointRadius: 4,
+                    pointBackgroundColor: (ctx) => colorScale(ctx.parsed.y),
+                    pointBorderColor: 'white',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: getOptions(baseColor)
+        });
+    }
+
+    createChart('canvasPP', dataPP, '#22c55e');
+    createChart('canvasPM', dataPM, '#f97316');
+});
+</script>
+{% endblock %}

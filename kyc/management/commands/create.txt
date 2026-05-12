@@ -1,0 +1,1 @@
+python manage.py create_users kyc/management/commands/bulk_users.csv

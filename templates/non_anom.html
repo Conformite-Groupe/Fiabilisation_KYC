@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load tailwind_filters %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6 md:pl-64">
+
+    <!-- TITRE + TOTAL DOSSIERS -->
+    <div class="flex flex-col lg:flex-row gap-4 items-stretch justify-between">
+        <div class="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <div>
+                <h1 class="text-2xl font-black text-gray-800 tracking-tight uppercase">
+                    Champs <span class="text-green-700 font-light">En anomalie</span>
+                </h1>
+                <div class="flex items-center space-x-2 mt-1">
+                   <span class="px-3 py-1 bg-red-50 text-red-600 text-[10px] font-black rounded-lg border border-red-100 uppercase tracking-wider">
+                         {{ donnees.paginator.count }} DOSSIERS TROUVÉS
+                    </span>
+                </div>
+            </div>
+
+                    <a href="{% url 'export_csv_anom' %}?{{ request.GET.urlencode }}" class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
+                    <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Exporter CSV
+                </a>
+        </div>
+
+          {% if user.organe == 'Chargé Client' %}
+      {% if notation %}
+    {% with derniere_note=notation.0 %}
+    <div class="flex items-center rounded-2xl shadow-xl border-4 border-white min-w-[240px] overflow-hidden group transition-all
+        {% if derniere_note.note == 'Très Bien' %} bg-emerald-600 text-white
+        {% elif derniere_note.note == 'Bien' %} bg-green-600 text-white
+        {% elif derniere_note.note == 'Passable' %} bg-amber-500 text-white
+        {% elif derniere_note.note == 'Insuffisant' %} bg-orange-600 text-white
+        {% else %} bg-slate-600 text-white {% endif %}">
+
+        <div class="px-6 py-3 flex-1">
+            <p class="text-[9px] font-black uppercase tracking-widest opacity-80 mb-1">
+                Note Actuelle
+            </p>
+            <div class="flex items-baseline gap-2">
+                <p class="text-3xl font-black tracking-tighter uppercase">
+                    {{ derniere_note.note }}
+                </p>
+            </div>
+            <p class="text-[8px] font-bold opacity-70 uppercase tracking-tighter">
+                Mise à jour le {{ derniere_note.date_notation|date:"d/m/Y" }}
+            </p>
+        </div>
+
+        <div class="bg-black/10 h-full px-4 flex items-center justify-center self-stretch">
+             <svg class="w-8 h-8 drop-shadow-md animate-pulse
+                {% if derniere_note.note == 'Très Bien' %} text-emerald-200
+                {% elif derniere_note.note == 'Bien' %} text-green-200
+                {% elif derniere_note.note == 'Passable' %} text-amber-200
+                {% else %} text-white {% endif %}"
+                fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+             </svg>
+        </div>
+    </div>
+    {% endwith %}
+{% endif %}
+        {% endif %}
+    </div>
+    
+
+    <!-- FILTRAGE -->
+    <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+    <form method="get" class="flex flex-wrap items-end justify-center gap-4">
+
+    {# ————— Filiale (visible que pour groupe) ————— #}
+    {% if user.organe in users_groupe %}
+    <div class="w-full md:w-48">
+        <label class="block text-[9px] font-black text-gray-400 uppercase mb-1">Filiale</label>
+        <select name="filiale" onchange="this.form.submit()" class="w-full p-2.5 text-xs font-bold bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-700 outline-none">
+            <option value="">Toutes</option>
+            {% for f in filiale_list %}
+            <option value="{{ f }}" {% if request.GET.filiale == f %}selected{% endif %}>{{ f }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+
+    {# ————— Agence ————— #}
+    {% if user.organe in users_groupe or user.organe in users_filiale or user.organe == "Directeur Agence" %}
+    <div class="w-full md:w-48">
+        <label class="block text-[9px] font-black text-gray-400 uppercase mb-1">Agence</label>
+        <select name="agence" onchange="this.form.submit()" class="w-full p-2.5 text-xs font-bold bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-700 outline-none">
+            <option value="">Toutes</option>
+            {% for a in agence_list %}
+            <option value="{{ a }}" {% if request.GET.agence == a %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+
+    {# ————— Exploitant ————— #}
+    {% if user.organe != "Chargé Client" %}
+    <div class="w-full md:w-48">
+        <label class="block text-[9px] font-black text-gray-400 uppercase mb-1">Exploitant</label>
+        <select name="expl" class="w-full p-2.5 text-xs font-bold bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-700 outline-none">
+            <option value="">Tous</option>
+            {% for e in expl_list %}
+            <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+
+            {% if user.organe != "Chargé Client" %}
+    {# ————— Boutons ————— #}
+    <div class="flex gap-2">
+        <button type="submit" class="bg-green-700 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-800 transition-colors">
+            Filtrer
+        </button>
+        <a href="{{ request.path }}" class="bg-slate-800 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-colors">
+            Reset
+        </a>
+    </div>
+            {% endif %}
+
+    </section>
+
+    <!-- TABLEAU + PAGINATION -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+
+        <!-- navigation haut -->
+        <div class="px-6 py-3 flex items-center justify-between border-b border-gray-100 bg-gray-50/50">
+            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                PAGE {{ donnees.number }} SUR {{ donnees.paginator.num_pages }}
+            </span>
+            <div class="flex items-center space-x-1">
+                {% if donnees.has_previous %}
+                <a href="?page={{ donnees.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                   class="p-1.5 text-gray-500 hover:bg-green-700 hover:text-white rounded-lg border border-gray-200 transition-all">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M15 19l-7-7 7-7" /></svg>
+                </a>
+                {% endif %}
+                <span class="px-3 text-[9px] font-black text-gray-800 uppercase tracking-widest">Navigation</span>
+                {% if donnees.has_next %}
+                <a href="?page={{ donnees.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                   class="p-1.5 text-gray-500 hover:bg-green-700 hover:text-white rounded-lg border border-gray-200 transition-all">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M9 5l7 7-7 7" /></svg>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- contenu du tableau -->
+        <div class="overflow-x-auto max-h-[600px] custom-scrollbar">
+
+          <table class="w-full border-separate border-spacing-0 text-[9px]">
+            <thead>
+                <tr class="sticky top-0 z-50">
+                    {% if user.organe not in user_filiale %}
+                    <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Filiale</th>
+                    {% endif %}
+        
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black tracking-tighter">Agence</th>
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black tracking-tighter max-w-[80px]">Lib. Agence</th>
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black tracking-tighter max-w-[80px]">Exploit.</th>
+                    
+                    <th class="px-2 py-2 text-center text-white bg-green-800 uppercase font-black sticky left-0 z-[60] min-w-[100px] shadow-md">
+                        Client
+                    </th>
+        
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black border-l border-slate-700 tracking-tighter">Âge</th>
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black border-l border-slate-700 tracking-tighter">EER</th>
+                    <th class="px-1 py-1 text-center text-slate-300 bg-slate-900 uppercase font-black border-l border-slate-700 tracking-tighter">CIN</th>
+                </tr>
+                <tr class="bg-slate-900/90">
+                    {% if user.organe not in user_filiale %}
+                    <th class="px-1 py-1 bg-slate-900">
+                        <input name="filiale_txt" value="{{ request.GET.filiale_txt|default:'' }}" placeholder="Filtre" class="w-full h-7 px-2 py-1 text-[9px] text-slate-900 bg-white rounded border border-slate-300 focus:ring-2 focus:ring-green-600 focus:outline-none" />
+                    </th>
+                    {% endif %}
+                    <th class="px-1 py-1 bg-slate-900">
+                        <input name="agence_txt" value="{{ request.GET.agence_txt|default:'' }}" placeholder="Filtre" class="w-full h-7 px-2 py-1 text-[9px] text-slate-900 bg-white rounded border border-slate-300 focus:ring-2 focus:ring-green-600 focus:outline-none" />
+                    </th>
+                    <th class="px-1 py-1 bg-slate-900">
+                        <input name="lib_agence" value="{{ request.GET.lib_agence|default:'' }}" placeholder="Filtre" class="w-full h-7 px-2 py-1 text-[9px] text-slate-900 bg-white rounded border border-slate-300 focus:ring-2 focus:ring-green-600 focus:outline-none" />
+                    </th>
+                    <th class="px-1 py-1 bg-slate-900">
+                        <input name="expl_txt" value="{{ request.GET.expl_txt|default:'' }}" placeholder="Filtre" class="w-full h-7 px-2 py-1 text-[9px] text-slate-900 bg-white rounded border border-slate-300 focus:ring-2 focus:ring-green-600 focus:outline-none" />
+                    </th>
+                    <th class="px-1 py-1 bg-green-900/80 sticky left-0 z-[60]">
+                        <input name="client" value="{{ request.GET.client|default:'' }}" placeholder="Filtre" class="w-full h-7 px-2 py-1 text-[9px] text-slate-900 bg-white rounded border border-slate-300 focus:ring-2 focus:ring-green-600 focus:outline-none" />
+                    </th>
+                    <th class="px-1 py-1 bg-slate-900">
+                        <select name="anom_age" onchange="this.form.submit()" class="w-full h-7 px-2 py-1 text-[9px] text-slate-900 bg-white rounded border border-slate-300 focus:ring-2 focus:ring-green-600 focus:outline-none">
+                            <option value="">Tous</option>
+                            {% for v in anom_age_opts %}
+                            <option value="{{ v }}" {% if anom_age == v %}selected{% endif %}>{{ v }}</option>
+                            {% endfor %}
+                        </select>
+                    </th>
+                    <th class="px-1 py-1 bg-slate-900">
+                        <select name="anom_eer" onchange="this.form.submit()" class="w-full h-7 px-2 py-1 text-[9px] text-slate-900 bg-white rounded border border-slate-300 focus:ring-2 focus:ring-green-600 focus:outline-none">
+                            <option value="">Tous</option>
+                            {% for v in anom_eer_opts %}
+                            <option value="{{ v }}" {% if anom_eer == v %}selected{% endif %}>{{ v }}</option>
+                            {% endfor %}
+                        </select>
+                    </th>
+                    <th class="px-1 py-1 bg-slate-900">
+                        <select name="anom_cin" onchange="this.form.submit()" class="w-full h-7 px-2 py-1 text-[9px] text-slate-900 bg-white rounded border border-slate-300 focus:ring-2 focus:ring-green-600 focus:outline-none">
+                            <option value="">Tous</option>
+                            {% for v in anom_cin_opts %}
+                            <option value="{{ v }}" {% if anom_cin == v %}selected{% endif %}>{{ v }}</option>
+                            {% endfor %}
+                        </select>
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white">
+                {% for item in donnees %}
+                <tr class="hover:bg-slate-50 transition-colors group">
+                    {% if user.organe not in user_filiale %}
+                    <td class="px-1 py-1 text-gray-500 whitespace-nowrap text-center">{{ item.FILIALE }}</td>
+                    {% endif %}
+                    <td class="px-1 py-1 text-center border-b border-slate-100 text-gray-500 whitespace-nowrap">{{ item.AGENCE }}</td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 text-gray-500 truncate max-w-[80px]" title="{{ item.LIB_AGENCE }}">{{ item.LIB_AGENCE }}</td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 text-gray-500 truncate max-w-[80px]" title="{{ item.EXPL }}">{{ item.EXPL }}</td>
+                    <td class="group-hover:bg-green-600 group-hover:text-gray-100 px-2 py-2 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-md bg-inherit truncate max-w-[120px]">
+                        {{ item.CLIENT|default:"-" }}
+                    </td>
+        
+                    <td class="px-1 py-1 text-center border-b border-slate-100 font-bold border-l border-slate-50 {% if item.ANOMALIE_AGE %}text-orange-600 bg-orange-50{% else %}text-gray-200{% endif %}">
+                        {{ item.ANOMALIE_AGE|default:"-" }}
+                    </td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 font-bold border-l border-slate-50 {% if item.ANOMALIE_DATE_EER %}text-orange-600 bg-orange-50{% else %}text-gray-200{% endif %}">
+                        {{ item.ANOMALIE_DATE_EER|default:"-" }}
+                    </td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 font-bold border-l border-slate-50 {% if item.ANOMALIE_CIN %}text-orange-600 bg-orange-50{% else %}text-gray-200{% endif %}">
+                        {{ item.ANOMALIE_CIN|default:"-" }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="py-10 text-center font-black text-gray-300 uppercase tracking-widest text-xs">Aucune anomalie trouvée</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+</form>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    th { box-shadow: inset 0 -1px 0 #334155; }
+</style>
+
+{% endblock %}

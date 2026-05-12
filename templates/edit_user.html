@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load tailwind_filters %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 space-y-8 p-4 lg:p-8">
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div>
+            <h1 class="text-2xl font-black text-gray-800 tracking-tight uppercase">
+                Paramètres <span class="text-green-700 font-light">Utilisateur</span>
+            </h1>
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Modification des habilitations et informations</p>
+        </div>
+
+             <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100 animate-pulse">
+            <span class="w-1.5 h-1.5 bg-green-500 rounded-full "></span>
+              <a href="/user_list" class="text-[10px] font-black text-gray-400 hover:text-gray-600 uppercase tracking-widest transition-colors">
+                ← Retour à la liste
+            </a>
+        </div>
+    </div>
+
+
+
+    <div class="max-w-md mx-auto">
+        <div class="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-200 overflow-hidden">
+
+            <div class="bg-gray-800 p-8 text-white relative overflow-hidden">
+                <div class="relative z-10 flex items-center gap-4">
+                    <div class="h-16 w-16 nav-link-active rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg border border-green-600">
+                        {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black uppercase tracking-widest leading-none">
+                            {{ user.first_name }} {{ user.last_name }}
+                        </h2>
+                        <p class="text-[10px] text-gray-200 mt-2 font-bold tracking-widest opacity-70 ">
+                            Identifiant : {{ user.username }}
+                        </p>
+                    </div>
+                </div>
+                <div class="absolute -right-10 -bottom-10 w-40 h-40 nav-link-active/20 rounded-full blur-3xl"></div>
+            </div>
+
+            <div class="p-8 md:p-12">
+                <form method="post" class="space-y-6 admin-form-custom">
+                    {% csrf_token %}
+
+                    <div class="grid grid-cols-1 gap-1">
+                        {{ form|crispy }}
+                    </div>
+
+                    <div class="pt-8">
+                        <button type="submit"
+                                class="w-full nav-link-active text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-green-100 hover:bg-green-800 hover:-translate-y-1 transition-all active:scale-95">
+                            Enregistrer les modifications
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <p class="text-center mt-6 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+            Dernière mise à jour : {% now "d F Y" %}
+        </p>
+    </div>
+</div>
+
+<style>
+    /* Customisation de Crispy Forms pour correspondre au dashboard */
+    .admin-form-custom label {
+        font-size: 10px !important;
+        font-weight: 900 !important;
+        text-transform:  !important;
+        letter-spacing: 0.1em !important;
+        color: #9ca3af !important;
+        margin-left: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .admin-form-custom input,
+    .admin-form-custom select {
+        border-radius: 1.25rem !important;
+        border: 1px solid #f3f4f6 !important;
+        background-color: #f9fafb !important;
+        padding: 1rem 1.25rem !important;
+        font-weight: 800 !important;
+        text-transform:  !important;
+        font-size: 0.85rem !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .admin-form-custom input:focus,
+    .admin-form-custom select:focus {
+        border-color: #15803d !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 10px 15px -3px rgba(21, 128, 61, 0.1) !important;
+        outline: none !important;
+    }
+
+    /* Supprimer l'étoile rouge moche */
+    .asteriskField {
+        display: none !important;
+    }
+
+    .mb-3 {
+        margin-bottom: 1.5rem !important;
+    }
+</style>
+{% endblock %}

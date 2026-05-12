@@ -1,0 +1,46 @@
+# Environnements virtuels
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+local_settings.py
+
+# Secrets
+.env
+.env.*
+
+# Node / frontend
+node_modules/
+dist/
+build/
+
+# IDE / système
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Fichiers lourds fréquents
+*.zip
+*.rar
+*.7z
+*.mp4
+*.mov
+*.avi
+*.xlsx
+*.xls
+*.csv
+*.pdf

@@ -129,6 +129,9 @@
                                      <a href="{% url 'non_anom' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'non_anom' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
                                     Clients en anomalie
                                 </a>
+                                <a href="{% url 'document_extraction' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'document_extraction' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    Extraction documents
+                                </a>
                                 {% if user.organe == "Contrôle Permanent" or user.organe == "Conformité" or user.organe == "Qualité" or user.organe == "DSI" or user.organe == "Risques" or user.organe == "DAI" %}
                                  <a href="{% url 'kyc:quality_control' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'quality_control' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
                                     Contrôle qualité

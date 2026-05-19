@@ -1,6 +1,7 @@
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Q
+from urllib.parse import urlencode
 
 from .models import TauxEvolution, Devise
 from django.contrib import messages
@@ -15,6 +16,7 @@ from django.core.mail import send_mail, BadHeaderError
 
 from .models import TauxEvolution_filiale
 import json
+import csv
 
 
 import openpyxl
@@ -23,7 +25,11 @@ try:
     from xhtml2pdf import pisa
 except ImportError:
     pisa = None
-from kyc.models import Notation, Historique, Kyc_pm, Kyc_pp, Anomalie, TauxEvolution, DATEREV, DataQualityRule, DataQualityRuleAudit
+from kyc.models import (
+    Notation, Historique, Kyc_pm, Kyc_pp, Anomalie, TauxEvolution, DATEREV,
+    DataQualityRule, DataQualityRuleAudit, KycDocumentExtraction,
+    DOCUMENT_EXTRACTION_TYPE_CHOICES,
+)
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 
@@ -60,10 +66,28 @@ from openpyxl.utils import get_column_letter
 from datetime import datetime, timedelta
 from .models import Kyc_pp
 from django.conf import settings
+from django.core.files.base import ContentFile
 import os
+import re
 import sys
 import subprocess
 import hashlib
+import math
+import uuid
+import zipfile
+from .document_extraction import SUPPORTED_EXTENSIONS, extract_document_data, extract_pdf_grouped_documents
+
+def floor_one_decimal(value):
+    return math.floor(value * 10) / 10
+
+def compliance_rate_floor(ok_count, total, fail_count=0):
+    if not total:
+        return None
+
+    rate = floor_one_decimal(ok_count / total * 100)
+    if fail_count > 0 and rate >= 100:
+        return 99.9
+    return rate
 
 def _pdf_link_callback(uri, rel):
     """Resolve static/media URIs for xhtml2pdf on local filesystem."""
@@ -436,7 +460,7 @@ def quality_control_view(request):
         stats.append(stat)
     for stat in stats:
         total = stat.get('total', 0)
-        stat['compliance_rate'] = round(stat['ok_count'] / total * 100, 1) if total else None
+        stat['compliance_rate'] = compliance_rate_floor(stat['ok_count'], total, stat.get('fail_count', 0))
     rules_with_stats = []
     for rule, stat in zip(rules, stats):
         grouped_conditions = {}
@@ -466,7 +490,7 @@ def quality_control_view(request):
     total_failures = sum(stat['fail_count'] for stat in stats)
     total_ok = sum(stat['ok_count'] for stat in stats)
     total_evaluated = sum(stat['total'] for stat in stats)
-    global_compliance_rate = round(total_ok / total_evaluated * 100, 1) if total_evaluated else None
+    global_compliance_rate = compliance_rate_floor(total_ok, total_evaluated, total_failures)
 
     return render(request, 'quality_control.html', {
         'form': form,
@@ -804,7 +828,7 @@ def export_rules_pdf(request):
             
         # Calcul du taux
         total = stat.get('total', 0)
-        stat['compliance_rate'] = round(stat['ok_count'] / total * 100, 1) if total else 0
+        stat['compliance_rate'] = compliance_rate_floor(stat['ok_count'], total, stat.get('fail_count', 0)) if total else 0
         
         rules_with_stats.append({
             'rule': rule,
@@ -959,6 +983,622 @@ def import_page(request):
         "history_log_name": "import_history.log",
     }
     return render(request, 'import.html', context)
+
+
+DOCUMENT_EXTRACTION_FIELD_LABELS = [
+    ("prenom", "Prenom"),
+    ("nom", "Nom"),
+    ("date_naissance", "Date de naissance"),
+    ("lieu_naissance", "Lieu de naissance"),
+    ("sexe", "Sexe"),
+    ("pays_naissance", "Pays de naissance"),
+    ("pays_delivrance", "Pays de delivrance"),
+    ("date_expiration", "Date d'expiration"),
+    ("adresse", "Adresse"),
+    ("origine_revenu", "Origine du revenu"),
+    ("numero_identification_nationale", "Numero identification nationale"),
+    ("numero_document", "Numero document"),
+    ("nationalite", "Nationalite"),
+]
+
+DOCUMENT_EXTRACTION_SEARCH_FIELDS = [
+    ("all", "Tous les champs"),
+    ("import_batch", "Lot d'import"),
+    ("original_filename", "Nom du fichier"),
+    ("source_filename", "Fichier source"),
+    *DOCUMENT_EXTRACTION_FIELD_LABELS,
+    ("extracted_text", "Texte extrait"),
+]
+
+KYC_PP_DOCUMENT_FIELD_MAP = [
+    ("NUMID", "numero_identification_nationale", "NIN"),
+    ("NUMID", "numero_document", "Numero document"),
+    ("DATNAIS", "date_naissance", "Date de naissance"),
+    ("PAYNAIS", "pays_naissance", "Pays de naissance"),
+    ("DATVALID", "date_expiration", "Date d'expiration"),
+    ("ADRESSE", "adresse", "Adresse"),
+    ("ORIGINE_REV", "origine_revenu", "Origine du revenu"),
+]
+
+
+def _normalize_match_value(value):
+    return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+
+
+COUNTRY_ALIASES = {
+    "SENEGAL": {"SENEGAL", "SEN", "SN", "BOASN"},
+    "BENIN": {"BENIN", "BEN", "BJ", "BOABJ"},
+    "COTE D IVOIRE": {"COTEDIVOIRE", "CIV", "CI", "IVOIRE", "BOACI"},
+    "BURKINA FASO": {"BURKINAFASO", "BFA", "BF", "BOABF"},
+    "MALI": {"MALI", "MLI", "ML", "BOAML"},
+    "TOGO": {"TOGO", "TGO", "TG", "BOATG"},
+    "NIGER": {"NIGER", "NER", "NE", "BOANE"},
+}
+
+
+def _country_key(value):
+    normalized = _normalize_match_value(value)
+    if not normalized:
+        return ""
+    for country, aliases in COUNTRY_ALIASES.items():
+        if normalized in aliases or any(alias and alias in normalized for alias in aliases):
+            return country
+    return normalized
+
+
+def _countries_are_compatible(left, right):
+    left_key = _country_key(left)
+    right_key = _country_key(right)
+    return not left_key or not right_key or left_key == right_key
+
+
+def _document_country_guard_passes(document, client):
+    if document.pays_naissance and getattr(client, "PAYNAIS", "") and not _countries_are_compatible(document.pays_naissance, client.PAYNAIS):
+        return False
+    return True
+
+
+def _is_empty_kyc_value(value):
+    normalized = str(value or "").strip().lower()
+    return normalized in {"", "-", "na", "n/a", "none", "null", "nan"}
+
+
+def _document_identity_keys(document):
+    return {
+        key for key in [
+            _normalize_match_value(document.numero_document),
+            _normalize_match_value(document.numero_identification_nationale),
+        ] if key
+    }
+
+
+def _document_client_haystack(document):
+    return _normalize_match_value(
+        " ".join([
+            document.original_filename or "",
+            document.source_filename or "",
+            document.import_batch or "",
+        ])
+    )
+
+
+def _document_client_tokens(document):
+    raw_value = " ".join([
+        document.original_filename or "",
+        document.source_filename or "",
+        document.import_batch or "",
+    ]).upper()
+    return {_normalize_match_value(token) for token in re.split(r"[^A-Z0-9]+", raw_value) if len(token) >= 4}
+
+
+def _document_unique_key(document):
+    identity_keys = sorted(_document_identity_keys(document))
+    if identity_keys:
+        country_parts = [
+            _country_key(document.pays_delivrance),
+            _country_key(document.pays_naissance),
+        ]
+        country_scope = "|".join([part for part in country_parts if part])
+        if country_scope:
+            return "identity:" + country_scope + ":" + "|".join(identity_keys)
+        return "identity:" + "|".join(identity_keys)
+    return "file:" + _normalize_match_value(
+        "|".join([
+            document.original_filename or "",
+            document.source_filename or "",
+            document.import_batch or "",
+            document.page_range or "",
+        ])
+    )
+
+
+def _client_dedup_key(client):
+    normalized_idp = _normalize_match_value(getattr(client, "IDP", ""))
+    if normalized_idp:
+        return f"idp:{normalized_idp}"
+    normalized_client = _normalize_match_value(getattr(client, "CLIENT", ""))
+    if normalized_client:
+        return f"client:{normalized_client}"
+    return f"pk:{client.pk}"
+
+
+def _build_kyc_pp_document_matches(document_queryset, limit=3000, result_limit=200):
+    documents_for_match = list(document_queryset.order_by("-created_at")[:limit])
+    if not documents_for_match:
+        return [], {"documents_checked": 0, "documents_matched": 0, "clients_matched": 0, "suggestions_count": 0, "match_rate": 0}
+
+    document_keys = set()
+    for document in documents_for_match:
+        document_keys.update(_document_identity_keys(document))
+
+    kyc_candidates = {}
+    if document_keys:
+        for client in Kyc_pp.objects.exclude(NUMID="").only(
+            "id", "FILIALE", "AGENCE", "CLIENT", "IDP", "NUMID", "DATNAIS", "PAYNAIS", "DATVALID", "ADRESSE", "ORIGINE_REV"
+        ):
+            normalized_numid = _normalize_match_value(client.NUMID)
+            if normalized_numid in document_keys:
+                kyc_candidates.setdefault(normalized_numid, []).append(client)
+
+    client_by_code = {}
+    for client in Kyc_pp.objects.only(
+        "id", "FILIALE", "AGENCE", "CLIENT", "IDP", "NUMID", "DATNAIS", "PAYNAIS", "DATVALID", "ADRESSE", "ORIGINE_REV"
+    )[:50000]:
+        normalized_client = _normalize_match_value(client.CLIENT)
+        if normalized_client:
+            client_by_code.setdefault(normalized_client, []).append(client)
+
+    matches = []
+    client_match_index = {}
+    matched_client_ids = set()
+    matched_document_ids = set()
+    for document in documents_for_match:
+        candidate_clients = []
+        for identity_key in _document_identity_keys(document):
+            candidate_clients.extend(kyc_candidates.get(identity_key, []))
+
+        for client_token in _document_client_tokens(document):
+            candidate_clients.extend(client_by_code.get(client_token, []))
+
+        unique_clients = {}
+        for client in candidate_clients:
+            if not _document_country_guard_passes(document, client):
+                continue
+            unique_clients[client.pk] = client
+
+        for client in unique_clients.values():
+            suggestions = []
+            used_kyc_fields = set()
+            empty_comparable_fields = {
+                kyc_field for kyc_field, _, _ in KYC_PP_DOCUMENT_FIELD_MAP
+                if _is_empty_kyc_value(getattr(client, kyc_field, ""))
+            }
+            for kyc_field, document_field, label in KYC_PP_DOCUMENT_FIELD_MAP:
+                document_value = getattr(document, document_field, "")
+                if not document_value or not _is_empty_kyc_value(getattr(client, kyc_field, "")):
+                    continue
+                if kyc_field in used_kyc_fields:
+                    continue
+                used_kyc_fields.add(kyc_field)
+                suggestions.append({
+                    "field": kyc_field,
+                    "label": label,
+                    "document_value": document_value,
+                })
+
+            if suggestions:
+                match_rate = 0
+                if empty_comparable_fields:
+                    match_rate = round((len({suggestion["field"] for suggestion in suggestions}) / len(empty_comparable_fields)) * 100, 1)
+                client_dedup_key = _client_dedup_key(client)
+                if client_dedup_key in client_match_index:
+                    existing_match = matches[client_match_index[client_dedup_key]]
+                    if _document_unique_key(existing_match["document"]) != _document_unique_key(document):
+                        continue
+                    existing_fields = {suggestion["field"] for suggestion in existing_match["suggestions"]}
+                    for suggestion in suggestions:
+                        if suggestion["field"] not in existing_fields:
+                            existing_match["suggestions"].append(suggestion)
+                            existing_fields.add(suggestion["field"])
+                    existing_match["match_rate"] = max(existing_match["match_rate"], match_rate)
+                    continue
+
+                matched_client_ids.add(client.pk)
+                matched_document_ids.add(document.pk)
+                client_match_index[client_dedup_key] = len(matches)
+                matches.append({
+                    "client": client,
+                    "document": document,
+                    "suggestions": suggestions,
+                    "match_rate": match_rate,
+                })
+
+    suggestions_count = sum(len(match["suggestions"]) for match in matches)
+    match_rate = round((len(matched_document_ids) / len(documents_for_match)) * 100, 1)
+
+    summary = {
+        "documents_checked": len(documents_for_match),
+        "documents_matched": len(matched_document_ids),
+        "clients_matched": len(client_match_index),
+        "suggestions_count": suggestions_count,
+        "match_rate": match_rate,
+    }
+    if result_limit:
+        return matches[:result_limit], summary
+    return matches, summary
+
+
+LAST_KYC_PP_MATCH_SESSION_KEY = "document_extraction_last_kyc_pp_match_params"
+
+
+def _filtered_document_extractions_from_params(params):
+    documents = KycDocumentExtraction.objects.select_related("uploaded_by").all()
+    valid_document_types = dict(DOCUMENT_EXTRACTION_TYPE_CHOICES)
+    selected_document_type = params.get("document_type", "")
+    selected_import_batch = (params.get("import_batch") or "").strip()
+    search_query = (params.get("q") or "").strip()
+    search_field = params.get("field") or "all"
+    allowed_search_fields = {field for field, _ in DOCUMENT_EXTRACTION_SEARCH_FIELDS}
+
+    if selected_document_type in valid_document_types:
+        documents = documents.filter(document_type=selected_document_type)
+
+    if selected_import_batch:
+        documents = documents.filter(import_batch=selected_import_batch)
+
+    if search_field not in allowed_search_fields:
+        search_field = "all"
+
+    if search_query:
+        if search_field == "all":
+            search_filter = Q()
+            for field_name, _ in DOCUMENT_EXTRACTION_SEARCH_FIELDS:
+                if field_name == "all":
+                    continue
+                search_filter |= Q(**{f"{field_name}__icontains": search_query})
+            documents = documents.filter(search_filter)
+        else:
+            documents = documents.filter(**{f"{search_field}__icontains": search_query})
+
+    return documents
+
+
+def _filtered_document_extractions_from_request(request):
+    return _filtered_document_extractions_from_params(request.GET)
+
+
+def _clean_document_match_params(params):
+    return {
+        key: value
+        for key, value in params.items()
+        if key not in {"page", "extraction_id", "match_kyc"} and value not in (None, "")
+    }
+
+
+@login_required
+def export_document_extraction_matches(request):
+    documents = _filtered_document_extractions_from_request(request)
+    matches, summary = _build_kyc_pp_document_matches(documents, result_limit=None)
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+    filename = timezone.localtime(timezone.now()).strftime("correspondances_kyc_pp_%Y%m%d_%H%M.csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response.write("\ufeff")
+
+    writer = csv.writer(response, delimiter=";")
+    writer.writerow([
+        "Client",
+        "IDP",
+        "Agence",
+        "Type de document",
+        "Champ KYC",
+        "Valeur",
+        "Numero document",
+        "Numero d'identification nationale",
+    ])
+
+    for match in matches:
+        document = match["document"]
+        client = match["client"]
+        for suggestion in match["suggestions"]:
+            writer.writerow([
+                client.CLIENT,
+                client.IDP,
+                client.AGENCE,
+                document.get_document_type_display(),
+                suggestion["field"],
+                suggestion["document_value"],
+                document.numero_document,
+                document.numero_identification_nationale,
+            ])
+    return response
+
+
+def _build_import_batch_name(request, uploaded_files):
+    requested_name = (request.POST.get("batch_name") or "").strip()
+    if requested_name:
+        return requested_name[:120]
+
+    first_file = uploaded_files[0].name if uploaded_files else "documents"
+    timestamp = timezone.localtime(timezone.now()).strftime("%Y%m%d-%H%M%S")
+    return f"LOT-{timestamp}-{os.path.splitext(os.path.basename(first_file))[0]}"[:120]
+
+
+def _format_document_extraction_record(record):
+    fields = {
+        field_name: getattr(record, field_name, "")
+        for field_name, _ in DOCUMENT_EXTRACTION_FIELD_LABELS
+    }
+    return {
+        "id": record.pk,
+        "filename": record.original_filename or os.path.basename(record.uploaded_file.name),
+        "source_filename": record.source_filename,
+        "file_url": record.uploaded_file.url if record.uploaded_file else "",
+        "document_type": record.get_document_type_display(),
+        "import_batch": record.import_batch,
+        "page_number": record.page_number,
+        "page_range": record.page_range,
+        "text": record.extracted_text,
+        "fields": fields,
+        "warnings": [warning for warning in record.extraction_warnings.splitlines() if warning],
+        "field_rows": [
+            {"label": label, "value": fields.get(field_name)}
+            for field_name, label in DOCUMENT_EXTRACTION_FIELD_LABELS
+            if fields.get(field_name)
+        ],
+    }
+
+
+def _fill_document_extraction_fields(record, extraction):
+    extracted_fields = extraction.get("fields") or {}
+    for field_name, _ in DOCUMENT_EXTRACTION_FIELD_LABELS:
+        setattr(record, field_name, extracted_fields.get(field_name, ""))
+    record.extracted_text = extraction.get("text") or ""
+    record.extraction_warnings = "\n".join(extraction.get("warnings") or [])
+    record.page_number = extraction.get("page_number") or record.page_number
+    record.page_range = extraction.get("page_range") or record.page_range
+
+
+def _save_uploaded_document_record(uploaded_file, document_type, user, import_batch="", source_filename=""):
+    record = KycDocumentExtraction(
+        document_type=document_type,
+        original_filename=os.path.basename(uploaded_file.name),
+        source_filename=source_filename or os.path.basename(uploaded_file.name),
+        import_batch=import_batch,
+        uploaded_by=user,
+    )
+    record.uploaded_file.save(uploaded_file.name, uploaded_file, save=False)
+    extraction = extract_document_data(record.uploaded_file.path, uploaded_file.name)
+    _fill_document_extraction_fields(record, extraction)
+    record.save()
+    return record, extraction
+
+
+def _save_zip_document_record(zip_file, member_name, document_type, user, import_batch, archive_name):
+    safe_name = os.path.basename(member_name)
+    _, extension = os.path.splitext(safe_name)
+    if extension.lower() not in SUPPORTED_EXTENSIONS:
+        return None, f"Format ignore dans le ZIP: {member_name}"
+
+    with zip_file.open(member_name) as member:
+        content = ContentFile(member.read(), name=safe_name)
+
+    record = KycDocumentExtraction(
+        document_type=document_type,
+        original_filename=safe_name,
+        source_filename=os.path.basename(archive_name or "archive.zip"),
+        import_batch=import_batch,
+        uploaded_by=user,
+    )
+    record.uploaded_file.save(safe_name, content, save=False)
+    extraction = extract_document_data(record.uploaded_file.path, safe_name)
+    _fill_document_extraction_fields(record, extraction)
+    record.save()
+    return record, None
+
+
+def _save_grouped_pdf_records(uploaded_file, document_type, user, import_batch, pages_per_document):
+    if os.path.splitext(uploaded_file.name)[1].lower() != ".pdf":
+        raise ValueError("Le mode document groupe accepte uniquement un fichier PDF.")
+
+    shared_file_name = f"grouped_{uuid.uuid4().hex}_{os.path.basename(uploaded_file.name)}"
+    base_record = KycDocumentExtraction(
+        document_type=document_type,
+        original_filename=os.path.basename(uploaded_file.name),
+        source_filename=os.path.basename(uploaded_file.name),
+        import_batch=import_batch,
+        uploaded_by=user,
+    )
+    base_record.uploaded_file.save(shared_file_name, uploaded_file, save=False)
+
+    grouped_extractions = extract_pdf_grouped_documents(
+        base_record.uploaded_file.path,
+        uploaded_file.name,
+        pages_per_document=pages_per_document,
+    )
+
+    records = []
+    for extraction in grouped_extractions:
+        record = KycDocumentExtraction(
+            document_type=document_type,
+            uploaded_file=base_record.uploaded_file.name,
+            original_filename=os.path.basename(uploaded_file.name),
+            source_filename=os.path.basename(uploaded_file.name),
+            import_batch=import_batch,
+            uploaded_by=user,
+        )
+        _fill_document_extraction_fields(record, extraction)
+        record.save()
+        records.append(record)
+    return records
+
+
+@login_required
+def document_extraction(request):
+    extraction = None
+    valid_document_types = dict(DOCUMENT_EXTRACTION_TYPE_CHOICES)
+
+    if request.method == "POST":
+        uploaded_files = request.FILES.getlist("documents")
+        if not uploaded_files and request.FILES.get("document"):
+            uploaded_files = [request.FILES.get("document")]
+        document_type = request.POST.get("document_type") or "piece_identite"
+        import_mode = request.POST.get("import_mode") or "single"
+        try:
+            pages_per_document = max(int(request.POST.get("pages_per_document") or 1), 1)
+        except ValueError:
+            pages_per_document = 1
+
+        if document_type not in valid_document_types:
+            messages.error(request, "Veuillez choisir un type de document valide.")
+            return redirect("document_extraction")
+
+        if not uploaded_files:
+            messages.error(request, "Veuillez selectionner au moins un document a analyser.")
+        else:
+            import_batch = _build_import_batch_name(request, uploaded_files)
+            created_records = []
+            errors = []
+
+            if import_mode == "grouped_pdf":
+                try:
+                    created_records.extend(_save_grouped_pdf_records(
+                        uploaded_files[0],
+                        document_type,
+                        request.user,
+                        import_batch,
+                        pages_per_document,
+                    ))
+                except Exception as exc:
+                    errors.append(str(exc))
+            else:
+                for uploaded_file in uploaded_files:
+                    extension = os.path.splitext(uploaded_file.name)[1].lower()
+                    if extension == ".zip":
+                        try:
+                            with zipfile.ZipFile(uploaded_file) as archive:
+                                for member_name in archive.namelist():
+                                    if member_name.endswith("/"):
+                                        continue
+                                    record, error = _save_zip_document_record(
+                                        archive,
+                                        member_name,
+                                        document_type,
+                                        request.user,
+                                        import_batch,
+                                        uploaded_file.name,
+                                    )
+                                    if record:
+                                        created_records.append(record)
+                                    if error:
+                                        errors.append(error)
+                        except zipfile.BadZipFile:
+                            errors.append(f"Archive ZIP invalide: {uploaded_file.name}")
+                    else:
+                        try:
+                            record, _ = _save_uploaded_document_record(
+                                uploaded_file,
+                                document_type,
+                                request.user,
+                                import_batch=import_batch,
+                            )
+                            created_records.append(record)
+                        except Exception as exc:
+                            errors.append(f"{uploaded_file.name}: {exc}")
+
+            if created_records:
+                messages.success(
+                    request,
+                    f"{len(created_records)} document(s) charge(s), analyse(s) et enregistre(s) dans le lot {import_batch}.",
+                )
+            if errors:
+                messages.warning(request, f"{len(errors)} element(s) non importe(s): " + " | ".join(errors[:5]))
+            if created_records:
+                return redirect(f"{reverse('document_extraction')}?{urlencode({'uploaded_batch': import_batch})}#charger")
+
+    documents = _filtered_document_extractions_from_request(request)
+    selected_document_type = request.GET.get("document_type", "")
+    selected_import_batch = (request.GET.get("import_batch") or "").strip()
+    uploaded_batch = (request.GET.get("uploaded_batch") or "").strip()
+    search_query = (request.GET.get("q") or "").strip()
+    search_field = request.GET.get("field") or "all"
+    if selected_document_type not in valid_document_types:
+        selected_document_type = ""
+    if search_field not in {field for field, _ in DOCUMENT_EXTRACTION_SEARCH_FIELDS}:
+        search_field = "all"
+
+    selected_extraction_id = request.GET.get("extraction_id")
+    if selected_extraction_id and selected_extraction_id.isdigit():
+        selected_record = get_object_or_404(KycDocumentExtraction, pk=selected_extraction_id)
+        extraction = _format_document_extraction_record(selected_record)
+
+    uploaded_documents = KycDocumentExtraction.objects.none()
+    if uploaded_batch:
+        uploaded_documents = KycDocumentExtraction.objects.filter(import_batch=uploaded_batch).order_by("-created_at")[:50]
+
+    requested_kyc_pp_matching = request.GET.get("match_kyc") == "1"
+    has_last_match_params = LAST_KYC_PP_MATCH_SESSION_KEY in request.session
+    last_match_params = request.session.get(LAST_KYC_PP_MATCH_SESSION_KEY) or {}
+    active_match_params = None
+    if requested_kyc_pp_matching:
+        active_match_params = _clean_document_match_params(request.GET)
+        request.session[LAST_KYC_PP_MATCH_SESSION_KEY] = active_match_params
+        request.session.modified = True
+    elif has_last_match_params:
+        active_match_params = last_match_params
+
+    run_kyc_pp_matching = active_match_params is not None
+    kyc_pp_matches = []
+    kyc_pp_match_summary = {
+        "documents_checked": 0,
+        "documents_matched": 0,
+        "clients_matched": 0,
+        "suggestions_count": 0,
+        "match_rate": 0,
+    }
+    if run_kyc_pp_matching:
+        match_documents = _filtered_document_extractions_from_params(active_match_params)
+        kyc_pp_matches, kyc_pp_match_summary = _build_kyc_pp_document_matches(match_documents)
+
+    paginator = Paginator(documents, 20)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    query_params = request.GET.copy()
+    query_params.pop("page", None)
+    query_params.pop("extraction_id", None)
+    query_params.pop("match_kyc", None)
+
+    match_query_params = request.GET.copy()
+    match_query_params["match_kyc"] = "1"
+    match_query_params.pop("page", None)
+    match_query_params.pop("extraction_id", None)
+
+    if active_match_params is not None:
+        export_match_querystring = urlencode(active_match_params)
+    else:
+        export_match_querystring = urlencode(_clean_document_match_params(request.GET))
+
+    context = {
+        "extraction": extraction,
+        "documents": page_obj,
+        "documents_count": documents.count(),
+        "uploaded_batch": uploaded_batch,
+        "uploaded_documents": uploaded_documents,
+        "kyc_pp_matches": kyc_pp_matches,
+        "kyc_pp_match_summary": kyc_pp_match_summary,
+        "run_kyc_pp_matching": run_kyc_pp_matching,
+        "match_querystring": match_query_params.urlencode(),
+        "export_match_querystring": export_match_querystring,
+        "document_type_choices": DOCUMENT_EXTRACTION_TYPE_CHOICES,
+        "selected_document_type": selected_document_type,
+        "selected_import_batch": selected_import_batch,
+        "search_fields": DOCUMENT_EXTRACTION_SEARCH_FIELDS,
+        "search_field": search_field,
+        "search_query": search_query,
+        "field_labels": DOCUMENT_EXTRACTION_FIELD_LABELS,
+        "page_querystring": query_params.urlencode(),
+    }
+    return render(request, 'document_extraction.html', context)
 
 
 @login_required
@@ -1900,6 +2540,35 @@ def export_ppe(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
+def _apply_pp_header_filters(queryset, request, include_pays_resid=False, include_devise=False):
+    field_map = {
+        "lib_agence": "LIB_AGENCE",
+        "client": "CLIENT",
+        "idp": "IDP",
+        "numid": "NUMID",
+        "datnais": "DATNAIS",
+        "paynais": "PAYNAIS",
+        "adresse": "ADRESSE",
+        "codape": "CODAPE",
+        "profession": "PROFESSION",
+        "salaire": "SALAIRE",
+        "origine_rev": "ORIGINE_REV",
+        "datvalid": "DATVALID",
+        "tel": "TEL",
+        "datouv": "DATOUV",
+    }
+    if include_pays_resid:
+        field_map["pays_resid"] = "PAYS_RESID"
+    if include_devise:
+        field_map["devise"] = "DEVISE"
+
+    for param, field in field_map.items():
+        value = request.GET.get(param, "").strip()
+        if value:
+            queryset = queryset.filter(**{f"{field}__icontains": value})
+    return queryset
+
+
 @login_required
 @csrf_exempt
 def non_resid(request):
@@ -1939,6 +2608,7 @@ def non_resid(request):
         donnees = donnees.filter(AGENCE__icontains=agence_param)
     if expl_param:
         donnees = donnees.filter(EXPL__icontains=expl_param)
+    donnees = _apply_pp_header_filters(donnees, request, include_pays_resid=True)
 
     # === Calcul des valeurs du formulaire (Listes de filtres) ===
     # On calcule les listes sur le QuerySet filtré par le rôle
@@ -1958,6 +2628,9 @@ def non_resid(request):
         exploitants = donnees.values_list('EXPL', flat=True).distinct()
 
     filiales = donnees.values_list('FILIALE', flat=True).distinct()
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
 
     # 2. Obtenir le QuerySet final pour la pagination
     # On utilise 'donnees' qui est le QuerySet filtré
@@ -1988,6 +2661,7 @@ def non_resid(request):
         'roles_exclus': roles_exclus,
         'users_groupe': users_groupe,
         'users_filiale': users_filiale,
+        'get_params': query_params.urlencode(),
     }
     return render(request, 'non_resid.html', context)
 
@@ -2024,6 +2698,7 @@ def export_non_resid_pp(request):
             donnees = donnees.filter(AGENCE__icontains=agence_param)
         if expl_param:
             donnees = donnees.filter(EXPL__icontains=expl_param)
+        donnees = _apply_pp_header_filters(donnees, request, include_pays_resid=True)
 
         # Fin du Queryset filtré
 
@@ -2151,6 +2826,7 @@ def non_resid_pm(request):
         'roles_exclus': roles_exclus,
         'users_groupe': users_groupe,
         'users_filiale': users_filiale,
+        'get_params': query_params.urlencode(),
     }
     return render(request, 'non_resid_pm.html', context)
 
@@ -3477,6 +4153,10 @@ def non_rens(request):
     f_lib_agence = request.GET.get('lib_agence')
     f_client = request.GET.get('client')
     f_idp = request.GET.get('idp')
+    f_numid = request.GET.get('numid')
+    f_datnais = request.GET.get('datnais')
+    f_paynais = request.GET.get('paynais')
+    f_adresse = request.GET.get('adresse')
     f_codape = request.GET.get('codape')
     f_profession = request.GET.get('profession')
     f_salaire = request.GET.get('salaire')
@@ -3491,6 +4171,10 @@ def non_rens(request):
     if f_lib_agence: queryset = queryset.filter(LIB_AGENCE__icontains=f_lib_agence)
     if f_client: queryset = queryset.filter(CLIENT__icontains=f_client)
     if f_idp: queryset = queryset.filter(IDP__icontains=f_idp)
+    if f_numid: queryset = queryset.filter(NUMID__icontains=f_numid)
+    if f_datnais: queryset = queryset.filter(DATNAIS__icontains=f_datnais)
+    if f_paynais: queryset = queryset.filter(PAYNAIS__icontains=f_paynais)
+    if f_adresse: queryset = queryset.filter(ADRESSE__icontains=f_adresse)
     if f_codape: queryset = queryset.filter(CODAPE__icontains=f_codape)
     if f_profession: queryset = queryset.filter(PROFESSION__icontains=f_profession)
     if f_salaire: queryset = queryset.filter(SALAIRE__icontains=f_salaire)
@@ -4337,11 +5021,15 @@ def devise(request):
         donnees = donnees.filter(AGENCE__icontains=agence_param)
     if expl_param:
         donnees = donnees.filter(EXPL__icontains=expl_param)
+    donnees = _apply_pp_header_filters(donnees, request, include_devise=True)
 
     # === Valeurs pour les menus déroulants du formulaire ===
     filiales = donnees.values_list('FILIALE', flat=True).distinct()
     agences = donnees.values_list('AGENCE', flat=True).distinct()
     exploitants = donnees.values_list('EXPL', flat=True).distinct()
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
 
     # === Paginator ===
     ITEMS_PER_PAGE = 25
@@ -4364,6 +5052,7 @@ def devise(request):
         'roles_exclus': roles_exclus,
         'users_groupe': users_groupe,
         'users_filiale': users_filiale,
+        'get_params': query_params.urlencode(),
     }
 
     return render(request, 'devise.html', context)
@@ -4401,6 +5090,7 @@ def export_devise_pp(request):
         donnees = donnees.filter(AGENCE__icontains=agence_param)
     if expl_param:
         donnees = donnees.filter(EXPL__icontains=expl_param)
+    donnees = _apply_pp_header_filters(donnees, request, include_devise=True)
 
     # Fin du Queryset filtré
 

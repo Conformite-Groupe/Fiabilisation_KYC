@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load l10n %}
 
 {% block content %}
 <!-- Premium Fonts & Styles -->
@@ -192,7 +193,7 @@
                 </div>
             </div>
             <p class="text-5xl font-black text-slate-900 tracking-tighter">
-                {% if global_compliance_rate %}{{ global_compliance_rate }}<span
+                {% if global_compliance_rate is not None %}{{ global_compliance_rate|floatformat:1 }}<span
                     class="text-2xl ml-1 text-slate-400">%</span>{% else %}--{% endif %}
             </p>
         </div>
@@ -362,12 +363,12 @@
                                             <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor"
                                                 stroke-width="10" class="text-emerald-500 progress-glow-circle"
                                                 stroke-dasharray="314" stroke-dashoffset="314"
-                                                data-rate="{{ stat.compliance_rate|default_if_none:0|default:'0'|floatformat:0 }}"
+                                                data-rate="{{ stat.compliance_rate|default_if_none:0|default:'0'|unlocalize }}"
                                                 stroke-linecap="round">
                                             </circle>
                                         </svg>
                                         <span class="text-xs font-black text-white tracking-tighter">
-                                            {{ stat.compliance_rate|default_if_none:0|default:'0'|floatformat:0 }}%
+                                            {{ stat.compliance_rate|default_if_none:0|default:'0'|floatformat:1 }}%
                                         </span>
                                     </div>
                                     <p class="text-[7px] font-black text-emerald-500 uppercase tracking-widest">

@@ -174,64 +174,80 @@
 
 <div class="overflow-x-auto overflow-y-auto max-h-[600px] relative custom-scrollbar rounded-xl border border-slate-200 shadow-sm bg-white">
 
-    <table class="w-full border-separate border-spacing-0 text-[9px]"> <thead>
+    <table class="kyc-wide-table w-full border-separate border-spacing-0 text-[9px]"> <thead>
         <tr class="sticky top-0 z-50">
             {% if user.organe not in user_filiale %}
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Filiale</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Filiale</th>
             {% endif %}
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Agence</th>
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700 max-w-[80px]">Lib. Agence</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Agence</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800 max-w-[80px]">Lib. Agence</th>
             
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Exploit.</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800 max-w-[80px]">Exploit.</th>
             
-            <th class="px-2 py-2 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[100px] border-b border-green-900">
+            <th class="px-2 py-3 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[100px] border-b border-green-900">
                 Client
             </th>
             
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">IDP</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">IDP</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">NIN</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Datnais</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Pays Naiss</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Adresse</th>
 
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Codape</th>
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Profession</th>
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Salaire</th>
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Origine</th>
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Valid. CIN</th>
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Contact</th>
-            <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Datouv</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Codape</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Profession</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Salaire</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Origine</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Valid. CIN</th>
+            <th class="px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Contact</th>
+            <th class="kyc-nowrap-col px-1 py-2 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Datouv</th>
         </tr>
         <tr class="bg-slate-900/90">
             {% if user.organe not in user_filiale %}
-            <th class="px-1 py-1 bg-slate-900"></th>
+            <th class="px-1 py-2 bg-slate-900"></th>
             {% endif %}
-            <th class="px-1 py-1 bg-slate-900"></th>
-            <th class="px-1 py-1 bg-slate-900">
+            <th class="px-1 py-2 bg-slate-900"></th>
+            <th class="px-1 py-2 bg-slate-900">
                 <input name="lib_agence" value="{{ request.GET.lib_agence|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
             </th>
-            <th class="px-1 py-1 bg-slate-900"></th>
-            <th class="px-1 py-1 bg-green-900/80 sticky left-0 z-[60]">
+            <th class="px-1 py-2 bg-slate-900"></th>
+            <th class="px-1 py-2 bg-green-900/80 sticky left-0 z-[60]">
                 <input name="client" value="{{ request.GET.client|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
             </th>
-            <th class="px-1 py-1 bg-slate-900">
+            <th class="px-1 py-2 bg-slate-900">
                 <input name="idp" value="{{ request.GET.idp|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
             </th>
-            <th class="px-1 py-1 bg-slate-900">
+            <th class="px-1 py-2 bg-slate-900">
+                <input name="numid" value="{{ request.GET.numid|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-2 bg-slate-900">
+                <input name="datnais" value="{{ request.GET.datnais|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-2 bg-slate-900">
+                <input name="paynais" value="{{ request.GET.paynais|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-2 bg-slate-900">
+                <input name="adresse" value="{{ request.GET.adresse|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+            </th>
+            <th class="px-1 py-2 bg-slate-900">
                 <input name="codape" value="{{ request.GET.codape|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
             </th>
-            <th class="px-1 py-1 bg-slate-900">
+            <th class="px-1 py-2 bg-slate-900">
                 <input name="profession" value="{{ request.GET.profession|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
             </th>
-            <th class="px-1 py-1 bg-slate-900">
+            <th class="px-1 py-2 bg-slate-900">
                 <input name="salaire" value="{{ request.GET.salaire|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
             </th>
-            <th class="px-1 py-1 bg-slate-900">
+            <th class="px-1 py-2 bg-slate-900">
                 <input name="origine_rev" value="{{ request.GET.origine_rev|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
             </th>
-            <th class="px-1 py-1 bg-slate-900">
+            <th class="px-1 py-2 bg-slate-900">
                 <input name="datvalid" value="{{ request.GET.datvalid|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
             </th>
-            <th class="px-1 py-1 bg-slate-900">
+            <th class="px-1 py-2 bg-slate-900">
                 <input name="tel" value="{{ request.GET.tel|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
             </th>
-            <th class="px-1 py-1 bg-slate-900"></th>
+            <th class="px-1 py-2 bg-slate-900"></th>
         </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
@@ -249,9 +265,21 @@
             <td class="group-hover:bg-green-600 group-hover:text-gray-100 px-2 py-2 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-md bg-inherit truncate max-w-[120px]">
                 {{ item.CLIENT|default:"-" }}
             </td>
-  <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.IDP|yesno:',bg-red-50 text-red-600 font-bold' }}">
-                {{ item.IDP|default:"-" }}
-            </td>
+          <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.IDP|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                        {{ item.IDP|default:"-" }}
+                    </td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.NUMID|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                        {{ item.NUMID|default:"-" }}
+                    </td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.DATNAIS|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                        {{ item.DATNAIS|default:"-" }}
+                    </td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.PAYNAIS|yesno:',bg-red-50 text-red-600 font-bold' }}">
+                        {{ item.PAYNAIS|default:"-" }}
+                    </td>
+                    <td class="px-1 py-1 text-center border-b border-slate-100 truncate max-w-[120px] {{ item.ADRESSE|yesno:',bg-red-50 text-red-600 font-bold' }}" title="{{ item.ADRESSE }}">
+                        {{ item.ADRESSE|default:"-" }}
+                    </td>
          
 
             <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.CODAPE|yesno:',bg-red-50 text-red-600 font-bold' }}">
@@ -280,7 +308,7 @@
                 {{ item.TEL|default:"-" }}
             </td>
 
-            <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.DATOUV|yesno:',bg-red-50 text-red-600 font-bold' }}">
+            <td class="kyc-nowrap-col px-1 py-1 text-center border-b border-slate-100 {{ item.DATOUV|yesno:',bg-red-50 text-red-600 font-bold' }}">
                 {{ item.DATOUV|default:"-" }}
             </td>
         </tr>
@@ -337,4 +365,70 @@
     {% endfor %}
 </script>
 {% endif %}
+<style>
+    .kyc-wide-table {
+        min-width: 1900px;
+        table-layout: auto;
+    }
+    .kyc-wide-table th {
+        white-space: nowrap;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        line-height: 1.15;
+        letter-spacing: 0.04em;
+    }
+    .kyc-wide-table thead th {
+        background: #0f172a !important;
+        color: #ffffff !important;
+        border-bottom-color: #1e293b !important;
+    }
+    .kyc-wide-table thead th.sticky,
+    .kyc-wide-table thead th[class*="sticky left-0"] {
+        background: #166534 !important;
+        color: #ffffff !important;
+        border-bottom-color: #14532d !important;
+    }
+    .kyc-wide-table thead tr:nth-child(2) th {
+        background: rgba(15, 23, 42, 0.96) !important;
+    }
+    .kyc-wide-table thead tr:nth-child(2) th.sticky,
+    .kyc-wide-table thead tr:nth-child(2) th[class*="sticky left-0"] {
+        background: rgba(20, 83, 45, 0.96) !important;
+    }
+    .kyc-wide-table td {
+        padding-top: 0.125rem !important;
+        padding-bottom: 0.125rem !important;
+        line-height: 1.1;
+        vertical-align: middle;
+    }
+    .kyc-wide-table input {
+        padding-top: 0.125rem !important;
+        padding-bottom: 0.125rem !important;
+        min-height: 1.35rem;
+    }
+    .kyc-nowrap-col {
+        white-space: nowrap !important;
+        min-width: 5.5rem;
+    }
+    .kyc-wide-table th.sticky,
+    .kyc-wide-table th[class*="sticky left-0"] {
+        background: #166534 !important;
+        color: #ffffff !important;
+        box-shadow: 10px 0 18px -14px rgba(15, 23, 42, 0.9);
+        isolation: isolate;
+    }
+    .kyc-wide-table td.sticky,
+    .kyc-wide-table td[class*="sticky left-0"] {
+        background: #ffffff !important;
+        color: #111827 !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        box-shadow: 10px 0 18px -16px rgba(15, 23, 42, 0.55), inset -1px 0 0 #e5e7eb;
+        isolation: isolate;
+    }
+    .kyc-wide-table tbody tr:hover td[class*="sticky left-0"] {
+        background: #16a34a !important;
+        color: #ffffff !important;
+    }
+</style>
 {% endblock %}

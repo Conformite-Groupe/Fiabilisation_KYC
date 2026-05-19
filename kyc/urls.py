@@ -30,4 +30,6 @@ urlpatterns = [
     path('quality_control/audits/pdf/', views.export_audits_pdf, name='export_audits_pdf'),
     path('quality_control/export_rules_pdf/', views.export_rules_pdf, name='export_rules_pdf'),
     path('quality_control/export_failures/<int:rule_id>/', views.export_rule_failures, name='export_rule_failures'),
+    path('document-extraction/', views.document_extraction, name='document_extraction'),
+    path('document-extraction/export-matches/', views.export_document_extraction_matches, name='export_document_extraction_matches'),
 ]

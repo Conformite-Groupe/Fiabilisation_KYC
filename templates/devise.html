@@ -41,7 +41,7 @@
     </div>
 
     <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 max-w-5xl mx-auto">
-        <form method="get" class="flex flex-wrap items-center justify-center gap-4">
+        <form id="filterForm" method="get" class="flex flex-wrap items-center justify-center gap-4">
             {% if user.organe in users_groupe %}
             <div class="min-w-[160px]">
                 <select name="filiale" class="w-full text-[11px] font-bold text-gray-700 border-gray-200 rounded-xl focus:ring-green-600 focus:border-green-600 bg-gray-50">
@@ -106,29 +106,56 @@
 
 
     <div class="overflow-x-auto overflow-y-auto max-h-[550px] relative custom-scrollbar">
-        <table class="w-full border-separate border-spacing-0 text-[9px]">
+        <table class="kyc-wide-table w-full border-separate border-spacing-0 text-[9px]">
             <thead>
+                <tr class="sticky top-0 z-50">
                 {% if user.organe not in user_filiale %}
-                <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Filiale</th>
+                <th class="px-1 py-1 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Filiale</th>
                 {% endif %}
-                <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Agence</th>
-                <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700 max-w-[80px]">Lib. Agence</th>
+                <th class="px-1 py-1 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Agence</th>
+                <th class="px-1 py-1 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-700 max-w-[80px]">Lib. Agence</th>
                 
-                <th class="px-1 py-1 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Exploit.</th>
+                <th class="px-1 py-1 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-700">Exploit.</th>
                 
-                <th class="px-2 py-2 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[100px] border-b border-green-900">
+                <th class="px-2 py-3 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[100px] border-b border-green-900">
                     Client
                 </th>
                 
-                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">IDP</th>
-                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Codape</th>
-                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Profession</th>
-                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Salaire</th>
-                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Orig. Revenu</th>
-                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Validité</th>
-                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Contact</th>
-                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Datouv</th>
-                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-widest border-b border-slate-800">Devise</th>
+                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">IDP</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">NIN</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Datnais</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Pays Naiss</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Adresse</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Codape</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Profession</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Salaire</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Orig. Revenu</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Validité</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Contact</th>
+                    <th class="kyc-nowrap-col px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Datouv</th>
+                    <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Devise</th>
+                </tr>
+                <tr class="bg-slate-900/90">
+                    {% if user.organe not in user_filiale %}
+                    <th class="px-1 py-2 bg-slate-900"></th>
+                    {% endif %}
+                    <th class="px-1 py-2 bg-slate-900"></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="lib_agence" value="{{ request.GET.lib_agence|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"></th>
+                    <th class="px-1 py-2 bg-green-900/80 sticky left-0 z-[60]"><input form="filterForm" name="client" value="{{ request.GET.client|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="idp" value="{{ request.GET.idp|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="numid" value="{{ request.GET.numid|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="datnais" value="{{ request.GET.datnais|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="paynais" value="{{ request.GET.paynais|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="adresse" value="{{ request.GET.adresse|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="codape" value="{{ request.GET.codape|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="profession" value="{{ request.GET.profession|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="salaire" value="{{ request.GET.salaire|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="origine_rev" value="{{ request.GET.origine_rev|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="datvalid" value="{{ request.GET.datvalid|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="tel" value="{{ request.GET.tel|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="datouv" value="{{ request.GET.datouv|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
+                    <th class="px-1 py-2 bg-slate-900"><input form="filterForm" name="devise" value="{{ request.GET.devise|default:'' }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" /></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 bg-white">
@@ -149,6 +176,10 @@
           <td class="px-1 py-1 text-center border-b border-slate-100 {{ item.IDP|yesno:',bg-red-50 text-red-600 font-bold' }}">
                         {{ item.IDP|default:"-" }}
                     </td>
+                    <td class="px-2 py-2 text-center {% if not item.NUMID %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.NUMID|default:"-" }}</td>
+                    <td class="px-2 py-2 text-center {% if not item.DATNAIS %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.DATNAIS|default:"-" }}</td>
+                    <td class="px-2 py-2 text-center {% if not item.PAYNAIS %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.PAYNAIS|default:"-" }}</td>
+                    <td class="px-2 py-2 truncate max-w-[120px] {% if not item.ADRESSE %}bg-red-50 text-red-700 font-black{% endif %}" title="{{ item.ADRESSE }}">{{ item.ADRESSE|default:"-" }}</td>
                  
                     <td class="px-2 py-2 text-center {% if not item.CODAPE %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.CODAPE|default:"-" }}</td>
                     <td class="px-2 py-2 truncate max-w-[90px] {% if not item.PROFESSION %}bg-red-50 text-red-700 font-black{% endif %}" title="{{ item.PROFESSION }}">{{ item.PROFESSION|default:"-" }}</td>
@@ -156,7 +187,7 @@
                     <td class="px-2 py-2 text-center {% if not item.ORIGINE_REV %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.ORIGINE_REV|default:"-" }}</td>
                     <td class="px-2 py-2 text-center {% if not item.DATVALID %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.DATVALID|default:"-" }}</td>
                     <td class="px-2 py-2 text-center {% if not item.TEL %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.TEL|default:"-" }}</td>
-                    <td class="px-2 py-2 text-center {% if not item.DATOUV %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.DATOUV|default:"-" }}</td>
+                    <td class="kyc-nowrap-col px-2 py-2 text-center {% if not item.DATOUV %}bg-red-50 text-red-700 font-black{% endif %}">{{ item.DATOUV|default:"-" }}</td>
                     <td class="px-2 py-2 text-center}">      <span class="px-2 py-1 bg-green-100 text-green-700 rounded-md font-black">{{ item.DEVISE|default:"-" }}</span>
                       </td>
                 </tr>
@@ -178,4 +209,63 @@
         alert("💰 " + msgBox.innerText);
     }
 </script>
+<style>
+    .kyc-wide-table {
+        min-width: 1850px;
+        table-layout: auto;
+    }
+    .kyc-wide-table th {
+        white-space: nowrap;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        line-height: 1.15;
+        letter-spacing: 0.04em;
+    }
+    .kyc-wide-table thead th {
+        background: #0f172a !important;
+        color: #ffffff !important;
+        border-bottom-color: #1e293b !important;
+    }
+    .kyc-wide-table thead th.sticky,
+    .kyc-wide-table thead th[class*="sticky left-0"] {
+        background: #166534 !important;
+        color: #ffffff !important;
+        border-bottom-color: #14532d !important;
+    }
+    .kyc-wide-table td {
+        padding-top: 0.125rem !important;
+        padding-bottom: 0.125rem !important;
+        line-height: 1.1;
+        vertical-align: middle;
+    }
+    .kyc-wide-table input {
+        padding-top: 0.125rem !important;
+        padding-bottom: 0.125rem !important;
+        min-height: 1.35rem;
+    }
+    .kyc-nowrap-col {
+        white-space: nowrap !important;
+        min-width: 5.5rem;
+    }
+    .kyc-wide-table th.sticky,
+    .kyc-wide-table th[class*="sticky left-0"] {
+        background: #166534 !important;
+        color: #ffffff !important;
+        box-shadow: 10px 0 18px -14px rgba(15, 23, 42, 0.9);
+        isolation: isolate;
+    }
+    .kyc-wide-table td.sticky,
+    .kyc-wide-table td[class*="sticky left-0"] {
+        background: #ffffff !important;
+        color: #111827 !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        box-shadow: 10px 0 18px -16px rgba(15, 23, 42, 0.55), inset -1px 0 0 #e5e7eb;
+        isolation: isolate;
+    }
+    .kyc-wide-table tbody tr:hover td[class*="sticky left-0"] {
+        background: #16a34a !important;
+        color: #ffffff !important;
+    }
+</style>
 {% endblock %}

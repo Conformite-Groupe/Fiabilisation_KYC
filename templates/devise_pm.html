@@ -105,7 +105,7 @@
     <div class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
         {% if donnees.paginator.count > 0 %}
         <div class="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar">
-                <table class="w-full border-separate border-spacing-0 text-[10px]">
+                <table class="kyc-wide-table w-full border-separate border-spacing-0 text-[10px]">
         <thead>
             <tr class="sticky top-0 z-50">
 
@@ -192,4 +192,48 @@
         alert("💰 Devise PM: " + successMessage.innerText);
     }
 </script>
+<style>
+    .kyc-wide-table {
+        min-width: 1600px;
+        table-layout: auto;
+    }
+    .kyc-wide-table th {
+        white-space: nowrap;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        line-height: 1.15;
+        letter-spacing: 0.04em;
+        box-shadow: inset 0 -1px 0 #1e293b;
+    }
+    .kyc-wide-table thead th {
+        background: #0f172a !important;
+        color: #ffffff !important;
+        border-bottom-color: #1e293b !important;
+    }
+    .kyc-wide-table thead th.sticky,
+    .kyc-wide-table thead th[class*="sticky left-0"] {
+        background: #166534 !important;
+        color: #ffffff !important;
+        border-bottom-color: #14532d !important;
+    }
+    .kyc-wide-table td {
+        padding-top: 0.125rem !important;
+        padding-bottom: 0.125rem !important;
+        line-height: 1.1;
+        vertical-align: middle;
+    }
+    .kyc-wide-table td.sticky,
+    .kyc-wide-table td[class*="sticky left-0"] {
+        background: #ffffff !important;
+        color: #111827 !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        box-shadow: 10px 0 18px -16px rgba(15, 23, 42, 0.55), inset -1px 0 0 #e5e7eb;
+        isolation: isolate;
+    }
+    .kyc-wide-table tbody tr:hover td[class*="sticky left-0"] {
+        background: #16a34a !important;
+        color: #ffffff !important;
+    }
+</style>
 {% endblock %}

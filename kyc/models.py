@@ -119,6 +119,57 @@ class DataQualityRuleAudit(models.Model):
     class Meta:
         ordering = ['-timestamp']
 
+
+DOCUMENT_EXTRACTION_TYPE_CHOICES = (
+    ('piece_identite', "Piece d'identite"),
+    ('passeport', 'Passeport'),
+)
+
+
+class KycDocumentExtraction(models.Model):
+    document_type = models.CharField(max_length=30, choices=DOCUMENT_EXTRACTION_TYPE_CHOICES)
+    uploaded_file = models.FileField(upload_to='document_extraction/')
+    original_filename = models.CharField(max_length=255, blank=True)
+    source_filename = models.CharField(max_length=255, blank=True)
+    import_batch = models.CharField(max_length=120, blank=True)
+    page_number = models.PositiveIntegerField(null=True, blank=True)
+    page_range = models.CharField(max_length=30, blank=True)
+    nom = models.CharField(max_length=120, blank=True)
+    prenom = models.CharField(max_length=120, blank=True)
+    numero_document = models.CharField(max_length=120, blank=True)
+    date_naissance = models.CharField(max_length=120, blank=True)
+    date_expiration = models.CharField(max_length=120, blank=True)
+    nationalite = models.CharField(max_length=120, blank=True)
+    pays_naissance = models.CharField(max_length=120, blank=True)
+    pays_delivrance = models.CharField(max_length=120, blank=True)
+    numero_identification_nationale = models.CharField(max_length=120, blank=True)
+    lieu_naissance = models.CharField(max_length=120, blank=True)
+    adresse = models.CharField(max_length=255, blank=True)
+    origine_revenu = models.CharField(max_length=120, blank=True)
+    extracted_text = models.TextField(blank=True)
+    extraction_warnings = models.TextField(blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['document_type']),
+            models.Index(fields=['numero_document']),
+            models.Index(fields=['nom']),
+            models.Index(fields=['prenom']),
+            models.Index(fields=['date_naissance']),
+            models.Index(fields=['date_expiration']),
+            models.Index(fields=['nationalite']),
+            models.Index(fields=['pays_delivrance']),
+            models.Index(fields=['import_batch']),
+        ]
+
+    def __str__(self):
+        reference = self.numero_document or self.original_filename or str(self.pk)
+        return f"{self.get_document_type_display()} - {reference}"
+
+
 Filiales = (
     ('BOA NE', 'BOA NE'),
     ('BOA CI', 'BOA CI'),

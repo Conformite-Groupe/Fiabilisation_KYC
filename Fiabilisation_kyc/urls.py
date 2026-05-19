@@ -83,6 +83,8 @@ urlpatterns = [
                   path('change-password/', force_password_change, name='force_password_change'),
                   path('import/', views.import_page, name='import_page'),
                   path('import/log/<str:filename>/', views.import_log_download, name='import_log_download'),
+                  path('document-extraction/', views.document_extraction, name='document_extraction'),
+                  path('document-extraction/export-matches/', views.export_document_extraction_matches, name='export_document_extraction_matches'),
 
                   path('logout/', logout_user, name="logout"),
     path('admin/', admin.site.urls),

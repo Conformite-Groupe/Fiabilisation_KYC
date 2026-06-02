@@ -1,4 +1,6 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
 from datetime import datetime
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -168,6 +170,130 @@ class KycDocumentExtraction(models.Model):
     def __str__(self):
         reference = self.numero_document or self.original_filename or str(self.pk)
         return f"{self.get_document_type_display()} - {reference}"
+
+
+class KycDocumentMatchSettings(models.Model):
+    name = models.CharField(max_length=80, default="Parametrage standard", unique=True)
+    birth_date_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="Poids date de naissance")
+    document_validity_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="Poids date de validite")
+    birth_place_weight = models.PositiveSmallIntegerField(default=10, validators=[MaxValueValidator(100)], verbose_name="Poids lieu de naissance")
+    nationality_weight = models.PositiveSmallIntegerField(default=20, validators=[MaxValueValidator(100)], verbose_name="Poids nationalite")
+    combination_threshold = models.PositiveSmallIntegerField(default=65, validators=[MaxValueValidator(100)], verbose_name="Seuil de correspondance combinee")
+    active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Parametrage de correspondance KYC ID"
+        verbose_name_plural = "Parametrage des correspondances KYC ID"
+
+    def clean(self):
+        total = self.birth_date_weight + self.document_validity_weight + self.birth_place_weight + self.nationality_weight
+        if total > 100:
+            raise ValidationError(
+                "La somme des poids de correspondance ne doit pas depasser 100."
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def get_active(cls):
+        settings = cls.objects.filter(active=True).order_by("-updated_at").first()
+        if settings:
+            return settings
+        return cls(
+            name="Parametrage standard",
+            birth_date_weight=35,
+            document_validity_weight=35,
+            birth_place_weight=10,
+            nationality_weight=20,
+            combination_threshold=65,
+            active=True,
+        )
+
+
+class KycExpiredDocumentScanMatch(models.Model):
+    STATUS_CHOICES = (
+        ("a_valider", "A valider"),
+        ("valide", "Valide"),
+        ("rejete", "Rejete"),
+    )
+
+    client = models.ForeignKey("Kyc_pp", on_delete=models.CASCADE, related_name="expired_document_matches")
+    document = models.ForeignKey(KycDocumentExtraction, on_delete=models.CASCADE, related_name="expired_kyc_matches")
+    client_code = models.CharField(max_length=200, blank=True)
+    idp = models.CharField(max_length=200, blank=True)
+    filiale = models.CharField(max_length=200, blank=True)
+    agence = models.CharField(max_length=200, blank=True)
+    old_validity_date = models.CharField(max_length=120, blank=True)
+    document_validity_date = models.CharField(max_length=120, blank=True)
+    match_rate = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(100)])
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="a_valider")
+    scan_date = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-scan_date"]
+        verbose_name = "Correspondance document expire KYC"
+        verbose_name_plural = "Correspondances documents expires KYC"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["client", "document"],
+                name="unique_expired_kyc_document_match",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["client_code"]),
+            models.Index(fields=["filiale", "agence"]),
+            models.Index(fields=["scan_date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.client_code or self.client_id} - {self.document_validity_date}"
+
+
+class KycDocumentMatchJob(models.Model):
+    STATUS_CHOICES = (
+        ("pending", "En attente"),
+        ("running", "En cours"),
+        ("completed", "Termine"),
+        ("failed", "Echec"),
+    )
+
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    scope_params = models.JSONField(default=dict, blank=True)
+    result = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    progress_current = models.PositiveIntegerField(default=0)
+    progress_total = models.PositiveIntegerField(default=0)
+    message = models.CharField(max_length=255, blank=True)
+    error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "created_at"]),
+            models.Index(fields=["created_by", "created_at"]),
+        ]
+
+    @property
+    def progress_percent(self):
+        if not self.progress_total:
+            return 0
+        return min(100, int(self.progress_current / self.progress_total * 100))
+
+    def __str__(self):
+        return f"Rapprochement documents #{self.pk} - {self.get_status_display()}"
 
 
 Filiales = (

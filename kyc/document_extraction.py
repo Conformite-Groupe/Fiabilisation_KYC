@@ -219,6 +219,75 @@ def _has_enough_core_fields(text):
     return len(core_fields.intersection(fields)) >= 4
 
 
+def detect_document_type(text, original_name="", fields=None):
+    content = f"{original_name or ''}\n{text or ''}".upper()
+    compact_content = re.sub(r"\s+", "", content)
+
+    passport_score = 0
+    identity_score = 0
+
+    if re.search(r"(^|\n)\s*P<", text or "", flags=re.IGNORECASE):
+        passport_score += 5
+    if re.search(r"\b(PASSEPORT|PASSPORT)\b", content):
+        passport_score += 3
+    if re.search(r"\b(N[Â°O]\s*PASSEPORT|PASSPORT\s*(NO|NUMBER))\b", content):
+        passport_score += 3
+    if re.search(r"(PASSEPORT|PASSPORT)", (original_name or "").upper()):
+        passport_score += 2
+
+    if re.search(r"\b(CARTE\s+NATIONALE|CARTE\s+D[' ]?IDENTITE|IDENTITY\s+CARD|NATIONAL\s+ID)\b", content):
+        identity_score += 4
+    if re.search(r"\b(CNI|NIN|NPI|EID\s*NUMBER|CARD\s*NUMBER)\b", content):
+        identity_score += 3
+    if re.search(r"(CNI|IDENTITE|IDENTITY|NATIONALID)", compact_content):
+        identity_score += 2
+
+    if passport_score >= 3 and passport_score >= identity_score + 1:
+        return "passeport"
+    if identity_score >= 3 and identity_score >= passport_score + 1:
+        return "piece_identite"
+    return ""
+
+
+def extraction_quality_warnings(text, fields=None):
+    text = text or ""
+    fields = fields or {}
+    stripped = text.strip()
+    warnings = []
+
+    if not stripped:
+        return ["Document non exploitable: aucun texte lisible n'a ete detecte."]
+
+    useful_chars = sum(1 for char in stripped if char.isalnum())
+    useful_ratio = useful_chars / max(len(stripped), 1)
+    key_fields = {"nom", "prenom", "numero_document", "date_naissance", "date_expiration", "nationalite"}
+    detected_key_fields = [field for field in key_fields if fields.get(field)]
+
+    if len(stripped) < 60 and len(detected_key_fields) < 2:
+        warnings.append("Document potentiellement non exploitable: le texte extrait est trop court pour fiabiliser l'analyse.")
+    if useful_ratio < 0.35 and len(detected_key_fields) < 3:
+        warnings.append("Qualite du document a verifier: l'OCR contient trop peu de caracteres lisibles.")
+    if len(detected_key_fields) == 0:
+        warnings.append("Document non exploitable: aucun champ d'identite standard n'a ete reconnu.")
+    elif len(detected_key_fields) < 2:
+        warnings.append("Qualite insuffisante: trop peu de champs d'identite ont ete reconnus automatiquement.")
+
+    return warnings
+
+
+def _apply_detection_metadata(result, original_name=""):
+    fields = result.get("fields") or {}
+    text = result.get("text") or ""
+    result["detected_document_type"] = detect_document_type(text, original_name or result.get("filename", ""), fields)
+
+    existing_warnings = list(result.get("warnings") or [])
+    for warning in extraction_quality_warnings(text, fields):
+        if warning not in existing_warnings:
+            existing_warnings.append(warning)
+    result["warnings"] = existing_warnings
+    return result
+
+
 def _all_dates(text):
     return [_clean_value(match.group(0)) for match in re.finditer(ANY_DATE_PATTERN, text or "", flags=re.IGNORECASE)]
 
@@ -675,7 +744,7 @@ def extract_pdf_grouped_documents(path, original_name="", pages_per_document=1):
         warnings.extend(ocr_warnings)
 
     if not page_texts:
-        return [{
+        return [_apply_detection_metadata({
             "filename": original_name or os.path.basename(path),
             "extension": ".pdf",
             "text": "",
@@ -684,7 +753,7 @@ def extract_pdf_grouped_documents(path, original_name="", pages_per_document=1):
             "supported": True,
             "page_number": None,
             "page_range": "",
-        }]
+        }, original_name)]
 
     grouped_results = []
     for start in range(0, len(page_texts), pages_per_document):
@@ -696,7 +765,7 @@ def extract_pdf_grouped_documents(path, original_name="", pages_per_document=1):
         if not text.strip():
             group_warnings.append("Aucun texte exploitable n'a ete extrait pour ce document.")
 
-        grouped_results.append({
+        grouped_results.append(_apply_detection_metadata({
             "filename": original_name or os.path.basename(path),
             "extension": ".pdf",
             "text": text,
@@ -705,7 +774,7 @@ def extract_pdf_grouped_documents(path, original_name="", pages_per_document=1):
             "supported": True,
             "page_number": page_numbers[0],
             "page_range": page_range,
-        })
+        }, original_name))
 
     return grouped_results
 
@@ -743,4 +812,4 @@ def extract_document_data(path, original_name=""):
     else:
         result["warnings"].append("Aucun texte exploitable n'a ete extrait du document.")
 
-    return result
+    return _apply_detection_metadata(result, original_name)

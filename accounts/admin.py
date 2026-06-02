@@ -57,9 +57,39 @@ class KycPmAdmin(KycAdminBase):
 @admin.register(Kyc_pp)
 class KycPpAdmin(KycAdminBase):
     # On ajoute les colonnes spécifiques aux Personnes Physiques
-    list_display = ('CLIENT', 'FILIALE', 'NUMID', 'IDP', 'PPE', 'DATOUV')
+    list_display = (
+        'CLIENT',
+        'IDP',
+        'FILIALE',
+        'AGENCE',
+    )
     # Recherche par Nom Client, NUMID, ou IDP
-    search_fields = ('CLIENT', 'NUMID', 'IDP')
+    list_filter = ('FILIALE', 'AGENCE', 'PAYNAIS', 'RESID', 'PPE')
+    search_fields = (
+        'CLIENT',
+        'IDP',
+        'NUMID',
+        'FILIALE',
+        'AGENCE',
+        'LIB_AGENCE',
+        'DATNAIS',
+        'DATVALID',
+        'PAYNAIS',
+        'TEL',
+        'ADRESSE',
+    )
+    ordering = ('FILIALE', 'AGENCE', 'CLIENT')
+    fieldsets = (
+        ('Identification client', {
+            'fields': ('FILIALE', 'AGENCE', 'LIB_AGENCE', 'EXPL', 'CLIENT', 'IDP', 'NUMID')
+        }),
+        ('Donnees KYC PP', {
+            'fields': ('DATNAIS', 'DATVALID', 'PAYNAIS', 'PROFESSION', 'ADRESSE', 'PAYS_RESID')
+        }),
+        ('Autres informations', {
+            'fields': ('CODAPE', 'SALAIRE', 'ORIGINE_REV', 'TEL', 'DATOUV', 'PPE', 'DEVISE', 'RESID')
+        }),
+    )
 admin.site.register(Anomalie)
 @admin.register(TauxEvolution)
 class TauxEvolutionAdmin(admin.ModelAdmin):

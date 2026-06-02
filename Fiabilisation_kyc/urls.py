@@ -84,6 +84,8 @@ urlpatterns = [
                   path('import/', views.import_page, name='import_page'),
                   path('import/log/<str:filename>/', views.import_log_download, name='import_log_download'),
                   path('document-extraction/', views.document_extraction, name='document_extraction'),
+                  path('document-extraction/start-match/', views.start_document_extraction_match_job, name='start_document_extraction_match_job'),
+                  path('document-extraction/match-job/<int:job_id>/status/', views.document_extraction_match_job_status, name='document_extraction_match_job_status'),
                   path('document-extraction/export-matches/', views.export_document_extraction_matches, name='export_document_extraction_matches'),
 
                   path('logout/', logout_user, name="logout"),

@@ -54,7 +54,7 @@ def log_rejected_line(filename, line_num, error_msg):
 
 # --- 4. UTILITAIRES ---
 def normalize_header(name):
-    return (name or "").strip().upper()
+    return (name or "").replace("\ufeff", "").strip().upper()
 
 def pick_value(row_norm, candidates):
     for col in candidates:
@@ -62,6 +62,45 @@ def pick_value(row_norm, candidates):
         if val:
             return val.strip()
     return (row_norm.get(candidates[0], "") or "").strip() if candidates else ""
+
+def unique_values(values):
+    seen = set()
+    unique = []
+    for value in values:
+        normalized = normalize_header(value)
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            unique.append(value)
+    return unique
+
+FIELD_ALIASES = {
+    "LIB_AGENCE": ["AGENCELIB", "AGENCE_LIB", "LIBELLE_AGENCE", "LIB AGENCE"],
+    "ORIGINE_REV": ["ORIGINE_REVENU", "ORIGINE_REVENUS", "ORIGINE REVENU", "ORIGINE REVENUS"],
+    "PAYS_RESID": ["PAYS_RESIDENCE", "PAYS_RESID", "PAYS RESIDENCE", "PAYS RESID"],
+    "NUMID": ["NUM_ID", "NUMERO_ID", "NUMERO_IDENTITE", "NUMERO DOCUMENT", "NUMERO_DOCUMENT"],
+    "DATVALID": ["DATE_VALIDITE", "DAT_VALID", "DATE VALIDITE", "DATE_EXPIRATION", "DATE EXPIRATION"],
+    "DATNAIS": ["DATE_NAISSANCE", "DAT_NAIS", "DATE NAISSANCE", "DN"],
+    "DATOUV": ["DATE_OUVERTURE", "DAT_OUV", "DATE OUVERTURE"],
+    "PAYNAIS": ["PAYS_NAISSANCE", "PAYS NAISSANCE", "PAYS_NAIS"],
+    "SALAIRE": ["REVENU", "REVENUS", "REVENU_MENSUEL", "SALAIRE_MENSUEL"],
+    "TEL": ["TELEPHONE", "PHONE", "MOBILE"],
+    "IDP": ["IDP", "IDENTIFIANT_PP", "IDENTIFIANT CLIENT", "ID_CLIENT"],
+    "IDM": ["IDM", "IDENTIFIANT_PM", "IDENTIFIANT CLIENT", "ID_CLIENT"],
+    "RCSNO": ["RCCM", "RCS", "NUMERO_RCS", "RCS NO"],
+}
+
+def build_model_mapping(model):
+    mapping = {}
+    for field in model._meta.fields:
+        if field.primary_key or field.auto_created:
+            continue
+        name = field.name
+        mapping[name] = unique_values([
+            name,
+            name.upper(),
+            *FIELD_ALIASES.get(name, []),
+        ])
+    return mapping
 
 # --- 5. INSERTION EN THREAD (compatible MSSQL) ---
 def _bulk_insert(model, batch):
@@ -150,46 +189,8 @@ def importer_csv_optimise(path, model, mapping, code_filiale):
 
 
 # --- 7. MAPPINGS ---
-MAPPING_PM = {
-    "AGENCE": ["AGENCE"],
-    "LIB_AGENCE": ["LIB_AGENCE", "AGENCELIB", "AGENCE_LIB"],
-    "EXPL": ["EXPL"],
-    "CLIENT": ["CLIENT"],
-    "AGEC": ["AGEC"],
-    "CODAPE": ["CODAPE"],
-    "IDM": ["IDM"],
-    "RCSNO": ["RCSNO"],
-    "CAPITAL": ["CAPITAL"],
-    "CA": ["CA"],
-    "RESULTAT": ["RESULTAT"],
-    "ORIGINE_REV": ["ORIGINE_REV", "ORIGINE_REVENU"],
-    "DATOUV": ["DATOUV"],
-    "TEL": ["TEL"],
-    "DEVISE": ["DEVISE"],
-    "RESID": ["RESID"],
-}
-
-MAPPING_PP = {
-    "AGENCE": ["AGENCE"],
-    "LIB_AGENCE": ["LIB_AGENCE", "AGENCELIB", "AGENCE_LIB"],
-    "EXPL": ["EXPL"],
-    "CLIENT": ["CLIENT"],
-    "CODAPE": ["CODAPE"],
-    "IDP": ["IDP"],
-    "PAYNAIS": ["PAYNAIS"],
-    "PROFESSION": ["PROFESSION"],
-    "ADRESSE": ["ADRESSE"],
-    "PAYS_RESID": ["PAYS_RESID"],
-    "NUMID": ["NUMID"],
-    "SALAIRE": ["SALAIRE"],
-    "ORIGINE_REV": ["ORIGINE_REV", "ORIGINE_REVENU"],
-    "DATVALID": ["DATVALID"],
-    "TEL": ["TEL"],
-    "DATOUV": ["DATOUV"],
-    "PPE": ["PPE"],
-    "DEVISE": ["DEVISE"],
-    "RESID": ["RESID"],
-}
+MAPPING_PM = build_model_mapping(Kyc_pm)
+MAPPING_PP = build_model_mapping(Kyc_pp)
 
 
 # --- 8. TRAITEMENT PAR FILIALE ---

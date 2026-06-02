@@ -97,24 +97,24 @@
     }
 </style>
 
-<div class="min-h-screen p-4 lg:p-8 space-y-8 max-w-[1600px] mx-auto">
+<div class="min-h-screen px-4 pb-4 pt-1 lg:px-8 lg:pb-8 lg:pt-2 space-y-6 max-w-[1600px] mx-auto">
 
     <!-- HEADER AREA -->
     <header
-        class="glass-panel rounded-[2.5rem] p-6 lg:p-8 flex flex-col lg:flex-row items-center justify-between gap-6">
-        <div class="flex items-center gap-6">
-            <div class="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center shadow-2xl">
-                <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        class="glass-panel rounded-none px-5 py-6 lg:px-6 lg:py-7 flex flex-col lg:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl">
+                <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                         d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
                     </path>
                 </svg>
             </div>
             <div>
-                <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none">
+                <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
                     CONTRÔLE <span class="text-emerald-500 font-light">QUALITÉ</span> KYC
                 </h1>
-                <div class="flex items-center gap-2 mt-2">
+                <div class="flex items-center gap-2 mt-1.5">
                     <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Gestion des
                         règles de contrôle qualité KYC</p>
@@ -125,14 +125,14 @@
         {% if can_manage %}
         <div class="flex flex-wrap items-center justify-end gap-2">
             <button id="openRuleModal"
-                class="btn-premium flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-xl shadow-xl hover:shadow-emerald-900/20 active:scale-95 transition-all">
+                class="btn-premium flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl shadow-xl hover:shadow-emerald-900/20 active:scale-95 transition-all">
                 <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-width="2.5" d="M12 4v16m8-8H4"></path>
                 </svg>
                 <span class="text-[10px] font-black uppercase tracking-widest">Nouvelle règle</span>
             </button>
             <a href="{% url 'kyc:export_rules_pdf' %}"
-                class="btn-premium flex items-center gap-2 px-5 py-3 bg-blue-400 text-white rounded-xl hover:bg-blue-600 shadow-lg shadow-red-200">
+                class="btn-premium flex items-center gap-2 px-4 py-2.5 bg-blue-400 text-white rounded-xl hover:bg-blue-600 shadow-lg shadow-red-200">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-width="2"
                         d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
@@ -141,7 +141,7 @@
                 <span class="text-[10px] font-black uppercase tracking-widest">LISTE DES règles</span>
             </a>
             <a href="{% url 'kyc:quality_control_audits' %}"
-                class="btn-premium flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 shadow-sm">
+                class="btn-premium flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 shadow-sm">
                 <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-width="2"
                         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
@@ -154,62 +154,62 @@
     </header>
 
     <!-- STATISTICS GRID -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div class="glass-panel premium-card p-8 rounded-[2.5rem] border-l-8 border-slate-900 group">
-            <div class="flex justify-between items-start mb-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-panel premium-card px-5 py-4 rounded-2xl border-l-4 border-slate-900 group">
+            <div class="flex justify-between items-start mb-2">
                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Total Règles</p>
                 <div
-                    class="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-900 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="w-7 h-7 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-900 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                             d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
                         </path>
                     </svg>
                 </div>
             </div>
-            <p class="text-5xl font-black text-slate-900 tracking-tighter">{{ total_rules }}</p>
+            <p class="text-3xl font-black text-slate-900 tracking-tighter">{{ total_rules }}</p>
         </div>
 
         <div
-            class="glass-panel premium-card p-8 rounded-[2.5rem] border-l-8 border-emerald-500 group stat-glow-emerald">
-            <div class="flex justify-between items-start mb-4">
+            class="glass-panel premium-card px-5 py-4 rounded-2xl border-l-4 border-emerald-500 group stat-glow-emerald">
+            <div class="flex justify-between items-start mb-2">
                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">Opérationnelles</p>
-                <div class="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-7 h-7 bg-emerald-50 rounded-2xl flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white text-emerald-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M5 13l4 4L19 7"></path>
                     </svg>
                 </div>
             </div>
-            <p class="text-5xl font-black text-slate-900 tracking-tighter">{{ active_rules }}</p>
+            <p class="text-3xl font-black text-slate-900 tracking-tighter">{{ active_rules }}</p>
         </div>
 
-        <div class="glass-panel premium-card p-8 rounded-[2.5rem] border-l-8 border-blue-500 group stat-glow-blue">
-            <div class="flex justify-between items-start mb-4">
+        <div class="glass-panel premium-card px-5 py-4 rounded-2xl border-l-4 border-blue-500 group stat-glow-blue">
+            <div class="flex justify-between items-start mb-2">
                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">Score Global</p>
-                <div class="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-7 h-7 bg-blue-50 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white text-blue-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                     </svg>
                 </div>
             </div>
-            <p class="text-5xl font-black text-slate-900 tracking-tighter">
+            <p class="text-3xl font-black text-slate-900 tracking-tighter">
                 {% if global_compliance_rate is not None %}{{ global_compliance_rate|floatformat:1 }}<span
-                    class="text-2xl ml-1 text-slate-400">%</span>{% else %}--{% endif %}
+                    class="text-lg ml-1 text-slate-400">%</span>{% else %}--{% endif %}
             </p>
         </div>
 
-        <div class="glass-panel premium-card p-8 rounded-[2.5rem] border-l-8 border-red-500 group stat-glow-red">
-            <div class="flex justify-between items-start mb-4">
+        <div class="glass-panel premium-card px-5 py-4 rounded-2xl border-l-4 border-red-500 group stat-glow-red">
+            <div class="flex justify-between items-start mb-2">
                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-red-600">Clients non conformes</p>
-                <div class="w-10 h-10 bg-red-50 rounded-2xl flex items-center justify-center text-red-500">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-7 h-7 bg-red-50 rounded-2xl flex items-center justify-center group-hover:bg-red-600 group-hover:text-white text-red-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
                         </path>
                     </svg>
                 </div>
             </div>
-            <p class="text-5xl font-black text-slate-900 tracking-tighter">{{ total_failures }}</p>
+            <p class="text-3xl font-black text-slate-900 tracking-tighter">{{ total_failures }}</p>
         </div>
     </div>
 

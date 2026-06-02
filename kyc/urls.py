@@ -31,5 +31,7 @@ urlpatterns = [
     path('quality_control/export_rules_pdf/', views.export_rules_pdf, name='export_rules_pdf'),
     path('quality_control/export_failures/<int:rule_id>/', views.export_rule_failures, name='export_rule_failures'),
     path('document-extraction/', views.document_extraction, name='document_extraction'),
+    path('document-extraction/start-match/', views.start_document_extraction_match_job, name='start_document_extraction_match_job'),
+    path('document-extraction/match-job/<int:job_id>/status/', views.document_extraction_match_job_status, name='document_extraction_match_job_status'),
     path('document-extraction/export-matches/', views.export_document_extraction_matches, name='export_document_extraction_matches'),
 ]

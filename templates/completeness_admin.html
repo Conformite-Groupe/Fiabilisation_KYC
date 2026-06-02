@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen px-4 pb-8 pt-2 lg:px-8 space-y-6 max-w-[1500px] mx-auto">
+    <header class="glass-panel page-header">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shrink-0">
+                <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7 4h10a2 2 0 012 2v14l-4-2-3 2-3-2-4 2V6a2 2 0 012-2z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
+                    Parametrage <span class="text-emerald-500 font-light">completude KYC</span>
+                </h1>
+                <div class="flex items-center gap-2 mt-1.5">
+                    <span class="flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                    <span class="page-header-subtitle">Champs critiques, exclusions et calcul PASS</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <form method="get" class="glass-panel rounded-2xl p-4 flex flex-wrap items-end gap-3">
+        <div class="w-full md:w-72">
+            <label class="block text-[9px] font-black text-slate-400 uppercase mb-1.5">Filiale</label>
+            <select name="filiale" class="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700">
+                {% for filiale in filiales %}
+                <option value="{{ filiale }}" {% if selected_filiale == filiale %}selected{% endif %}>{{ filiale }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest">Afficher</button>
+    </form>
+
+    <div id="calculationProgressPanel" class="{% if not active_progress %}hidden{% endif %} glass-panel rounded-2xl p-5 border border-emerald-100">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-3">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <p class="text-xs font-black text-slate-900 uppercase tracking-widest">Calcul en cours</p>
+                </div>
+                <p id="calculationProgressMessage" class="text-[11px] font-bold text-slate-500 mt-1">
+                    {{ active_progress.message|default:"Preparation..." }}
+                </p>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                    Demarre le <span id="calculationStartedAt">{{ active_progress.started_at|default:"-" }}</span>
+                    <span class="mx-2 text-slate-300">|</span>
+                    Derniere mise a jour <span id="calculationUpdatedAt">{{ active_progress.updated_at|default:"-" }}</span>
+                </p>
+            </div>
+            <div id="calculationProgressPercent" class="text-3xl font-black text-emerald-600">
+                {{ active_progress.percent|default:0 }}%
+            </div>
+        </div>
+        <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div id="calculationProgressBar" class="h-full bg-emerald-600 rounded-full transition-all duration-500" style="width: {{ active_progress.percent|default:0 }}%"></div>
+        </div>
+        <div class="mt-2 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <span id="calculationProgressSteps">{{ active_progress.current|default:0 }} / {{ active_progress.total|default:0 }} etape</span>
+            <span id="calculationProgressRows">{{ active_progress.created|default:0 }} ligne generee</span>
+        </div>
+    </div>
+
+    <form method="post" id="completenessConfigForm" class="space-y-6">
+        {% csrf_token %}
+        <input type="hidden" name="filiale" value="{{ selected_filiale }}">
+
+        {% for group in field_groups %}
+        <section class="glass-panel rounded-2xl overflow-hidden">
+            <div class="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-black uppercase tracking-[0.25em]">{{ group.label }} - {{ group.app }}</h2>
+                    <p class="text-[10px] text-slate-300 font-bold uppercase tracking-widest mt-1">{{ selected_filiale }}</p>
+                </div>
+                <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 text-[9px] font-black uppercase">{{ group.rows|length }} champs</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs border-separate border-spacing-0">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-left bg-slate-50 text-[10px] font-black uppercase text-slate-500">Champ</th>
+                            <th class="px-4 py-3 text-center bg-slate-50 text-[10px] font-black uppercase text-slate-500">Critique</th>
+                            <th class="px-4 py-3 text-center bg-slate-50 text-[10px] font-black uppercase text-slate-500">Afficher non renseignes</th>
+                            <th class="px-4 py-3 text-left bg-slate-50 text-[10px] font-black uppercase text-slate-500">Champ d'exclusion</th>
+                            <th class="px-4 py-3 text-left bg-slate-50 text-[10px] font-black uppercase text-slate-500">Expression a exclure</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in group.rows %}
+                        <tr class="hover:bg-emerald-50/50">
+                            <td class="px-4 py-2 border-t border-slate-100 font-black text-slate-800">{{ row.field }}</td>
+                            <td class="px-4 py-2 border-t border-slate-100 text-center">
+                                <input type="checkbox" name="critical_{{ group.app }}" value="{{ row.field }}" class="rounded border-slate-300 text-emerald-600" {% if row.is_critical %}checked{% endif %}>
+                            </td>
+                            <td class="px-4 py-2 border-t border-slate-100 text-center">
+                                <input type="checkbox" name="display_{{ group.app }}" value="{{ row.field }}" class="rounded border-slate-300 text-emerald-600" {% if row.show_on_non_rens %}checked{% endif %}>
+                            </td>
+                            <td class="px-4 py-2 border-t border-slate-100">
+                                <select name="exclusion_field_{{ group.app }}_{{ row.field }}" class="w-52 rounded-lg border border-slate-200 px-2 py-1.5 text-[11px]">
+                                    <option value="">Aucune</option>
+                                    {% for field_option in group.fields %}
+                                    <option value="{{ field_option }}" {% if row.exclusion_field_name == field_option %}selected{% endif %}>{{ field_option }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="px-4 py-2 border-t border-slate-100">
+                                <input type="text" name="exclusion_expression_{{ group.app }}_{{ row.field }}" value="{{ row.exclusion_expression }}" placeholder="Ex: MINEUR, ETUDIANT..." class="w-64 rounded-lg border border-slate-200 px-2 py-1.5 text-[11px]">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endfor %}
+
+        <div class="glass-panel rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <p class="text-xs font-black text-slate-900 uppercase tracking-widest">Derniers resultats filiale</p>
+                <div class="flex flex-wrap gap-2 mt-2">
+                    {% for result in latest_results %}
+                    <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black">{{ result.applicability }}: {{ result.completeness_rate|floatformat:1 }}%</span>
+                    {% empty %}
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Aucun calcul lance</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" name="action" value="save" class="px-5 py-3 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest">Enregistrer</button>
+                <button type="button" id="startCompletenessCalculation" class="px-5 py-3 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest">Lancer calcul</button>
+            </div>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    const startButton = document.getElementById('startCompletenessCalculation');
+    const configForm = document.getElementById('completenessConfigForm');
+    const progressPanel = document.getElementById('calculationProgressPanel');
+    const progressBar = document.getElementById('calculationProgressBar');
+    const progressPercent = document.getElementById('calculationProgressPercent');
+    const progressMessage = document.getElementById('calculationProgressMessage');
+    const progressSteps = document.getElementById('calculationProgressSteps');
+    const progressRows = document.getElementById('calculationProgressRows');
+    const progressStartedAt = document.getElementById('calculationStartedAt');
+    const progressUpdatedAt = document.getElementById('calculationUpdatedAt');
+    const statusUrlTemplate = "{% url 'completeness_calculation_status' 'JOB_ID' %}";
+    const activeJobId = "{{ active_job_id|default:'' }}";
+
+    function updateProgress(data) {
+        const percent = Number(data.percent || 0);
+        progressBar.style.width = `${Math.min(percent, 100)}%`;
+        progressPercent.textContent = `${percent.toFixed(1)}%`;
+        progressMessage.textContent = data.message || 'Calcul en cours...';
+        progressSteps.textContent = `${data.current || 0} / ${data.total || 0} etape`;
+        progressRows.textContent = `${data.created || 0} ligne generee`;
+        progressStartedAt.textContent = data.started_at || '-';
+        progressUpdatedAt.textContent = data.updated_at || '-';
+
+        if (data.status === 'completed') {
+            startButton.disabled = false;
+            startButton.textContent = 'Relancer calcul';
+            progressPercent.textContent = '100%';
+            progressBar.style.width = '100%';
+            setTimeout(() => window.location.reload(), 1200);
+        }
+
+        if (data.status === 'failed' || data.status === 'unknown') {
+            startButton.disabled = false;
+            startButton.textContent = 'Relancer calcul';
+            progressBar.classList.remove('bg-emerald-600');
+            progressBar.classList.add('bg-red-600');
+        }
+    }
+
+    async function pollProgress(jobId) {
+        const response = await fetch(statusUrlTemplate.replace('JOB_ID', jobId));
+        const data = await response.json();
+        updateProgress(data);
+        if (data.status === 'running') {
+            setTimeout(() => pollProgress(jobId), 1200);
+        }
+    }
+
+    startButton.addEventListener('click', async () => {
+        progressPanel.classList.remove('hidden');
+        progressBar.classList.remove('bg-red-600');
+        progressBar.classList.add('bg-emerald-600');
+        startButton.disabled = true;
+        startButton.textContent = 'Calcul...';
+        updateProgress({ percent: 0, current: 0, total: 0, message: 'Demarrage du calcul...', created: 0 });
+
+        const formData = new FormData(configForm);
+        formData.set('action', 'calculate');
+        const response = await fetch("{% url 'completeness_calculation_start' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            updateProgress({ status: 'failed', percent: 0, current: 0, total: 0, message: data.error || 'Erreur de lancement.', created: 0 });
+            return;
+        }
+        pollProgress(data.job_id);
+    });
+
+    if (activeJobId) {
+        progressPanel.classList.remove('hidden');
+        if (startButton) {
+            startButton.textContent = 'Calcul en cours...';
+            startButton.disabled = true;
+        }
+        pollProgress(activeJobId);
+    }
+</script>
+{% endblock %}

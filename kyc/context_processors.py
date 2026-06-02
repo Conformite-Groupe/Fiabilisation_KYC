@@ -1,6 +1,7 @@
-# core/context_processors.py
+﻿# core/context_processors.py
 from kyc.models import Notation
 from django.db.models import Max
+from django.conf import settings
 
 def user_stat_processor(request):
     user_stat = ["Directeur Agence", "Chargé Client"]
@@ -51,3 +52,7 @@ def notation(request):
         notation_queryset = notation_queryset.none()
 
     return {'notation': notation_queryset}
+
+
+def static_version_processor(request):
+    return {'static_version': getattr(settings, 'STATIC_VERSION', '1')}

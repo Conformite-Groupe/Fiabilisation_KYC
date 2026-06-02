@@ -8,9 +8,76 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KYC Portal | BOA Group</title>
-    {% tailwind_css %}
+    {% tailwind_css v=static_version %}
    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --premium-dark: #0f172a;
+            --premium-accent: #10b981;
+            --premium-blue: #3b82f6;
+            --premium-red: #ef4444;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: #f8fafc;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%);
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        .page-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            border-radius: 0;
+            padding: 1.5rem 1.25rem;
+        }
+
+        @media (min-width: 1024px) {
+            .page-header {
+                flex-direction: row;
+                padding: 1.75rem 1.5rem;
+            }
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+            line-height: 1;
+            font-weight: 900;
+            letter-spacing: -0.025em;
+            color: #0f172a;
+            text-transform: uppercase;
+        }
+
+        @media (min-width: 1024px) {
+            .page-header h1 {
+                font-size: 1.875rem;
+            }
+        }
+
+        .page-header-subtitle {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.4em;
+        }
+
         [x-cloak] { display: none !important; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #15803d; border-radius: 10px; }
@@ -25,8 +92,8 @@
         /* Animation douce pour les menus */
         .nav-link { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
-    <script src="{% static 'js/chart.min.js' %}"></script>
-    <script src="{% static 'js/alpine.min.js' %}" defer></script>
+    <script src="{% static 'js/chart.min.js' %}?v={{ static_version }}"></script>
+    <script src="{% static 'js/alpine.min.js' %}?v={{ static_version }}" defer></script>
 </head>
 
 <body class="h-full overflow-hidden text-slate-900" x-data="{ mobileMenu: false }">
@@ -53,7 +120,7 @@
                 <div class="p-4 mb-6 ">
                     <a href="{% url 'profil' %}">
 
-                    <div class=" bg-green-50 text-gray-400 hover:bg-green-100 hover:text-green-700 rounded-[2rem] p-4 border border-slate-100 hover:bg-green-50 transition-all  shadow-inner">
+                    <div class=" bg-emerald-50 text-gray-400 hover:bg-green-100 hover:text-green-700 rounded-[2rem] p-4 border border-slate-100 hover:bg-green-50 transition-all  shadow-inner">
 
                         <div class="flex items-center gap-3 mb-3">
                             <div class="h-10 w-10 rounded-2xl bg-slate-900 flex items-center justify-center text-white font-black text-xs shadow-lg">
@@ -130,9 +197,9 @@
                                     Clients en anomalie
                                 </a>
                                 <a href="{% url 'document_extraction' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'document_extraction' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
-                                    Extraction documents
+                                    Screening KYC ID
                                 </a>
-                                {% if user.organe == "Contrôle Permanent" or user.organe == "Conformité" or user.organe == "Qualité" or user.organe == "DSI" or user.organe == "Risques" or user.organe == "DAI" %}
+                                {% if user.organe == "Contrôle Permanent" or user.organe == "Conformité" or user.organe == "Qualité" or user.organe == "DSI" or user.organe == "Risques" or user.organe == "DAI" or user.organe == "PASS" %}
                                  <a href="{% url 'kyc:quality_control' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'quality_control' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
                                     Contrôle qualité
                                 </a>

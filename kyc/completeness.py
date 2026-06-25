@@ -1,9 +1,14 @@
+import math
 from datetime import timedelta
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, CharField
+from django.db.models.functions import Length
 from django.core.cache import cache
 from django.utils import timezone
+
+# Register Length lookup to allow __length=1 in Q objects (extremely faster than __regex=r'^.$')
+CharField.register_lookup(Length)
 
 from .models import (
     KycCompletenessCalculation,
@@ -21,11 +26,15 @@ MODEL_BY_APPLICABILITY = {
 DEFAULT_NON_RENS_FIELDS = {
     "PP": (
         "PAYNAIS", "PROFESSION", "SALAIRE", "NUMID", "CODAPE", "TEL",
-        "DATNAIS", "ADRESSE", "DATVALID", "ORIGINE_REV",
+        "DATNAIS", "ADRESSE", "DATVALID", "ORIGINE_REV", "INTITULE_COMPTE",
+        "EMPLOYEUR", "PAYS_RESID", "LIEU_DELIVRANCE_CIN", "BOITE_POSTALE",
+        "CONSENT_BIC",
     ),
     "PM": (
         "CODAPE", "AGEC", "CAPITAL", "CA", "RESULTAT", "RCSNO",
-        "ORIGINE_REV", "TEL",
+        "ORIGINE_REV", "TEL", "INTITULE_COMPTE", "ADRESSE_SOCIALE",
+        "NUMERO_FISCAL", "PAYS_JUR", "ACTIONNAIRE", "MANDATAIRE",
+        "BOITE_POSTALE", "CONSENT_BIC",
     ),
 }
 
@@ -75,7 +84,15 @@ def get_completeness_configs(applicability, filiale=None, only_display=False, on
 def missing_filter_for_fields(fields):
     missing_q = None
     for field_name in fields:
-        field_q = Q(**{f"{field_name}__isnull": True}) | Q(**{field_name: ""})
+        field_q = (
+            Q(**{f"{field_name}__isnull": True}) | 
+            Q(**{f"{field_name}__exact": ""}) |
+            Q(**{f"{field_name}__iexact": "XX"}) |
+            Q(**{f"{field_name}__iexact": "RAS"}) |
+            Q(**{f"{field_name}__iexact": "R.A.S."}) |
+            Q(**{f"{field_name}__iexact": "R.A.S"}) |
+            Q(**{f"{field_name}__length": 1})
+        )
         missing_q = field_q if missing_q is None else missing_q | field_q
     return missing_q
 
@@ -119,7 +136,7 @@ def evaluate_config_queryset(queryset, config):
     missing_q = missing_filter_for_fields([config.field_name])
     missing_count = scoped_queryset.filter(missing_q).count() if missing_q is not None else 0
     compliant_count = max(total - missing_count, 0)
-    rate = round((compliant_count / total) * 100, 1) if total else 0
+    rate = math.floor((compliant_count / total) * 100) if total else 0
     return {
         "total_clients": total,
         "compliant_clients": compliant_count,
@@ -154,7 +171,7 @@ def create_calculation_row(applicability, filiale, scope_type, queryset, configs
         total_missing += result["incomplete_clients"]
         total_excluded += result["excluded_clients"]
 
-    global_rate = round((total_compliant / total_evaluated) * 100, 1) if total_evaluated else 0
+    global_rate = math.floor((total_compliant / total_evaluated) * 100) if total_evaluated else 0
     field_results.append(KycCompletenessCalculation(
         filiale=filiale,
         applicability=applicability,
@@ -282,7 +299,7 @@ def latest_completeness_rate(applicability, filiale=None, agence=None, expl=None
             return None
         total_clients = sum(row.total_clients for row in latest_rows)
         total_compliant = sum(row.compliant_clients for row in latest_rows)
-        return round((total_compliant / total_clients) * 100, 1) if total_clients else 0
+        return math.floor((total_compliant / total_clients) * 100) if total_clients else 0
 
     row = qs.order_by("-calculated_at").first()
     return row.completeness_rate if row else None

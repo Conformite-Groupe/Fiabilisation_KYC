@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen px-4 pb-8 pt-1 lg:px-8 lg:pt-2 max-w-[1700px] mx-auto space-y-6">
+
+    <!-- ═══════════════════════ EN-TÊTE ═══════════════════════ -->
+    <header class="glass-panel page-header">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shrink-0">
+                <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
+                    Types de <span class="text-emerald-500 font-light">documents</span>
+                </h1>
+                <p class="mt-2 text-[10px] font-bold uppercase tracking-[0.35em] text-slate-400">
+                    Types de documents &amp; Règles d'apprentissage OCR
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="openCreateModal()"
+                class="inline-flex h-10 items-center justify-center rounded-xl bg-emerald-600 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow shadow-emerald-900/10 gap-2">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Créer type de documents
+            </button>
+            <a href="{% url 'document_extraction' %}"
+                class="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700 transition-all shadow shadow-emerald-900/10">
+                Voir Extractions
+            </a>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════ CORPS DE PAGE ═══════════════════════ -->
+    <div class="w-full">
+        
+        <!-- Table des types de documents -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 bg-slate-950 text-white flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-300">Base documentaire</p>
+                    <h2 class="text-base font-black">Catégories configurées</h2>
+                </div>
+                <span class="bg-emerald-900/50 text-emerald-300 text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
+                    {{ document_types|length }} Type{{ document_types|pluralize }}
+                </span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100">
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Libellé</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Code technique</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Filiale / Pays</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Type de client</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Seuil de score</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Mots-clés de reconnaissance</th>
+                            <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for doc_type in document_types %}
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="px-4 py-3 font-bold text-slate-900">{{ doc_type.label }}</td>
+                            <td class="px-4 py-3 font-mono text-slate-500 font-bold text-[10px]">{{ doc_type.code }}</td>
+                            <td class="px-4 py-3 font-bold text-slate-600">
+                                {% if doc_type.filiale %}
+                                    <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-blue-700 border border-blue-100">
+                                        {{ doc_type.get_filiale_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 border border-emerald-100">
+                                        Global
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 font-bold text-slate-600">
+                                <span class="inline-flex items-center rounded-md {% if doc_type.client_type == 'pm' %}bg-purple-50 text-purple-700 border-purple-100{% else %}bg-amber-50 text-amber-700 border-amber-100{% endif %} px-2 py-0.5 text-[9px] font-black uppercase tracking-wider border">
+                                    {{ doc_type.get_client_type_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="inline-flex rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-[10px] font-black text-emerald-800">
+                                    {{ doc_type.min_score }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 max-w-xs md:max-w-md">
+                                <div class="flex flex-wrap gap-1">
+                                    {% for keyword in doc_type.get_keyword_list %}
+                                    <span class="inline-flex px-1.5 py-0.5 rounded-md bg-slate-100 border border-slate-200/50 text-[8.5px] font-black uppercase tracking-wider text-slate-600">
+                                        {{ keyword }}
+                                    </span>
+                                    {% empty %}
+                                    <span class="text-[10px] italic text-slate-400">Aucun mot-clé</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-right align-middle whitespace-nowrap">
+                                <div class="inline-flex items-center gap-1.5 justify-end">
+                                    <button type="button" 
+                                             onclick="editDocumentType('{{ doc_type.id }}', '{{ doc_type.code }}', '{{ doc_type.label|escapejs }}', '{{ doc_type.min_score }}', '{{ doc_type.keywords|escapejs }}', '{{ doc_type.filiale }}', '{{ doc_type.client_type }}')"
+                                             class="inline-flex h-8 items-center rounded-lg bg-emerald-50 border border-emerald-100 px-3 text-[9px] font-black uppercase tracking-widest text-emerald-800 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all">
+                                        Éditer
+                                    </button>
+                                    {% if doc_type.code != 'piece_identite' and doc_type.code != 'passeport' %}
+                                    <form method="post" class="inline" onsubmit="return confirm('Confirmer la suppression de ce type de document ?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="type_id" value="{{ doc_type.id }}">
+                                        <button type="submit" 
+                                                class="inline-flex h-8 items-center rounded-lg bg-red-50 border border-red-100 px-3 text-[9px] font-black uppercase tracking-widest text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all">
+                                            Supprimer
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="px-4 py-8 text-center text-slate-400 font-bold">
+                                Aucun type de document configuré. Utilisez le formulaire pour en ajouter.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- PREMIUM MODAL DE CONFIGURATION -->
+<div id="docTypeModal"
+    class="fixed inset-0 z-[100] hidden overflow-y-auto bg-slate-900/60 backdrop-blur-md p-4 lg:p-12 animate-in fade-in duration-300">
+    <div class="flex items-start justify-center min-h-full">
+        <div class="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden transform transition-all my-8 animate-in zoom-in-95 duration-300">
+            <!-- Modal Header -->
+            <div class="px-6 py-5 bg-slate-950 text-white flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300" id="formSubtitle">Créer une catégorie</p>
+                        <h2 class="text-base font-black" id="formTitle">Ajouter un type de document</h2>
+                    </div>
+                </div>
+                <button type="button" onclick="toggleModal(false)"
+                    class="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Form -->
+            <form method="post" class="p-6 space-y-4" id="documentTypeForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save" id="formAction">
+                <input type="hidden" name="type_id" value="" id="formTypeId">
+                
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Code technique</label>
+                    <input type="text" name="code" id="inputCode" required placeholder="Ex: permis_conduire"
+                           class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 uppercase">
+                    <p class="text-[9px] font-bold text-slate-400 mt-1">Identifiant unique. Caractères alphanumériques et underscores uniquement.</p>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Libellé affiché</label>
+                    <input type="text" name="label" id="inputLabel" required placeholder="Ex: Permis de conduire"
+                           class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500">
+                    <p class="text-[9px] font-bold text-slate-400 mt-1">Nom lisible par l'utilisateur.</p>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Filiale / Pays</label>
+                    <select name="filiale" id="inputFiliale"
+                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500">
+                        <option value="">Global / Par défaut</option>
+                        {% for val, display in filiale_choices %}
+                        <option value="{{ val }}">{{ display }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-[9px] font-bold text-slate-400 mt-1">Filiale spécifique, ou laisser "Global" pour toutes.</p>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Type de client</label>
+                    <select name="client_type" id="inputClientType" required
+                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500">
+                        {% for val, display in client_type_choices %}
+                        <option value="{{ val }}">{{ display }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-[9px] font-bold text-slate-400 mt-1">S'applique aux particuliers (PP) ou aux entreprises (PM).</p>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Score de détection minimum</label>
+                    <input type="number" name="min_score" id="inputMinScore" required step="0.5" min="0.5" value="2.0"
+                           class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500">
+                    <p class="text-[9px] font-bold text-slate-400 mt-1">Nombre d'occurrences de mots-clés nécessaires pour classer le document.</p>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Mots-clés de reconnaissance</label>
+                    <textarea name="keywords" id="inputKeywords" rows="4" placeholder="Ex: PERMIS, CONDUITE, LICENCE, CATEGORIE"
+                              class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 uppercase"></textarea>
+                    <p class="text-[9px] font-bold text-slate-400 mt-1">Mots ou phrases séparés par des virgules.</p>
+                </div>
+
+                <div class="pt-4 flex gap-3 justify-end border-t border-slate-100">
+                    <button type="button" onclick="toggleModal(false)"
+                        class="h-10 rounded-xl bg-slate-100 border border-slate-200 px-5 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-200 transition-all">
+                        Annuler
+                    </button>
+                    <button type="submit" class="h-10 rounded-xl bg-emerald-600 px-6 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20">
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('docTypeModal');
+
+    function toggleModal(show) {
+        if (show) {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        } else {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    function openCreateModal() {
+        resetDocumentTypeForm();
+        toggleModal(true);
+    }
+
+    function editDocumentType(id, code, label, minScore, keywords, filiale, clientType) {
+        document.getElementById('formTitle').textContent = "Modifier le type";
+        document.getElementById('formSubtitle').textContent = "Éditer la catégorie";
+        document.getElementById('formTypeId').value = id;
+        
+        const codeInput = document.getElementById('inputCode');
+        codeInput.value = code;
+        
+        const filialeInput = document.getElementById('inputFiliale');
+        filialeInput.value = filiale || "";
+
+        const clientTypeInput = document.getElementById('inputClientType');
+        clientTypeInput.value = clientType || "pp";
+
+        // Don't allow changing the code, filiale, or client_type of core categories to prevent issues
+        if (code === 'piece_identite' || code === 'passeport') {
+            codeInput.readOnly = true;
+            codeInput.classList.add('bg-slate-50', 'text-slate-400');
+            filialeInput.disabled = true;
+            filialeInput.classList.add('bg-slate-50', 'text-slate-400');
+            clientTypeInput.disabled = true;
+            clientTypeInput.classList.add('bg-slate-50', 'text-slate-400');
+        } else {
+            codeInput.readOnly = false;
+            codeInput.classList.remove('bg-slate-50', 'text-slate-400');
+            filialeInput.disabled = false;
+            filialeInput.classList.remove('bg-slate-50', 'text-slate-400');
+            clientTypeInput.disabled = false;
+            clientTypeInput.classList.remove('bg-slate-50', 'text-slate-400');
+        }
+
+        document.getElementById('inputLabel').value = label;
+        document.getElementById('inputMinScore').value = minScore;
+        document.getElementById('inputKeywords').value = keywords;
+        
+        toggleModal(true);
+    }
+
+    function resetDocumentTypeForm() {
+        document.getElementById('formTitle').textContent = "Ajouter un type de document";
+        document.getElementById('formSubtitle').textContent = "Créer une catégorie";
+        document.getElementById('formTypeId').value = "";
+        
+        const codeInput = document.getElementById('inputCode');
+        codeInput.value = "";
+        codeInput.readOnly = false;
+        codeInput.classList.remove('bg-slate-50', 'text-slate-400');
+
+        const filialeInput = document.getElementById('inputFiliale');
+        filialeInput.value = "";
+        filialeInput.disabled = false;
+        filialeInput.classList.remove('bg-slate-50', 'text-slate-400');
+
+        const clientTypeInput = document.getElementById('inputClientType');
+        clientTypeInput.value = "pp";
+        clientTypeInput.disabled = false;
+        clientTypeInput.classList.remove('bg-slate-50', 'text-slate-400');
+        
+        document.getElementById('inputLabel').value = "";
+        document.getElementById('inputMinScore').value = "2.0";
+        document.getElementById('inputKeywords').value = "";
+    }
+</script>
+{% endblock %}

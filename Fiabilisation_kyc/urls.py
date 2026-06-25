@@ -53,6 +53,8 @@ urlpatterns = [
                   path('sans_classe/', sans_classe, name='sans_classe'),
                   path('non_rens/', views.non_rens, name='non_rens'),
                   path('non_rens_pm/', views.non_rens_pm, name='non_rens_pm'),
+                  path('kyc-field-config/', views.kyc_field_config, name='kyc_field_config'),
+                  path('pilotage-kyc/', views.pilotage_kyc, name='pilotage_kyc'),
                   path('daterev_ppe/', views.daterev_ppe, name='daterev_ppe'),
                   path('export_csv_anom_ppe/', views.export_csv_anom_ppe, name='export_csv_anom_ppe'),
                   path('export_ppe/', views.export_ppe, name='export_ppe'),
@@ -87,6 +89,7 @@ urlpatterns = [
                   path('document-extraction/start-match/', views.start_document_extraction_match_job, name='start_document_extraction_match_job'),
                   path('document-extraction/match-job/<int:job_id>/status/', views.document_extraction_match_job_status, name='document_extraction_match_job_status'),
                   path('document-extraction/export-matches/', views.export_document_extraction_matches, name='export_document_extraction_matches'),
+                  path('document-types-config/', views.config_document_types, name='config_document_types'),
 
                   path('logout/', logout_user, name="logout"),
     path('admin/', admin.site.urls),

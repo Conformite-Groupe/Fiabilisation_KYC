@@ -3,7 +3,7 @@
 
 {% block content %}
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+    @import url('/static/vendor/css/outfit_plus_jakarta.css');
 
     body {
         font-family: 'Plus Jakarta Sans', sans-serif;
@@ -30,6 +30,52 @@
 
     .premium-label label {
         @apply text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 ml-1 block !important;
+    }
+
+    #div_id_filiale > div,
+    .checkboxselectmultiple {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.65rem;
+    }
+
+    #div_id_filiale .form-check,
+    .checkboxselectmultiple li {
+        list-style: none;
+        margin: 0;
+    }
+
+    #div_id_filiale label:not(:first-child),
+    .checkboxselectmultiple label {
+        display: flex !important;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.75rem 0.85rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        background: #ffffff;
+        color: #334155;
+        font-size: 0.72rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.02em !important;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    #div_id_filiale label:not(:first-child):has(input:checked),
+    .checkboxselectmultiple label:has(input:checked) {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        color: #1d4ed8;
+        box-shadow: 0 8px 18px rgba(59, 130, 246, 0.12);
+    }
+
+    #div_id_filiale input[type="checkbox"],
+    .checkboxselectmultiple input[type="checkbox"] {
+        width: 1rem;
+        height: 1rem;
+        accent-color: #3b82f6;
     }
 
     .btn-glow-blue:hover {
@@ -81,6 +127,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="md:col-span-2">{{ form.name|as_crispy_field }}</div>
                             <div class="md:col-span-2">{{ form.applicability|as_crispy_field }}</div>
+                            <div class="md:col-span-2">{{ form.filiale|as_crispy_field }}</div>
                             <div class="md:col-span-2">{{ form.description|as_crispy_field }}</div>
                             {{ form.control_type }}
                             {{ form.field_name }}
@@ -171,7 +218,7 @@
                     class="px-10 py-5 text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">Annuler</a>
                 <button type="submit" id="submitEditBtn"
                     class="px-20 py-6 bg-slate-900 text-white text-xs font-black uppercase tracking-[0.4em] rounded-3xl hover:bg-blue-600 shadow-2xl hover:shadow-blue-900/40 transition-all active:scale-95 btn-glow-blue flex items-center gap-3">
-                    <span class="btn-text">Mettre à jour</span>
+                    <span class="btn-text">Mettre à  jour</span>
                     <div class="hidden btn-loader">
                         <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24">
@@ -190,10 +237,11 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Labels en français
+        // Labels en franà§ais
         const fieldLabels = {
             id_name: 'Nom de la règle',
             id_applicability: 'Segment Cible',
+            id_filiale: 'Filiale(s) concernee(s)',
             id_field_name: 'Champ de Contrôle Principal',
             id_control_type: 'Algorithme d\'Audit',
             id_parameter: 'Valeur de Base',
@@ -207,8 +255,8 @@
         });
 
         const fieldOptions = {
-            PP: [['CODAPE', 'Code APE'], ['IDP', 'Identifiant PP'], ['PAYNAIS', 'Pays Naissance'], ['PROFESSION', 'Profession'], ['ADRESSE', 'Adresse'], ['PAYS_RESID', 'Pays Résidence'], ['NUMID', 'Numéro ID'], ['SALAIRE', 'Salaire'], ['DATVALID', 'Date Validité'], ['DATNAIS', 'Date Naissance'], ['TEL', 'Téléphone'], ['DATOUV', 'Date Ouverture'], ['PPE', 'Statut PPE'], ['DEVISE', 'Devise'], ['RESID', 'Résidence']],
-            PM: [['CODAPE', 'Code APE'], ['AGEC', 'Code AGEC'], ['IDM', 'Identifiant PM'], ['RCSNO', 'Numéro RCS'], ['CAPITAL', 'Capital Social'], ['CA', 'Chiffre d\'Affaires'], ['DATOUV', 'Date Ouverture'], ['TEL', 'Téléphone'], ['DEVISE', 'Devise'], ['RESID', 'Résidence']]
+            PP: [['FILIALE', 'FILIALE'], ['AGENCE', 'AGENCE'], ['LIB_AGENCE', 'LIB_AGENCE'], ['EXPL', 'EXPL'], ['CLIENT', 'CLIENT'], ['CODAPE', 'CODAPE'], ['IDP', 'IDP'], ['PAYNAIS', 'PAYNAIS'], ['PROFESSION', 'PROFESSION'], ['ADRESSE', 'ADRESSE'], ['PAYS_RESID', 'PAYS_RESID'], ['NUMID', 'NUMID'], ['SALAIRE', 'SALAIRE'], ['ORIGINE_REV', 'ORIGINE_REV'], ['DATVALID', 'DATVALID'], ['DATNAIS', 'DATNAIS'], ['TEL', 'TEL'], ['DATOUV', 'DATOUV'], ['PPE', 'PPE'], ['DEVISE', 'DEVISE'], ['RESID', 'RESID'], ['DATEREV', 'DATEREV'], ['RISQUE', 'RISQUE'], ['BOITE_POSTALE', 'BOITE_POSTALE'], ['CONSENT_BIC', 'CONSENT_BIC'], ['EMPLOYEUR', 'EMPLOYEUR'], ['INTITULE_COMPTE', 'INTITULE_COMPTE'], ['LIEU_DELIVRANCE_CIN', 'LIEU_DELIVRANCE_CIN']],
+            PM: [['FILIALE', 'FILIALE'], ['AGENCE', 'AGENCE'], ['LIB_AGENCE', 'LIB_AGENCE'], ['EXPL', 'EXPL'], ['CLIENT', 'CLIENT'], ['AGEC', 'AGEC'], ['CODAPE', 'CODAPE'], ['IDM', 'IDM'], ['RCSNO', 'RCSNO'], ['CAPITAL', 'CAPITAL'], ['CA', 'CA'], ['RESULTAT', 'RESULTAT'], ['ORIGINE_REV', 'ORIGINE_REV'], ['DATOUV', 'DATOUV'], ['TEL', 'TEL'], ['DEVISE', 'DEVISE'], ['RESID', 'RESID'], ['DATEREV', 'DATEREV'], ['PPE', 'PPE'], ['RISQUE', 'RISQUE'], ['ACTIONNAIRE', 'ACTIONNAIRE'], ['ADRESSE_SOCIALE', 'ADRESSE_SOCIALE'], ['BOITE_POSTALE', 'BOITE_POSTALE'], ['CONSENT_BIC', 'CONSENT_BIC'], ['INTITULE_COMPTE', 'INTITULE_COMPTE'], ['MANDATAIRE', 'MANDATAIRE'], ['NUMERO_FISCAL', 'NUMERO_FISCAL'], ['PAYS_JUR', 'PAYS_JUR']]
         };
 
         const applicabilitySelect = document.querySelector('#id_applicability');
@@ -259,7 +307,7 @@
             editForm.addEventListener('submit', function () {
                 const text = submitBtn.querySelector('.btn-text');
                 const loader = submitBtn.querySelector('.btn-loader');
-                if (text) text.textContent = 'Mise à jour...';
+                if (text) text.textContent = 'Mise à  jour...';
                 if (loader) loader.classList.remove('hidden');
                 submitBtn.disabled = true;
                 submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
@@ -336,3 +384,5 @@
     }
 </style>
 {% endblock %}
+
+

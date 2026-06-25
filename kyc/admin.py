@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import KycDocumentExtraction, KycDocumentMatchJob, KycDocumentMatchSettings, KycExpiredDocumentScanMatch
+from .models import KycDocumentExtraction, KycDocumentMatchJob, KycDocumentMatchSettings, KycExpiredDocumentScanMatch, FilialeModuleConfig
+
+
+@admin.register(FilialeModuleConfig)
+class FilialeModuleConfigAdmin(admin.ModelAdmin):
+    list_display = ('filiale', 'screening_kyc_paye_active')
+    list_editable = ('screening_kyc_paye_active',)
+    search_fields = ('filiale',)
+    list_filter = ('screening_kyc_paye_active',)
 
 
 @admin.register(KycDocumentExtraction)

@@ -1,4 +1,4 @@
-﻿from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import close_old_connections, models
 from django.db.models import Q
 from urllib.parse import urlencode
@@ -29,6 +29,8 @@ from kyc.models import (
     Notation, Historique, Kyc_pm, Kyc_pp, Anomalie, TauxEvolution, DATEREV,
     DataQualityRule, DataQualityRuleAudit, KycDocumentExtraction, KycExpiredDocumentScanMatch,
     KycDocumentMatchJob, KycDocumentMatchSettings, DOCUMENT_EXTRACTION_TYPE_CHOICES,
+    KycFieldVisibilityConfig, KycDocumentType, Filiales, CLIENT_TYPE_CHOICES,
+    DATA_QUALITY_FIELD_CHOICES,
 )
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -43,8 +45,11 @@ from django.utils.http import urlsafe_base64_encode
 from django.views.decorators.csrf import csrf_exempt
 from oauthlib.oauth2.rfc6749.endpoints import token
 
-from django.db.models import Max, Avg, Count, F, Q
-from django.db.models.functions import TruncDate
+from django.db.models import Max, Avg, Count, F, Q, Exists, OuterRef, Case, When, IntegerField, CharField
+from django.db.models.functions import TruncDate, Length
+
+# Register Length lookup to allow __length=1 in Q objects (faster than __regex)
+CharField.register_lookup(Length)
 
 from django.http import JsonResponse
 from .models import Kyc_pp
@@ -77,6 +82,19 @@ import threading
 import uuid
 import zipfile
 from .document_extraction import SUPPORTED_EXTENSIONS, extract_document_data, extract_pdf_grouped_documents
+
+class CachedPaginator(Paginator):
+    @property
+    def count(self):
+        query_str = str(self.object_list.query)
+        query_hash = hashlib.md5(query_str.encode('utf-8')).hexdigest()
+        cache_key = f"paginator_count_{query_hash}"
+        cached_count = cache.get(cache_key)
+        if cached_count is not None:
+            return cached_count
+        actual_count = super().count
+        cache.set(cache_key, actual_count, 300)  # Cacher pendant 5 minutes
+        return actual_count
 
 def floor_one_decimal(value):
     return math.floor(value * 10) / 10
@@ -143,6 +161,11 @@ def format_date_for_export(value, output_format="%d/%m/%Y", empty_value="-"):
 def get_data_quality_field_options():
     return {
         'PP': [
+            ('FILIALE', 'FILIALE'),
+            ('AGENCE', 'AGENCE'),
+            ('LIB_AGENCE', 'LIB_AGENCE'),
+            ('EXPL', 'EXPL'),
+            ('CLIENT', 'CLIENT'),
             ('CODAPE', 'CODAPE'),
             ('IDP', 'IDP'),
             ('PAYNAIS', 'PAYNAIS'),
@@ -151,6 +174,7 @@ def get_data_quality_field_options():
             ('PAYS_RESID', 'PAYS_RESID'),
             ('NUMID', 'NUMID'),
             ('SALAIRE', 'SALAIRE'),
+            ('ORIGINE_REV', 'ORIGINE_REV'),
             ('DATVALID', 'DATVALID'),
             ('DATNAIS', 'DATNAIS'),
             ('TEL', 'TEL'),
@@ -158,30 +182,55 @@ def get_data_quality_field_options():
             ('PPE', 'PPE'),
             ('DEVISE', 'DEVISE'),
             ('RESID', 'RESID'),
+            ('DATEREV', 'DATEREV'),
+            ('RISQUE', 'RISQUE'),
+            ('BOITE_POSTALE', 'BOITE_POSTALE'),
+            ('CONSENT_BIC', 'CONSENT_BIC'),
+            ('EMPLOYEUR', 'EMPLOYEUR'),
+            ('INTITULE_COMPTE', 'INTITULE_COMPTE'),
+            ('LIEU_DELIVRANCE_CIN', 'LIEU_DELIVRANCE_CIN'),
         ],
         'PM': [
-            ('CODAPE', 'CODAPE'),
+            ('FILIALE', 'FILIALE'),
+            ('AGENCE', 'AGENCE'),
+            ('LIB_AGENCE', 'LIB_AGENCE'),
+            ('EXPL', 'EXPL'),
+            ('CLIENT', 'CLIENT'),
             ('AGEC', 'AGEC'),
+            ('CODAPE', 'CODAPE'),
             ('IDM', 'IDM'),
             ('RCSNO', 'RCSNO'),
             ('CAPITAL', 'CAPITAL'),
             ('CA', 'CA'),
+            ('RESULTAT', 'RESULTAT'),
+            ('ORIGINE_REV', 'ORIGINE_REV'),
             ('DATOUV', 'DATOUV'),
             ('TEL', 'TEL'),
             ('DEVISE', 'DEVISE'),
             ('RESID', 'RESID'),
+            ('DATEREV', 'DATEREV'),
+            ('PPE', 'PPE'),
+            ('RISQUE', 'RISQUE'),
+            ('ACTIONNAIRE', 'ACTIONNAIRE'),
+            ('ADRESSE_SOCIALE', 'ADRESSE_SOCIALE'),
+            ('BOITE_POSTALE', 'BOITE_POSTALE'),
+            ('CONSENT_BIC', 'CONSENT_BIC'),
+            ('INTITULE_COMPTE', 'INTITULE_COMPTE'),
+            ('MANDATAIRE', 'MANDATAIRE'),
+            ('NUMERO_FISCAL', 'NUMERO_FISCAL'),
+            ('PAYS_JUR', 'PAYS_JUR'),
         ],
     }
 
 
 def evaluate_data_quality_scope(user):
-    """DÃ©termine le pÃ©rimÃ¨tre de calcul qualitÃ© selon l'organe utilisateur."""
+    """Détermine le périmÃ¨tre de calcul qualité selon l'organe utilisateur."""
     organe = (getattr(user, 'organe', '') or '').strip()
     filiale = (getattr(user, 'filiale', '') or '').strip()
     agence = (getattr(user, 'agence', '') or '').strip()
     code_expl = (getattr(user, 'code_expl', '') or '').strip()
 
-    if organe == 'ChargÃ© Client':
+    if organe == 'Chargé Client':
         return {
             'filiale': filiale or None,
             'agence': agence or None,
@@ -211,15 +260,79 @@ def evaluate_data_quality_scope(user):
     }
 
 
+def _quality_cache_version():
+    return cache.get('quality_control_rules_version', 1)
+
+def _rule_eval_filiale(rule, user_filiale):
+    from kyc.forms import DataQualityRuleForm
+    parsed = DataQualityRuleForm._parse_filiales(rule.filiale)
+    if not parsed:
+        return user_filiale
+    if user_filiale:
+        return user_filiale if user_filiale in parsed else None
+    if len(parsed) == 1:
+        return parsed[0]
+    return None
+
+def _evaluate_data_quality_rule_scoped(rule, filiale=None, agence=None, expl=None):
+    return evaluate_data_quality_rule(rule, filiale=filiale, agence=agence, expl=expl)
+
+def get_incomplete_clients_queryset(queryset, client_type):
+    from kyc.models import KycFieldVisibilityConfig
+    from django.db.models import Q
+    
+    filiales = list(queryset.values_list('FILIALE', flat=True).distinct())
+    if not filiales:
+        return queryset.none()
+        
+    configs = list(KycFieldVisibilityConfig.objects.filter(client_type=client_type))
+    
+    combined_q = Q()
+    for filiale in filiales:
+        config = None
+        if filiale:
+            config = next((c for c in configs if filiale in (c.filiales or [])), None)
+        if not config:
+            config = next((c for c in configs if not c.filiales), None)
+            
+        if config and config.empty_check_fields:
+            fields = config.empty_check_fields
+        else:
+            if client_type == 'pp':
+                fields = ["NUMID", "DATNAIS", "ADRESSE", "TEL"]
+            else:
+                fields = ["NUMERO_FISCAL", "RCSNO", "ADRESSE_SOCIALE", "TEL"]
+                
+        field_q = Q()
+        for f in fields:
+            if f in ["CLIENT", "EXPL", "FILIALE", "AGENCE", "LIB_AGENCE"]:
+                continue
+            field_q |= Q(**{f"{f}__isnull": True}) | Q(**{f"{f}": ""})
+            
+        if filiale:
+            combined_q |= Q(FILIALE=filiale) & field_q
+        else:
+            combined_q |= (Q(FILIALE__isnull=True) | Q(FILIALE="")) & field_q
+            
+    return queryset.filter(combined_q)
+
 def evaluate_data_quality_rule(rule, filiale=None, agence=None, expl=None):
     model = Kyc_pp if rule.applicability == 'PP' else Kyc_pm
     field_names = [f.name for f in model._meta.get_fields() if not f.many_to_many and not f.one_to_many]
     if rule.control_type != 'composite' and rule.field_name not in field_names and rule.control_type not in ['expired_document', 'codape_agec_match']:
-        return {'total': 0, 'fail_count': 0, 'ok_count': 0, 'clients': [], 'message': 'Champ de contrÃ´le invalide'}
+        return {'total': 0, 'fail_count': 0, 'ok_count': 0, 'clients': [], 'message': 'Champ de contrôle invalide'}
+
+    from kyc.forms import DataQualityRuleForm
+    parsed_filiales = DataQualityRuleForm._parse_filiales(rule.filiale)
 
     queryset = model.objects.all()
     if filiale and filiale != 'GROUPE':
+        if parsed_filiales and filiale not in parsed_filiales:
+            return {'total': 0, 'fail_count': 0, 'ok_count': 0, 'clients': [], 'message': 'Non applicable à cette filiale'}
         queryset = queryset.filter(FILIALE=filiale)
+    elif parsed_filiales:
+        queryset = queryset.filter(FILIALE__in=parsed_filiales)
+
     if agence:
         queryset = queryset.filter(AGENCE=agence)
     if expl:
@@ -227,7 +340,7 @@ def evaluate_data_quality_rule(rule, filiale=None, agence=None, expl=None):
         
     total = queryset.count()
     if total == 0:
-        return {'total': 0, 'fail_count': 0, 'ok_count': 0, 'clients': [], 'message': 'Aucune donnÃ©e disponible pour ce segment'}
+        return {'total': 0, 'fail_count': 0, 'ok_count': 0, 'clients': [], 'message': 'Aucune donnée disponible pour ce segment'}
 
     failures = []
     today = datetime.today().date()
@@ -356,10 +469,10 @@ def evaluate_data_quality_rule(rule, filiale=None, agence=None, expl=None):
                     try: match = age is not None and age < int(target)
                     except: match = False
                 elif op == 'min_length':
-                    try: match = len(val) < int(target) # C'est un Ã©chec si la longueur est infÃ©rieure au min
+                    try: match = len(val) < int(target) # C'est un échec si la longueur est inférieure au min
                     except: match = False
                 elif op == 'max_length':
-                    try: match = len(val) > int(target) # C'est un Ã©chec si la longueur est supÃ©rieure au max
+                    try: match = len(val) > int(target) # C'est un échec si la longueur est supérieure au max
                     except: match = False
                 
                 if not match:
@@ -398,21 +511,27 @@ def evaluate_data_quality_rule(rule, filiale=None, agence=None, expl=None):
 @login_required
 def quality_control_view(request):
     user = request.user
-    allowed_organs = ['ContrÃ´le Permanent', 'ConformitÃ©', 'QualitÃ©', 'DSI', 'Risques', 'DAI', 'PASS']
+    allowed_organs = ['Contrôle Permanent', 'Conformité', 'Qualité', 'DSI', 'Risques', 'DAI', 'PASS']
     user_organe = (getattr(user, 'organe', '') or '').strip()
     if user_organe not in allowed_organs:
-        messages.error(request, "AccÃ¨s non autorisÃ© au contrÃ´le qualitÃ©.")
+        messages.error(request, "AccÃ¨s non autorisé au contrôle qualité.")
         return redirect('accueil')
 
     from kyc.forms import DataQualityRuleForm, DataQualityConditionFormSet
 
-    # VÃ©rification des droits de gestion
+    # Vérification des droits de gestion
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    can_manage = user_organe in ['ConformitÃ©', 'ContrÃ´le Permanent', 'PASS']
+    can_manage = user_organe in ['Conformité', 'Contrôle Permanent', 'PASS']
     user_filiale = getattr(request.user, 'filiale', '')
     
+    if user_organe == 'PASS':
+        from kyc.models import Filiales as ModelFiliales
+        filiale_choices = [f[0] for f in ModelFiliales]
+    else:
+        filiale_choices = [user_filiale] if user_filiale else []
+    
     if request.method == 'POST' and can_manage:
-        form = DataQualityRuleForm(request.POST)
+        form = DataQualityRuleForm(request.POST, filiale_choices=filiale_choices)
         formset = DataQualityConditionFormSet(request.POST)
         if form.is_valid() and formset.is_valid():
             rule = form.save(commit=False)
@@ -426,15 +545,15 @@ def quality_control_view(request):
                 rule_name=rule.name,
                 user=request.user,
                 action='CREATION',
-                details=f"CrÃ©ation de la rÃ¨gle '{rule.name}' ({rule.applicability})"
+                details=f"Création de la rÃ¨gle '{rule.name}' ({rule.applicability})"
             )
             
             current_version = cache.get('quality_control_rules_version', 1)
             cache.set('quality_control_rules_version', current_version + 1, timeout=None)
-            messages.success(request, 'RÃ¨gle de qualitÃ© enregistrÃ©e.')
+            messages.success(request, 'RÃ¨gle de qualité enregistrée.')
             return redirect('kyc:quality_control')
     else:
-        form = DataQualityRuleForm()
+        form = DataQualityRuleForm(filiale_choices=filiale_choices)
         formset = DataQualityConditionFormSet()
 
     rules = list(
@@ -447,8 +566,8 @@ def quality_control_view(request):
     data_refresh_bucket = timezone.localdate().isoformat()
     stats = []
     
-    # PortÃ©e de l'Ã©valuation : vision groupe pour PASS et les organes Groupe
-    group_organs = ['PASS', 'ConformitÃ© Groupe']
+    # Portée de l'évaluation : vision groupe pour PASS et les organes Groupe
+    group_organs = ['PASS', 'Conformité Groupe']
     eval_filiale = None if user_organe in group_organs else user_filiale
 
     for rule in rules:
@@ -479,10 +598,15 @@ def quality_control_view(request):
             if value and value not in grouped_conditions[group_key]['values']:
                 grouped_conditions[group_key]['values'].append(value)
 
+        from kyc.forms import DataQualityRuleForm
+        parsed_filiales = DataQualityRuleForm._parse_filiales(rule.filiale)
+        filiales_display = ", ".join(parsed_filiales) if parsed_filiales else "Toutes les filiales"
+
         rules_with_stats.append({
             'rule': rule,
             'stat': stat,
             'condition_groups': list(grouped_conditions.values()),
+            'filiales_display': filiales_display,
         })
 
     field_options = get_data_quality_field_options()
@@ -512,13 +636,13 @@ def quality_control_view(request):
 @login_required
 def delete_quality_rule(request, pk):
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    if user_organe not in ['ConformitÃ©', 'ContrÃ´le Permanent', 'PASS']:
-        messages.error(request, "AccÃ¨s refusÃ©.")
+    if user_organe not in ['Conformité', 'Contrôle Permanent', 'PASS']:
+        messages.error(request, "AccÃ¨s refusé.")
         return redirect('kyc:quality_control')
         
     rule = get_object_or_404(DataQualityRule, pk=pk)
     
-    # VÃ©rification filiale si pas PASS
+    # Vérification filiale si pas PASS
     if user_organe != 'PASS' and rule.created_by and rule.created_by.filiale != request.user.filiale:
         messages.error(request, "Vous ne pouvez supprimer que les rÃ¨gles de votre filiale.")
         return redirect('kyc:quality_control')
@@ -534,27 +658,33 @@ def delete_quality_rule(request, pk):
     rule.delete()
     current_version = cache.get('quality_control_rules_version', 1)
     cache.set('quality_control_rules_version', current_version + 1, timeout=None)
-    messages.success(request, f"RÃ¨gle '{rule_name}' supprimÃ©e.")
+    messages.success(request, f"RÃ¨gle '{rule_name}' supprimée.")
     return redirect('kyc:quality_control')
 
 @login_required
 def edit_quality_rule(request, pk):
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    if user_organe not in ['ConformitÃ©', 'ContrÃ´le Permanent', 'PASS']:
-        messages.error(request, "AccÃ¨s refusÃ©.")
+    if user_organe not in ['Conformité', 'Contrôle Permanent', 'PASS']:
+        messages.error(request, "AccÃ¨s refusé.")
         return redirect('kyc:quality_control')
         
     rule = get_object_or_404(DataQualityRule, pk=pk)
     
-    # VÃ©rification filiale si pas PASS
+    # Vérification filiale si pas PASS
     if user_organe != 'PASS' and rule.created_by and rule.created_by.filiale != request.user.filiale:
         messages.error(request, "Vous ne pouvez modifier que les rÃ¨gles de votre filiale.")
         return redirect('kyc:quality_control')
 
     from kyc.forms import DataQualityRuleForm, DataQualityConditionFormSet
     
+    if user_organe == 'PASS':
+        from kyc.models import Filiales as ModelFiliales
+        filiale_choices = [f[0] for f in ModelFiliales]
+    else:
+        filiale_choices = [request.user.filiale] if request.user.filiale else []
+        
     if request.method == 'POST':
-        form = DataQualityRuleForm(request.POST, instance=rule)
+        form = DataQualityRuleForm(request.POST, instance=rule, filiale_choices=filiale_choices)
         formset = DataQualityConditionFormSet(request.POST, instance=rule)
         if form.is_valid() and formset.is_valid():
             changes = []
@@ -579,7 +709,7 @@ def edit_quality_rule(request, pk):
             messages.success(request, "RÃ¨gle mise Ã  jour.")
             return redirect('kyc:quality_control')
     else:
-        form = DataQualityRuleForm(instance=rule)
+        form = DataQualityRuleForm(instance=rule, filiale_choices=filiale_choices)
         formset = DataQualityConditionFormSet(instance=rule)
         
     return render(request, 'quality_rule_edit.html', {
@@ -591,8 +721,8 @@ def edit_quality_rule(request, pk):
 @login_required
 def quality_control_audits(request):
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    if user_organe not in ['ConformitÃ©', 'ContrÃ´le Permanent', 'PASS']:
-        messages.error(request, "AccÃ¨s refusÃ©.")
+    if user_organe not in ['Conformité', 'Contrôle Permanent', 'PASS']:
+        messages.error(request, "AccÃ¨s refusé.")
         return redirect('kyc:quality_control')
         
     if user_organe == 'PASS':
@@ -613,7 +743,7 @@ def quality_control_audits(request):
 @login_required
 def export_audits_excel(request):
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    if user_organe not in ['ConformitÃ©', 'ContrÃ´le Permanent', 'PASS']:
+    if user_organe not in ['Conformité', 'Contrôle Permanent', 'PASS']:
         return HttpResponseForbidden()
         
     if user_organe == 'PASS':
@@ -625,8 +755,8 @@ def export_audits_excel(request):
         
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Audit des ContrÃ´les"
-    ws.append(["Date & Heure", "Utilisateur", "RÃ¨gle", "Action", "DÃ©tails"])
+    ws.title = "Audit des Contrôles"
+    ws.append(["Date & Heure", "Utilisateur", "RÃ¨gle", "Action", "Détails"])
     for audit in audits:
         ws.append([audit.timestamp.strftime("%d/%m/%Y %H:%M:%S"), audit.user.username if audit.user else "System", audit.rule_name, audit.action, audit.details])
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -637,7 +767,7 @@ def export_audits_excel(request):
 @login_required
 def export_audits_pdf(request):
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    if user_organe not in ['ConformitÃ©', 'ContrÃ´le Permanent', 'PASS']:
+    if user_organe not in ['Conformité', 'Contrôle Permanent', 'PASS']:
         return HttpResponseForbidden()
         
     if user_organe == 'PASS':
@@ -659,7 +789,7 @@ def export_audits_pdf(request):
     template = get_template(template_path)
     html = template.render(context)
     if not pisa:
-        return HttpResponse("L'exportation PDF n'est pas disponible sur ce serveur (dÃ©pendances manquantes).")
+        return HttpResponse("L'exportation PDF n'est pas disponible sur ce serveur (dépendances manquantes).")
     pisa_status = pisa.CreatePDF(html, dest=response, link_callback=_pdf_link_callback)
     if pisa_status.err: return HttpResponse('Erreur PDF')
     return response
@@ -670,11 +800,11 @@ def export_rule_failures(request, rule_id):
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
     user_filiale = getattr(request.user, 'filiale', '')
     
-    # PortÃ©e de l'Ã©valuation
-    group_organs = ['PASS', 'ConformitÃ© Groupe']
+    # Portée de l'évaluation
+    group_organs = ['PASS', 'Conformité Groupe']
     eval_filiale = None if user_organe in group_organs else user_filiale
     
-    # Re-Ã©valuer pour obtenir TOUS les Ã©checs (sans limite de 15)
+    # Re-évaluer pour obtenir TOUS les échecs (sans limite de 15)
     model = Kyc_pp if rule.applicability == 'PP' else Kyc_pm
     queryset = model.objects.all()
     if eval_filiale and eval_filiale != 'GROUPE':
@@ -784,22 +914,24 @@ def export_rule_failures(request, rule_id):
                     line.append(str(row.get(f) or ''))
                 ws.append(line)
 
+    from django.utils.text import slugify
+    safe_name = slugify(rule.name).replace('-', '_') or f"anomalies_{rule.id}"
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response['Content-Disposition'] = f'attachment; filename=anomalies_{rule.id}.xlsx'
+    response['Content-Disposition'] = f'attachment; filename="{safe_name}.xlsx"'
     wb.save(response)
     return response
 
 
 @login_required
 def export_rules_pdf(request):
-    # RÃ©cupÃ©rer les rÃ¨gles avec la mÃªme logique que la vue principale
+    # Récupérer les rÃ¨gles avec la mÃªme logique que la vue principale
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
     user_filiale = getattr(request.user, 'filiale', '')
-    group_organs = ['PASS', 'ConformitÃ© Groupe']
+    group_organs = ['PASS', 'Conformité Groupe']
     
     if user_organe == 'PASS':
         rules_qs = DataQualityRule.objects.all().order_by('-created_at')
-    elif user_organe in ['ConformitÃ© Groupe']:
+    elif user_organe in ['Conformité Groupe']:
         rules_qs = DataQualityRule.objects.all().order_by('-created_at')
     else:
         # Filtrer par filiale
@@ -807,7 +939,7 @@ def export_rules_pdf(request):
             Q(created_by__filiale=user_filiale) | Q(created_by__isnull=True)
         ).order_by('-created_at')
 
-    # Ã‰valuation avec CACHE pour la rapiditÃ©
+    # Ã‰valuation avec CACHE pour la rapidité
     import hashlib
     from django.core.cache import cache
     
@@ -818,7 +950,7 @@ def export_rules_pdf(request):
     data_refresh_bucket = timezone.localdate().isoformat()
 
     for rule in rules_qs:
-        # Signature identique Ã  la vue principale pour rÃ©utiliser le cache
+        # Signature identique Ã  la vue principale pour réutiliser le cache
         rule_signature = f"{rule.id}|{rule.name}|{rule.applicability}|{rule.field_name}|{rule.control_type}|{rule.parameter}|{rule.active}|{eval_filiale}"
         rule_hash = hashlib.md5(rule_signature.encode('utf-8')).hexdigest()
         rule_cache_key = f"quality_control:stat:v{rules_version}:d{data_refresh_bucket}:{rule_hash}"
@@ -832,9 +964,14 @@ def export_rules_pdf(request):
         total = stat.get('total', 0)
         stat['compliance_rate'] = compliance_rate_floor(stat['ok_count'], total, stat.get('fail_count', 0)) if total else 0
         
+        from kyc.forms import DataQualityRuleForm
+        parsed_filiales = DataQualityRuleForm._parse_filiales(rule.filiale)
+        filiales_display = ", ".join(parsed_filiales) if parsed_filiales else "Toutes les filiales"
+
         rules_with_stats.append({
             'rule': rule,
-            'stat': stat
+            'stat': stat,
+            'filiales_display': filiales_display,
         })
 
     template_path = 'quality_rules_pdf.html'
@@ -854,11 +991,11 @@ def export_rules_pdf(request):
     html = template.render(context)
     
     if not pisa:
-        return HttpResponse("L'exportation PDF n'est pas disponible sur ce serveur (dÃ©pendances manquantes).")
+        return HttpResponse("L'exportation PDF n'est pas disponible sur ce serveur (dépendances manquantes).")
         
     pisa_status = pisa.CreatePDF(html, dest=response, link_callback=_pdf_link_callback)
     if pisa_status.err:
-        return HttpResponse('Erreur lors de la gÃ©nÃ©ration du PDF')
+        return HttpResponse('Erreur lors de la génération du PDF')
         
     return response
 
@@ -868,7 +1005,7 @@ def accueil(request):
     user = request.user
 
     if user.is_authenticated:
-        if user.organe == "ChargÃ© Client":
+        if user.organe == "Chargé Client":
             return redirect('non_rens')
         else:
             return redirect('agent')
@@ -969,15 +1106,15 @@ def import_page(request):
                     hf.write(f"{start_ts} | {action} | {status} | log={detail_path}\n")
 
                 if status == "SUCCESS":
-                    # Invalider le cache des rÃ¨gles de qualitÃ© aprÃ¨s un import rÃ©ussi
+                    # Invalider le cache des rÃ¨gles de qualité aprÃ¨s un import réussi
                     current_v = cache.get('quality_control_rules_version', 1)
                     cache.set('quality_control_rules_version', current_v + 1, timeout=None)
-                    messages.success(request, "Import terminÃ© avec succÃ¨s.")
+                    messages.success(request, "Import terminé avec succÃ¨s.")
                 else:
-                    messages.error(request, f"Import Ã©chouÃ© (code {result.returncode}).")
+                    messages.error(request, f"Import échoué (code {result.returncode}).")
 
             except Exception as e:
-                messages.error(request, f"Erreur d'exÃ©cution: {e}")
+                messages.error(request, f"Erreur d'exécution: {e}")
 
     context = {
         "history": read_history(),
@@ -1013,18 +1150,50 @@ DOCUMENT_EXTRACTION_SEARCH_FIELDS = [
 ]
 
 KYC_PP_DOCUMENT_FIELD_MAP = [
-    ("NUMID", "numero_identification_nationale", "NIN"),
-    ("NUMID", "numero_document", "Numero document"),
-    ("DATNAIS", "date_naissance", "Date de naissance"),
-    ("PAYNAIS", "pays_naissance", "Pays de naissance"),
-    ("DATVALID", "date_expiration", "Date d'expiration"),
-    ("ADRESSE", "adresse", "Adresse"),
-    ("ORIGINE_REV", "origine_revenu", "Origine du revenu"),
+    ("NUMID", "numero_identification_nationale", "NUMID"),
+    ("NUMID", "numero_document", "NUMID"),
+    ("DATNAIS", "date_naissance", "DATNAIS"),
+    ("PAYNAIS", "pays_naissance", "PAYNAIS"),
+    ("DATVALID", "date_expiration", "DATVALID"),
+    ("ADRESSE", "adresse", "ADRESSE"),
+    ("ORIGINE_REV", "origine_revenu", "ORIGINE_REV"),
+]
+
+KYC_PM_DOCUMENT_FIELD_MAP = [
+    ("RCSNO", "numero_document", "RCSNO"),
+    ("NUMERO_FISCAL", "numero_identification_nationale", "NUMERO_FISCAL"),
+    ("ADRESSE_SOCIALE", "adresse", "ADRESSE_SOCIALE"),
+    ("INTITULE_COMPTE", "nom", "INTITULE_COMPTE"),
 ]
 
 
 def _normalize_match_value(value):
     return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+
+
+_field_visibility_configs_cache = None
+_field_visibility_configs_cache_time = 0
+
+def _get_cached_field_visibility_configs():
+    global _field_visibility_configs_cache, _field_visibility_configs_cache_time
+    import time
+    now = time.time()
+    if _field_visibility_configs_cache is None or now - _field_visibility_configs_cache_time > 10:
+        _field_visibility_configs_cache = list(KycFieldVisibilityConfig.objects.all())
+        _field_visibility_configs_cache_time = now
+    return _field_visibility_configs_cache
+
+
+def _get_field_sources(filiale, client_type_val):
+    configs = _get_cached_field_visibility_configs()
+    spec_config = next((c for c in configs if c.client_type == client_type_val and filiale in (c.filiales or [])), None)
+    if spec_config:
+        return spec_config.field_sources or {}
+    global_config = next((c for c in configs if c.client_type == client_type_val and not c.filiales), None)
+    if global_config:
+        return global_config.field_sources or {}
+    return {}
+
 
 
 COUNTRY_ALIASES = {
@@ -1292,7 +1461,12 @@ def _build_kyc_pp_document_matches(document_queryset, limit=3000, result_limit=2
         for client in unique_clients.values():
             suggestions = []
             used_kyc_fields = set()
+            client_filiale = getattr(client, "FILIALE", "").strip()
+            field_sources = _get_field_sources(client_filiale, "pp")
             for kyc_field, document_field, label in KYC_PP_DOCUMENT_FIELD_MAP:
+                allowed_source = field_sources.get(kyc_field)
+                if allowed_source and document.document_type != allowed_source:
+                    continue
                 document_value = getattr(document, document_field, "")
                 if not document_value or not _is_empty_kyc_value(getattr(client, kyc_field, "")):
                     continue
@@ -1361,6 +1535,142 @@ def _build_kyc_pp_document_matches(document_queryset, limit=3000, result_limit=2
     return matches, summary
 
 
+def _build_kyc_pm_document_matches(document_queryset, limit=3000, result_limit=200, progress_callback=None):
+    documents_for_match = list(document_queryset.order_by("-created_at")[:limit])
+    if not documents_for_match:
+        return [], {"documents_checked": 0, "documents_matched": 0, "clients_matched": 0, "suggestions_count": 0, "match_rate": 0}
+    if progress_callback:
+        progress_callback(0, len(documents_for_match), "Preparation du rapprochement")
+
+    document_keys = set()
+    for document in documents_for_match:
+        if document.numero_document:
+            document_keys.add(_normalize_match_value(document.numero_document))
+        if document.numero_identification_nationale:
+            document_keys.add(_normalize_match_value(document.numero_identification_nationale))
+
+    kyc_candidates = {}
+    if document_keys:
+        for client in Kyc_pm.objects.exclude(RCSNO="").only(
+            "id", "FILIALE", "AGENCE", "CLIENT", "IDM", "RCSNO", "NUMERO_FISCAL", "ADRESSE_SOCIALE", "INTITULE_COMPTE"
+        ):
+            norm_rcs = _normalize_match_value(client.RCSNO)
+            if norm_rcs in document_keys:
+                kyc_candidates.setdefault(norm_rcs, []).append(client)
+        for client in Kyc_pm.objects.exclude(NUMERO_FISCAL="").only(
+            "id", "FILIALE", "AGENCE", "CLIENT", "IDM", "RCSNO", "NUMERO_FISCAL", "ADRESSE_SOCIALE", "INTITULE_COMPTE"
+        ):
+            norm_nif = _normalize_match_value(client.NUMERO_FISCAL)
+            if norm_nif in document_keys:
+                kyc_candidates.setdefault(norm_nif, []).append(client)
+
+    client_by_name = {}
+    for client in Kyc_pm.objects.only(
+        "id", "FILIALE", "AGENCE", "CLIENT", "IDM", "RCSNO", "NUMERO_FISCAL", "ADRESSE_SOCIALE", "INTITULE_COMPTE"
+    )[:50000]:
+        norm_name = _normalize_match_value(client.CLIENT)
+        if norm_name:
+            client_by_name.setdefault(norm_name, []).append(client)
+        norm_intitule = _normalize_match_value(client.INTITULE_COMPTE)
+        if norm_intitule and norm_intitule != norm_name:
+            client_by_name.setdefault(norm_intitule, []).append(client)
+
+    matches = []
+    matched_client_ids = set()
+    matched_document_ids = set()
+    
+    for index, document in enumerate(documents_for_match, start=1):
+        if progress_callback:
+            progress_callback(index, len(documents_for_match), f"Analyse document {index}/{len(documents_for_match)}")
+        
+        candidate_clients = []
+        if document.numero_document:
+            candidate_clients.extend(kyc_candidates.get(_normalize_match_value(document.numero_document), []))
+        if document.numero_identification_nationale:
+            candidate_clients.extend(kyc_candidates.get(_normalize_match_value(document.numero_identification_nationale), []))
+            
+        for client_token in _document_client_tokens(document):
+            candidate_clients.extend(client_by_name.get(client_token, []))
+            
+        unique_clients = {}
+        for client in candidate_clients:
+            unique_clients[client.pk] = client
+            
+        for client in unique_clients.values():
+            suggestions = []
+            used_kyc_fields = set()
+            client_filiale = getattr(client, "FILIALE", "").strip()
+            field_sources = _get_field_sources(client_filiale, "pm")
+            for kyc_field, document_field, label in KYC_PM_DOCUMENT_FIELD_MAP:
+                allowed_source = field_sources.get(kyc_field)
+                if allowed_source and document.document_type != allowed_source:
+                    continue
+                document_value = getattr(document, document_field, "")
+                if not document_value or not _is_empty_kyc_value(getattr(client, kyc_field, "")):
+                    continue
+                if kyc_field in used_kyc_fields:
+                    continue
+                used_kyc_fields.add(kyc_field)
+                suggestions.append({
+                    "field": kyc_field,
+                    "label": label,
+                    "value": str(document_value),
+                })
+                
+            match_rate = 0
+            if (document.numero_document and _normalize_match_value(document.numero_document) == _normalize_match_value(client.RCSNO)) or \
+               (document.numero_identification_nationale and _normalize_match_value(document.numero_identification_nationale) == _normalize_match_value(client.NUMERO_FISCAL)):
+                match_rate = 100
+            else:
+                doc_name_norm = _normalize_match_value(document.nom or "")
+                cli_name_norm = _normalize_match_value(client.CLIENT or "")
+                if doc_name_norm and cli_name_norm:
+                    if doc_name_norm == cli_name_norm:
+                        match_rate = 90
+                    elif doc_name_norm in cli_name_norm or cli_name_norm in doc_name_norm:
+                        match_rate = 75
+                    else:
+                        match_rate = 50
+                else:
+                    match_rate = 40
+            
+            extra_action_items = []
+            for kyc_field, document_field, label in KYC_PM_DOCUMENT_FIELD_MAP:
+                allowed_source = field_sources.get(kyc_field)
+                if allowed_source and document.document_type != allowed_source:
+                    continue
+                document_value = getattr(document, document_field, "")
+                if document_value and _is_empty_kyc_value(getattr(client, kyc_field, "")):
+                    extra_action_items.append({
+                        "kind": "suggest",
+                        "field": kyc_field,
+                        "label": label,
+                        "value": str(document_value),
+                    })
+                    
+            matches.append({
+                "client": client,
+                "document": document,
+                "suggestions": suggestions,
+                "extra_action_items": extra_action_items,
+                "match_rate": match_rate,
+            })
+            matched_client_ids.add(client.pk)
+            matched_document_ids.add(document.pk)
+
+    matches.sort(key=lambda m: m["match_rate"], reverse=True)
+    summary = {
+        "documents_checked": len(documents_for_match),
+        "documents_matched": len(matched_document_ids),
+        "clients_matched": len(matched_client_ids),
+        "suggestions_count": sum(len(m["suggestions"]) for m in matches),
+        "match_rate": int(len(matched_document_ids) / len(documents_for_match) * 100) if documents_for_match else 0
+    }
+    if result_limit:
+        return matches[:result_limit], summary
+    return matches, summary
+
+
 LAST_KYC_PP_MATCH_SESSION_KEY = "document_extraction_last_kyc_pp_match_params"
 LAST_KYC_PP_MATCH_RESULT_SESSION_KEY = "document_extraction_last_kyc_pp_match_result"
 KYC_PP_MATCHED_BATCHES_SESSION_KEY = "document_extraction_kyc_pp_matched_batches"
@@ -1368,8 +1678,17 @@ LAST_UPLOADED_DOCUMENT_BATCH_SESSION_KEY = "document_extraction_last_uploaded_ba
 KYC_PP_MATCH_RESULT_VERSION = 3
 
 
-def _filtered_document_extractions_from_params(params):
-    documents = KycDocumentExtraction.objects.select_related("uploaded_by").all()
+def _filtered_document_extractions_from_params(params, user=None):
+    documents = KycDocumentExtraction.objects.select_related("uploaded_by").all().order_by("-created_at", "-id")
+    
+    if user:
+        users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
+        is_group_user = (user.filiale in ["BOA Group", "BOA GROUP"]) or (user.organe in users_groupe) or (not user.filiale)
+        if not is_group_user:
+            documents = documents.filter(uploaded_by__filiale=user.filiale)
+
+    client_type = params.get("client_type", "pp")
+    documents = documents.filter(client_type=client_type)
     valid_document_types = dict(DOCUMENT_EXTRACTION_TYPE_CHOICES)
     selected_document_type = params.get("document_type", "")
     selected_import_batch = (params.get("import_batch") or "").strip()
@@ -1401,7 +1720,7 @@ def _filtered_document_extractions_from_params(params):
 
 
 def _filtered_document_extractions_from_request(request):
-    return _filtered_document_extractions_from_params(request.GET)
+    return _filtered_document_extractions_from_params(request.GET, user=request.user)
 
 
 def _clean_document_match_params(params):
@@ -1447,7 +1766,15 @@ def _hydrate_kyc_pp_match_result(result):
     serialized_matches = result.get("matches") or []
     client_ids = [match.get("client_id") for match in serialized_matches if match.get("client_id")]
     document_ids = [match.get("document_id") for match in serialized_matches if match.get("document_id")]
-    clients = Kyc_pp.objects.in_bulk(client_ids)
+    
+    params = result.get("params") or {}
+    client_type = params.get("client_type", "pp")
+    
+    if client_type == "pm":
+        clients = Kyc_pm.objects.in_bulk(client_ids)
+    else:
+        clients = Kyc_pp.objects.in_bulk(client_ids)
+        
     documents = KycDocumentExtraction.objects.in_bulk(document_ids)
 
     matches = []
@@ -1464,7 +1791,7 @@ def _hydrate_kyc_pp_match_result(result):
             "match_rate": serialized_match.get("match_rate") or 0,
         })
 
-    return matches, result.get("summary"), result.get("params") or {}
+    return matches, result.get("summary"), params
 
 
 def _merge_kyc_pp_match_lists(match_lists):
@@ -1474,11 +1801,12 @@ def _merge_kyc_pp_match_lists(match_lists):
     for matches in match_lists:
         for match in matches:
             client = match.get("client")
-            normalized_idp = _normalize_match_value(getattr(client, "IDP", ""))
+            client_id = getattr(client, "IDP", None) or getattr(client, "IDM", None)
+            normalized_id = _normalize_match_value(client_id or "")
             client_pk = getattr(client, "pk", None)
             key = (
-                ("idp", normalized_idp)
-                if normalized_idp
+                ("idp", normalized_id)
+                if normalized_id
                 else ("client", client_pk, _document_unique_key(match.get("document")))
             )
             if key not in index_by_key:
@@ -1540,10 +1868,17 @@ def _run_document_match_job(job_id):
             )
 
         documents = _filtered_document_extractions_from_params(scope_params)
-        matches, summary = _build_kyc_pp_document_matches(
-            documents,
-            progress_callback=progress_callback,
-        )
+        client_type = scope_params.get("client_type", "pp")
+        if client_type == "pm":
+            matches, summary = _build_kyc_pm_document_matches(
+                documents,
+                progress_callback=progress_callback,
+            )
+        else:
+            matches, summary = _build_kyc_pp_document_matches(
+                documents,
+                progress_callback=progress_callback,
+            )
         result = _serialize_kyc_pp_matches(matches, summary, scope_params)
         KycDocumentMatchJob.objects.filter(pk=job_id).update(
             status="completed",
@@ -1619,6 +1954,7 @@ def document_extraction_match_job_status(request, job_id):
 KYC_PP_MATCH_FILTER_FIELDS = {
     "match_client": "CLIENT",
     "match_idp": "IDP",
+    "match_idm": "IDM",
     "match_filiale": "FILIALE",
     "match_agence": "AGENCE",
 }
@@ -1663,6 +1999,13 @@ def _build_kyc_pp_match_action_items(match):
     action_keys = set()
     fields_with_actions = set()
 
+    is_pm = isinstance(client, Kyc_pm)
+    field_map = KYC_PM_DOCUMENT_FIELD_MAP if is_pm else KYC_PP_DOCUMENT_FIELD_MAP
+
+    client_filiale = getattr(client, "FILIALE", "").strip()
+    client_type_val = "pm" if is_pm else "pp"
+    field_sources = _get_field_sources(client_filiale, client_type_val)
+
     def add_action(kind, field, text):
         normalized_field = (field or "").strip().upper()
         key = (kind, normalized_field) if normalized_field else (kind, "", _normalize_match_value(text))
@@ -1674,14 +2017,14 @@ def _build_kyc_pp_match_action_items(match):
 
     for suggestion in match.get("suggestions", []):
         field = (suggestion.get("field") or "").strip().upper()
-        document_value = suggestion.get("document_value", "")
+        document_value = suggestion.get("document_value", "") or suggestion.get("value", "")
         if not field or not document_value:
             continue
         add_action("complete", field, f"{field}: {document_value}")
 
     fields_in_order = []
     fields_seen = set()
-    for kyc_field, _, _ in KYC_PP_DOCUMENT_FIELD_MAP:
+    for kyc_field, _, _ in field_map:
         if kyc_field not in fields_seen:
             fields_seen.add(kyc_field)
             fields_in_order.append(kyc_field)
@@ -1689,21 +2032,25 @@ def _build_kyc_pp_match_action_items(match):
     for kyc_field in fields_in_order:
         mapped_fields = [
             (document_field, label)
-            for field_name, document_field, label in KYC_PP_DOCUMENT_FIELD_MAP
+            for field_name, document_field, label in field_map
             if field_name == kyc_field
         ]
-        document_values = [
-            (getattr(document, document_field, ""), label)
-            for document_field, label in mapped_fields
-            if getattr(document, document_field, "")
-        ]
+        document_values = []
+        for document_field, label in mapped_fields:
+            allowed_source = field_sources.get(kyc_field)
+            if allowed_source and document.document_type != allowed_source:
+                continue
+            val = getattr(document, document_field, "")
+            if val:
+                document_values.append((val, label))
+                
         kyc_value = getattr(client, kyc_field, "")
         if not document_values or _is_empty_kyc_value(kyc_value):
             continue
 
-        if kyc_field in {"DATNAIS", "DATVALID"}:
+        if not is_pm and kyc_field in {"DATNAIS", "DATVALID"}:
             values_match = any(_date_values_match(document_value, kyc_value) for document_value, _ in document_values)
-        elif kyc_field == "PAYNAIS":
+        elif not is_pm and kyc_field == "PAYNAIS":
             values_match = any(_nationality_values_match(document_value, kyc_value) for document_value, _ in document_values)
         else:
             values_match = any(_values_match(document_value, kyc_value) for document_value, _ in document_values)
@@ -1716,11 +2063,13 @@ def _build_kyc_pp_match_action_items(match):
 
     expired_match = match.get("expired_document_match")
     if expired_match and "DATVALID" not in fields_with_actions:
-        add_action(
-            "modify",
-            "DATVALID",
-            f"DATVALID: {expired_match.old_validity_date or '-'} -> {expired_match.document_validity_date or '-'}",
-        )
+        allowed_source = field_sources.get("DATVALID")
+        if not allowed_source or (expired_match.document and expired_match.document.document_type == allowed_source):
+            add_action(
+                "modify",
+                "DATVALID",
+                f"DATVALID: {expired_match.old_validity_date or '-'} -> {expired_match.document_validity_date or '-'}",
+            )
 
     for action in match.get("extra_action_items") or []:
         add_action(action.get("kind") or "modify", action.get("field") or "", action.get("text") or "")
@@ -1735,12 +2084,16 @@ def export_document_extraction_matches(request):
 
     last_match_result = request.session.get(LAST_KYC_PP_MATCH_RESULT_SESSION_KEY)
     stored_matches, _, stored_params = _hydrate_kyc_pp_match_result(last_match_result)
+    client_type = requested_scope_params.get("client_type", "pp")
 
     if stored_matches and stored_params == requested_scope_params:
         matches = stored_matches
     else:
-        documents = _filtered_document_extractions_from_params(requested_scope_params)
-        matches, _ = _build_kyc_pp_document_matches(documents, result_limit=None)
+        documents = _filtered_document_extractions_from_params(requested_scope_params, user=request.user)
+        if client_type == "pm":
+            matches, _ = _build_kyc_pm_document_matches(documents, result_limit=None)
+        else:
+            matches, _ = _build_kyc_pp_document_matches(documents, result_limit=None)
 
     matches = _merge_kyc_pp_match_lists([matches])
     matches = _filter_kyc_pp_matches(matches, request.GET)
@@ -1763,27 +2116,28 @@ def export_document_extraction_matches(request):
             match["expired_document_match"] = expired_match
 
     matched_idp_keys = {
-        _normalize_match_value(getattr(match["client"], "IDP", "")) or str(match["client"].pk)
+        _normalize_match_value(getattr(match["client"], "IDM" if client_type == "pm" else "IDP", "")) or str(match["client"].pk)
         for match in matches
     }
     standalone_expired_matches = []
-    for expired_match in expired_match_by_client_id.values():
-        expired_idp_key = _normalize_match_value(getattr(expired_match.client, "IDP", "") or expired_match.idp)
-        expired_key = expired_idp_key or str(expired_match.client_id)
-        if expired_key in matched_idp_keys:
-            continue
-        matched_idp_keys.add(expired_key)
-        standalone_expired_matches.append(expired_match)
+    if client_type == "pp":
+        for expired_match in expired_match_by_client_id.values():
+            expired_idp_key = _normalize_match_value(getattr(expired_match.client, "IDP", "") or expired_match.idp)
+            expired_key = expired_idp_key or str(expired_match.client_id)
+            if expired_key in matched_idp_keys:
+                continue
+            matched_idp_keys.add(expired_key)
+            standalone_expired_matches.append(expired_match)
 
     response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
-    filename = timezone.localtime(timezone.now()).strftime("correspondances_kyc_pp_%Y%m%d_%H%M.csv")
+    filename = timezone.localtime(timezone.now()).strftime(f"correspondances_kyc_{client_type}_%Y%m%d_%H%M.csv")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     response.write("\ufeff")
 
     writer = csv.writer(response, delimiter=";")
     writer.writerow([
         "CLIENT",
-        "IDP",
+        "IDM" if client_type == "pm" else "IDP",
         "FILIALE",
         "AGENCE",
         "TYPE DE DOCUMENT",
@@ -1797,10 +2151,11 @@ def export_document_extraction_matches(request):
         document = match["document"]
         client = match["client"]
         action_items = _build_kyc_pp_match_action_items(match)
+        client_id_val = getattr(client, "IDM", "") if client_type == "pm" else getattr(client, "IDP", "")
 
         writer.writerow([
             client.CLIENT,
-            client.IDP,
+            client_id_val,
             client.FILIALE,
             client.AGENCE,
             document.get_document_type_display(),
@@ -1894,13 +2249,14 @@ def _apply_detected_document_type(record, extraction, requested_type):
     record.document_type = detected_type
 
 
-def _save_uploaded_document_record(uploaded_file, document_type, user, import_batch="", source_filename=""):
+def _save_uploaded_document_record(uploaded_file, document_type, user, import_batch="", source_filename="", client_type="pp"):
     record = KycDocumentExtraction(
         document_type=document_type,
         original_filename=os.path.basename(uploaded_file.name),
         source_filename=source_filename or os.path.basename(uploaded_file.name),
         import_batch=import_batch,
         uploaded_by=user,
+        client_type=client_type,
     )
     record.uploaded_file.save(uploaded_file.name, uploaded_file, save=False)
     extraction = extract_document_data(record.uploaded_file.path, uploaded_file.name)
@@ -1910,7 +2266,7 @@ def _save_uploaded_document_record(uploaded_file, document_type, user, import_ba
     return record, extraction
 
 
-def _save_zip_document_record(zip_file, member_name, document_type, user, import_batch, archive_name):
+def _save_zip_document_record(zip_file, member_name, document_type, user, import_batch, archive_name, client_type="pp"):
     safe_name = os.path.basename(member_name)
     _, extension = os.path.splitext(safe_name)
     if extension.lower() not in SUPPORTED_EXTENSIONS:
@@ -1925,6 +2281,7 @@ def _save_zip_document_record(zip_file, member_name, document_type, user, import
         source_filename=os.path.basename(archive_name or "archive.zip"),
         import_batch=import_batch,
         uploaded_by=user,
+        client_type=client_type,
     )
     record.uploaded_file.save(safe_name, content, save=False)
     extraction = extract_document_data(record.uploaded_file.path, safe_name)
@@ -1934,7 +2291,7 @@ def _save_zip_document_record(zip_file, member_name, document_type, user, import
     return record, None
 
 
-def _save_grouped_pdf_records(uploaded_file, document_type, user, import_batch, pages_per_document):
+def _save_grouped_pdf_records(uploaded_file, document_type, user, import_batch, pages_per_document, client_type="pp"):
     if os.path.splitext(uploaded_file.name)[1].lower() != ".pdf":
         raise ValueError("Le mode document groupe accepte uniquement un fichier PDF.")
 
@@ -1945,6 +2302,7 @@ def _save_grouped_pdf_records(uploaded_file, document_type, user, import_batch, 
         source_filename=os.path.basename(uploaded_file.name),
         import_batch=import_batch,
         uploaded_by=user,
+        client_type=client_type,
     )
     base_record.uploaded_file.save(shared_file_name, uploaded_file, save=False)
 
@@ -1963,6 +2321,7 @@ def _save_grouped_pdf_records(uploaded_file, document_type, user, import_batch, 
             source_filename=os.path.basename(uploaded_file.name),
             import_batch=import_batch,
             uploaded_by=user,
+            client_type=client_type,
         )
         _fill_document_extraction_fields(record, extraction)
         _apply_detected_document_type(record, extraction, document_type)
@@ -1974,14 +2333,160 @@ def _save_grouped_pdf_records(uploaded_file, document_type, user, import_batch, 
 @login_required
 def document_extraction(request):
     extraction = None
-    valid_document_types = dict(DOCUMENT_EXTRACTION_TYPE_CHOICES)
+    # Ensure default types exist by calling detect_document_type with dummy input
+    from kyc.document_extraction import detect_document_type
+    detect_document_type("", "")
+    
+    valid_document_types = {dt.code: dt.label for dt in KycDocumentType.objects.all()}
+
+    user = request.user
+    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
+    is_group_user = (user.filiale in ["BOA Group", "BOA GROUP"]) or (user.organe in users_groupe) or (not user.filiale)
+    can_insert_batches = (user.organe == "DSI") or (user.organe == "PASS" and is_group_user)
+
+    liste_filiales = [choice[0] for choice in Filiales]
+
+    # Selected filiale for field sources (GET param 'filiale')
+    if is_group_user:
+        selected_filiale = request.GET.get("filiale", "").strip()
+    else:
+        selected_filiale = getattr(user, "filiale", "").strip()
+
+    pp_fields = [
+        ("CLIENT", "Nom & Prénom"),
+        ("NUMID", "Numéro de document / NIN/NPI"),
+        ("DATNAIS", "Date de naissance"),
+        ("DATVALID", "Date d'expiration"),
+        ("PAYNAIS", "Nationalité / Pays de naissance"),
+        ("ADRESSE", "Adresse"),
+        ("ORIGINE_REV", "Origine des revenus"),
+    ]
+    
+    pm_fields = [
+        ("CLIENT", "Raison sociale / Dénomination"),
+        ("RCSNO", "Registre du commerce (RCS/RCCM)"),
+        ("NUMERO_FISCAL", "Numéro fiscal (NIF)"),
+        ("ADRESSE_SOCIALE", "Adresse sociale / Siège"),
+    ]
 
     if request.method == "POST":
+        if not can_insert_batches:
+            messages.error(request, "Vous n'avez pas l'autorisation d'effectuer cette action.")
+            return redirect("document_extraction")
+
+        action = request.POST.get("action")
+        if action == "save_document_field_sources":
+            # Determine target filiale
+            if is_group_user:
+                target_filiale = request.GET.get("filiale", "").strip()
+                apply_to_all = request.POST.get("apply_to_all_filiales") == "1"
+            else:
+                target_filiale = getattr(user, "filiale", "").strip()
+                apply_to_all = False
+
+            # Load the configs for the target filiale to filter
+            if not target_filiale:
+                pp_config_list = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pp") if not c.filiales]
+                pm_config_list = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pm") if not c.filiales]
+            else:
+                pp_config_list = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pp") if target_filiale in (c.filiales or [])]
+                pm_config_list = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pm") if target_filiale in (c.filiales or [])]
+                if not pp_config_list:
+                    pp_config_list = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pp") if not c.filiales]
+                if not pm_config_list:
+                    pm_config_list = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pm") if not c.filiales]
+
+            pp_active_db_fields = set()
+            if pp_config_list:
+                pp_active_db_fields.update(pp_config_list[0].empty_check_fields or [])
+            if not pp_active_db_fields:
+                pp_active_db_fields = {"CLIENT", "NUMID", "DATNAIS", "DATVALID", "PAYNAIS", "ADRESSE", "ORIGINE_REV"}
+
+            pm_active_db_fields = set()
+            if pm_config_list:
+                pm_active_db_fields.update(pm_config_list[0].empty_check_fields or [])
+            if not pm_active_db_fields:
+                pm_active_db_fields = {"CLIENT", "RCSNO", "NUMERO_FISCAL", "ADRESSE_SOCIALE"}
+
+            filtered_pp_fields = [
+                (f_name, label)
+                for f_name, label in pp_fields
+                if f_name in pp_active_db_fields
+            ]
+            filtered_pm_fields = [
+                (f_name, label)
+                for f_name, label in pm_fields
+                if f_name in pm_active_db_fields
+            ]
+
+            for client_type_item in ["pp", "pm"]:
+                fields_list = filtered_pp_fields if client_type_item == "pp" else filtered_pm_fields
+                
+                if apply_to_all:
+                    # Save/Update the global config
+                    global_configs = [c for c in KycFieldVisibilityConfig.objects.filter(client_type=client_type_item) if not c.filiales]
+                    if global_configs:
+                        config = global_configs[0]
+                    else:
+                        config = KycFieldVisibilityConfig(client_type=client_type_item, filiales=[])
+                    
+                    sources_dict = dict(config.field_sources or {})
+                    for field_name, _ in fields_list:
+                        val = request.POST.get(f"source_{client_type_item}_{field_name}", "").strip()
+                        if val:
+                            sources_dict[field_name] = val
+                        else:
+                            sources_dict.pop(field_name, None)
+                    config.field_sources = sources_dict
+                    config.save()
+
+                    # Save to all other configs for this client_type
+                    for oc in KycFieldVisibilityConfig.objects.filter(client_type=client_type_item):
+                        oc.field_sources = sources_dict
+                        oc.save()
+                else:
+                    # Find existing config or create a new one
+                    if not target_filiale:
+                        # Global config: filiales list is empty
+                        global_configs = [c for c in KycFieldVisibilityConfig.objects.filter(client_type=client_type_item) if not c.filiales]
+                        if global_configs:
+                            config = global_configs[0]
+                        else:
+                            config = KycFieldVisibilityConfig(client_type=client_type_item, filiales=[])
+                    else:
+                        # Specific filiale config: filiales contains target_filiale
+                        filiale_configs = [c for c in KycFieldVisibilityConfig.objects.filter(client_type=client_type_item) if target_filiale in (c.filiales or [])]
+                        if filiale_configs:
+                            config = filiale_configs[0]
+                        else:
+                            config = KycFieldVisibilityConfig(client_type=client_type_item, filiales=[target_filiale])
+                    
+                    sources_dict = dict(config.field_sources or {})
+                    for field_name, _ in fields_list:
+                        val = request.POST.get(f"source_{client_type_item}_{field_name}", "").strip()
+                        if val:
+                            sources_dict[field_name] = val
+                        else:
+                            sources_dict.pop(field_name, None)
+                    config.field_sources = sources_dict
+                    config.save()
+            
+            # Clear cache so updates are immediately visible
+            global _field_visibility_configs_cache
+            _field_visibility_configs_cache = None
+
+            if apply_to_all:
+                messages.success(request, "Configuration des sources documentaires enregistrée et appliquée à TOUTES les filiales.")
+            else:
+                messages.success(request, "Configuration des sources documentaires par champ enregistrée avec succès.")
+            return_url = request.POST.get("return_url") or f"{reverse('document_extraction')}#sources"
+            return redirect(return_url)
         uploaded_files = request.FILES.getlist("documents")
         if not uploaded_files and request.FILES.get("document"):
             uploaded_files = [request.FILES.get("document")]
         document_type = request.POST.get("document_type") or "piece_identite"
         import_mode = request.POST.get("import_mode") or "single"
+        client_type = request.POST.get("client_type") or "pp"
         try:
             pages_per_document = max(int(request.POST.get("pages_per_document") or 1), 1)
         except ValueError:
@@ -2006,6 +2511,7 @@ def document_extraction(request):
                         request.user,
                         import_batch,
                         pages_per_document,
+                        client_type=client_type,
                     ))
                 except Exception as exc:
                     errors.append(str(exc))
@@ -2025,6 +2531,7 @@ def document_extraction(request):
                                         request.user,
                                         import_batch,
                                         uploaded_file.name,
+                                        client_type=client_type,
                                     )
                                     if record:
                                         created_records.append(record)
@@ -2039,6 +2546,7 @@ def document_extraction(request):
                                 document_type,
                                 request.user,
                                 import_batch=import_batch,
+                                client_type=client_type,
                             )
                             created_records.append(record)
                         except Exception as exc:
@@ -2054,7 +2562,7 @@ def document_extraction(request):
             if errors:
                 messages.warning(request, f"{len(errors)} element(s) non importe(s): " + " | ".join(errors[:5]))
             if created_records:
-                return redirect(f"{reverse('document_extraction')}?{urlencode({'uploaded_batch': import_batch})}#charger")
+                return redirect(f"{reverse('document_extraction')}?{urlencode({'uploaded_batch': import_batch, 'client_type': client_type})}#charger")
 
     documents = _filtered_document_extractions_from_request(request)
     selected_document_type = request.GET.get("document_type", "")
@@ -2095,6 +2603,7 @@ def document_extraction(request):
                 break
 
     requested_kyc_pp_matching = request.GET.get("match_kyc") == "1"
+    client_type = request.GET.get("client_type", "pp")
     selected_match_job = None
     selected_match_job_id = request.GET.get("match_job")
     show_match_job_results = request.GET.get("show_match_results") == "1"
@@ -2141,8 +2650,11 @@ def document_extraction(request):
                 "match_rate": 0,
             }
     elif requested_kyc_pp_matching:
-        match_documents = _filtered_document_extractions_from_params(active_match_params)
-        kyc_pp_matches, kyc_pp_match_summary = _build_kyc_pp_document_matches(match_documents)
+        match_documents = _filtered_document_extractions_from_params(active_match_params, user=request.user)
+        if client_type == "pm":
+            kyc_pp_matches, kyc_pp_match_summary = _build_kyc_pm_document_matches(match_documents)
+        else:
+            kyc_pp_matches, kyc_pp_match_summary = _build_kyc_pp_document_matches(match_documents)
         request.session[LAST_KYC_PP_MATCH_RESULT_SESSION_KEY] = _serialize_kyc_pp_matches(
             kyc_pp_matches,
             kyc_pp_match_summary,
@@ -2177,7 +2689,7 @@ def document_extraction(request):
                 kyc_pp_matches = _merge_kyc_pp_match_lists(hydrated_match_lists)
                 if kyc_pp_matches:
                     matched_idp_keys = {
-                        _normalize_match_value(getattr(match["client"], "IDP", "")) or str(match["client"].pk)
+                        _normalize_match_value(getattr(match["client"], "IDM" if client_type == "pm" else "IDP", "")) or str(match["client"].pk)
                         for match in kyc_pp_matches
                     }
                     kyc_pp_match_summary = {
@@ -2245,13 +2757,20 @@ def document_extraction(request):
         match["action_summary"] = " | ".join(action["text"] for action in match["action_items"])
     expired_document_matches = list(expired_match_by_client_id.values())
     matched_batches = set(request.session.get(KYC_PP_MATCHED_BATCHES_SESSION_KEY) or [])
+    if is_group_user:
+        match_jobs_qs = KycDocumentMatchJob.objects.all()
+        extractions_qs = KycDocumentExtraction.objects.all()
+    else:
+        match_jobs_qs = KycDocumentMatchJob.objects.filter(created_by__filiale=user.filiale)
+        extractions_qs = KycDocumentExtraction.objects.filter(uploaded_by__filiale=user.filiale)
+
     uploaded_batch_job_done = False
     uploaded_batch_running_job = None
     uploaded_batch_result_url = ""
     if uploaded_batch:
         uploaded_batch_running_job = (
-            KycDocumentMatchJob.objects
-            .filter(created_by=request.user, scope_params={"import_batch": uploaded_batch}, status__in=["pending", "running"])
+            match_jobs_qs
+            .filter(scope_params={"import_batch": uploaded_batch}, status__in=["pending", "running"])
             .order_by("-created_at")
             .first()
         )
@@ -2259,14 +2778,13 @@ def document_extraction(request):
             follow_params = dict(uploaded_batch_running_job.scope_params or {})
             follow_params["match_job"] = uploaded_batch_running_job.pk
             uploaded_batch_running_job.follow_url = f"{reverse('document_extraction')}?{urlencode(follow_params)}#suivi"
-        uploaded_batch_job_done = KycDocumentMatchJob.objects.filter(
-            created_by=request.user,
+        uploaded_batch_job_done = match_jobs_qs.filter(
             scope_params={"import_batch": uploaded_batch},
             status="completed",
         ).exists()
         uploaded_batch_completed_job = (
-            KycDocumentMatchJob.objects
-            .filter(created_by=request.user, scope_params={"import_batch": uploaded_batch}, status="completed")
+            match_jobs_qs
+            .filter(scope_params={"import_batch": uploaded_batch}, status="completed")
             .order_by("-completed_at", "-created_at")
             .first()
         )
@@ -2277,7 +2795,7 @@ def document_extraction(request):
             uploaded_batch_result_url = f"{reverse('document_extraction')}?{urlencode(result_params)}#consulter"
     uploaded_batch_matching_done = bool(uploaded_batch and (uploaded_batch in matched_batches or uploaded_batch_job_done))
     show_document_modal = (bool(extraction) and not show_match_child_modal) or request.GET.get("lot_view") == "1"
-    recent_match_jobs = list(KycDocumentMatchJob.objects.filter(created_by=request.user).order_by("-created_at")[:12])
+    recent_match_jobs = list(match_jobs_qs.order_by("-created_at")[:12])
     for job in recent_match_jobs:
         follow_params = dict(job.scope_params or {})
         follow_params["match_job"] = job.pk
@@ -2287,8 +2805,7 @@ def document_extraction(request):
         job.follow_url = f"{reverse('document_extraction')}?{urlencode(follow_params)}#suivi"
         job.result_url = f"{reverse('document_extraction')}?{urlencode(result_params)}#suivi"
     upload_batch_queue_all = list(
-        KycDocumentExtraction.objects
-        .filter(uploaded_by=request.user)
+        extractions_qs
         .exclude(import_batch="")
         .values("import_batch")
         .annotate(documents_count=Count("id"), latest_created_at=Max("created_at"))
@@ -2299,8 +2816,8 @@ def document_extraction(request):
         batch_name = batch["import_batch"]
         batch["documents_url"] = f"{reverse('document_extraction')}?{urlencode({'import_batch': batch_name})}#base"
         latest_job = (
-            KycDocumentMatchJob.objects
-            .filter(created_by=request.user, scope_params={"import_batch": batch_name})
+            match_jobs_qs
+            .filter(scope_params={"import_batch": batch_name})
             .order_by("-created_at")
             .first()
         )
@@ -2402,6 +2919,60 @@ def document_extraction(request):
             child_params = dict(base_child_params)
             child_params["extraction_id"] = match["document"].pk
             match["child_detail_url"] = f"{reverse('document_extraction')}?{urlencode(child_params)}#suivi"
+    pp_sources = {}
+    pm_sources = {}
+    
+    if not selected_filiale:
+        pp_config = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pp") if not c.filiales]
+        pm_config = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pm") if not c.filiales]
+    else:
+        pp_config = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pp") if selected_filiale in (c.filiales or [])]
+        pm_config = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pm") if selected_filiale in (c.filiales or [])]
+        
+        if not pp_config:
+            pp_config = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pp") if not c.filiales]
+        if not pm_config:
+            pm_config = [c for c in KycFieldVisibilityConfig.objects.filter(client_type="pm") if not c.filiales]
+            
+    pp_active_db_fields = set()
+    if pp_config:
+        pp_sources = getattr(pp_config[0], "field_sources", {}) or {}
+        pp_active_db_fields.update(pp_config[0].empty_check_fields or [])
+    if not pp_active_db_fields:
+        pp_active_db_fields = {"CLIENT", "NUMID", "DATNAIS", "DATVALID", "PAYNAIS", "ADRESSE", "ORIGINE_REV"}
+
+    pm_active_db_fields = set()
+    if pm_config:
+        pm_sources = getattr(pm_config[0], "field_sources", {}) or {}
+        pm_active_db_fields.update(pm_config[0].empty_check_fields or [])
+    if not pm_active_db_fields:
+        pm_active_db_fields = {"CLIENT", "RCSNO", "NUMERO_FISCAL", "ADRESSE_SOCIALE"}
+
+    filtered_pp_fields = [
+        (f_name, label)
+        for f_name, label in pp_fields
+        if f_name in pp_active_db_fields
+    ]
+    filtered_pm_fields = [
+        (f_name, label)
+        for f_name, label in pm_fields
+        if f_name in pm_active_db_fields
+    ]
+
+    document_field_source_sections = [
+        {
+            "title": "Particuliers (PP)",
+            "client_type": "pp",
+            "fields": filtered_pp_fields,
+            "sources": pp_sources,
+        },
+        {
+            "title": "Entreprises (PM)",
+            "client_type": "pm",
+            "fields": filtered_pm_fields,
+            "sources": pm_sources,
+        }
+    ]
 
     context = {
         "extraction": extraction,
@@ -2440,7 +3011,9 @@ def document_extraction(request):
         "match_querystring": match_query_params.urlencode(),
         "match_reset_querystring": match_reset_querystring,
         "export_match_querystring": export_match_querystring,
-        "document_type_choices": DOCUMENT_EXTRACTION_TYPE_CHOICES,
+        "document_type_choices": [(dt.code, dt.label) for dt in KycDocumentType.objects.all()],
+        "all_document_types": KycDocumentType.objects.all(),
+        "client_type": client_type,
         "selected_document_type": selected_document_type,
         "selected_import_batch": selected_import_batch,
         "search_fields": DOCUMENT_EXTRACTION_SEARCH_FIELDS,
@@ -2448,8 +3021,82 @@ def document_extraction(request):
         "search_query": search_query,
         "field_labels": DOCUMENT_EXTRACTION_FIELD_LABELS,
         "page_querystring": query_params.urlencode(),
+        "is_group_user": is_group_user,
+        "liste_filiales": liste_filiales,
+        "selected_filiale": selected_filiale,
+        "document_field_source_sections": document_field_source_sections,
+        "document_field_source_return_url": request.get_full_path(),
+        "can_insert_batches": can_insert_batches,
     }
     return render(request, 'document_extraction.html', context)
+
+
+@login_required
+def config_document_types(request):
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "save":
+            type_id = request.POST.get("type_id")
+            code = request.POST.get("code", "").strip().lower()
+            label = request.POST.get("label", "").strip()
+            filiale = request.POST.get("filiale", "").strip()
+            client_type = request.POST.get("client_type", "pp").strip()
+            min_score_str = request.POST.get("min_score", "2.0")
+            keywords = request.POST.get("keywords", "").strip()
+            
+            try:
+                min_score = float(min_score_str)
+            except ValueError:
+                min_score = 2.0
+                
+            if not code or not label:
+                messages.error(request, "Le code technique et le libellé sont requis.")
+            else:
+                if type_id:
+                    doc_type = get_object_or_404(KycDocumentType, pk=type_id)
+                    if doc_type.code not in ['piece_identite', 'passeport']:
+                        doc_type.code = code
+                        doc_type.filiale = filiale
+                    doc_type.label = label
+                    doc_type.client_type = client_type
+                    doc_type.min_score = min_score
+                    doc_type.keywords = keywords
+                    doc_type.save()
+                    messages.success(request, f"Le type de document '{label}' a été mis à jour.")
+                else:
+                    if KycDocumentType.objects.filter(code=code, filiale=filiale, client_type=client_type).exists():
+                        messages.error(request, f"Un type de document avec le code '{code}' existe déjà pour cette filiale et ce type de client.")
+                    else:
+                        KycDocumentType.objects.create(
+                            code=code,
+                            label=label,
+                            filiale=filiale,
+                            client_type=client_type,
+                            min_score=min_score,
+                            keywords=keywords
+                        )
+                        messages.success(request, f"Le type de document '{label}' a été créé avec succès.")
+            return redirect("config_document_types")
+            
+        elif action == "delete":
+            type_id = request.POST.get("type_id")
+            if type_id:
+                doc_type = get_object_or_404(KycDocumentType, pk=type_id)
+                if doc_type.code in ['piece_identite', 'passeport']:
+                    messages.error(request, "Les types de documents système ne peuvent pas être supprimés.")
+                else:
+                    label = doc_type.label
+                    doc_type.delete()
+                    messages.success(request, f"Le type de document '{label}' a été supprimé.")
+            return redirect("config_document_types")
+            
+    document_types = KycDocumentType.objects.all()
+    context = {
+        "document_types": document_types,
+        "filiale_choices": Filiales,
+        "client_type_choices": CLIENT_TYPE_CHOICES,
+    }
+    return render(request, "config_document_types.html", context)
 
 
 @login_required
@@ -2472,6 +3119,7 @@ def import_log_download(request, filename):
     return FileResponse(open(file_path, "rb"), as_attachment=True, filename=filename)
 
 
+@login_required
 def profile_update(request):
     if request.method == "POST":
         form = ProfileForm(request.POST, request.FILES, instance=request.user)
@@ -2483,7 +3131,6 @@ def profile_update(request):
     return render(request, "profile_update.html", {"form": form})
 
 
-@csrf_exempt
 def rechercher_et_noter_agent(request):
     agent = None
     form = None
@@ -2498,23 +3145,22 @@ def rechercher_et_noter_agent(request):
                 message = "Agent introuvable."
 
             if agent:
-                # Si l'utilisateur a le profil "ContrÃ´le permanent"
-                if request.user.is_authenticated and request.user.groups.filter(name='ContrÃ´le permanent').exists():
+                # Si l'utilisateur a le profil "Contrôle permanent"
+                if request.user.is_authenticated and request.user.groups.filter(name='Contrôle permanent').exists():
                     form = NoteForm(request.POST or None)
                     if form.is_valid():
                         note = form.save(commit=False)
                         note.agent = agent
                         note.date_notation = timezone.now()  # Enregistrer la date de notation
                         note.save()
-                        message = "Notation enregistrÃ©e avec succÃ¨s."
-                        form = None  # Reset le formulaire aprÃ¨s enregistrement pour Ã©viter la soumission rÃ©pÃ©tÃ©e
+                        message = "Notation enregistrée avec succÃ¨s."
+                        form = None  # Reset le formulaire aprÃ¨s enregistrement pour éviter la soumission répétée
                 else:
                     message = "Vous n'avez pas la permission de noter cet agent."
 
     return render(request, 'accueil.html', {'agent': agent, 'form': form, 'message': message})
 
 
-@csrf_exempt
 def password_reset_request(request):
     if request.method == "POST":
         password_reset_form = PasswordResetForm(request.POST)
@@ -2527,11 +3173,11 @@ def password_reset_request(request):
                     email_template_name = "password_reset_email.txt"
                     c = {
                         "email": user.username,
-                        'domain': '127.0.0.1:8000',
-                        'site_name': '',
+                        'domain': request.get_host(),
+                        'site_name': 'Plateforme KYC BOA',
                         "uid": urlsafe_base64_encode(force_bytes(user.pk)),
                         'token': default_token_generator.make_token(user),
-                        'protocol': 'http',
+                        'protocol': 'https' if request.is_secure() else 'http',
                     }
                     email = render_to_string(email_template_name, c)
                     try:
@@ -2553,9 +3199,8 @@ def password_reset_request(request):
 
 
 @login_required
-@csrf_exempt
 def profil(request):
-    roles_exclus = ["ChargÃ© Client"]
+    roles_exclus = ["Chargé Client"]
     notes = Notation.objects.filter(flux_stock='Flux')
     user = request.user
     latest_notes = notes.values('agent').annotate(latest_date=Max('date_notation'))
@@ -2570,13 +3215,12 @@ def profil(request):
     return render(request, 'profil.html', context)
 
 
-@csrf_exempt
 def profile(request):
     if request.method == 'POST':
         user_form = ProfileModify(request.POST, instance=request.user)
         if user_form.is_valid():
             user_form.save()
-            messages.success(request, 'Votre profil a Ã©tÃ© modifiÃ© avec succÃ¨s')
+            messages.success(request, 'Votre profil a été modifié avec succÃ¨s')
             return redirect('/perso/profil')
 
     else:
@@ -2584,22 +3228,21 @@ def profile(request):
     return render(request, 'modify_profil.html', {'user_form': user_form})
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(login_required, name='dispatch')
 class ChangePasswordView(SuccessMessageMixin, PasswordChangeView):
     template_name = 'modify_pw.html'
-    success_message = "Votre mot de passe a Ã©tÃ© changÃ© avec succÃ¨s"
+    success_message = "Votre mot de passe a été changé avec succÃ¨s"
     success_url = reverse_lazy('profil')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Ajout du contexte personnalisÃ©
-        context['roles_exclus'] = ["ChargÃ© Client"]
+        # Ajout du contexte personnalisé
+        context['roles_exclus'] = ["Chargé Client"]
         return context
 
 
-@csrf_exempt
 def reset_user_password_b(request, user_id):
-    roles_exclus = ["ChargÃ© Client"]
+    roles_exclus = ["Chargé Client"]
     user = get_object_or_404(ProfileV, pk=user_id)
 
     if request.method == 'POST':
@@ -2618,12 +3261,12 @@ def reset_user_password_b(request, user_id):
 
 @login_required
 def perso(request):
-    # RÃ©cupÃ©rer l'utilisateur connectÃ©
-    roles_exclus = ["ChargÃ© Client"]
+    # Récupérer l'utilisateur connecté
+    roles_exclus = ["Chargé Client"]
     user = request.user
 
-    # VÃ©rifier si l'utilisateur appartient Ã  "ContrÃ´le", "ConformitÃ©" ou "ContrÃ´le Groupe"
-    if user.organe in ['ContrÃ´le Permanent', 'Directeur RÃ©seau', 'ConformitÃ©','Risques', 'DAI', 'QualitÃ©','DSI']:
+    # Vérifier si l'utilisateur appartient Ã  "Contrôle", "Conformité" ou "Contrôle Groupe"
+    if user.organe in ['Contrôle Permanent', 'Directeur Réseau', 'Conformité','Risques', 'DAI', 'Qualité','DSI']:
         agents = ProfileV.objects.filter(filiale=user.filiale)
     else:
         agents = ProfileV.objects.all()
@@ -2636,13 +3279,12 @@ def perso(request):
 
 
 @login_required
-@csrf_exempt
 def agent(request):
-    roles_exclus = ["ChargÃ© Client"]
+    roles_exclus = ["Chargé Client"]
     user = request.user
 
-    # VÃ©rifier si l'utilisateur appartient Ã  "ContrÃ´le", "ConformitÃ©" ou "ContrÃ´le Groupe"
-    if user.organe in ['ContrÃ´le Permanent', 'Directeur RÃ©seau', 'ConformitÃ©','Risques', 'DAI', 'QualitÃ©','DSI']:
+    # Vérifier si l'utilisateur appartient Ã  "Contrôle", "Conformité" ou "Contrôle Groupe"
+    if user.organe in ['Contrôle Permanent', 'Directeur Réseau', 'Conformité','Risques', 'DAI', 'Qualité','DSI']:
         notes = Notation.objects.filter(note_par__filiale=user.filiale, flux_stock='Flux')
     elif user.organe in ['Directeur Agence']:
         notes = Notation.objects.filter(note_par__filiale=user.filiale, agent__agence=user.agence, flux_stock='Flux')
@@ -2662,7 +3304,7 @@ def agent(request):
         if agents.exists():
             notes = notes.all().filter(agent__in=agents)
         else:
-            # Si aucun agent n'est trouvÃ©, vider le queryset pour ne rien afficher
+            # Si aucun agent n'est trouvé, vider le queryset pour ne rien afficher
             notes = notes.none()
 
     return render(request, 'agent.html', {
@@ -2680,7 +3322,7 @@ def export_agents_excel(request):
 
     user = request.user
 
-    if user.organe in ['ContrÃ´le Permanent', 'Directeur RÃ©seau', 'ConformitÃ©','Risques', 'DAI', 'QualitÃ©','DSI']:
+    if user.organe in ['Contrôle Permanent', 'Directeur Réseau', 'Conformité','Risques', 'DAI', 'Qualité','DSI']:
         donnees = Notation.objects.filter(note_par__filiale=user.filiale, flux_stock='Flux')
     elif user.organe in ['Directeur Agence']:
         donnees = Notation.objects.filter(note_par__filiale=user.filiale, agent__agence=user.agence, flux_stock='Flux')
@@ -2693,22 +3335,22 @@ def export_agents_excel(request):
     donnees = donnees.filter(date_notation__in=[n['latest_date'] for n in latest_notes])
     donnees = donnees.order_by('-date_notation')
 
-    # CrÃ©ation du classeur Excel
+    # Création du classeur Excel
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Notation_Flux"
 
     # EntÃªtes
-    headers = ["FILIALE", "EXPLOITANT", "NOM", "AGENCE", "EMAIL", "NOTE", "DerniÃ¨re notation", "NotÃ© par le contrÃ´leur",
+    headers = ["FILIALE", "EXPLOITANT", "NOM", "AGENCE", "EMAIL", "NOTE", "DerniÃ¨re notation", "Noté par le contrôleur",
                "Flux/Stock"]
     ws.append(headers)
 
-    # DonnÃ©es
+    # Données
     for d in donnees:
         agent_nom = f"{d.agent.first_name} {d.agent.last_name}".strip()
         agent_email = d.agent.email or d.agent.username
         ws.append([
-            d.note_par.filiale, d.agent.code_expl, agent_nom, d.agent.agence, agent_email, d.note,
+            d.agent.filiale, d.agent.code_expl, agent_nom, d.agent.agence, agent_email, d.note,
             strip_tz(d.date_notation), d.note_par.email, d.flux_stock
 
         ])
@@ -2718,7 +3360,7 @@ def export_agents_excel(request):
         column_letter = get_column_letter(col_num)
         ws.column_dimensions[column_letter].width = 15
 
-    # PrÃ©parer la rÃ©ponse HTTP
+    # Préparer la réponse HTTP
     output = BytesIO()
     wb.save(output)
     output.seek(0)
@@ -2739,7 +3381,7 @@ def export_agents_excel_s(request):
 
     user = request.user
 
-    if user.organe in ['ContrÃ´le Permanent', 'Directeur RÃ©seau', 'ConformitÃ©','Risques', 'DAI', 'QualitÃ©','DSI']:
+    if user.organe in ['Contrôle Permanent', 'Directeur Réseau', 'Conformité','Risques', 'DAI', 'Qualité','DSI']:
         donnees = Notation.objects.filter(note_par__filiale=user.filiale, flux_stock='Stock')
     elif user.organe in ['Directeur Agence']:
         donnees = Notation.objects.filter(note_par__filiale=user.filiale, agent__agence=user.agence, flux_stock='Stock')
@@ -2752,22 +3394,22 @@ def export_agents_excel_s(request):
     donnees = donnees.filter(date_notation__in=[n['latest_date'] for n in latest_notes])
     donnees = donnees.order_by('-date_notation')
 
-    # CrÃ©ation du classeur Excel
+    # Création du classeur Excel
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Notation_Stock"
 
     # EntÃªtes
-    headers = ["FILIALE", "EXPLOITANT", "NOM", "AGENCE", "EMAIL", "NOTE", "DerniÃ¨re notation", "NotÃ© par le contrÃ´leur",
+    headers = ["FILIALE", "EXPLOITANT", "NOM", "AGENCE", "EMAIL", "NOTE", "DerniÃ¨re notation", "Noté par le contrôleur",
                "Flux/Stock"]
     ws.append(headers)
 
-    # DonnÃ©es
+    # Données
     for d in donnees:
         agent_nom = f"{d.agent.first_name} {d.agent.last_name}".strip()
         agent_email = d.agent.email or d.agent.username
         ws.append([
-            d.note_par.filiale, d.agent.code_expl, agent_nom, d.agent.agence, agent_email, d.note,
+            d.agent.filiale, d.agent.code_expl, agent_nom, d.agent.agence, agent_email, d.note,
             strip_tz(d.date_notation), d.note_par.email, d.flux_stock
 
         ])
@@ -2777,7 +3419,7 @@ def export_agents_excel_s(request):
         column_letter = get_column_letter(col_num)
         ws.column_dimensions[column_letter].width = 15
 
-    # PrÃ©parer la rÃ©ponse HTTP
+    # Préparer la réponse HTTP
     output = BytesIO()
     wb.save(output)
     output.seek(0)
@@ -2790,13 +3432,12 @@ def export_agents_excel_s(request):
     return response
 
 
-@csrf_exempt
 def perso_stock(request):
-    # RÃ©cupÃ©rer l'utilisateur connectÃ©
+    # Récupérer l'utilisateur connecté
     user = request.user
 
-    # VÃ©rifier si l'utilisateur appartient Ã  "ContrÃ´le", "ConformitÃ©" ou "ContrÃ´le Groupe"
-    if user.organe in ['ContrÃ´le Permanent', 'Directeur RÃ©seau', 'ConformitÃ©','Risques', 'DAI', 'QualitÃ©','DSI']:
+    # Vérifier si l'utilisateur appartient Ã  "Contrôle", "Conformité" ou "Contrôle Groupe"
+    if user.organe in ['Contrôle Permanent', 'Directeur Réseau', 'Conformité','Risques', 'DAI', 'Qualité','DSI']:
         notes = Notation.objects.filter(filiale=user.filiale, flux_stock='Stock')
     else:
         notes = Notation.objects.all().filter(flux_stock='Flux')
@@ -2809,12 +3450,11 @@ def perso_stock(request):
 
 
 @login_required
-@csrf_exempt
 def agent_stock(request):
     user = request.user
 
-    # VÃ©rifier si l'utilisateur appartient Ã  "ContrÃ´le", "ConformitÃ©" ou "ContrÃ´le Groupe"
-    if user.organe in ['ContrÃ´le Permanent', 'Directeur RÃ©seau', 'ConformitÃ©','Risques', 'DAI', 'QualitÃ©','DSI']:
+    # Vérifier si l'utilisateur appartient Ã  "Contrôle", "Conformité" ou "Contrôle Groupe"
+    if user.organe in ['Contrôle Permanent', 'Directeur Réseau', 'Conformité','Risques', 'DAI', 'Qualité','DSI']:
         notes = Notation.objects.filter(note_par__filiale=user.filiale, flux_stock='Stock')
     else:
         notes = Notation.objects.filter(flux_stock='Stock')
@@ -2833,16 +3473,15 @@ def agent_stock(request):
         if agents.exists():
             notes = notes.filter(agent__in=agents)
         else:
-            # Si aucun agent n'est trouvÃ©, vider le queryset pour ne rien afficher
+            # Si aucun agent n'est trouvé, vider le queryset pour ne rien afficher
             notes = notes.none()
 
     return render(request, 'agent_stock.html', {'notes': notes, 'query': query})
 
 
-@csrf_exempt
 def notes(request):
     agent = None
-    roles_exclus = ["ChargÃ© Client", "Directeur Agence"]
+    roles_exclus = ["Chargé Client", "Directeur Agence"]
     form = NotationForm()  # Initialisation du formulaire
 
     if request.method == 'POST':
@@ -2852,7 +3491,7 @@ def notes(request):
             try:
                 agent = ProfileV.objects.get(code_expl=code_exploitant, filiale=request.user.filiale)
 
-                # PrÃ©remplir le formulaire avec l'agent trouvÃ©
+                # Préremplir le formulaire avec l'agent trouvé
                 form = NotationForm(initial={'agent': agent})
             except ProfileV.DoesNotExist:
                 agent = None
@@ -2870,7 +3509,7 @@ def notes(request):
                 notation.note_par = request.user
                 notation.date_notation = timezone.now()
                 notation.save()
-                messages.success(request, 'La notation a bien Ã©tÃ© sauvegardÃ©e.')
+                messages.success(request, 'La notation a bien été sauvegardée.')
 
                 return redirect('agent')
     else:
@@ -2886,9 +3525,8 @@ def agent_detail(request, agent_id):
 
 
 @login_required
-@csrf_exempt
 def historique(request):
-    roles_exclus = ["ChargÃ© Client", "Directeur Agence"]
+    roles_exclus = ["Chargé Client", "Directeur Agence"]
     query = request.GET.get('q')
 
     if query:
@@ -2896,14 +3534,14 @@ def historique(request):
         notations = Notation.objects.filter(note_par=request.user, agent__code_expl__icontains=query).order_by(
             "-date_notation")
     else:
-        # RÃ©cupÃ¨re toutes les notations de l'utilisateur connectÃ©
+        # RécupÃ¨re toutes les notations de l'utilisateur connecté
         notations = Notation.objects.filter(note_par=request.user).order_by("-date_notation")
 
     # Passe les notations au template
     context = {
         'notations': notations,
         'query': query,
-    }  # Pour prÃ©-remplir la barre de recherche
+    }  # Pour pré-remplir la barre de recherche
     return render(request, 'historique.html', {'notations': notations, 'roles_exclus': roles_exclus})
 
 
@@ -2913,12 +3551,12 @@ def test(request):
 
 @login_required
 def register(request):
-    roles_exclus = ["ChargÃ© Client"]
+    roles_exclus = ["Chargé Client"]
     current_user = request.user
 
-    # ðŸ”’ VÃ©rification des droits d'accÃ¨s
+    # ðŸ”’ Vérification des droits d'accÃ¨s
     if current_user.organe not in ["PASS", "DSI"]:
-        messages.error(request, "Vous nâ€™avez pas la permission de crÃ©er un compte utilisateur.")
+        messages.error(request, "Vous nâ€™avez pas la permission de créer un compte utilisateur.")
         return redirect('user_list')
 
     if request.method == 'POST':
@@ -2931,15 +3569,15 @@ def register(request):
                 new_user.filiale = current_user.filiale
 
             new_user.save()
-            messages.success(request, "Utilisateur crÃ©Ã© avec succÃ¨s.")
+            messages.success(request, "Utilisateur créé avec succÃ¨s.")
             return redirect('user_list')
     else:
-        form = CustomUserCreationForm(current_user=current_user)  # ðŸ‘ˆ On passe lâ€™utilisateur connectÃ© au formulaire
+        form = CustomUserCreationForm(current_user=current_user)  # ðŸ‘ˆ On passe lâ€™utilisateur connecté au formulaire
 
     return render(request, 'register.html', {'form': form, 'roles_exclus': roles_exclus})
 
 
-# Fonction pour vÃ©rifier si l'utilisateur appartient Ã  l'organe "PASS"
+# Fonction pour vérifier si l'utilisateur appartient Ã  l'organe "PASS"
 def is_pass_user(user):
     return user.organe == 'PASS'
 
@@ -2969,7 +3607,7 @@ def user_list(request):
             Q(username__icontains=query)
         )
 
-    # 3. RÃ©cupÃ©ration des connectÃ©s (Sessions actives)
+    # 3. Récupération des connectés (Sessions actives)
     active_sessions = Session.objects.filter(expire_date__gte=now())
     user_ids = []
     for s in active_sessions:
@@ -3013,7 +3651,7 @@ def edit_user(request, user_id):
         form = UserEditForm(request.POST, instance=target_user, current_user=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, "Utilisateur modifiÃ© avec succÃ¨s.")
+            messages.success(request, "Utilisateur modifié avec succÃ¨s.")
             return redirect('user_list')
     else:
         form = UserEditForm(instance=target_user, current_user=request.user)
@@ -3029,7 +3667,7 @@ def change_user_password(request, user_id):
     # ðŸ”’ RÃ¨gles dâ€™accÃ¨s :
     # - PASS : peut changer le mot de passe de tous les utilisateurs
     # - DSI : peut changer le mot de passe uniquement des utilisateurs de sa filiale
-    # - Autres : accÃ¨s refusÃ©
+    # - Autres : accÃ¨s refusé
     if current_user.organe != "PASS":
         if current_user.organe == "DSI":
             if current_user.filiale != target_user.filiale:
@@ -3044,8 +3682,8 @@ def change_user_password(request, user_id):
         form = PasswordChangeForm(target_user, request.POST)
         if form.is_valid():
             user = form.save()
-            update_session_auth_hash(request, user)  # Ã©viter la dÃ©connexion
-            messages.success(request, "Le mot de passe a Ã©tÃ© modifiÃ© avec succÃ¨s.")
+            update_session_auth_hash(request, user)  # éviter la déconnexion
+            messages.success(request, "Le mot de passe a été modifié avec succÃ¨s.")
             return redirect('user_list')
     else:
         form = PasswordChangeForm(target_user)
@@ -3063,10 +3701,10 @@ def reset_user_password(request, user_id):
         if current_user.organe == "DSI":
             if current_user.filiale != target_user.filiale:
                 messages.error(request,
-                               "Vous ne pouvez rÃ©initialiser que les mots de passe des utilisateurs de votre filiale.")
+                               "Vous ne pouvez réinitialiser que les mots de passe des utilisateurs de votre filiale.")
                 return redirect('user_list')
         else:
-            messages.error(request, "Vous nâ€™avez pas la permission de rÃ©initialiser ce mot de passe.")
+            messages.error(request, "Vous nâ€™avez pas la permission de réinitialiser ce mot de passe.")
             return redirect('user_list')
 
     # ðŸ§¾ Traitement du formulaire
@@ -3077,7 +3715,7 @@ def reset_user_password(request, user_id):
             target_user.password = make_password(new_password)
             target_user.force_password_change = form.cleaned_data.get('force_password_change', False)
             target_user.save()
-            messages.success(request, "Le mot de passe a Ã©tÃ© rÃ©initialisÃ© avec succÃ¨s.")
+            messages.success(request, "Le mot de passe a été réinitialisé avec succÃ¨s.")
             return redirect('user_list')
     else:
         form = ResetPasswordForm(initial={
@@ -3089,8 +3727,8 @@ def reset_user_password(request, user_id):
 
 @login_required
 def user_statistics_view(request):
-    roles_exclus = ["ChargÃ© Client"]
-    current_user = request.user  # utilisateur connectÃ©
+    roles_exclus = ["Chargé Client"]
+    current_user = request.user  # utilisateur connecté
 
     # ðŸ”’ RÃ¨gles dâ€™accÃ¨s selon lâ€™organe
     if current_user.organe == "PASS":
@@ -3100,7 +3738,7 @@ def user_statistics_view(request):
         users = ProfileV.objects.filter(filiale=current_user.filiale)
 
     else:
-        messages.error(request, "Vous nâ€™avez pas la permission dâ€™accÃ©der Ã  cette page.")
+        messages.error(request, "Vous nâ€™avez pas la permission dâ€™accéder Ã  cette page.")
         return render(request, 'user_statistics.html', {
             'total_users': 0,
             'connected_count': 0,
@@ -3127,7 +3765,7 @@ def user_statistics_view(request):
     # Supprimer les doublons
     user_ids = list(set(user_ids))
 
-    # ðŸ‘¥ Utilisateurs connectÃ©s visibles par le user connectÃ©
+    # ðŸ‘¥ Utilisateurs connectés visibles par le user connecté
     connected_users = users.filter(id__in=user_ids)
     connected_count = connected_users.count()
 
@@ -3187,72 +3825,26 @@ def user_statistics_view(request):
 
 
 @login_required
-@csrf_exempt
 def ppe(request):
-    roles_exclus = ["ChargÃ© Client"]
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
-    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "ConformitÃ© Groupe",
-                    "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+    roles_exclus = ["Chargé Client"]
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
+    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe",
+                    "Contrôle Permanent Groupe", "PASS", "GUEST"]
     user = request.user
     filiale_param = request.GET.get('filiale', '')
     agence_param = request.GET.get('agence', '')
     expl_param = request.GET.get('expl', '')
-    filiale_txt = request.GET.get('filiale_txt', '').strip()
-    agence_txt = request.GET.get('agence_txt', '').strip()
-    lib_agence = request.GET.get('lib_agence', '').strip()
-    expl_txt = request.GET.get('expl_txt', '').strip()
-    client_txt = request.GET.get('client', '').strip()
-    risque_txt = request.GET.get('risque', '').strip()
-    filiale_txt = request.GET.get('filiale_txt', '').strip()
-    agence_txt = request.GET.get('agence_txt', '').strip()
-    lib_agence = request.GET.get('lib_agence', '').strip()
-    expl_txt = request.GET.get('expl_txt', '').strip()
-    client_txt = request.GET.get('client', '').strip()
-    risque_txt = request.GET.get('risque', '').strip()
-    filiale_txt = request.GET.get('filiale_txt', '').strip()
-    agence_txt = request.GET.get('agence_txt', '').strip()
-    lib_agence = request.GET.get('lib_agence', '').strip()
-    expl_txt = request.GET.get('expl_txt', '').strip()
-    client_txt = request.GET.get('client', '').strip()
-    risque_txt = request.GET.get('risque', '').strip()
-    filiale_txt = request.GET.get('filiale_txt', '').strip()
-    agence_txt = request.GET.get('agence_txt', '').strip()
-    expl_txt = request.GET.get('expl_txt', '').strip()
-    client_txt = request.GET.get('client', '').strip()
-    risque_txt = request.GET.get('risque', '').strip()
-    filiale_txt = request.GET.get('filiale_txt', '').strip()
-    agence_txt = request.GET.get('agence_txt', '').strip()
-    lib_agence = request.GET.get('lib_agence', '').strip()
-    expl_txt = request.GET.get('expl_txt', '').strip()
-    client_txt = request.GET.get('client', '').strip()
-    risque_txt = request.GET.get('risque', '').strip()
-    filiale_txt = request.GET.get('filiale_txt', '')
-    agence_txt = request.GET.get('agence_txt', '')
-    expl_txt = request.GET.get('expl_txt', '')
-    client_txt = request.GET.get('client', '')
-    risque_txt = request.GET.get('risque', '')
-    filiale_txt = request.GET.get('filiale_txt', '')
-    agence_txt = request.GET.get('agence_txt', '')
-    expl_txt = request.GET.get('expl_txt', '')
-    client_txt = request.GET.get('client', '')
-    risque_txt = request.GET.get('risque', '')
-    filiale_txt = request.GET.get('filiale_txt', '')
-    agence_txt = request.GET.get('agence_txt', '')
-    lib_agence = request.GET.get('lib_agence', '')
-    expl_txt = request.GET.get('expl_txt', '')
-    client_txt = request.GET.get('client', '')
-    risque_txt = request.GET.get('risque', '')
-    filiale_txt = request.GET.get('filiale_txt', '')
-    agence_txt = request.GET.get('agence_txt', '')
-    lib_agence = request.GET.get('lib_agence', '')
-    expl_txt = request.GET.get('expl_txt', '')
-    client_txt = request.GET.get('client', '')
-    risque_txt = request.GET.get('risque', '')
+    filiale_txt = (request.GET.get('col_filiale') or request.GET.get('filiale_txt', '')).strip()
+    agence_txt = (request.GET.get('col_agence') or request.GET.get('agence_txt', '')).strip()
+    lib_agence = (request.GET.get('col_lib_agence') or request.GET.get('lib_agence', '')).strip()
+    expl_txt = (request.GET.get('col_expl') or request.GET.get('expl_txt', '')).strip()
+    client_txt = (request.GET.get('col_client') or request.GET.get('client', '')).strip()
+    risque_txt = (request.GET.get('col_risque') or request.GET.get('risque', '')).strip()
 
     donnees = Kyc_pp.objects.filter(PPE__icontains="O")
 
-    # Filtrage automatique selon le rÃ´le
-    if user.organe == "ChargÃ© Client":
+    # Filtrage automatique selon le rôle
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     if user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -3291,7 +3883,7 @@ def ppe(request):
     if risque_txt:
         donnees = donnees.filter(RISQUE__icontains=risque_txt)
 
-    # === Valeurs du formulaire selon le rÃ´le ===
+    # === Valeurs du formulaire selon le rôle ===
     if user.organe == "Directeur Agence":
         exploitants = donnees.filter(AGENCE=user.agence).values_list('EXPL', flat=True).distinct()
         agences = donnees.filter(AGENCE=user.agence).values_list('AGENCE', flat=True).distinct()
@@ -3304,6 +3896,57 @@ def ppe(request):
 
     filiales = donnees.values_list('FILIALE', flat=True).distinct()
 
+    # PPE KPIs
+    total_ppe = donnees.count()
+    missing_ppe = get_incomplete_clients_queryset(donnees, 'pp').count()
+    complete_ppe = max(0, total_ppe - missing_ppe)
+    compliance_rate = round((complete_ppe / total_ppe) * 100, 1) if total_ppe > 0 else 100.0
+
+    # Répartition par classe de risque
+    risque_counts = list(
+        donnees.values('RISQUE')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    risque_items = []
+    for rc in risque_counts:
+        label = rc['RISQUE'] or "Non renseigné"
+        pct = round((rc['count'] / total_ppe) * 100, 1) if total_ppe > 0 else 0.0
+        risque_items.append({
+            'label': label,
+            'value': rc['count'],
+            'suffix': f'({pct}%)'
+        })
+
+    export_params = request.GET.copy()
+    export_params['incompletes'] = '1'
+    export_incomplets_url = f"{reverse('export_ppe')}?{export_params.urlencode()}"
+
+    kpi_cards = [
+        {
+            'tone': 'emerald',
+            'label': 'Répartition par Risque',
+            'value': total_ppe,
+            'subtitle': 'Clients PPE par classe de risque',
+            'show_modal': True,
+            'items': risque_items
+        },
+        {
+            'tone': 'red',
+            'label': 'PPE Incomplets',
+            'value': missing_ppe,
+            'subtitle': 'Dossiers avec données manquantes',
+            'export_url': export_incomplets_url
+        },
+        {
+            'tone': 'blue',
+            'label': 'Taux de conformité',
+            'value': compliance_rate,
+            'suffix': '%',
+            'subtitle': 'Dossiers complets / total',
+        }
+    ]
+
     context = {
         'donnees': donnees,
         'filiales': filiales,
@@ -3312,19 +3955,21 @@ def ppe(request):
         'roles_exclus': roles_exclus,
         'users_groupe': users_groupe,
         'users_filiale': users_filiale,
+        'kpi_cards': kpi_cards,
     }
 
     return render(request, 'ppe.html', context)
 
 
 
+@login_required
 def export_ppe(request):
     user = request.user
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
-    # RÃ©cupÃ©rer les filtres GET
+    # Récupérer les filtres GET
     filiale_param = request.GET.get('filiale', '')
     agence_param = request.GET.get('agence', '')
     expl_param = request.GET.get('expl', '')
@@ -3338,14 +3983,18 @@ def export_ppe(request):
     # Base queryset : PPE = "O"
     donnees = Kyc_pp.objects.filter(PPE__icontains="O")
 
-    # Filtrage selon le rÃ´le utilisateur
-    if user.organe == "ChargÃ© Client":
+    incompletes_only = request.GET.get('incompletes', '') == '1'
+    if incompletes_only:
+        donnees = get_incomplete_clients_queryset(donnees, 'pp')
+
+    # Filtrage selon le rôle utilisateur
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
     elif user.organe in users_filiale:
         donnees = donnees.filter(FILIALE=user.filiale)
-    # else: si utilisateur avec rÃ´le â€œgroupeâ€ ou autre --> pas de filtre rÃ´le spÃ©cifique
+    # else: si utilisateur avec rôle â€œgroupeâ€ ou autre --> pas de filtre rôle spécifique
 
     # Appliquer les filtres GET sâ€™ils sont fournis
     if filiale_param:
@@ -3355,7 +4004,7 @@ def export_ppe(request):
     if expl_param:
         donnees = donnees.filter(EXPL__icontains=expl_param)
 
-    # CrÃ©ation du classeur Excel
+    # Création du classeur Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "Non rens PPE"
@@ -3387,7 +4036,10 @@ def export_ppe(request):
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    filename = f"PPE_non_rens_{date_str}.xlsx"
+    if incompletes_only:
+        filename = f"PPE_incomplets_{date_str}.xlsx"
+    else:
+        filename = f"PPE_non_rens_{date_str}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
@@ -3407,6 +4059,8 @@ def _apply_pp_header_filters(queryset, request, include_pays_resid=False, includ
         "datvalid": "DATVALID",
         "tel": "TEL",
         "datouv": "DATOUV",
+        "agence": "AGENCE",
+        "expl": "EXPL",
     }
     if include_pays_resid:
         field_map["pays_resid"] = "PAYS_RESID"
@@ -3414,20 +4068,19 @@ def _apply_pp_header_filters(queryset, request, include_pays_resid=False, includ
         field_map["devise"] = "DEVISE"
 
     for param, field in field_map.items():
-        value = request.GET.get(param, "").strip()
+        value = (request.GET.get(f"col_{param}") or request.GET.get(param, "")).strip()
         if value:
             queryset = queryset.filter(**{f"{field}__icontains": value})
     return queryset
 
 
 @login_required
-@csrf_exempt
 def non_resid(request):
-    roles_exclus = ["ChargÃ© Client"]
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    roles_exclus = ["Chargé Client"]
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = [
         "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-        "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"
+        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
     ]
     user = request.user
     filiale_param = request.GET.get('filiale', '')
@@ -3435,14 +4088,14 @@ def non_resid(request):
     expl_param = request.GET.get('expl', '')
 
     # ðŸŒŸ CORRECTION / AMÃ‰LIORATION ðŸŒŸ
-    # Utilisation de __exact pour filtrer strictement les non-rÃ©sidents ('N')
+    # Utilisation de __exact pour filtrer strictement les non-résidents ('N')
     # Utilisez __icontains="N" si le champ peut contenir d'autres informations et que "N" suffit.
     donnees = Kyc_pp.objects.filter(RESID__icontains="N")
-    # Si vous voulez l'ancienne logique avec moins de sensibilitÃ© Ã  la casse :
+    # Si vous voulez l'ancienne logique avec moins de sensibilité Ã  la casse :
     # donnees = Kyc_pp.objects.filter(RESID__iexact="N")
 
-    # === Filtrage automatique selon le rÃ´le ===
-    if user.organe == "ChargÃ© Client":
+    # === Filtrage automatique selon le rôle ===
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -3462,19 +4115,19 @@ def non_resid(request):
     donnees = _apply_pp_header_filters(donnees, request, include_pays_resid=True)
 
     # === Calcul des valeurs du formulaire (Listes de filtres) ===
-    # On calcule les listes sur le QuerySet filtrÃ© par le rÃ´le
+    # On calcule les listes sur le QuerySet filtré par le rôle
 
-    # Par dÃ©faut (pour les users_groupe ou si aucun rÃ´le spÃ©cifique n'est atteint)
+    # Par défaut (pour les users_groupe ou si aucun rôle spécifique n'est atteint)
     exploitants = donnees.values_list('EXPL', flat=True).distinct()
     agences = donnees.values_list('AGENCE', flat=True).distinct()
 
-    # Remplacer par des filtres plus stricts si l'utilisateur a un rÃ´le restreint
+    # Remplacer par des filtres plus stricts si l'utilisateur a un rôle restreint
     if user.organe == "Directeur Agence":
-        # Les filtres par filiale et agence ont dÃ©jÃ  Ã©tÃ© appliquÃ©s ci-dessus, on peut utiliser donnees
+        # Les filtres par filiale et agence ont déjÃ  été appliqués ci-dessus, on peut utiliser donnees
         agences = donnees.values_list('AGENCE', flat=True).distinct()
         exploitants = donnees.values_list('EXPL', flat=True).distinct()
     elif user.organe in users_filiale:
-        # Le filtre par filiale a dÃ©jÃ  Ã©tÃ© appliquÃ© ci-dessus, on peut utiliser donnees
+        # Le filtre par filiale a déjÃ  été appliqué ci-dessus, on peut utiliser donnees
         agences = donnees.values_list('AGENCE', flat=True).distinct()
         exploitants = donnees.values_list('EXPL', flat=True).distinct()
 
@@ -3484,8 +4137,8 @@ def non_resid(request):
         del query_params['page']
 
     # 2. Obtenir le QuerySet final pour la pagination
-    # On utilise 'donnees' qui est le QuerySet filtrÃ©
-    queryset = donnees
+    # On utilise 'donnees' qui est le QuerySet filtré
+    queryset = donnees.order_by('id')
 
     # Simulation de la variable
     ITEMS_PER_PAGE = 25
@@ -3507,8 +4160,59 @@ def non_resid(request):
     if 'page' in query_params:
         del query_params['page']
 
+    # Non Résident PP KPIs
+    total_non_resid = donnees.count()
+    missing_non_resid = get_incomplete_clients_queryset(donnees, 'pp').count()
+    complete_non_resid = max(0, total_non_resid - missing_non_resid)
+    compliance_rate = round((complete_non_resid / total_non_resid) * 100, 1) if total_non_resid > 0 else 100.0
+
+    # Répartition par pays
+    country_counts = list(
+        donnees.values('PAYS_RESID')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    country_items = []
+    for cc in country_counts:
+        country_code = cc['PAYS_RESID'] or "Non renseigné"
+        pct = round((cc['count'] / total_non_resid) * 100, 1) if total_non_resid > 0 else 0.0
+        country_items.append({
+            'label': country_code,
+            'value': cc['count'],
+            'suffix': f'({pct}%)'
+        })
+
+    export_params = request.GET.copy()
+    export_params['incompletes'] = '1'
+    export_incomplets_url = f"{reverse('export_non_resid_pp')}?{export_params.urlencode()}"
+
+    kpi_cards = [
+        {
+            'tone': 'emerald',
+            'label': 'Répartition par Pays',
+            'value': total_non_resid,
+            'subtitle': 'Clients non résidents PP',
+            'show_modal': True,
+            'items': country_items
+        },
+        {
+            'tone': 'red',
+            'label': 'PP Incomplets',
+            'value': missing_non_resid,
+            'subtitle': 'Dossiers avec données manquantes',
+            'export_url': export_incomplets_url,
+        },
+        {
+            'tone': 'blue',
+            'label': 'Taux de complétude',
+            'value': compliance_rate,
+            'suffix': '%',
+            'subtitle': 'Dossiers complets / total',
+        }
+    ]
+
     context = {
-        # 'donnees' est maintenant l'objet Page paginÃ©
+        # 'donnees' est maintenant l'objet Page paginé
         "donnees": objets_page,
         'filiales': filiales,
         'agences': agences,
@@ -3517,27 +4221,29 @@ def non_resid(request):
         'users_groupe': users_groupe,
         'users_filiale': users_filiale,
         'get_params': query_params.urlencode(),
+        'kpi_cards': kpi_cards,
     }
     return render(request, 'non_resid.html', context)
 
+@login_required
 def export_non_resid_pp(request):
         user = request.user
 
-        users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
-        users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "ConformitÃ© Groupe",
-                        "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+        users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
+        users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe",
+                        "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
-        # RÃ©cupÃ©ration des filtres GET pour la synchronisation
+        # Récupération des filtres GET pour la synchronisation
         filiale_param = request.GET.get('filiale', '')
         agence_param = request.GET.get('agence', '')
         expl_param = request.GET.get('expl', '')
 
-        # DÃ©but du Queryset
+        # Début du Queryset
         donnees = Kyc_pp.objects.filter(RESID__icontains="N")
 
 
-        # === Filtrage automatique selon le rÃ´le (identique Ã  devise) ===
-        if user.organe == "ChargÃ© Client":
+        # === Filtrage automatique selon le rôle (identique Ã  devise) ===
+        if user.organe == "Chargé Client":
             donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
         elif user.organe == "Directeur Agence":
             donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -3555,19 +4261,22 @@ def export_non_resid_pp(request):
             donnees = donnees.filter(EXPL__icontains=expl_param)
         donnees = _apply_pp_header_filters(donnees, request, include_pays_resid=True)
 
-        # Fin du Queryset filtrÃ©
+        if request.GET.get('incompletes') == '1':
+            donnees = get_incomplete_clients_queryset(donnees, 'pp')
 
-        # CrÃ©ation du classeur Excel
+        # Fin du Queryset filtré
+
+        # Création du classeur Excel
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "Comptes Devise PP"  # J'ai renommÃ© le titre
+        ws.title = "Comptes Devise PP"  # J'ai renommé le titre
 
         # EntÃªtes
         headers = ["FILIALE", "AGENCE", "EXPL", "CLIENT", "CODAPE", "IDP", "PAYNAIS", "PROFESSION", "ADRESSE", "PAYS_RESID",
                    "NUMID", "SALAIRE", "ORIGINE_REV", "DATVALID", "TEL"]
         ws.append(headers)
 
-        # DonnÃ©es
+        # Données
         for d in donnees:
             ws.append([
                 d.FILIALE, d.AGENCE, d.EXPL, d.CLIENT, d.CODAPE, d.IDP,
@@ -3579,7 +4288,7 @@ def export_non_resid_pp(request):
             column_letter = get_column_letter(col_num)
             ws.column_dimensions[column_letter].width = 15
 
-        # PrÃ©parer la rÃ©ponse HTTP
+        # Préparer la réponse HTTP
         output = BytesIO()
         wb.save(output)
         output.seek(0)
@@ -3587,20 +4296,22 @@ def export_non_resid_pp(request):
         response = HttpResponse(output.read(),
                                 content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         date_str = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        filename = f"Comptes_non_resid_PP_{date_str}.xlsx"
+        if request.GET.get('incompletes') == '1':
+            filename = f"Comptes_non_resid_PP_incomplets_{date_str}.xlsx"
+        else:
+            filename = f"Comptes_non_resid_PP_{date_str}.xlsx"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
 
 
 @login_required
-@csrf_exempt
 
 def non_resid_pm(request):
-    roles_exclus = ["ChargÃ© Client"]
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    roles_exclus = ["Chargé Client"]
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = [
         "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-        "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"
+        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
     ]
     user = request.user
     filiale_param = request.GET.get('filiale', '')
@@ -3608,14 +4319,14 @@ def non_resid_pm(request):
     expl_param = request.GET.get('expl', '')
 
     # ðŸŒŸ CORRECTION / AMÃ‰LIORATION ðŸŒŸ
-    # Utilisation de __exact pour filtrer strictement les non-rÃ©sidents ('N')
+    # Utilisation de __exact pour filtrer strictement les non-résidents ('N')
     # Utilisez __icontains="N" si le champ peut contenir d'autres informations et que "N" suffit.
     donnees = Kyc_pm.objects.filter(RESID__exact="N")
-    # Si vous voulez l'ancienne logique avec moins de sensibilitÃ© Ã  la casse :
+    # Si vous voulez l'ancienne logique avec moins de sensibilité Ã  la casse :
     # donnees = Kyc_pp.objects.filter(RESID__iexact="N")
 
-    # === Filtrage automatique selon le rÃ´le ===
-    if user.organe == "ChargÃ© Client":
+    # === Filtrage automatique selon le rôle ===
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -3634,27 +4345,27 @@ def non_resid_pm(request):
         donnees = donnees.filter(EXPL__icontains=expl_param)
 
     # === Calcul des valeurs du formulaire (Listes de filtres) ===
-    # On calcule les listes sur le QuerySet filtrÃ© par le rÃ´le
+    # On calcule les listes sur le QuerySet filtré par le rôle
 
-    # Par dÃ©faut (pour les users_groupe ou si aucun rÃ´le spÃ©cifique n'est atteint)
+    # Par défaut (pour les users_groupe ou si aucun rôle spécifique n'est atteint)
     exploitants = donnees.values_list('EXPL', flat=True).distinct()
     agences = donnees.values_list('AGENCE', flat=True).distinct()
 
-    # Remplacer par des filtres plus stricts si l'utilisateur a un rÃ´le restreint
+    # Remplacer par des filtres plus stricts si l'utilisateur a un rôle restreint
     if user.organe == "Directeur Agence":
-        # Les filtres par filiale et agence ont dÃ©jÃ  Ã©tÃ© appliquÃ©s ci-dessus, on peut utiliser donnees
+        # Les filtres par filiale et agence ont déjÃ  été appliqués ci-dessus, on peut utiliser donnees
         agences = donnees.values_list('AGENCE', flat=True).distinct()
         exploitants = donnees.values_list('EXPL', flat=True).distinct()
     elif user.organe in users_filiale:
-        # Le filtre par filiale a dÃ©jÃ  Ã©tÃ© appliquÃ© ci-dessus, on peut utiliser donnees
+        # Le filtre par filiale a déjÃ  été appliqué ci-dessus, on peut utiliser donnees
         agences = donnees.values_list('AGENCE', flat=True).distinct()
         exploitants = donnees.values_list('EXPL', flat=True).distinct()
 
     filiales = donnees.values_list('FILIALE', flat=True).distinct()
 
     # 2. Obtenir le QuerySet final pour la pagination
-    # On utilise 'donnees' qui est le QuerySet filtrÃ©
-    queryset = donnees
+    # On utilise 'donnees' qui est le QuerySet filtré
+    queryset = donnees.order_by('id')
 
     # Simulation de la variable
     ITEMS_PER_PAGE = 25
@@ -3675,8 +4386,59 @@ def non_resid_pm(request):
         # Si la page est hors limites, afficher la derniÃ¨re page
         objets_page = paginator.page(paginator.num_pages)
 
+    # Non Résident PM KPIs
+    total_non_resid = donnees.count()
+    missing_non_resid = get_incomplete_clients_queryset(donnees, 'pm').count()
+    complete_non_resid = max(0, total_non_resid - missing_non_resid)
+    compliance_rate = round((complete_non_resid / total_non_resid) * 100, 1) if total_non_resid > 0 else 100.0
+
+    # Répartition par pays
+    country_counts = list(
+        donnees.values('PAYS_JUR')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    country_items = []
+    for cc in country_counts:
+        country_code = cc['PAYS_JUR'] or "Non renseigné"
+        pct = round((cc['count'] / total_non_resid) * 100, 1) if total_non_resid > 0 else 0.0
+        country_items.append({
+            'label': country_code,
+            'value': cc['count'],
+            'suffix': f'({pct}%)'
+        })
+
+    export_params = request.GET.copy()
+    export_params['incompletes'] = '1'
+    export_incomplets_url = f"{reverse('export_non_resid_pm')}?{export_params.urlencode()}"
+
+    kpi_cards = [
+        {
+            'tone': 'emerald',
+            'label': 'Répartition par Pays',
+            'value': total_non_resid,
+            'subtitle': 'Clients non résidents PM',
+            'show_modal': True,
+            'items': country_items
+        },
+        {
+            'tone': 'red',
+            'label': 'PM Incomplets',
+            'value': missing_non_resid,
+            'subtitle': 'Dossiers avec données manquantes',
+            'export_url': export_incomplets_url,
+        },
+        {
+            'tone': 'blue',
+            'label': 'Taux de complétude',
+            'value': compliance_rate,
+            'suffix': '%',
+            'subtitle': 'Dossiers complets / total',
+        }
+    ]
+
     context = {
-        # 'donnees' est maintenant l'objet Page paginÃ©
+        # 'donnees' est maintenant l'objet Page paginé
         "donnees": objets_page,
         'filiales': filiales,
         'agences': agences,
@@ -3685,27 +4447,29 @@ def non_resid_pm(request):
         'users_groupe': users_groupe,
         'users_filiale': users_filiale,
         'get_params': query_params.urlencode(),
+        'kpi_cards': kpi_cards,
     }
     return render(request, 'non_resid_pm.html', context)
 
 
+@login_required
 def export_non_resid_pm(request):
     user = request.user
 
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
-    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "ConformitÃ© Groupe",
-                    "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
+    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe",
+                    "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
-    # RÃ©cupÃ©ration des filtres GET pour la synchronisation
+    # Récupération des filtres GET pour la synchronisation
     filiale_param = request.GET.get('filiale', '')
     agence_param = request.GET.get('agence', '')
     expl_param = request.GET.get('expl', '')
 
-    # DÃ©but du Queryset
+    # Début du Queryset
     donnees = Kyc_pm.objects.filter(RESID__icontains="N")
 
-    # === Filtrage automatique selon le rÃ´le (identique Ã  devise) ===
-    if user.organe == "ChargÃ© Client":
+    # === Filtrage automatique selon le rôle (identique Ã  devise) ===
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -3722,19 +4486,22 @@ def export_non_resid_pm(request):
     if expl_param:
         donnees = donnees.filter(EXPL__icontains=expl_param)
 
-    # Fin du Queryset filtrÃ©
+    if request.GET.get('incompletes') == '1':
+        donnees = get_incomplete_clients_queryset(donnees, 'pm')
 
-    # CrÃ©ation du classeur Excel
+    # Fin du Queryset filtré
+
+    # Création du classeur Excel
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Comptes Devise PP"  # J'ai renommÃ© le titre
+    ws.title = "Comptes Devise PP"  # J'ai renommé le titre
 
     # EntÃªtes
     headers = ["FILIALE", "AGENCE", "EXPL", "CLIENT", "AGEC", "CODAPE", "IDM", "RCSNO", "CAPITAL", "CA",
                "RESULTAT", "TEL"]
     ws.append(headers)
 
-    # DonnÃ©es
+    # Données
     for d in donnees:
         ws.append([
             d.FILIALE, d.AGENCE, d.EXPL, d.CLIENT, d.AGEC, d.CODAPE, d.IDM,
@@ -3746,7 +4513,7 @@ def export_non_resid_pm(request):
         column_letter = get_column_letter(col_num)
         ws.column_dimensions[column_letter].width = 15
 
-    # PrÃ©parer la rÃ©ponse HTTP
+    # Préparer la réponse HTTP
     output = BytesIO()
     wb.save(output)
     output.seek(0)
@@ -3754,21 +4521,25 @@ def export_non_resid_pm(request):
     response = HttpResponse(output.read(),
                             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    filename = f"Comptes_non_resid_PM_{date_str}.xlsx"
+    if request.GET.get('incompletes') == '1':
+        filename = f"Comptes_non_resid_PM_incomplets_{date_str}.xlsx"
+    else:
+        filename = f"Comptes_non_resid_PM_{date_str}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
 
+@login_required
 def scoring(request):
-    # 1. DÃ©finition des rÃ´les
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau", 'Risques', 'DAI', 'QualitÃ©']
-    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "ConformitÃ© Groupe",
-                    "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+    # 1. Définition des rôles
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau", 'Risques', 'DAI', 'Qualité']
+    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe",
+                    "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
     user = request.user
     today = date.today()
 
-    # 2. RÃ©cupÃ©ration des paramÃ¨tres
+    # 2. Récupération des paramÃ¨tres
     periode_param = request.GET.get("periode", "")
     filiale_param = request.GET.get("filiale", "")
     agence_param = request.GET.get("agence", "")
@@ -3783,17 +4554,19 @@ def scoring(request):
     # On commence par TOUT (on retire le filtre isnull pour tester)
     qs = DATEREV.objects.all()
 
-    # 3. Filtrage par RÃ´le (SÃ©curitÃ©)
+    # 3. Filtrage par Rôle (Sécurité)
     organe = getattr(user, "organe", "")
-    if organe == "ChargÃ© Client":
-        qs = qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
-    elif organe == "Directeur Agence":
-        qs = qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
-    elif organe in users_filiale:
-        qs = qs.filter(FILIALE=user.filiale)
+    is_group_user = (organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
+    if not is_group_user:
+        if organe == "Chargé Client":
+            qs = qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
+        elif organe == "Directeur Agence":
+            qs = qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
+        elif organe in users_filiale:
+            qs = qs.filter(FILIALE=user.filiale)
     # Si users_groupe, on ne filtre pas initialement
 
-    # 4. Filtrage par PÃ©riode
+    # 4. Filtrage par Période
     if periode_param == "today":
         qs = qs.filter(DATEREV__lte=today)
     elif periode_param == "3m":
@@ -3835,8 +4608,8 @@ def scoring(request):
         if parsed:
             qs = qs.filter(DATEREV=parsed)
 
-    # 6. GÃ©nÃ©ration des options pour les menus dÃ©roulants (basÃ© sur le QS filtrÃ© ou global)
-    # Il est souvent prÃ©fÃ©rable de baser les options sur le QS global ou par filiale
+    # 6. Génération des options pour les menus déroulants (basé sur le QS filtré ou global)
+    # Il est souvent préférable de baser les options sur le QS global ou par filiale
     filiales_opts = DATEREV.objects.values_list("FILIALE", flat=True).distinct().order_by("FILIALE")
     agences_opts = qs.values_list("AGENCE", flat=True).distinct().order_by("AGENCE")
     exploitants_opts = qs.values_list("EXPL", flat=True).distinct().order_by("EXPL")
@@ -3860,9 +4633,9 @@ def scoring(request):
         "filiale_param": filiale_param,
         "agence_param": agence_param,
         "expl_param": expl_param,
-        "can_pick_filiale": organe in users_groupe,
-        "can_pick_agence": (organe in users_groupe or organe in users_filiale or organe == "Directeur Agence"),
-        "can_pick_expl": (organe in users_groupe or organe in users_filiale or organe == "Directeur Agence"),
+        "can_pick_filiale": is_group_user,
+        "can_pick_agence": (is_group_user or organe in users_filiale or organe == "Directeur Agence"),
+        "can_pick_expl": (is_group_user or organe in users_filiale or organe == "Directeur Agence"),
         "get_params": request.GET.urlencode(),
     }
     return render(request, "scoring.html", context)
@@ -3874,13 +4647,14 @@ from openpyxl.utils import get_column_letter
 from datetime import datetime, date, timedelta
 from .models import DATEREV
 
+@login_required
 def export_csv_scoring(request):
     user = request.user
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
-    # RÃ©cupÃ©rer les filtres GET comme dans la vue scoring
+    # Récupérer les filtres GET comme dans la vue scoring
     periode_param = request.GET.get("periode", "")
     filiale_param = request.GET.get("filiale", "")
     agence_param = request.GET.get("agence", "")
@@ -3900,7 +4674,7 @@ def export_csv_scoring(request):
 
     base_qs = DATEREV.objects.filter(DATEREV__isnull=False)
 
-    if getattr(user, "organe", "") == "ChargÃ© Client":
+    if getattr(user, "organe", "") == "Chargé Client":
         base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -3910,10 +4684,10 @@ def export_csv_scoring(request):
         # pas de filtre organe â†’ laisse tout (selon ce que tu veux)
         pass
     else:
-        # par sÃ©curitÃ©, si organe non reconnu, on vide
+        # par sécurité, si organe non reconnu, on vide
         base_qs = DATEREV.objects.none()
 
-    # Appliquer le filtre pÃ©riode si dÃ©fini
+    # Appliquer le filtre période si défini
     qs_period = base_qs
     today = date.today()
     if periode_param == "today":
@@ -3981,12 +4755,12 @@ def export_csv_scoring(request):
 
     donnees = qs_period
 
-    # CrÃ©ation du classeur Excel
+    # Création du classeur Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "Notation_Stock"
 
-    # EntÃªtes (vÃ©rifie que les noms sont corrects)
+    # EntÃªtes (vérifie que les noms sont corrects)
     headers = ['FILIALE', 'AGENCE', 'EXPL', 'CLIENT', 'DATEREV', 'PPE', 'RISQUE']
     ws.append(headers)
 
@@ -4017,22 +4791,22 @@ def export_csv_scoring(request):
 
 def export_csv_scoring_ppe(request):
     user = request.user
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
-    # RÃ©cupÃ©rer les filtres GET comme dans la vue scoring
+    # Récupérer les filtres GET comme dans la vue scoring
     periode_param = request.GET.get("periode", "")
     filiale_param = request.GET.get("filiale", "")
     agence_param = request.GET.get("agence", "")
     expl_param = request.GET.get("expl", "")
 
-    if user.organe == 'ConformitÃ©':
+    if user.organe == 'Conformité':
         base_qs = DATEREV.objects.filter(FILIALE=user.filiale, PPE__icontains="O", DATEREV__isnull=False)
-    elif user.organe == "ConformitÃ© Groupe":
+    elif user.organe == "Conformité Groupe":
         base_qs = DATEREV.objects.filter(PPE__icontains="O", DATEREV__isnull=False)
 
-    # Appliquer le filtre pÃ©riode si dÃ©fini
+    # Appliquer le filtre période si défini
     qs_period = base_qs
     today = date.today()
     if periode_param == "today":
@@ -4058,12 +4832,12 @@ def export_csv_scoring_ppe(request):
 
     donnees = qs_period
 
-    # CrÃ©ation du classeur Excel
+    # Création du classeur Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "Notation_Stock"
 
-    # EntÃªtes (vÃ©rifie que les noms sont corrects)
+    # EntÃªtes (vérifie que les noms sont corrects)
     headers = ['FILIALE', 'AGENCE', 'EXPL', 'CLIENT', 'DATEREV', 'PPE', 'RISQUE']
     ws.append(headers)
 
@@ -4092,48 +4866,50 @@ def export_csv_scoring_ppe(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
-
 def clients_scorer(request):
-    # RÃ´les
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
-    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "ConformitÃ© Groupe",
-                    "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+    from .models import Notation, Kyc_pm, Kyc_pp
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau", 'Risques', 'DAI', 'Qualité']
+    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe",
+                    "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
     user = request.user
-
     notes = Notation.objects.filter(flux_stock='Flux')
-
     latest_notes = notes.values('agent').annotate(latest_date=Max('date_notation'))
-
-    # Filtrer pour obtenir uniquement la derniÃ¨re note par agent
     notation = notes.filter(date_notation__in=[n['latest_date'] for n in latest_notes])
-    notation = notation.filter(agent__filiale=user.filiale, agent__code_expl=user.code_expl)
+    if user.is_authenticated and getattr(user, 'filiale', ''):
+        notation = notation.filter(agent__filiale=user.filiale)
+    if user.is_authenticated and getattr(user, 'code_expl', ''):
+        notation = notation.filter(agent__code_expl=user.code_expl)
 
-
-    # Params GET
     periode_param = request.GET.get("periode", "")
     filiale_param = request.GET.get("filiale", "")
     agence_param = request.GET.get("agence", "")
     expl_param = request.GET.get("expl", "")
+    risque_param = request.GET.get("risque", "")
+    client_type = request.GET.get('type_client', 'pp')
 
-    # RÃ©cupÃ©rer les paramÃ¨tres GET pour les conserver dans les liens de pagination
-    get_params = request.GET.copy()
-    if 'page' in get_params:
-        del get_params['page']
+    col_agence = request.GET.get('col_agence', '')
+    col_lib_agence = request.GET.get('col_lib_agence', '')
+    col_expl = request.GET.get('col_expl', '')
+    col_client = request.GET.get('col_client', '')
+    col_daterev = request.GET.get('col_daterev', '')
+    col_ppe = request.GET.get('col_ppe', '')
+    col_risque = request.GET.get('col_risque', '')
 
-    base_qs = DATEREV.objects.all()
+    if client_type == 'pm':
+        base_qs = DATEREV.objects.filter(Exists(Kyc_pm.objects.filter(CLIENT=OuterRef('CLIENT'))))
+    else:
+        base_qs = DATEREV.objects.filter(Exists(Kyc_pp.objects.filter(CLIENT=OuterRef('CLIENT'))))
 
-    # --- LOGIQUE DE FILTRAGE PAR RÃ”LE ---
-    if getattr(user, "organe", "") == "ChargÃ© Client":
-        base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
-    elif user.organe == "Directeur Agence":
-        base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
-    elif user.organe in users_filiale:
-        base_qs = base_qs.filter(FILIALE=user.filiale)
-    elif user.organe in users_groupe:
-        pass  # Pas de filtre initial pour le groupe
+    is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
+    if not is_group_user:
+        if getattr(user, "organe", "") == "Chargé Client":
+            base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
+        elif user.organe == "Directeur Agence":
+            base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
+        elif user.organe in users_filiale:
+            base_qs = base_qs.filter(FILIALE=user.filiale)
 
-    # --- LOGIQUE DE FILTRAGE PAR PÃ‰RIODE ---
     today = date.today()
     qs_period = base_qs
     if periode_param == "today":
@@ -4144,152 +4920,218 @@ def clients_scorer(request):
         qs_period = qs_period.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=180))
     elif periode_param == "1y":
         qs_period = qs_period.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=365))
+    elif periode_param == "no_date":
+        qs_period = qs_period.filter(DATEREV__isnull=True)
 
-    # --- LOGIQUE DE FILTRAGE DYNAMIQUE (FILIALE, AGENCE, EXPL) ---
-
-    can_pick_filiale = user.organe in users_groupe
+    can_pick_filiale = is_group_user
     selected_filiale = filiale_param if can_pick_filiale else getattr(user, "filiale", "")
-    filiales_opts = qs_period.values_list("FILIALE", flat=True).distinct().order_by("FILIALE")
+    _user_scope = "groupe" if is_group_user else getattr(user, 'filiale', 'filiale')
+    filiales_cache_key = f"filiales_opts_{client_type}_{periode_param}_{_user_scope}"
+    filiales_opts = cache.get(filiales_cache_key)
+    if filiales_opts is None:
+        filiales_opts = list(qs_period.values_list("FILIALE", flat=True).distinct().order_by("FILIALE"))
+        cache.set(filiales_cache_key, filiales_opts, 300)
+
     qs_filiale = qs_period
     if selected_filiale:
         qs_filiale = qs_filiale.filter(FILIALE=selected_filiale)
 
-    can_pick_agence = (user.organe in users_groupe) or (user.organe in users_filiale) or (
-            user.organe == "Directeur Agence")
-    if user.organe == "Directeur Agence":
-        selected_agence = getattr(user, "agence", "")
-    else:
-        selected_agence = agence_param
-    agences_opts = qs_filiale.values_list("AGENCE", flat=True).distinct().order_by("AGENCE")
+    can_pick_agence = (user.organe in users_groupe) or (user.organe in users_filiale) or (user.organe == "Directeur Agence")
+    selected_agence = getattr(user, "agence", "") if user.organe == "Directeur Agence" else agence_param
+    agences_cache_key = f"agences_opts_{client_type}_{periode_param}_{selected_filiale}_{_user_scope}"
+    agences_opts = cache.get(agences_cache_key)
+    if agences_opts is None:
+        agences_opts = list(qs_filiale.values_list("AGENCE", flat=True).distinct().order_by("AGENCE"))
+        cache.set(agences_cache_key, agences_opts, 300)
+
     qs_agence = qs_filiale
     if selected_agence:
         qs_agence = qs_agence.filter(AGENCE=selected_agence)
 
-    can_pick_expl = (user.organe in users_groupe) or (user.organe in users_filiale) or (
-            user.organe == "Directeur Agence")
-    if getattr(user, "organe", "") == "ChargÃ© Client":
-        selected_expl = getattr(user, "code_expl", "")
-    else:
-        selected_expl = expl_param
-    exploitants_opts = qs_agence.values_list("EXPL", flat=True).distinct().order_by("EXPL")
+    can_pick_expl = getattr(user, "organe", "") != "Chargé Client"
+    selected_expl = getattr(user, "code_expl", "") if getattr(user, "organe", "") == "Chargé Client" else expl_param
+    exploitants_cache_key = f"expl_opts_{client_type}_{periode_param}_{selected_filiale}_{selected_agence}_{_user_scope}"
+    exploitants_opts = cache.get(exploitants_cache_key)
+    if exploitants_opts is None:
+        exploitants_opts = list(qs_agence.values_list("EXPL", flat=True).distinct().order_by("EXPL"))
+        cache.set(exploitants_cache_key, exploitants_opts, 300)
 
-    donnees_queryset = qs_agence  # RenommÃ© pour clartÃ© avant le filtre final
+    donnees_queryset = qs_agence
     if selected_expl:
         donnees_queryset = donnees_queryset.filter(EXPL=selected_expl)
 
-    # Evite les doublons visibles si des doublons historiques existent en base
-    donnees_queryset = (
-        donnees_queryset
-        .values("FILIALE", "AGENCE", "LIB_AGENCE", "EXPL", "CLIENT", "DATEREV", "PPE", "RISQUE")
-        .distinct()
-        .order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
+    if col_agence: donnees_queryset = donnees_queryset.filter(AGENCE__icontains=col_agence)
+    if col_lib_agence: donnees_queryset = donnees_queryset.filter(LIB_AGENCE__icontains=col_lib_agence)
+    if col_expl: donnees_queryset = donnees_queryset.filter(EXPL__icontains=col_expl)
+    if col_client: donnees_queryset = donnees_queryset.filter(CLIENT__icontains=col_client)
+    if col_daterev: donnees_queryset = donnees_queryset.filter(DATEREV__icontains=col_daterev)
+    if col_ppe: donnees_queryset = donnees_queryset.filter(PPE__icontains=col_ppe)
+    if col_risque: donnees_queryset = donnees_queryset.filter(RISQUE__icontains=col_risque)
+
+    agg = donnees_queryset.aggregate(
+        scored=Count(Case(When(~Q(RISQUE="") & ~Q(RISQUE__isnull=True), then=1), output_field=IntegerField())),
+        unscored=Count(Case(When(Q(RISQUE="") | Q(RISQUE__isnull=True), then=1), output_field=IntegerField())),
+        overdue_unscored=Count(Case(When((Q(RISQUE="") | Q(RISQUE__isnull=True)) & Q(DATEREV__lte=today), then=1), output_field=IntegerField()))
     )
+    scorer_scored_count = agg['scored'] or 0
+    scorer_unscored_count = agg['unscored'] or 0
+    total_scorer = scorer_scored_count + scorer_unscored_count
+    scoring_rate = (scorer_scored_count / total_scorer * 100) if total_scorer > 0 else 0.0
+    if scorer_unscored_count > 0 and scoring_rate >= 99.9:
+        scoring_rate = 99.9
+    overdue_unscored_count = agg['overdue_unscored'] or 0
 
-    # --- DÃ‰BUT DE LA LOGIQUE DE PAGINATION ---
+    risk_options = cache.get("risk_options_opts")
+    if risk_options is None:
+        risk_options = sorted(list(set(DATEREV.objects.exclude(RISQUE="").exclude(RISQUE__isnull=True).values_list('RISQUE', flat=True).distinct())))
+        cache.set("risk_options_opts", risk_options, 300)
 
-    paginator = Paginator(donnees_queryset, 100)  # 100 Ã©lÃ©ments par page
-    page = request.GET.get('page')
+    if risque_param:
+        if risque_param == "sans_classe":
+            donnees_queryset = donnees_queryset.filter(Q(RISQUE="") | Q(RISQUE__isnull=True))
+        else:
+            donnees_queryset = donnees_queryset.filter(RISQUE=risque_param)
 
-    try:
-        donnees_page = paginator.page(page)
-    except PageNotAnInteger:
-        donnees_page = paginator.page(1)
-    except EmptyPage:
-        donnees_page = paginator.page(paginator.num_pages)
+    donnees_queryset = donnees_queryset.values("FILIALE", "AGENCE", "LIB_AGENCE", "EXPL", "CLIENT", "DATEREV", "PPE", "RISQUE").order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
 
-    # --- FIN DE LA LOGIQUE DE PAGINATION ---
+    show_non_scored_modal = request.GET.get('show_non_scored_modal') == '1'
+    is_overdue = request.GET.get('overdue') == '1'
+    non_scored_page = None
+    if show_non_scored_modal:
+        non_scored_qs = qs_agence
+        if selected_expl: non_scored_qs = non_scored_qs.filter(EXPL=selected_expl)
+        if col_agence: non_scored_qs = non_scored_qs.filter(AGENCE__icontains=col_agence)
+        if col_lib_agence: non_scored_qs = non_scored_qs.filter(LIB_AGENCE__icontains=col_lib_agence)
+        if col_expl: non_scored_qs = non_scored_qs.filter(EXPL__icontains=col_expl)
+        if col_client: non_scored_qs = non_scored_qs.filter(CLIENT__icontains=col_client)
+        if col_daterev: non_scored_qs = non_scored_qs.filter(DATEREV__icontains=col_daterev)
+        if col_ppe: non_scored_qs = non_scored_qs.filter(PPE__icontains=col_ppe)
+        non_scored_qs = non_scored_qs.filter(Q(RISQUE="") | Q(RISQUE__isnull=True))
+        if is_overdue:
+            non_scored_qs = non_scored_qs.filter(DATEREV__lte=today)
+        non_scored_qs = non_scored_qs.order_by("CLIENT")
+        ns_paginator = CachedPaginator(non_scored_qs, 50)
+        try: non_scored_page = ns_paginator.page(request.GET.get('non_scored_page', 1))
+        except (PageNotAnInteger, EmptyPage): non_scored_page = ns_paginator.page(1)
+
+    paginator = CachedPaginator(donnees_queryset, 100)
+    try: donnees_page = paginator.page(request.GET.get('page'))
+    except PageNotAnInteger: donnees_page = paginator.page(1)
+    except EmptyPage: donnees_page = paginator.page(paginator.num_pages)
+
+    current_get = request.GET.copy()
+    current_get.pop('page', None)
+    get_params = current_get.urlencode()
+    
+    close_get = current_get.copy()
+    close_get.pop('show_non_scored_modal', None)
+    close_get.pop('non_scored_page', None)
+    non_scored_close_params = close_get.urlencode()
+    
+    modal_get = close_get.copy()
+    modal_get['show_non_scored_modal'] = '1'
+    non_scored_modal_params = modal_get.urlencode()
+    
+    overdue_modal_get = modal_get.copy()
+    overdue_modal_get['overdue'] = '1'
+    overdue_non_scored_modal_params = overdue_modal_get.urlencode()
+    
+    export_get = close_get.copy()
+    export_get['export_unscored'] = '1'
+    non_scored_export_params = export_get.urlencode()
+    
+    pp_nav = current_get.copy()
+    pp_nav['type_client'] = 'pp'
+    pp_nav_params = pp_nav.urlencode()
+    
+    pm_nav = current_get.copy()
+    pm_nav['type_client'] = 'pm'
+    pm_nav_params = pm_nav.urlencode()
+    
+    reset_params = f"type_client={client_type}"
 
     context = {
-        # On passe l'objet Page au template
-        "donnees": donnees_page,
-
-        # Options de filtres
-        "filiales": filiales_opts,
-        "agences": agences_opts,
-        "exploitants": exploitants_opts,
-        "notation": notation,
-        # SÃ©lections courantes
-        "periode": periode_param,
-        "filiale_param": selected_filiale,
-        "agence_param": selected_agence,
-        "expl_param": selected_expl,
-
-        # RÃ´les
-        "users_groupe": users_groupe,
-        "users_filiale": users_filiale,
-
-        # Droits d'Ã©dition des selects
-        "can_pick_filiale": can_pick_filiale,
-        "can_pick_agence": can_pick_agence,
-        "can_pick_expl": can_pick_expl,
-
-        # ParamÃ¨tres GET pour la pagination
-        'get_params': get_params.urlencode(),
+        "donnees": donnees_page, "filiales": filiales_opts, "agences": agences_opts, "exploitants": exploitants_opts,
+        "notation": notation, "periode": periode_param, "filiale_param": selected_filiale, "agence_param": selected_agence,
+        "expl_param": selected_expl, "risque_param": risque_param, "client_type": client_type, "risk_options": risk_options,
+        "scorer_scored_count": scorer_scored_count, "scorer_unscored_count": scorer_unscored_count, "scoring_rate": scoring_rate,
+        "overdue_unscored_count": overdue_unscored_count, "show_non_scored_modal": show_non_scored_modal,
+        "non_scored_page": non_scored_page, "users_groupe": users_groupe, "users_filiale": users_filiale,
+        "can_pick_filiale": can_pick_filiale, "can_pick_agence": can_pick_agence, "can_pick_expl": can_pick_expl,
+        "get_params": get_params, "reset_params": reset_params, "non_scored_modal_params": non_scored_modal_params,
+        "overdue_non_scored_modal_params": overdue_non_scored_modal_params, "is_overdue_modal": is_overdue,
+        "non_scored_close_params": non_scored_close_params, "non_scored_export_params": non_scored_export_params,
+        "pp_nav_params": pp_nav_params, "pm_nav_params": pm_nav_params
     }
     return render(request, "clients_scorer.html", context)
 
-
 def export_csv_scoring_clients(request):
-    def strip_tz(value):
-        if hasattr(value, 'tzinfo'):
-            return value.replace(tzinfo=None)
-        return value
-
+    from .models import Kyc_pm, Kyc_pp
     user = request.user
+    periode_param, filiale_param, agence_param, expl_param = request.GET.get("periode", ""), request.GET.get("filiale", ""), request.GET.get("agence", ""), request.GET.get("expl", "")
+    risque_param, client_type, export_unscored = request.GET.get("risque", ""), request.GET.get('type_client', 'pp'), request.GET.get('export_unscored') == '1'
+    col_agence, col_lib_agence, col_expl, col_client, col_daterev, col_ppe, col_risque = request.GET.get('col_agence', ''), request.GET.get('col_lib_agence', ''), request.GET.get('col_expl', ''), request.GET.get('col_client', ''), request.GET.get('col_daterev', ''), request.GET.get('col_ppe', ''), request.GET.get('col_risque', '')
 
-    donnees = (
-        DATEREV.objects
-        .filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
-        .values("FILIALE", "AGENCE", "EXPL", "CLIENT", "DATEREV", "PPE", "RISQUE")
-        .distinct()
-        .order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
-    )
+    if client_type == 'pm': base_qs = DATEREV.objects.filter(Exists(Kyc_pm.objects.filter(CLIENT=OuterRef('CLIENT'))))
+    else: base_qs = DATEREV.objects.filter(Exists(Kyc_pp.objects.filter(CLIENT=OuterRef('CLIENT'))))
 
-    # CrÃ©ation du classeur Excel
+    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe",
+                    "Contrôle Permanent Groupe", "PASS", "GUEST"]
+    is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
+    if not is_group_user:
+        if getattr(user, "organe", "") == "Chargé Client": base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
+        elif user.organe == "Directeur Agence": base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
+        elif user.organe in ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau", 'Risques', 'DAI', 'Qualité']: base_qs = base_qs.filter(FILIALE=user.filiale)
+
+    today = date.today()
+    if periode_param == "today": base_qs = base_qs.filter(DATEREV__lte=today)
+    elif periode_param == "3m": base_qs = base_qs.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=90))
+    elif periode_param == "6m": base_qs = base_qs.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=180))
+    elif periode_param == "1y": base_qs = base_qs.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=365))
+    elif periode_param == "no_date": base_qs = base_qs.filter(DATEREV__isnull=True)
+
+    if filiale_param: base_qs = base_qs.filter(FILIALE=filiale_param)
+    if agence_param: base_qs = base_qs.filter(AGENCE=agence_param)
+    if expl_param: base_qs = base_qs.filter(EXPL=expl_param)
+
+    if export_unscored: base_qs = base_qs.filter(Q(RISQUE="") | Q(RISQUE__isnull=True))
+    elif risque_param:
+        if risque_param == "sans_classe": base_qs = base_qs.filter(Q(RISQUE="") | Q(RISQUE__isnull=True))
+        else: base_qs = base_qs.filter(RISQUE=risque_param)
+
+    if col_agence: base_qs = base_qs.filter(AGENCE__icontains=col_agence)
+    if col_lib_agence: base_qs = base_qs.filter(LIB_AGENCE__icontains=col_lib_agence)
+    if col_expl: base_qs = base_qs.filter(EXPL__icontains=col_expl)
+    if col_client: base_qs = base_qs.filter(CLIENT__icontains=col_client)
+    if col_daterev: base_qs = base_qs.filter(DATEREV__icontains=col_daterev)
+    if col_ppe: base_qs = base_qs.filter(PPE__icontains=col_ppe)
+    if col_risque: base_qs = base_qs.filter(RISQUE__icontains=col_risque)
+
+    donnees = base_qs.values("FILIALE", "AGENCE", "EXPL", "CLIENT", "DATEREV", "PPE", "RISQUE").distinct().order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Notation_Stock"
-
-    # EntÃªtes
-    headers = ['AGENCE', 'AGENCE', 'EXPL', 'CLIENT', 'DATEREV', 'PPE', 'RISQUE']
+    headers = ['FILIALE', 'AGENCE', 'EXPL', 'CLIENT', 'DATEREV', 'PPE', 'RISQUE']
     ws.append(headers)
-
-    # DonnÃ©es
     for d in donnees:
-        ws.append([
-            d["FILIALE"], d["AGENCE"], d["EXPL"], d["CLIENT"], d["DATEREV"], d["PPE"], d["RISQUE"]
-
-        ])
-
-    # Ajustement largeur des colonnes (optionnel)
-    for col_num, column_title in enumerate(headers, 1):
-        column_letter = get_column_letter(col_num)
-        ws.column_dimensions[column_letter].width = 15
-
-    # PrÃ©parer la rÃ©ponse HTTP
+        daterev_val = d["DATEREV"].strftime("%Y-%m-%d") if isinstance(d["DATEREV"], date) else str(d["DATEREV"] or "")
+        ws.append([d["FILIALE"], d["AGENCE"], d["EXPL"], d["CLIENT"], daterev_val, d["PPE"], d["RISQUE"]])
     output = BytesIO()
     wb.save(output)
     output.seek(0)
-
-    response = HttpResponse(output.read(),
-                            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    date_str = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    filename = f"Revue_scoring_{date_str}.xlsx"
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="Revue_scoring_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.xlsx"'
     return response
 
-
 @login_required
-@csrf_exempt
 def sans_classe(request):
     user = request.user
 
-    # 1. RÃ´les et paramÃ¨tres
-    roles_exclus = ["ChargÃ© Client"]
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    # 1. Rôles et paramÃ¨tres
+    roles_exclus = ["Chargé Client"]
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = [
         "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-        "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"
+        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
     ]
 
     filiale_param = request.GET.get('filiale', '')
@@ -4302,17 +5144,19 @@ def sans_classe(request):
     client_txt = request.GET.get('client', '').strip()
     risque_txt = request.GET.get('risque', '').strip()
 
-    # 2. Filtrage de base (SÃ©curitÃ© par rÃ´le + Condition CLASSE vide)
+    # 2. Filtrage de base (Sécurité par rôle + Condition CLASSE vide)
     # On commence par le filtre "CLASSE vide ou nulle"
     donnees_queryset = DATEREV.objects.filter(Q(RISQUE__isnull=True) | Q(RISQUE=""))
 
-    # Restriction du pÃ©rimÃ¨tre selon l'organe de l'utilisateur
-    if user.organe == "ChargÃ© Client":
-        donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
-    elif user.organe == "Directeur Agence":
-        donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale, AGENCE=user.agence)
-    elif user.organe in users_filiale:
-        donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale)
+    # Restriction du périmÃ¨tre selon l'organe de l'utilisateur
+    is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
+    if not is_group_user:
+        if user.organe == "Chargé Client":
+            donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
+        elif user.organe == "Directeur Agence":
+            donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale, AGENCE=user.agence)
+        elif user.organe in users_filiale:
+            donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale)
 
     # 3. Filtres manuels via le formulaire (GET)
     if filiale_param:
@@ -4334,17 +5178,18 @@ def sans_classe(request):
     if risque_txt:
         donnees_queryset = donnees_queryset.filter(RISQUE__icontains=risque_txt)
 
-    # Tri cohÃ©rent pour la pagination
+    # Tri cohérent pour la pagination
     donnees_queryset = donnees_queryset.order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
 
-    # 4. Options pour les menus dÃ©roulants (respectant le pÃ©rimÃ¨tre)
+    # 4. Options pour les menus déroulants (respectant le périmÃ¨tre)
     options_qs = DATEREV.objects.filter(Q(RISQUE__isnull=True) | Q(RISQUE=""))
-    if user.organe == "ChargÃ© Client":
-        options_qs = options_qs.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
-    elif user.organe == "Directeur Agence":
-        options_qs = options_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
-    elif user.organe in users_filiale:
-        options_qs = options_qs.filter(FILIALE=user.filiale)
+    if not is_group_user:
+        if user.organe == "Chargé Client":
+            options_qs = options_qs.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
+        elif user.organe == "Directeur Agence":
+            options_qs = options_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
+        elif user.organe in users_filiale:
+            options_qs = options_qs.filter(FILIALE=user.filiale)
 
     filiales = options_qs.values_list('FILIALE', flat=True).distinct().order_by('FILIALE')
     agences = options_qs.values_list('AGENCE', flat=True).distinct().order_by('AGENCE')
@@ -4380,13 +5225,14 @@ def sans_classe(request):
     return render(request, 'sans_classe.html', context)
 
 
+@login_required
 def export_sans_classe(request):
     user = request.user
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
-    # RÃ©cupÃ©rer les filtres GET
+    # Récupérer les filtres GET
     filiale_param = request.GET.get('filiale', '')
     agence_param = request.GET.get('agence', '')
     expl_param = request.GET.get('expl', '')
@@ -4394,21 +5240,21 @@ def export_sans_classe(request):
     # Base queryset â€” uniquement ceux avec un RISQUE non nul
     donnees = DATEREV.objects.filter(Q(RISQUE__isnull=True) | Q(RISQUE=""))
 
-    # Filtrage selon le rÃ´le
-    if user.organe == "ChargÃ© Client":
+    is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
+    # Filtrage selon le rôle
+    if is_group_user:
+        pass
+    elif user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
     elif user.organe in users_filiale:
         donnees = donnees.filter(FILIALE=user.filiale)
-    elif user.organe in users_groupe:
-        # donnees reste DATEREV.objects.filter(CLASSE__isnull=False)
-        pass
     else:
-        # Si organe non reconnu ou pas autorisÃ© â€” optionnel : renvoyer vide
+        # Si organe non reconnu ou pas autorisé — optionnel : renvoyer vide
         donnees = DATEREV.objects.none()
 
-    # Appliquer les filtres GET si prÃ©sents
+    # Appliquer les filtres GET si présents
     if filiale_param:
         donnees = donnees.filter(FILIALE__icontains=filiale_param)
     if agence_param:
@@ -4428,7 +5274,7 @@ def export_sans_classe(request):
     if risque_txt:
         donnees = donnees.filter(RISQUE__icontains=risque_txt)
 
-    # CrÃ©ation du fichier Excel
+    # Création du fichier Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "Sans_Classe_Export"
@@ -4468,25 +5314,25 @@ from django.db.models import Q, Max
 def sans_classe_s(request):
     user = request.user
 
-    # 1. RÃ´les et paramÃ¨tres
-    roles_exclus = ["ChargÃ© Client"]
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    # 1. Rôles et paramÃ¨tres
+    roles_exclus = ["Chargé Client"]
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = [
         "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-        "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"
+        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
     ]
 
     filiale_param = request.GET.get('filiale', '')
     agence_param = request.GET.get('agence', '')
     expl_param = request.GET.get('expl', '')
 
-    # 2. Gestion des Notations (DerniÃ¨re note par agent selon pÃ©rimÃ¨tre)
+    # 2. Gestion des Notations (DerniÃ¨re note par agent selon périmÃ¨tre)
     notes = Notation.objects.filter(flux_stock='Flux')
     latest_notes = notes.values('agent').annotate(latest_date=Max('date_notation'))
     notation = notes.filter(date_notation__in=[n['latest_date'] for n in latest_notes])
 
-    # SÃ©curisation de l'affichage des notes
-    if user.organe == "ChargÃ© Client":
+    # Sécurisation de l'affichage des notes
+    if user.organe == "Chargé Client":
         notation = notation.filter(agent__filiale=user.filiale, agent__code_expl=user.code_expl)
     elif user.organe == "Directeur Agence":
         notation = notation.filter(agent__filiale=user.filiale, agent__agence=user.agence)
@@ -4498,8 +5344,8 @@ def sans_classe_s(request):
     # Correction : On exclut les vides ET les nuls
     donnees_queryset = DATEREV.objects.filter(Q(RISQUE__isnull=True) | Q(RISQUE=""))
 
-    # Filtrage automatique selon le rÃ´le (SÃ©curitÃ©)
-    if user.organe == "ChargÃ© Client":
+    # Filtrage automatique selon le rôle (Sécurité)
+    if user.organe == "Chargé Client":
         donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -4528,7 +5374,7 @@ def sans_classe_s(request):
 
     # 4. Valeurs du formulaire (Options des filtres)
     options_qs = DATEREV.objects.all()
-    if user.organe == "ChargÃ© Client":
+    if user.organe == "Chargé Client":
         options_qs = options_qs.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         options_qs = options_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -4607,16 +5453,16 @@ def export_sans_classe_s(request):
         donnees = donnees.filter(RISQUE__icontains=risque_txt)
 
 
-    # CrÃ©ation du classeur Excel
+    # Création du classeur Excel
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Clients non classÃ©s"
+    ws.title = "Clients non classés"
 
     # EntÃªtes
     headers = ['AGENCE', 'AGENCE', 'EXPL', 'CLIENT', 'DATEREV', 'PPE', 'RISQUE']
     ws.append(headers)
 
-    # DonnÃ©es
+    # Données
     for d in donnees:
         ws.append([
             d.FILIALE, d.AGENCE, d.EXPL, d.CLIENT, d.DATEREV, d.PPE, d.RISQUE
@@ -4628,7 +5474,7 @@ def export_sans_classe_s(request):
         column_letter = get_column_letter(col_num)
         ws.column_dimensions[column_letter].width = 15
 
-    # PrÃ©parer la rÃ©ponse HTTP
+    # Préparer la réponse HTTP
     output = BytesIO()
     wb.save(output)
     output.seek(0)
@@ -4643,30 +5489,100 @@ def export_sans_classe_s(request):
 
 
 
-ITEMS_PER_PAGE = 100  # Nombre d'Ã©lÃ©ments Ã  charger par page
+ITEMS_PER_PAGE = 100  # Nombre d'éléments Ã  charger par page
 
 from django.shortcuts import render
 from django.db.models import Max
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import Kyc_pm, Notation  # Assurez-vous que les imports correspondent Ã  vos fichiers
 
-# --- 1. FONCTION DE SÃ‰CURITÃ‰ PM (PÃ©rimÃ¨tre de donnÃ©es) ---
+# --- FONCTION UTILITAIRE POUR FILTRE CHAMPS VIDES (KYC FIELD CONFIG) ---
+from django.db.models import Q
+from kyc.models import KycFieldVisibilityConfig
+
+def apply_kyc_field_config_filter(queryset, client_type):
+    """
+    Filtre le queryset pour ne garder que les clients dont au moins un des 
+    champs définis dans KycFieldVisibilityConfig (empty_check_fields) est vide.
+    """
+    # Si le queryset est vide, on s'arrête
+    if not queryset.exists():
+        return queryset
+
+    filiales = list(queryset.order_by().values_list("FILIALE", flat=True).distinct())
+    if not filiales:
+        return queryset.none()
+
+    combined_q = None
+    
+    # Préchauffer les configs pour éviter N requêtes
+    configs = list(KycFieldVisibilityConfig.objects.filter(client_type=client_type))
+    
+    for filiale in filiales:
+        # 1. Chercher la config spécifique à la filiale
+        config = next((c for c in configs if filiale in (c.filiales or [])), None)
+        
+        # 2. Sinon, prendre la config globale (sans filiales)
+        if not config:
+            config = next((c for c in configs if not c.filiales), None)
+            
+        if config and config.empty_check_fields:
+            missing_q = None
+            for field_name in config.empty_check_fields:
+                if field_name in ['SALAIRE', 'CAPITAL', 'CA', 'RESULTAT']:
+                    field_q = (
+                        Q(**{f"{field_name}__isnull": True}) | 
+                        Q(**{f"{field_name}__exact": ""}) |
+                        Q(**{f"{field_name}__iexact": "XX"}) |
+                        Q(**{f"{field_name}__iexact": "RAS"}) |
+                        Q(**{f"{field_name}__iexact": "R.A.S."}) |
+                        Q(**{f"{field_name}__iexact": "R.A.S"}) |
+                        Q(**{f"{field_name}__in": [".", "?", "-", "*"]})
+                    )
+                else:
+                    field_q = (
+                        Q(**{f"{field_name}__isnull": True}) | 
+                        Q(**{f"{field_name}__exact": ""}) |
+                        Q(**{f"{field_name}__iexact": "XX"}) |
+                        Q(**{f"{field_name}__iexact": "RAS"}) |
+                        Q(**{f"{field_name}__iexact": "R.A.S."}) |
+                        Q(**{f"{field_name}__iexact": "R.A.S"}) |
+                        Q(**{f"{field_name}__length": 1})
+                    )
+                missing_q = field_q if missing_q is None else missing_q | field_q
+                
+            if missing_q is not None:
+                scoped_q = Q(FILIALE=filiale) & missing_q
+                combined_q = scoped_q if combined_q is None else combined_q | scoped_q
+        else:
+            # S'il n'y a AUCUNE configuration pour cette filiale et aucune configuration globale,
+            # ou que la configuration a un tableau empty_check_fields vide,
+            # alors on suppose qu'aucun champ n'est requis d'être vide pour s'afficher.
+            # Donc pour cette filiale, on ne retourne rien (car la condition 'au moins un champ vide' est impossible).
+            pass
+
+    if combined_q is None:
+        return queryset.none()
+        
+    return queryset.filter(combined_q)
+
+# --- 1. FONCTION DE SÉCURITÉ PM (Périmètre de données) ---
 def get_filtered_queryset_pm(request):
-    """Garantit que l'utilisateur ne voit que les entreprises (PM) de son pÃ©rimÃ¨tre."""
+    """Garantit que l'utilisateur ne voit que les entreprises (PM) de son périmÃ¨tre."""
     user = request.user
     queryset = Kyc_pm.objects.all()
 
-    if user.organe == "ChargÃ© Client":
+    if user.organe == "Chargé Client":
         queryset = queryset.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
 
     elif user.organe == "Directeur Agence":
         queryset = queryset.filter(FILIALE=user.filiale, AGENCE=user.agence)
 
-    elif user.organe in ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']:
+    elif user.organe in ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']:
         queryset = queryset.filter(FILIALE=user.filiale)
 
     elif user.organe in ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                         "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]:
+                         "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]:
         # AccÃ¨s total pour le Groupe
         pass
 
@@ -4674,16 +5590,16 @@ def get_filtered_queryset_pm(request):
 
 # --- 2. FONCTION DES LISTES DE FILTRES PM ---
 def get_filter_lists_pm(user, request):
-    """GÃ©nÃ¨re les options des menus dÃ©roulants PM selon les droits d'accÃ¨s."""
+    """GénÃ¨re les options des menus déroulants PM selon les droits d'accÃ¨s."""
     filiale_list, agence_list, expl_list, datouv_list = [], [], [], []
     base_qs = Kyc_pm.objects.all()
 
-    # Restriction de la base de donnÃ©es selon le rÃ´le
-    if user.organe == "ChargÃ© Client":
+    # Restriction de la base de données selon le rôle
+    if user.organe == "Chargé Client":
         base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
-    elif user.organe in ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']:
+    elif user.organe in ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']:
         base_qs = base_qs.filter(FILIALE=user.filiale)
 
     # 1. Liste des Filiales (Uniquement pour le Groupe)
@@ -4696,7 +5612,7 @@ def get_filter_lists_pm(user, request):
     # Agences
     if f_filiale:
         agence_list = Kyc_pm.objects.filter(FILIALE=f_filiale).values_list("AGENCE", flat=True).distinct()
-    elif user.organe in ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']:
+    elif user.organe in ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']:
         agence_list = base_qs.values_list("AGENCE", flat=True).distinct()
 
     # Exploitants
@@ -4704,7 +5620,7 @@ def get_filter_lists_pm(user, request):
         expl_list = Kyc_pm.objects.filter(AGENCE=f_agence).values_list("EXPL", flat=True).distinct()
     elif user.organe == "Directeur Agence":
         expl_list = base_qs.values_list("EXPL", flat=True).distinct()
-    elif not f_agence and (f_filiale or user.organe in ["DSI", "ConformitÃ©", "ContrÃ´le Permanent"]):
+    elif not f_agence and (f_filiale or user.organe in ["DSI", "Conformité", "Contrôle Permanent"]):
         expl_list = base_qs.values_list("EXPL", flat=True).distinct()
 
     # 3. Dates d'ouverture
@@ -4716,28 +5632,40 @@ def get_filter_lists_pm(user, request):
 def non_rens_pm(request):
     user = request.user
 
-    # A. SÃ©curitÃ© : Queryset restreint au rÃ´le (PM)
+    # A. Sécurité : Queryset restreint au rôle (PM)
     queryset = get_filtered_queryset_pm(request)
+    
+    # Application de la règle des champs vides KYC Field Config
+    queryset = apply_kyc_field_config_filter(queryset, "pm")
 
     # B. Application des filtres du formulaire
     f_filiale = request.GET.get('filiale')
     f_agence = request.GET.get('agence')
     f_expl = request.GET.get('expl')
     f_datouv = request.GET.get('datouv')
-    f_lib_agence = request.GET.get('lib_agence')
-    f_client = request.GET.get('client')
-    f_idm = request.GET.get('idm')
-    f_agec = request.GET.get('agec')
-    f_codape = request.GET.get('codape')
-    f_rcsno = request.GET.get('rcsno')
-    f_capital = request.GET.get('capital')
-    f_ca = request.GET.get('ca')
-    f_resultat = request.GET.get('resultat')
+    f_lib_agence = request.GET.get('col_lib_agence') or request.GET.get('lib_agence')
+    f_client = request.GET.get('col_client') or request.GET.get('client')
+    f_idm = request.GET.get('col_idm') or request.GET.get('idm')
+    f_agec = request.GET.get('col_agec') or request.GET.get('agec')
+    f_codape = request.GET.get('col_codape') or request.GET.get('codape')
+    f_rcsno = request.GET.get('col_rcsno') or request.GET.get('rcsno')
+    f_capital = request.GET.get('col_capital') or request.GET.get('capital')
+    f_ca = request.GET.get('col_ca') or request.GET.get('ca')
+    f_resultat = request.GET.get('col_resultat') or request.GET.get('resultat')
+
+    col_agence = request.GET.get('col_agence')
+    col_expl = request.GET.get('col_expl')
+    col_datouv = request.GET.get('col_datouv')
 
     if f_filiale: queryset = queryset.filter(FILIALE=f_filiale)
     if f_agence: queryset = queryset.filter(AGENCE=f_agence)
     if f_expl: queryset = queryset.filter(EXPL=f_expl)
     if f_datouv: queryset = queryset.filter(DATOUV=f_datouv)
+
+    if col_agence: queryset = queryset.filter(AGENCE__icontains=col_agence)
+    if col_expl: queryset = queryset.filter(EXPL__icontains=col_expl)
+    if col_datouv: queryset = queryset.filter(DATOUV__icontains=col_datouv)
+
     if f_lib_agence: queryset = queryset.filter(LIB_AGENCE__icontains=f_lib_agence)
     if f_client: queryset = queryset.filter(CLIENT__icontains=f_client)
     if f_idm: queryset = queryset.filter(IDM__icontains=f_idm)
@@ -4748,19 +5676,19 @@ def non_rens_pm(request):
     if f_ca: queryset = queryset.filter(CA__icontains=f_ca)
     if f_resultat: queryset = queryset.filter(RESULTAT__icontains=f_resultat)
 
-    # C. Notations (MÃªme logique de sÃ©curitÃ© que PP)
+    # C. Notations (MÃªme logique de sécurité que PP)
     notes = Notation.objects.filter(flux_stock='Flux')
     latest_notes = notes.values('agent').annotate(latest_date=Max('date_notation'))
     notation = notes.filter(date_notation__in=[n['latest_date'] for n in latest_notes])
 
-    if user.organe == "ChargÃ© Client":
+    if user.organe == "Chargé Client":
         notation = notation.filter(agent__filiale=user.filiale, agent__code_expl=user.code_expl)
     elif user.organe == "Directeur Agence":
         notation = notation.filter(agent__filiale=user.filiale, agent__agence=user.agence)
     elif user.organe not in ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "GUEST"]:
         notation = notation.filter(agent__filiale=user.filiale)
 
-    # D. Listes pour les menus dÃ©roulants
+    # D. Listes pour les menus déroulants
     filiale_list, agence_list, expl_list, datouv_list = get_filter_lists_pm(user, request)
 
     # E. Pagination et conservation des paramÃ¨tres
@@ -4768,7 +5696,7 @@ def non_rens_pm(request):
     if 'page' in query_params: del query_params['page']
     get_params = query_params.urlencode()
 
-    paginator = Paginator(queryset, 30)
+    paginator = Paginator(queryset.order_by('id'), 30)
     page_number = request.GET.get('page')
     try:
         objets_page = paginator.page(page_number)
@@ -4783,9 +5711,9 @@ def non_rens_pm(request):
         "expl_list": expl_list,
         "datouv_list": datouv_list,
         "notation": notation,
-        "users_filiale": ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©'],
+        "users_filiale": ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité'],
         "users_groupe": ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                         "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"],
+                         "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"],
     }
 
     return render(request, "non_rens_pm.html", context)
@@ -4795,19 +5723,21 @@ from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from io import BytesIO
-from .models import Kyc_pm  # VÃ©rifiez le nom de votre modÃ¨le
+from .models import Kyc_pm  # Vérifiez le nom de votre modÃ¨le
 
 
+@login_required
 def export_csv_pm(request):
     user = request.user
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
-    # 1. Base de donnÃ©es initiale
+    # 1. Base de données initiale avec filtre des champs vides
     donnees = Kyc_pm.objects.all()
+    donnees = apply_kyc_field_config_filter(donnees, "pm")
 
-    # 2. RÃ©cupÃ©ration des paramÃ¨tres de filtrage depuis l'URL
+    # 2. Récupération des paramètres de filtrage depuis l'URL
     f_filiale = request.GET.get("filiale")
     f_agence = request.GET.get("agence")
     f_expl = request.GET.get("expl")
@@ -4822,8 +5752,8 @@ def export_csv_pm(request):
     f_ca = request.GET.get("ca")
     f_resultat = request.GET.get("resultat")
 
-    # 3. SÃ©curitÃ© par rÃ´le (PÃ©rimÃ¨tre de l'utilisateur)
-    if user.organe == "ChargÃ© Client":
+    # 3. Sécurité par rôle (PérimÃ¨tre de l'utilisateur)
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -4856,7 +5786,7 @@ def export_csv_pm(request):
     if f_resultat:
         donnees = donnees.filter(RESULTAT__icontains=f_resultat)
 
-    # 5. Conversion et Filtrage par DATE (Crucial pour Ã©viter l'export vide)
+    # 5. Conversion et Filtrage par DATE (Crucial pour éviter l'export vide)
     if f_datouv and f_datouv.strip():
         try:
             # On tente de convertir "12/01/2026" en objet date Python
@@ -4866,41 +5796,35 @@ def export_csv_pm(request):
             # Si la date dans l'URL n'est pas au bon format, on ignore ce filtre
             pass
 
-    # 6. CrÃ©ation du classeur Excel
+    # 6. Création du classeur Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "Export KYC PM"
 
-    # En-tÃªtes (Headers)
-    headers = ["FILIALE", "AGENCE", "EXPL", "CLIENT", "AGEC", "CODAPE", "IDM",
-               "RCSNO", "CAPITAL", "CA", "RESULTAT", "ORIGINE_REV", "TEL", "DATE_OUV"]
+    # En-tÃªtes (Headers) dynamiques basés sur la configuration
+    from kyc.context_processors import kyc_display_fields_processor
+    ctx = kyc_display_fields_processor(request)
+    display_fields = ctx.get('kyc_pm_display_fields', [])
+    headers = [label for field, label in display_fields]
     ws.append(headers)
 
     # Remplissage des lignes
     for d in donnees:
-        ws.append([
-            str(d.FILIALE or ""),
-            str(d.AGENCE or ""),
-            str(d.EXPL or ""),
-            str(d.CLIENT or ""),
-            str(d.AGEC or ""),
-            str(d.CODAPE or ""),
-            str(d.IDM or ""),
-            str(d.RCSNO or ""),
-            d.CAPITAL,
-            d.CA,
-            d.RESULTAT,
-            str(d.ORIGINE_REV or ""),
-            str(d.TEL or ""),
-            format_date_for_export(d.DATOUV)
-        ])
+        row = []
+        for field, label in display_fields:
+            val = getattr(d, field, "")
+            if field == "DATOUV":
+                row.append(format_date_for_export(val))
+            else:
+                row.append(str(val) if val is not None else "")
+        ws.append(row)
 
     # Mise en forme : Ajustement automatique de la largeur des colonnes
     for col_num, _ in enumerate(headers, 1):
         col_letter = get_column_letter(col_num)
         ws.column_dimensions[col_letter].width = 18
 
-    # 7. PrÃ©paration de la rÃ©ponse HTTP pour le tÃ©lÃ©chargement
+    # 7. Préparation de la réponse HTTP pour le téléchargement
     output = BytesIO()
     wb.save(output)
     output.seek(0)
@@ -4918,47 +5842,47 @@ from django.shortcuts import render
 from django.db.models import Max
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
-# Assurez-vous que Kyc_pp et Notation sont importÃ©s
+# Assurez-vous que Kyc_pp et Notation sont importés
 # from .models import Kyc_pp, Notation
 
 # --- CONSTANTE DE TAILLE DE PAGE ---
-ITEMS_PER_PAGE = 100  # Nombre d'Ã©lÃ©ments Ã  charger par page
+ITEMS_PER_PAGE = 100  # Nombre d'éléments Ã  charger par page
 from django.shortcuts import render
 from django.db.models import Max
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from .models import Kyc_pp, Notation  # VÃ©rifiez le nom de vos modÃ¨les
+from .models import Kyc_pp, Notation  # Vérifiez le nom de vos modÃ¨les
 
 
-# --- 1. FONCTION DE SÃ‰CURITÃ‰ (PÃ©rimÃ¨tre de donnÃ©es) ---
+# --- 1. FONCTION DE SÃ‰CURITÃ‰ (PérimÃ¨tre de données) ---
 def get_filtered_queryset(request):
-    """Garantit que l'utilisateur ne voit que son pÃ©rimÃ¨tre autorisÃ©."""
+    """Garantit que l'utilisateur ne voit que son périmÃ¨tre autorisé."""
     user = request.user
     queryset = Kyc_pp.objects.all()
 
-    if user.organe == "ChargÃ© Client":
+    if user.organe == "Chargé Client":
         queryset = queryset.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
 
     elif user.organe == "Directeur Agence":
         queryset = queryset.filter(FILIALE=user.filiale, AGENCE=user.agence)
 
-    elif user.organe in ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']:
+    elif user.organe in ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']:
         queryset = queryset.filter(FILIALE=user.filiale)
 
     elif user.organe in ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                         "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]:
-        # Le groupe voit tout par dÃ©faut, le filtrage se fera via le formulaire
+                         "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]:
+        # Le groupe voit tout par défaut, le filtrage se fera via le formulaire
         pass
 
     return queryset.order_by('id')
 
 
-# --- 2. FONCTION DES LISTES DE FILTRES (Menus dÃ©roulants) ---
+# --- 2. FONCTION DES LISTES DE FILTRES (Menus déroulants) ---
 def get_filter_lists(user, request):
-    """GÃ©nÃ¨re les options des menus dÃ©roulants selon les droits d'accÃ¨s."""
+    """GénÃ¨re les options des menus déroulants selon les droits d'accÃ¨s."""
     filiale_list, agence_list, expl_list, datouv_list = [], [], [], []
     base_queryset = Kyc_pp.objects.all()
 
-    if user.organe == "ChargÃ© Client":
+    if user.organe == "Chargé Client":
         base_queryset = base_queryset.filter(FILIALE=user.filiale, AGENCE= user.agence, EXPL=user.code_expl)
         expl_list = [user.code_expl]
 
@@ -4966,7 +5890,7 @@ def get_filter_lists(user, request):
         base_queryset = base_queryset.filter(FILIALE=user.filiale, AGENCE=user.agence)
         expl_list = base_queryset.values_list("EXPL", flat=True).distinct()
 
-    elif user.organe in ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']:
+    elif user.organe in ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']:
         base_queryset = base_queryset.filter(FILIALE=user.filiale)
         agence_list = base_queryset.values_list("AGENCE", flat=True).distinct()
 
@@ -4977,7 +5901,7 @@ def get_filter_lists(user, request):
             expl_list = base_queryset.values_list("EXPL", flat=True).distinct()
 
     elif user.organe in ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                         "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]:
+                         "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]:
         filiale_list = Kyc_pp.objects.values_list("FILIALE", flat=True).distinct()
 
         filiale_filter = request.GET.get("filiale")
@@ -4996,36 +5920,49 @@ def get_filter_lists(user, request):
 
 
 # --- 3. VUE PRINCIPALE ---
+@login_required
 def non_rens(request):
     user = request.user
 
-    # A. SÃ©curitÃ© de base : Queryset restreint au rÃ´le
+    # A. Sécurité de base : Queryset restreint au rôle
     queryset = get_filtered_queryset(request)
+    
+    # Application de la règle des champs vides KYC Field Config
+    queryset = apply_kyc_field_config_filter(queryset, "pp")
 
-    # B. Application des filtres du formulaire (Si renseignÃ©s)
+    # B. Application des filtres du formulaire (Si renseignés)
     f_filiale = request.GET.get('filiale')
     f_agence = request.GET.get('agence')
     f_expl = request.GET.get('expl')
     f_datouv = request.GET.get('datouv')
 
-    f_lib_agence = request.GET.get('lib_agence')
-    f_client = request.GET.get('client')
-    f_idp = request.GET.get('idp')
-    f_numid = request.GET.get('numid')
-    f_datnais = request.GET.get('datnais')
-    f_paynais = request.GET.get('paynais')
-    f_adresse = request.GET.get('adresse')
-    f_codape = request.GET.get('codape')
-    f_profession = request.GET.get('profession')
-    f_salaire = request.GET.get('salaire')
-    f_origine_rev = request.GET.get('origine_rev')
-    f_datvalid = request.GET.get('datvalid')
-    f_tel = request.GET.get('tel')
+    f_lib_agence = request.GET.get('col_lib_agence') or request.GET.get('lib_agence')
+    f_client = request.GET.get('col_client') or request.GET.get('client')
+    f_idp = request.GET.get('col_idp') or request.GET.get('idp')
+    f_numid = request.GET.get('col_numid') or request.GET.get('numid')
+    f_datnais = request.GET.get('col_datnais') or request.GET.get('datnais')
+    f_paynais = request.GET.get('col_paynais') or request.GET.get('paynais')
+    f_adresse = request.GET.get('col_adresse') or request.GET.get('adresse')
+    f_codape = request.GET.get('col_codape') or request.GET.get('codape')
+    f_profession = request.GET.get('col_profession') or request.GET.get('profession')
+    f_salaire = request.GET.get('col_salaire') or request.GET.get('salaire')
+    f_origine_rev = request.GET.get('col_origine_rev') or request.GET.get('origine_rev')
+    f_datvalid = request.GET.get('col_datvalid') or request.GET.get('datvalid')
+    f_tel = request.GET.get('col_tel') or request.GET.get('tel')
+
+    col_agence = request.GET.get('col_agence')
+    col_expl = request.GET.get('col_expl')
+    col_datouv = request.GET.get('col_datouv')
 
     if f_filiale: queryset = queryset.filter(FILIALE=f_filiale)
     if f_agence: queryset = queryset.filter(AGENCE=f_agence)
     if f_expl: queryset = queryset.filter(EXPL=f_expl)
     if f_datouv: queryset = queryset.filter(DATOUV=f_datouv)
+
+    if col_agence: queryset = queryset.filter(AGENCE__icontains=col_agence)
+    if col_expl: queryset = queryset.filter(EXPL__icontains=col_expl)
+    if col_datouv: queryset = queryset.filter(DATOUV__icontains=col_datouv)
+
     if f_lib_agence: queryset = queryset.filter(LIB_AGENCE__icontains=f_lib_agence)
     if f_client: queryset = queryset.filter(CLIENT__icontains=f_client)
     if f_idp: queryset = queryset.filter(IDP__icontains=f_idp)
@@ -5040,19 +5977,19 @@ def non_rens(request):
     if f_datvalid: queryset = queryset.filter(DATVALID__icontains=f_datvalid)
     if f_tel: queryset = queryset.filter(TEL__icontains=f_tel)
 
-    # C. DonnÃ©es de notation (Flux) filtrÃ©es par pÃ©rimÃ¨tre
+    # C. Données de notation (Flux) filtrées par périmÃ¨tre
     notes = Notation.objects.filter(flux_stock='Flux')
     latest_notes = notes.values('agent').annotate(latest_date=Max('date_notation'))
     notation = notes.filter(date_notation__in=[n['latest_date'] for n in latest_notes])
 
-    if user.organe == "ChargÃ© Client":
+    if user.organe == "Chargé Client":
         notation = notation.filter(agent__filiale=user.filiale, agent__agence=user.agence,agent__code_expl=user.code_expl)
     elif user.organe == "Directeur Agence":
         notation = notation.filter(agent__filiale=user.filiale, agent__agence=user.agence)
     elif user.organe not in ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "GUEST"]:
         notation = notation.filter(agent__filiale=user.filiale)
 
-    # D. Listes pour les menus dÃ©roulants
+    # D. Listes pour les menus déroulants
     filiale_list, agence_list, expl_list, datouv_list = get_filter_lists(user, request)
 
     # E. Pagination
@@ -5060,7 +5997,7 @@ def non_rens(request):
     if 'page' in query_params: del query_params['page']
     get_params = query_params.urlencode()
 
-    paginator = Paginator(queryset, 30)
+    paginator = Paginator(queryset.order_by('id'), 30)
     page_number = request.GET.get('page')
     try:
         objets_page = paginator.page(page_number)
@@ -5075,25 +6012,27 @@ def non_rens(request):
         "expl_list": expl_list,
         "datouv_list": datouv_list,
         'users_groupe': ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                         "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"],
-        'users_filiale': ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©'],
+                         "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"],
+        'users_filiale': ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité'],
         'notation': notation,
     }
 
     return render(request, "non_rens.html", context)
 
+@login_required
 def export_csv_pp(request):
     user = request.user
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
-    # Partir de tous les objets
+    # Partir de tous les objets et appliquer le filtre des champs vides
     donnees = Kyc_pp.objects.all()
+    donnees = apply_kyc_field_config_filter(donnees, "pp")
 
-    # Appliquer les mÃªmes filtres que dans la vue de liste
-    # selon lâ€™organe de lâ€™utilisateur + Ã©ventuellement les filtres GET
-    if user.organe == "ChargÃ© Client":
+    # Appliquer les mêmes filtres que dans la vue de liste
+    # selon lâ€™organe de lâ€™utilisateur + éventuellement les filtres GET
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
 
     elif user.organe == "Directeur Agence":
@@ -5123,22 +6062,26 @@ def export_csv_pp(request):
         if expl_filter:
             donnees = donnees.filter(EXPL=expl_filter)
 
-    # Ensuite crÃ©ation du fichier Excel (ou CSV selon ton besoin)
+    # Ensuite création du fichier Excel (ou CSV selon ton besoin)
     wb = Workbook()
     ws = wb.active
     ws.title = "Export KYC"
 
-    headers = ["FILIALE", "AGENCE", "EXPL", "CLIENT", "CODAPE", "IDP", "PAYNAIS",
-               "PROFESSION", "ADRESSE", "PAYS_RESID", "NUMID", "SALAIRE",
-               "ORIGINE_REV", "DATVALID", "TEL", "DATOUV"]
+    from kyc.context_processors import kyc_display_fields_processor
+    ctx = kyc_display_fields_processor(request)
+    display_fields = ctx.get('kyc_pp_display_fields', [])
+    headers = [label for field, label in display_fields]
     ws.append(headers)
 
     for d in donnees:
-        ws.append([
-            d.FILIALE, d.AGENCE, d.EXPL, d.CLIENT, d.CODAPE, d.IDP,
-            d.PAYNAIS, d.PROFESSION, d.ADRESSE, d.PAYS_RESID,
-            d.NUMID, d.SALAIRE, d.ORIGINE_REV, d.DATVALID, d.TEL, format_date_for_export(d.DATOUV)
-        ])
+        row = []
+        for field, label in display_fields:
+            val = getattr(d, field, "")
+            if field == "DATOUV" or field == "DATNAIS" or field == "DATVALID":
+                row.append(format_date_for_export(val))
+            else:
+                row.append(str(val) if val is not None else "")
+        ws.append(row)
 
     for col_num, _ in enumerate(headers, 1):
         col_letter = get_column_letter(col_num)
@@ -5153,17 +6096,18 @@ def export_csv_pp(request):
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    filename = f"Champs_non_renseignÃ©s_PP_{date_str}.xlsx"
+    filename = f"Champs_non_renseignés_PP_{date_str}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
 
+@login_required
 def export_csv_anom(request):
     user = request.user
 
-    users_filiale = ["DSI", "Conformit??", "Contr??le Permanent", "Directeur R??seau",'Risques', 'DAI', 'Qualit??']
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau", 'Risques', 'DAI', 'Qualité']
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
     # ????????????????????????????????????????????????
     # Logique de filtrage
@@ -5186,7 +6130,7 @@ def export_csv_anom(request):
 
     if hasattr(user, "organe"):
 
-        if user.organe == "ChargÃ© Client":
+        if user.organe == "Chargé Client":
             donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
 
         elif user.organe == "Directeur Agence":
@@ -5273,13 +6217,15 @@ def export_csv_anom(request):
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     return response
+
+@login_required
 def export_csv_anom_ppe(request):
     user = request.user
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
-    # RÃ©cupÃ©rer les filtres GET envoyÃ©s par le template
+    # Récupérer les filtres GET envoyés par le template
     filiale_param = request.GET.get('filiale', '')
     agence_param = request.GET.get('agence', '')
     expl_param = request.GET.get('expl', '')
@@ -5287,8 +6233,8 @@ def export_csv_anom_ppe(request):
     # Base queryset : anomalies avec PPE = 'O'
     donnees = Anomalie.objects.filter(PPE='O')
 
-    # Filtrer selon le rÃ´le de lâ€™utilisateur
-    if user.organe == "ChargÃ© Client":
+    # Filtrer selon le rôle de lâ€™utilisateur
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -5304,7 +6250,7 @@ def export_csv_anom_ppe(request):
     if expl_param:
         donnees = donnees.filter(EXPL__icontains=expl_param)
 
-    # CrÃ©ation du classeur Excel
+    # Création du classeur Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "PPE en Anomalie"
@@ -5345,7 +6291,7 @@ from .models import TauxEvolution, TauxEvolution_filiale, Notation
 def _dashboard_data_cache_version():
     """
     Versionne le cache avec les dates max des tables de taux.
-    Quand une injection matinale met Ã  jour les donnÃ©es, la version change.
+    Quand une injection matinale met Ã  jour les données, la version change.
     """
     latest_filiale = TauxEvolution_filiale.objects.aggregate(last_date=Max('date')).get('last_date')
     latest_expl = TauxEvolution.objects.aggregate(last_date=Max('date')).get('last_date')
@@ -5379,7 +6325,7 @@ def statistiques(request):
     # Liste des roles ayant une vue globale (Groupe)
     user_groupe = [
         "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-        "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"
+        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
     ]
 
     # 1. Mode + granularite
@@ -5402,8 +6348,15 @@ def statistiques(request):
 
     # 3. Exploitant / utilisateur
     selected_user_filter = request.GET.get('utilisateur', '').strip()
-    if user.organe == "ChargÃ© Client":
+    if user.organe == "Chargé Client":
         selected_expl = user.code_expl
+    elif user.organe == "Directeur Agence":
+        agents_de_lagence = ProfileV.objects.filter(filiale=user.filiale, agence=user.agence).values_list('code_expl', flat=True)
+        req_expl = request.GET.get('expl') or selected_user_filter
+        if req_expl in agents_de_lagence:
+            selected_expl = req_expl
+        else:
+            selected_expl = None
     else:
         selected_expl = request.GET.get('expl') or selected_user_filter
 
@@ -5475,6 +6428,8 @@ def statistiques(request):
     if user.organe == "Directeur Agence":
         agents_de_lagence = ProfileV.objects.filter(filiale=user.filiale, agence=user.agence).values_list('code_expl', flat=True)
         expl_queryset = expl_queryset.filter(expl__in=agents_de_lagence)
+    elif user.organe == "Chargé Client":
+        expl_queryset = expl_queryset.filter(expl=user.code_expl)
 
     liste_expl = list(expl_queryset.values_list('expl', flat=True).distinct().order_by('expl'))
     profiles_by_expl = {
@@ -5579,19 +6534,19 @@ def export_stats_pp(request):
     filiale = user.filiale
     expl_user = user.expl
 
-    if organe in ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "ConformitÃ© Groupe",
-                  "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]:
+    if organe in ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe",
+                  "Contrôle Permanent Groupe", "PASS", "GUEST"]:
         qs = TauxEvolution.objects.all()
-    elif organe in ["ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']:
+    elif organe in ["Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']:
         qs = TauxEvolution.objects.filter(filiale=filiale)
     elif organe == "Directeur Agence":
         qs = TauxEvolution.objects.filter(agence=user.agence)
-    elif organe == "ChargÃ© Client":
+    elif organe == "Chargé Client":
         qs = TauxEvolution.objects.filter(expl=expl_user)
     else:
         qs = TauxEvolution.objects.none()
 
-    # filtrer Ã©ventuellement sur GET param
+    # filtrer éventuellement sur GET param
     selected_expl = request.GET.get('expl')
     if selected_expl:
         qs = qs.filter(expl=selected_expl)
@@ -5605,11 +6560,12 @@ def export_stats_pp(request):
     return response
 
 
+@login_required
 def daterev_ppe(request):
-    # RÃ´les
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    # Rôles
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
     user = request.user
 
@@ -5621,14 +6577,14 @@ def daterev_ppe(request):
 
     base_qs = DATEREV.objects.all().filter(DATEREV__isnull=False, PPE='O')
 
-    if getattr(user, "organe", "") == "ChargÃ© Client":
-        base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
-    elif user.organe == "Directeur Agence":
-        base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
-    elif user.organe in users_filiale:
-        base_qs = base_qs.filter(FILIALE=user.filiale)
-    elif user.organe in users_groupe:
-        pass
+    is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
+    if not is_group_user:
+        if getattr(user, "organe", "") == "Chargé Client":
+            base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
+        elif user.organe == "Directeur Agence":
+            base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
+        elif user.organe in users_filiale:
+            base_qs = base_qs.filter(FILIALE=user.filiale)
 
     today = date.today()
     qs_period = base_qs
@@ -5641,7 +6597,7 @@ def daterev_ppe(request):
     elif periode_param == "1y":
         qs_period = qs_period.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=365))
 
-    can_pick_filiale = user.organe in users_groupe
+    can_pick_filiale = is_group_user
 
     selected_filiale = filiale_param if can_pick_filiale else getattr(user, "filiale", "")
 
@@ -5668,7 +6624,7 @@ def daterev_ppe(request):
     can_pick_expl = (user.organe in users_groupe) or (user.organe in users_filiale) or (
             user.organe == "Directeur Agence")
 
-    if getattr(user, "organe", "") == "ChargÃ© Client":
+    if getattr(user, "organe", "") == "Chargé Client":
         selected_expl = getattr(user, "code_expl", "")
     else:
         selected_expl = expl_param
@@ -5682,24 +6638,24 @@ def daterev_ppe(request):
 
     context = {
         "donnees": donnees.order_by("FILIALE", "AGENCE", "EXPL", "CLIENT"),
-        "total_count": donnees.count(), # Optionnel : le total gÃ©nÃ©ral
-        "count_risque_non_eleve": count_risque_non_eleve, # Le nouveau dÃ©compte
+        "total_count": donnees.count(), # Optionnel : le total général
+        "count_risque_non_eleve": count_risque_non_eleve, # Le nouveau décompte
         # Options
         "filiales": filiales_opts,
         "agences": agences_opts,
         "exploitants": exploitants_opts,
 
-        # SÃ©lections courantes
+        # Sélections courantes
         "periode": periode_param,
         "filiale_param": selected_filiale,
         "agence_param": selected_agence,
         "expl_param": selected_expl,
 
-        # RÃ´les (si tu en as besoin dans le template)
+        # Rôles (si tu en as besoin dans le template)
         "users_groupe": users_groupe,
         "users_filiale": users_filiale,
 
-        # Droits d'Ã©dition des selects
+        # Droits d'édition des selects
         "can_pick_filiale": can_pick_filiale,
         "can_pick_agence": can_pick_agence,
         "can_pick_expl": can_pick_expl,
@@ -5707,19 +6663,20 @@ def daterev_ppe(request):
     return render(request, 'daterev_ppe.html', context)
 
 
+@login_required
 def non_anom_ppe(request):
-    roles_exclus = ["ChargÃ© Client"]
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
-    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "ConformitÃ© Groupe",
-                    "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+    roles_exclus = ["Chargé Client"]
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
+    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe",
+                    "Contrôle Permanent Groupe", "PASS", "GUEST"]
     user = request.user
     filiale_param = request.GET.get('filiale', '')
     agence_param = request.GET.get('agence', '')
     expl_param = request.GET.get('expl', '')
 
     donnees = Anomalie.objects.filter(PPE="O")
-    # Filtrage automatique selon le rÃ´le
-    if user.organe == "ChargÃ© Client":
+    # Filtrage automatique selon le rôle
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     if user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -5736,7 +6693,7 @@ def non_anom_ppe(request):
     if expl_param:
         donnees = donnees.filter(EXPL=expl_param)
 
-    # === Valeurs du formulaire selon le rÃ´le ===
+    # === Valeurs du formulaire selon le rôle ===
     if user.organe == "Directeur Agence":
         exploitants = Anomalie.objects.filter(AGENCE=user.agence).values_list('EXPL', flat=True).distinct()
         agences = Anomalie.objects.filter(AGENCE=user.agence).values_list('AGENCE', flat=True).distinct()
@@ -5766,11 +6723,12 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Max
 from .models import Anomalie, Notation
 
+@login_required
 def non_anom(request):
     user = request.user
-    users_filiale = ["DSI", "Conformit??", "Contr??le Permanent", "Directeur R??seau",'Risques', 'DAI', 'Qualit??']
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau", 'Risques', 'DAI', 'Qualité']
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
     # ???????????????????????????????????????????????????????????????
     # 1. Notation (champ Flux)
@@ -5811,16 +6769,37 @@ def non_anom(request):
     # ???????????????????????????????????????????????????????????????
     # 4. Filtrage selon r??le
     # ???????????????????????????????????????????????????????????????
+    is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
 
-    if user.organe == "ChargÃ© Client":
+    if is_group_user:
+        from kyc.models import DataQualityRule
+        from kyc.forms import DataQualityRuleForm
+        anom_filiales = {f for f in Anomalie.objects.values_list("FILIALE", flat=True).distinct() if f}
+        rule_filiales = set()
+        for rule in DataQualityRule.objects.filter(active=True):
+            parsed = DataQualityRuleForm._parse_filiales(rule.filiale)
+            for f in parsed:
+                if f:
+                    rule_filiales.add(f)
+        filiale_list = sorted(list(anom_filiales | rule_filiales))
+        if filiale_filter:
+            queryset = queryset.filter(FILIALE=filiale_filter)
+            agence_list = Anomalie.objects.filter(FILIALE=filiale_filter).values_list("AGENCE", flat=True).distinct()
+        if agence_filter:
+            queryset = queryset.filter(AGENCE=agence_filter)
+            expl_list = Anomalie.objects.filter(AGENCE=agence_filter).values_list("EXPL", flat=True).distinct()
+        if expl_filter:
+            queryset = queryset.filter(EXPL=expl_filter)
+
+    elif user.organe == "Chargé Client":
         queryset = queryset.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
 
     elif user.organe == "Directeur Agence":
         queryset = queryset.filter(FILIALE=user.filiale, AGENCE=user.agence)
         agence_list = Anomalie.objects.filter(FILIALE=user.filiale).values_list("AGENCE", flat=True).distinct()
+        expl_list = Anomalie.objects.filter(AGENCE=user.agence).values_list("EXPL", flat=True).distinct()
         if expl_filter:
             queryset = queryset.filter(EXPL=expl_filter)
-            expl_list = Anomalie.objects.filter(AGENCE=user.agence).values_list("EXPL", flat=True).distinct()
 
     elif user.organe in users_filiale:
         queryset = queryset.filter(FILIALE=user.filiale)
@@ -5831,14 +6810,6 @@ def non_anom(request):
             expl_list = Anomalie.objects.filter(AGENCE=agence_filter).values_list("EXPL", flat=True).distinct()
         if expl_filter:
             queryset = queryset.filter(EXPL=expl_filter)
-
-    elif user.organe in users_groupe:
-        filiale_list = Anomalie.objects.values_list("FILIALE", flat=True).distinct()
-        if filiale_filter:
-            queryset = queryset.filter(FILIALE=filiale_filter)
-            agence_list = Anomalie.objects.filter(FILIALE=filiale_filter).values_list("AGENCE", flat=True).distinct()
-        if agence_filter:
-            queryset = queryset.filter(AGENCE=agence_filter)
             expl_list = Anomalie.objects.filter(AGENCE=agence_filter).values_list("EXPL", flat=True).distinct()
         if expl_filter:
             queryset = queryset.filter(EXPL=expl_filter)
@@ -5875,7 +6846,7 @@ def non_anom(request):
     # ???????????????????????????????????????????????????????????????
     # 5. Pagination
     # ???????????????????????????????????????????????????????????????
-    queryset = queryset.order_by('CLIENT')
+    queryset = queryset.order_by('CLIENT', 'id')
 
     ITEMS_PER_PAGE = 50
     paginator = Paginator(queryset, ITEMS_PER_PAGE)
@@ -5887,6 +6858,338 @@ def non_anom(request):
         objets_page = paginator.page(1)
     except EmptyPage:
         objets_page = paginator.page(paginator.num_pages)
+
+    import urllib.parse
+    import hashlib
+    from datetime import datetime
+    from django.utils import timezone
+    from django.core.cache import cache
+    from kyc.models import DataQualityRule
+
+    # Helper function to compute failures list in Python
+    def get_rule_failures(rule, queryset_eval):
+        client_fields = ['CLIENT', 'EXPL', 'FILIALE', 'AGENCE']
+        failures = []
+        today_date = timezone.localdate()
+
+        def safe_parse_date(value):
+            if not value: return None
+            if hasattr(value, 'date'): return value.date()
+            if isinstance(value, str):
+                for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y%m%d"):
+                    try:
+                        return datetime.strptime(value.strip(), fmt).date()
+                    except ValueError:
+                        continue
+            return None
+
+        def calculate_age(birth_date_str):
+            parsed = safe_parse_date(birth_date_str)
+            if not parsed: return None
+            return today_date.year - parsed.year - ((today_date.month, today_date.day) < (parsed.month, parsed.day))
+
+        if rule.control_type == 'simple':
+            param = (rule.parameter or '').strip().lower()
+            field_name = rule.field_name
+            rows = queryset_eval.values(*client_fields, field_name).iterator(chunk_size=2000)
+            
+            if not param or param == 'existence':
+                for row in rows:
+                    val = row.get(field_name)
+                    if val is None or str(val).strip() == "":
+                        failures.append({
+                            'client': row.get('CLIENT', ''),
+                            'filiale': row.get('FILIALE', ''),
+                            'agence': row.get('AGENCE', ''),
+                            'expl': row.get('EXPL', ''),
+                            'values': [str(val or '')]
+                        })
+            elif param.isdigit() or (param.startswith('len') or param.startswith('long')):
+                import re
+                match = re.search(r'\d+', param)
+                target_len = int(match.group()) if match else int(param)
+                for row in rows:
+                    val = str(row.get(field_name) or '')
+                    if len(val) != target_len:
+                        failures.append({
+                            'client': row.get('CLIENT', ''),
+                            'filiale': row.get('FILIALE', ''),
+                            'agence': row.get('AGENCE', ''),
+                            'expl': row.get('EXPL', ''),
+                            'values': [val]
+                        })
+            else:
+                target_val = rule.parameter
+                for row in rows:
+                    val = row.get(field_name)
+                    if str(val or '').strip() != str(target_val or '').strip():
+                        failures.append({
+                            'client': row.get('CLIENT', ''),
+                            'filiale': row.get('FILIALE', ''),
+                            'agence': row.get('AGENCE', ''),
+                            'expl': row.get('EXPL', ''),
+                            'values': [str(val or '')]
+                        })
+                        
+        elif rule.control_type == 'composite':
+            conditions = rule.conditions.all()
+            cond_fields = [c.field_name for c in conditions]
+            unique_cond_fields = list(dict.fromkeys(cond_fields))
+            fields_to_fetch = list(client_fields) + unique_cond_fields
+            rows = queryset_eval.values(*fields_to_fetch).iterator(chunk_size=2000)
+            
+            for row in rows:
+                all_match = True
+                for cond in conditions:
+                    val = str(row.get(cond.field_name, '') or '').strip()
+                    target = (cond.value or '').strip()
+                    
+                    match = False
+                    op = cond.operator
+                    if op == '=': match = val == target
+                    elif op == '!=': match = val != target
+                    elif op == '>':
+                        try: match = float(val.replace(',','.')) > float(target.replace(',','.'))
+                        except: match = False
+                    elif op == '<':
+                        try: match = float(val.replace(',','.')) < float(target.replace(',','.'))
+                        except: match = False
+                    elif op == '>=':
+                        try: match = float(val.replace(',','.')) >= float(target.replace(',','.'))
+                        except: match = False
+                    elif op == '<=':
+                        try: match = float(val.replace(',','.')) <= float(target.replace(',','.'))
+                        except: match = False
+                    elif op == 'contains': match = target.lower() in val.lower()
+                    elif op == 'is_empty': match = not val
+                    elif op == 'is_not_empty': match = bool(val)
+                    elif op == 'expired':
+                        p = safe_parse_date(val)
+                        match = p and p < today_date
+                    elif op == 'age_gt':
+                        age = calculate_age(val)
+                        try: match = age is not None and age > int(target)
+                        except: match = False
+                    elif op == 'age_lt':
+                        age = calculate_age(val)
+                        try: match = age is not None and age < int(target)
+                        except: match = False
+                    elif op == 'min_length':
+                        try: match = len(val) < int(target)
+                        except: match = False
+                    elif op == 'max_length':
+                        try: match = len(val) > int(target)
+                        except: match = False
+                    
+                    if not match:
+                        all_match = False
+                        break
+                
+                if all_match:
+                    failures.append({
+                        'client': row.get('CLIENT', ''),
+                        'filiale': row.get('FILIALE', ''),
+                        'agence': row.get('AGENCE', ''),
+                        'expl': row.get('EXPL', ''),
+                        'values': [str(row.get(f, '') or '') for f in unique_cond_fields]
+                    })
+        return failures
+
+    # 1. Fetch active rules
+    rules_qs = DataQualityRule.objects.filter(active=True).prefetch_related('conditions')
+    
+    # 2. Filter by target filiale
+    if is_group_user:
+        target_filiale = filiale_filter
+    else:
+        target_filiale = user.filiale
+
+    if target_filiale:
+        rules_qs = rules_qs.filter(Q(filiale__icontains=f"|{target_filiale}|") | Q(filiale=""))
+
+    # 3. Filter by search query q
+    q = request.GET.get('q', '').strip()
+    if q:
+        rules_qs = rules_qs.filter(
+            Q(name__icontains=q) |
+            Q(field_name__icontains=q) |
+            Q(parameter__icontains=q)
+        )
+    rules_qs = rules_qs.order_by('-created_at')
+
+    # 4. Evaluation Scope
+    if is_group_user:
+        eval_filiale = filiale_filter
+        eval_agence = agence_filter
+        eval_expl = expl_filter
+    elif user.organe == "Chargé Client":
+        eval_filiale = user.filiale
+        eval_agence = user.agence
+        eval_expl = user.code_expl
+    elif user.organe == "Directeur Agence":
+        eval_filiale = user.filiale
+        eval_agence = user.agence
+        eval_expl = expl_filter
+    elif user.organe in users_filiale:
+        eval_filiale = user.filiale
+        eval_agence = agence_filter
+        eval_expl = expl_filter
+    else:
+        eval_filiale = filiale_filter
+        eval_agence = agence_filter
+        eval_expl = expl_filter
+
+    rules_version = cache.get('quality_control_rules_version', 1)
+    data_refresh_bucket = timezone.localdate().isoformat()
+    cache_ttl_seconds = 86400
+
+    rules_with_stats = []
+    for rule in rules_qs:
+        rule_eval_filiale = _rule_eval_filiale(rule, eval_filiale)
+        non_anom_signature = (
+            f"{rule.id}|{rule.name}|{rule.applicability}|{rule.field_name}|"
+            f"{rule.control_type}|{rule.parameter}|{rule.filiale}|"
+            f"{rule_eval_filiale}|{eval_agence}|{eval_expl}"
+        )
+        non_anom_key = f"quality_control:non_anom:v{rules_version}:d{data_refresh_bucket}:{hashlib.md5(non_anom_signature.encode('utf-8')).hexdigest()}"
+        
+        stat = cache.get(non_anom_key)
+        if stat is None:
+            stat = _evaluate_data_quality_rule_scoped(rule, filiale=rule_eval_filiale, agence=eval_agence, expl=eval_expl)
+            cache.set(non_anom_key, stat, timeout=cache_ttl_seconds)
+
+        total_eval = stat.get('total', 0)
+        stat['compliance_rate'] = compliance_rate_floor(stat.get('ok_count', 0), total_eval, stat.get('fail_count', 0))
+
+        from kyc.forms import DataQualityRuleForm
+        parsed_filiales = DataQualityRuleForm._parse_filiales(rule.filiale)
+        if user.organe not in users_groupe and user.filiale:
+            if not parsed_filiales or user.filiale in parsed_filiales:
+                parsed_filiales = [user.filiale]
+            else:
+                parsed_filiales = []
+
+        if parsed_filiales:
+            visible_filiales = parsed_filiales[:3]
+            hidden_count = max(0, len(parsed_filiales) - 3)
+            display_str = ", ".join(parsed_filiales)
+        else:
+            visible_filiales = ["Toutes les filiales"]
+            hidden_count = 0
+            display_str = "Toutes les filiales"
+
+        filiales_summary = {
+            'display': display_str,
+            'visible': visible_filiales,
+            'hidden_count': hidden_count,
+        }
+
+        rules_with_stats.append({
+            'rule': rule,
+            'stat': stat,
+            'filiales_summary': filiales_summary,
+        })
+
+    # 5. Modal Logic
+    selected_rule_id = request.GET.get("rule")
+    selected_rule = None
+    show_rule_modal = False
+    failures_page = None
+    selected_rule_conditions = []
+    selected_rule_filiales_display = ""
+    failure_columns = []
+    
+    failure_client_filter = request.GET.get("failure_client", "")
+    failure_filiale_filter = request.GET.get("failure_filiale", "")
+    failure_agence_filter = request.GET.get("failure_agence", "")
+    failure_expl_filter = request.GET.get("failure_expl", "")
+    failure_message = ""
+
+    if selected_rule_id:
+        try:
+            selected_rule = DataQualityRule.objects.get(pk=selected_rule_id, active=True)
+            show_rule_modal = True
+            selected_rule_conditions = selected_rule.conditions.all()
+            
+            from kyc.forms import DataQualityRuleForm
+            parsed_filiales = DataQualityRuleForm._parse_filiales(selected_rule.filiale)
+            if user.organe not in users_groupe and user.filiale:
+                if not parsed_filiales or user.filiale in parsed_filiales:
+                    parsed_filiales = [user.filiale]
+                else:
+                    parsed_filiales = []
+            selected_rule_filiales_display = ", ".join(parsed_filiales) if parsed_filiales else "Toutes les filiales"
+            
+            if selected_rule.control_type == 'simple':
+                failure_columns = [{
+                    'name': selected_rule.field_name.upper(),
+                    'param': f'failure_{selected_rule.field_name}',
+                    'filter_value': request.GET.get(f'failure_{selected_rule.field_name}', '')
+                }]
+            else:
+                cond_fields = [c.field_name for c in selected_rule_conditions]
+                unique_cond_fields = list(dict.fromkeys(cond_fields))
+                failure_columns = [{
+                    'name': f.upper(),
+                    'param': f'failure_{f}',
+                    'filter_value': request.GET.get(f'failure_{f}', '')
+                } for f in unique_cond_fields]
+                
+            model = Kyc_pp if selected_rule.applicability == 'PP' else Kyc_pm
+            queryset_eval = model.objects.all()
+            
+            rule_eval_filiale = _rule_eval_filiale(selected_rule, eval_filiale)
+            if rule_eval_filiale and rule_eval_filiale != 'GROUPE':
+                queryset_eval = queryset_eval.filter(FILIALE=rule_eval_filiale)
+            elif parsed_filiales:
+                queryset_eval = queryset_eval.filter(FILIALE__in=parsed_filiales)
+                
+            if eval_agence:
+                queryset_eval = queryset_eval.filter(AGENCE=eval_agence)
+            if eval_expl:
+                queryset_eval = queryset_eval.filter(EXPL=eval_expl)
+                
+            failures = get_rule_failures(selected_rule, queryset_eval)
+            
+            if failure_client_filter:
+                failures = [f for f in failures if failure_client_filter.lower() in str(f['client']).lower()]
+            if failure_filiale_filter:
+                failures = [f for f in failures if failure_filiale_filter.lower() in str(f['filiale']).lower()]
+            if failure_agence_filter:
+                failures = [f for f in failures if failure_agence_filter.lower() in str(f['agence']).lower()]
+            if failure_expl_filter:
+                failures = [f for f in failures if failure_expl_filter.lower() in str(f['expl']).lower()]
+
+            for i, col in enumerate(failure_columns):
+                val_filter = col['filter_value'].strip()
+                if val_filter:
+                    failures = [f for f in failures if val_filter.lower() in str(f['values'][i]).lower()]
+            
+            paginator = Paginator(failures, 15)
+            page_number = request.GET.get('page')
+            try:
+                failures_page = paginator.page(page_number)
+            except PageNotAnInteger:
+                failures_page = paginator.page(1)
+            except EmptyPage:
+                failures_page = paginator.page(paginator.num_pages)
+                
+        except DataQualityRule.DoesNotExist:
+            failure_message = "La règle spécifiée n'existe pas ou est inactive."
+
+    # 6. Build query strings
+    base_params = {}
+    if q: base_params['q'] = q
+    if filiale_filter: base_params['filiale'] = filiale_filter
+    if agence_filter: base_params['agence'] = agence_filter
+    if expl_filter: base_params['expl'] = expl_filter
+    base_querystring = urllib.parse.urlencode(base_params)
+
+    pagination_params = dict(request.GET.items())
+    pagination_params.pop('page', None)
+    pagination_querystring = urllib.parse.urlencode(pagination_params)
+
+    export_querystring = pagination_querystring
 
     context = {
         "donnees": objets_page,
@@ -5902,15 +7205,40 @@ def non_anom(request):
         "anom_age": anom_age,
         "anom_eer": anom_eer,
         "anom_cin": anom_cin,
+        
+        "rules": rules_with_stats,
+        "total_rules": len(rules_with_stats),
+        "total_failures": sum(item['stat'].get('fail_count', 0) for item in rules_with_stats),
+        "rule_search": q,
+        "can_pick_filiale": is_group_user,
+        "can_pick_agence": user.organe in users_filiale or is_group_user,
+        "is_charge_client": user.organe == "Chargé Client",
+        "is_group_user": is_group_user,
+        "show_rule_modal": show_rule_modal,
+        "selected_rule": selected_rule,
+        "selected_rule_conditions": selected_rule_conditions,
+        "selected_rule_filiales_display": selected_rule_filiales_display,
+        "failure_columns": failure_columns,
+        "failures_page": failures_page,
+        "failure_client_filter": failure_client_filter,
+        "failure_filiale_filter": failure_filiale_filter,
+        "failure_agence_filter": failure_agence_filter,
+        "failure_expl_filter": failure_expl_filter,
+        "failure_message": failure_message,
+        "base_querystring": base_querystring,
+        "pagination_querystring": pagination_querystring,
+        "export_querystring": export_querystring,
     }
 
     return render(request, "non_anom.html", context)
+
+@login_required
 def devise(request):
-    roles_exclus = ["ChargÃ© Client"]
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau", 'Risques', 'DAI', 'QualitÃ©']
+    roles_exclus = ["Chargé Client"]
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau", 'Risques', 'DAI', 'Qualité']
     users_groupe = [
         "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-        "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"
+        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
     ]
 
     user = request.user
@@ -5918,22 +7246,22 @@ def devise(request):
     agence_param = request.GET.get('agence', '')
     expl_param = request.GET.get('expl', '')
 
-    # 1. RÃ©cupÃ©rer LA devise de la filiale (on prend la premiÃ¨re trouvÃ©e)
-    # On rÃ©cupÃ¨re juste la valeur (ex: "XOF") pour la comparer aux donnÃ©es Kyc_pp
+    # 1. Récupérer LA devise de la filiale (on prend la premiÃ¨re trouvée)
+    # On récupÃ¨re juste la valeur (ex: "XOF") pour la comparer aux données Kyc_pp
     devise_obj = Devise.objects.filter(filiale=user.filiale).first()
-    devise_valeur = devise_obj.devise if devise_obj else None  # Remplacez 'nom_devise' par le nom rÃ©el de votre champ
+    devise_valeur = devise_obj.devise if devise_obj else None  # Remplacez 'nom_devise' par le nom réel de votre champ
 
-    # 2. Filtrage de base : Exclure la devise de la filiale et les vides
-    donnees = Kyc_pp.objects.exclude(DEVISE=devise_valeur).exclude(DEVISE__isnull=True).exclude(DEVISE="")
+    # 2. Filtrage de base : Exclure la devise de la filiale, les vides et "NA"
+    donnees = Kyc_pp.objects.exclude(DEVISE=devise_valeur).exclude(DEVISE__isnull=True).exclude(DEVISE="").exclude(DEVISE="NA")
 
-    # === Filtrage automatique selon le rÃ´le ===
-    if user.organe == "ChargÃ© Client":
+    # === Filtrage automatique selon le rôle ===
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
     elif user.organe in users_filiale:
         donnees = donnees.filter(FILIALE=user.filiale)
-    # Si dans users_groupe, on garde tout (dÃ©jÃ  gÃ©rÃ© par l'absence de filtre)
+    # Si dans users_groupe, on garde tout (déjÃ  géré par l'absence de filtre)
 
     # === Filtres manuels via GET ===
     if filiale_param:
@@ -5944,7 +7272,7 @@ def devise(request):
         donnees = donnees.filter(EXPL__icontains=expl_param)
     donnees = _apply_pp_header_filters(donnees, request, include_devise=True)
 
-    # === Valeurs pour les menus dÃ©roulants du formulaire ===
+    # === Valeurs pour les menus déroulants du formulaire ===
     filiales = donnees.values_list('FILIALE', flat=True).distinct()
     agences = donnees.values_list('AGENCE', flat=True).distinct()
     exploitants = donnees.values_list('EXPL', flat=True).distinct()
@@ -5954,7 +7282,7 @@ def devise(request):
 
     # === Paginator ===
     ITEMS_PER_PAGE = 25
-    paginator = Paginator(donnees, ITEMS_PER_PAGE)
+    paginator = Paginator(donnees.order_by('id'), ITEMS_PER_PAGE)
     page_number = request.GET.get('page')
 
     try:
@@ -5963,6 +7291,57 @@ def devise(request):
         objets_page = paginator.page(1)
     except EmptyPage:
         objets_page = paginator.page(paginator.num_pages)
+
+    # Devise KPIs
+    total_devise = donnees.count()
+    missing_devise = get_incomplete_clients_queryset(donnees, 'pp').count()
+    complete_devise = max(0, total_devise - missing_devise)
+    compliance_rate = round((complete_devise / total_devise) * 100, 1) if total_devise > 0 else 100.0
+
+    # Répartition par devise
+    devise_counts = list(
+        donnees.values('DEVISE')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    devise_items = []
+    for dc in devise_counts:
+        dev_code = dc['DEVISE'] or "Non renseignée"
+        pct = round((dc['count'] / total_devise) * 100, 1) if total_devise > 0 else 0.0
+        devise_items.append({
+            'label': dev_code,
+            'value': dc['count'],
+            'suffix': f'({pct}%)'
+        })
+
+    export_params = request.GET.copy()
+    export_params['incompletes'] = '1'
+    export_incomplets_url = f"{reverse('export_devise_pp')}?{export_params.urlencode()}"
+
+    kpi_cards = [
+        {
+            'tone': 'emerald',
+            'label': 'Répartition par Devise',
+            'value': total_devise,
+            'subtitle': 'Comptes en devise étrangère',
+            'show_modal': True,
+            'items': devise_items
+        },
+        {
+            'tone': 'red',
+            'label': 'Comptes Incomplets',
+            'value': missing_devise,
+            'subtitle': 'Dossiers avec données manquantes',
+            'export_url': export_incomplets_url,
+        },
+        {
+            'tone': 'blue',
+            'label': 'Taux de complétude',
+            'value': compliance_rate,
+            'suffix': '%',
+            'subtitle': 'Dossiers complets / total',
+        }
+    ]
 
     context = {
         "donnees": objets_page,
@@ -5974,28 +7353,33 @@ def devise(request):
         'users_groupe': users_groupe,
         'users_filiale': users_filiale,
         'get_params': query_params.urlencode(),
+        'kpi_cards': kpi_cards,
     }
 
     return render(request, 'devise.html', context)
 
 
+@login_required
 def export_devise_pp(request):
     user = request.user
 
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
-    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "ConformitÃ© Groupe",
-                    "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
+    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe",
+                    "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
-    # RÃ©cupÃ©ration des filtres GET pour la synchronisation
+    # Récupération des filtres GET pour la synchronisation
     filiale_param = request.GET.get('filiale', '')
     agence_param = request.GET.get('agence', '')
     expl_param = request.GET.get('expl', '')
 
-    # DÃ©but du Queryset
-    donnees = Kyc_pp.objects.filter(~Q(DEVISE=""), DEVISE__isnull=False)
+    devise_obj = Devise.objects.filter(filiale=user.filiale).first()
+    devise_valeur = devise_obj.devise if devise_obj else None
 
-    # === Filtrage automatique selon le rÃ´le (identique Ã  devise) ===
-    if user.organe == "ChargÃ© Client":
+    # Début du Queryset : Exclure la devise de la filiale, les vides et "NA"
+    donnees = Kyc_pp.objects.exclude(DEVISE=devise_valeur).exclude(DEVISE__isnull=True).exclude(DEVISE="").exclude(DEVISE="NA")
+
+    # === Filtrage automatique selon le rôle (identique Ã  devise) ===
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -6013,19 +7397,22 @@ def export_devise_pp(request):
         donnees = donnees.filter(EXPL__icontains=expl_param)
     donnees = _apply_pp_header_filters(donnees, request, include_devise=True)
 
-    # Fin du Queryset filtrÃ©
+    if request.GET.get('incompletes') == '1':
+        donnees = get_incomplete_clients_queryset(donnees, 'pp')
 
-    # CrÃ©ation du classeur Excel
+    # Fin du Queryset filtré
+
+    # Création du classeur Excel
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Comptes Devise PP"  # J'ai renommÃ© le titre
+    ws.title = "Comptes Devise PP"  # J'ai renommé le titre
 
     # EntÃªtes
     headers = ["FILIALE", "AGENCE", "EXPL", "CLIENT", "CODAPE", "IDP", "PAYNAIS", "PROFESSION", "ADRESSE", "PAYS_RESID",
                "NUMID", "SALAIRE", "ORIGINE_REV", "DATVALID", "TEL"]
     ws.append(headers)
 
-    # DonnÃ©es
+    # Données
     for d in donnees:
         ws.append([
             d.FILIALE, d.AGENCE, d.EXPL, d.CLIENT, d.CODAPE, d.IDP,
@@ -6037,7 +7424,7 @@ def export_devise_pp(request):
         column_letter = get_column_letter(col_num)
         ws.column_dimensions[column_letter].width = 15
 
-    # PrÃ©parer la rÃ©ponse HTTP
+    # Préparer la réponse HTTP
     output = BytesIO()
     wb.save(output)
     output.seek(0)
@@ -6045,34 +7432,35 @@ def export_devise_pp(request):
     response = HttpResponse(output.read(),
                             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    filename = f"Comptes_en_devise_PP_{date_str}.xlsx"
+    if request.GET.get('incompletes') == '1':
+        filename = f"Comptes_en_devise_PP_incomplets_{date_str}.xlsx"
+    else:
+        filename = f"Comptes_en_devise_PP_{date_str}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
 
 def devise_pm(request):
-    roles_exclus = ["ChargÃ© Client"]
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
+    roles_exclus = ["Chargé Client"]
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
     users_groupe = [
         "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-        "ConformitÃ© Groupe", "ContrÃ´le Permanent Groupe", "PASS", "GUEST"
+        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
     ]
     user = request.user
     filiale_param = request.GET.get('filiale', '')
     agence_param = request.GET.get('agence', '')
     expl_param = request.GET.get('expl', '')
 
-    # =========================================================================
-    # ðŸŒŸ CORRECTION PRINCIPALE ICI ðŸŒŸ
-    # On filtre pour exclure les enregistrements oÃ¹ DEVISE est vide OU NULL.
-    # Ceci revient Ã  dire : DEVISE N'EST PAS vide ET DEVISE N'EST PAS NULL.
-    # =========================================================================
-    donnees = Kyc_pm.objects.filter(~Q(DEVISE="") & Q(DEVISE__isnull=False))
-    # Alternative plus concise si DEVISE est un CharField :
-    # donnees = Kyc_pp.objects.exclude(DEVISE="").exclude(DEVISE__isnull=True)
+    # 1. Récupérer LA devise de la filiale
+    devise_obj = Devise.objects.filter(filiale=user.filiale).first()
+    devise_valeur = devise_obj.devise if devise_obj else None
 
-    # === Filtrage automatique selon le rÃ´le ===
-    if user.organe == "ChargÃ© Client":
+    # 2. Filtrage de base : Exclure la devise de la filiale, les vides et "NA"
+    donnees = Kyc_pm.objects.exclude(DEVISE=devise_valeur).exclude(DEVISE__isnull=True).exclude(DEVISE="").exclude(DEVISE="NA")
+
+    # === Filtrage automatique selon le rôle ===
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -6089,17 +7477,17 @@ def devise_pm(request):
     if expl_param:
         donnees = donnees.filter(EXPL__icontains=expl_param)
 
-    # === Valeurs du formulaire selon le rÃ´le ===
-    # Ceci doit Ãªtre recalculÃ© aprÃ¨s l'application des filtres pour avoir les listes pertinentes
+    # === Valeurs du formulaire selon le rôle ===
+    # Ceci doit Ãªtre recalculé aprÃ¨s l'application des filtres pour avoir les listes pertinentes
 
     # Simuler les listes pour le contexte
     filiales = donnees.values_list('FILIALE', flat=True).distinct()
     agences = donnees.values_list('AGENCE', flat=True).distinct()
     exploitants = donnees.values_list('EXPL', flat=True).distinct()
 
-    # 2. Obtenir le QuerySet filtrÃ©
-    # Utilisation de 'donnees' qui contient dÃ©jÃ  le QuerySet filtrÃ©.
-    queryset = donnees
+    # 2. Obtenir le QuerySet filtré
+    # Utilisation de 'donnees' qui contient déjÃ  le QuerySet filtré.
+    queryset = donnees.order_by('id')
 
     # 3. Appliquer le Paginator
     # Je vais simuler ITEMS_PER_PAGE pour l'exemple
@@ -6107,52 +7495,109 @@ def devise_pm(request):
     paginator = Paginator(queryset, ITEMS_PER_PAGE)
 
     page_number = request.GET.get('page')
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
 
     try:
         objets_page = paginator.page(page_number)
     except PageNotAnInteger:
-        # Si 'page' n'est pas un entier, afficher la premiÃ¨re page
+        # Si 'page' n'est pas un entier, afficher la première page
         objets_page = paginator.page(1)
     except EmptyPage:
-        # Si la page est hors limites, afficher la derniÃ¨re page
+        # Si la page est hors limites, afficher la dernière page
         objets_page = paginator.page(paginator.num_pages)
 
-    context = {
-        # 'donnees' est maintenant l'objet Page paginÃ©
-        "donnees": objets_page,
+    # Devise PM KPIs
+    total_devise = donnees.count()
+    missing_devise = get_incomplete_clients_queryset(donnees, 'pm').count()
+    complete_devise = max(0, total_devise - missing_devise)
+    compliance_rate = round((complete_devise / total_devise) * 100, 1) if total_devise > 0 else 100.0
 
+    # Répartition par devise
+    devise_counts = list(
+        donnees.values('DEVISE')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    devise_items = []
+    for dc in devise_counts:
+        dev_code = dc['DEVISE'] or "Non renseignée"
+        pct = round((dc['count'] / total_devise) * 100, 1) if total_devise > 0 else 0.0
+        devise_items.append({
+            'label': dev_code,
+            'value': dc['count'],
+            'suffix': f'({pct}%)'
+        })
+
+    export_params = request.GET.copy()
+    export_params['incompletes'] = '1'
+    export_incomplets_url = f"{reverse('export_devise_pm')}?{export_params.urlencode()}"
+
+    kpi_cards = [
+        {
+            'tone': 'emerald',
+            'label': 'Répartition par Devise',
+            'value': total_devise,
+            'subtitle': 'Comptes PM en devise',
+            'show_modal': True,
+            'items': devise_items
+        },
+        {
+            'tone': 'red',
+            'label': 'Comptes PM Incomplets',
+            'value': missing_devise,
+            'subtitle': 'Dossiers avec données manquantes',
+            'export_url': export_incomplets_url,
+        },
+        {
+            'tone': 'blue',
+            'label': 'Taux de complétude',
+            'value': compliance_rate,
+            'suffix': '%',
+            'subtitle': 'Dossiers complets / total',
+        }
+    ]
+
+    context = {
+        # 'donnees' est maintenant l'objet Page paginé
+        "donnees": objets_page,
+        "devise_filiale": devise_valeur,
         'filiales': filiales,
         'agences': agences,
         'exploitants': exploitants,
         'roles_exclus': roles_exclus,
         'users_groupe': users_groupe,
         'users_filiale': users_filiale,
+        'get_params': query_params.urlencode(),
+        'kpi_cards': kpi_cards,
     }
 
     return render(request, 'devise_pm.html', context)
 
 
+@login_required
 def export_devise_pm(request):
     user = request.user
 
-    users_filiale = ["DSI", "ConformitÃ©", "ContrÃ´le Permanent", "Directeur RÃ©seau",'Risques', 'DAI', 'QualitÃ©']
-    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "ConformitÃ© Groupe",
-                    "ContrÃ´le Permanent Groupe", "PASS", "GUEST"]
+    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
+    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe",
+                    "Contrôle Permanent Groupe", "PASS", "GUEST"]
 
-    # RÃ©cupÃ©ration des filtres GET pour la synchronisation
+    # Récupération des filtres GET pour la synchronisation
     filiale_param = request.GET.get('filiale', '')
     agence_param = request.GET.get('agence', '')
     expl_param = request.GET.get('expl', '')
 
 
     devise_obj = Devise.objects.filter(filiale=user.filiale).first()
-    devise_valeur = devise_obj.devise if devise_obj else None  # Remplacez 'nom_devise' par le nom rÃ©el de votre champ
+    devise_valeur = devise_obj.devise if devise_obj else None  # Remplacez 'nom_devise' par le nom réel de votre champ
 
-    # 2. Filtrage de base : Exclure la devise de la filiale et les vides
-    donnees = Kyc_pm.objects.exclude(DEVISE=devise_valeur).exclude(DEVISE__isnull=True).exclude(DEVISE="")
+    # 2. Filtrage de base : Exclure la devise de la filiale, les vides et "NA"
+    donnees = Kyc_pm.objects.exclude(DEVISE=devise_valeur).exclude(DEVISE__isnull=True).exclude(DEVISE="").exclude(DEVISE="NA")
 
-    # === Filtrage automatique selon le rÃ´le (identique Ã  devise) ===
-    if user.organe == "ChargÃ© Client":
+    # === Filtrage automatique selon le rôle (identique Ã  devise) ===
+    if user.organe == "Chargé Client":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
     elif user.organe == "Directeur Agence":
         donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
@@ -6169,19 +7614,22 @@ def export_devise_pm(request):
     if expl_param:
         donnees = donnees.filter(EXPL__icontains=expl_param)
 
-    # Fin du Queryset filtrÃ©
+    if request.GET.get('incompletes') == '1':
+        donnees = get_incomplete_clients_queryset(donnees, 'pm')
 
-    # CrÃ©ation du classeur Excel
+    # Fin du Queryset filtré
+
+    # Création du classeur Excel
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Comptes Devise PP"  # J'ai renommÃ© le titre
+    ws.title = "Comptes Devise PP"  # J'ai renommé le titre
 
     # EntÃªtes
     headers = ["FILIALE", "AGENCE", "EXPL", "CLIENT", "AGEC", "CODAPE", "IDM", "RCSNO", "CAPITAL", "CA",
                "RESULTAT", "TEL"]
     ws.append(headers)
 
-    # DonnÃ©es
+    # Données
     for d in donnees:
         ws.append([
             d.FILIALE, d.AGENCE, d.EXPL, d.CLIENT, d.AGEC, d.CODAPE, d.IDM,
@@ -6193,7 +7641,7 @@ def export_devise_pm(request):
         column_letter = get_column_letter(col_num)
         ws.column_dimensions[column_letter].width = 15
 
-    # PrÃ©parer la rÃ©ponse HTTP
+    # Préparer la réponse HTTP
     output = BytesIO()
     wb.save(output)
     output.seek(0)
@@ -6201,7 +7649,10 @@ def export_devise_pm(request):
     response = HttpResponse(output.read(),
                             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    filename = f"Comptes_en_devise_PM_{date_str}.xlsx"
+    if request.GET.get('incompletes') == '1':
+        filename = f"Comptes_en_devise_PM_incomplets_{date_str}.xlsx"
+    else:
+        filename = f"Comptes_en_devise_PM_{date_str}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
@@ -6212,8 +7663,8 @@ def evolution_taux(request):
 
     context = {}
 
-    if user.organe == "ConformitÃ© Groupe":
-        # Groupe : on rÃ©cupÃ¨re toutes les filiales distinctes
+    if user.organe == "Conformité Groupe":
+        # Groupe : on récupÃ¨re toutes les filiales distinctes
         filiales = TauxEvolution_filiale.objects.values_list("filiale", flat=True).distinct()
         data_filiales = {}
 
@@ -6232,7 +7683,7 @@ def evolution_taux(request):
 
         context["data_filiales"] = data_filiales
 
-    elif user.organe == "ConformitÃ©":
+    elif user.organe == "Conformité":
         # Filiale : uniquement sa propre
         qs = TauxEvolution_filiale.objects.filter(filiale=user.filiale).order_by("id")
 
@@ -6255,19 +7706,27 @@ def evolution_taux(request):
 @login_required
 def taux_evolution_view(request):
     user = request.user
+    if user.organe in ["Chargé Client", "Directeur Agence"]:
+        from django.shortcuts import redirect
+        return redirect('statistiques')
     context_cache_key = _build_dashboard_cache_key("evolution_filiale", user, request)
     cached_context = cache.get(context_cache_key)
     if cached_context is not None:
         return render(request, 'evolution_par_filiale.html', cached_context)
 
-    users_filiale = ["DSI", "Conformit?", "Contr?le Permanent", "Directeur R?seau", 'Risques', 'DAI', 'Qualit?']
+    user_groupe = [
+        "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
+        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
+    ]
 
     filiale_sel = request.GET.get('filiale')
 
-    if user.organe in users_filiale:
-        filiales = TauxEvolution_filiale.objects.filter(filiale=user.filiale).values_list('filiale', flat=True).distinct().order_by('filiale')
-    else:
+    if user.organe in user_groupe:
         filiales = TauxEvolution_filiale.objects.values_list('filiale', flat=True).distinct().order_by('filiale')
+    else:
+        filiales = TauxEvolution_filiale.objects.filter(filiale=user.filiale).values_list('filiale', flat=True).distinct().order_by('filiale')
+        if not filiale_sel or filiale_sel != user.filiale:
+            filiale_sel = user.filiale
 
     if not filiale_sel and filiales:
         filiale_sel = filiales[0]
@@ -6391,6 +7850,7 @@ def taux_evolution_view(request):
         'quality_scope_label': quality_scope.get('label'),
         'history_rows': list(reversed(history_rows[-10:])),
         'latest_taux_date': latest_taux_date,
+        'is_filiale_user': user.organe not in user_groupe,
     }
     cache.set(context_cache_key, context, timeout=60 * 60 * 8)
     return render(request, 'evolution_par_filiale.html', context)
@@ -6399,19 +7859,27 @@ def taux_evolution_view(request):
 @login_required
 def taux_evolution_view_stock(request):
     user = request.user
+    if user.organe in ["Chargé Client", "Directeur Agence"]:
+        from django.shortcuts import redirect
+        return redirect('statistiques')
     context_cache_key = _build_dashboard_cache_key("evolution_filiale_stock", user, request)
     cached_context = cache.get(context_cache_key)
     if cached_context is not None:
         return render(request, 'evolution_par_filiale_stock.html', cached_context)
 
-    users_filiale = ["DSI", "Conformit?", "Contr?le Permanent", "Directeur R?seau", 'Risques', 'DAI', 'Qualit?']
+    user_groupe = [
+        "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
+        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
+    ]
 
     filiale_sel = request.GET.get('filiale')
 
-    if user.organe in users_filiale:
-        filiales = TauxEvolution_filiale.objects.filter(filiale=user.filiale).values_list('filiale', flat=True).distinct().order_by('filiale')
-    else:
+    if user.organe in user_groupe:
         filiales = TauxEvolution_filiale.objects.values_list('filiale', flat=True).distinct().order_by('filiale')
+    else:
+        filiales = TauxEvolution_filiale.objects.filter(filiale=user.filiale).values_list('filiale', flat=True).distinct().order_by('filiale')
+        if not filiale_sel or filiale_sel != user.filiale:
+            filiale_sel = user.filiale
 
     if not filiale_sel and filiales:
         filiale_sel = filiales[0]
@@ -6535,6 +8003,7 @@ def taux_evolution_view_stock(request):
         'quality_scope_label': quality_scope.get('label'),
         'history_rows': list(reversed(history_rows[-10:])),
         'latest_taux_date': latest_taux_date,
+        'is_filiale_user': user.organe not in user_groupe,
     }
     cache.set(context_cache_key, context, timeout=60 * 60 * 8)
     return render(request, 'evolution_par_filiale_stock.html', context)
@@ -6556,7 +8025,7 @@ def bulk_user_upload(request):
         csv_file = request.FILES.get('file')
 
         if not csv_file or not csv_file.name.endswith('.csv'):
-            messages.error(request, "Veuillez sÃ©lectionner un fichier CSV valide.")
+            messages.error(request, "Veuillez sélectionner un fichier CSV valide.")
             return redirect('bulk_user_upload')
 
         try:
@@ -6578,7 +8047,7 @@ def bulk_user_upload(request):
                             'first_name': row[1],
                             'last_name': row[2],
                             'organe': row[3],
-                            'tÃ©lÃ©phone': row[4],
+                            'téléphone': row[4],
                             'agence': row[6],
                             'code_expl': row[7],
                         }
@@ -6591,7 +8060,7 @@ def bulk_user_upload(request):
                     errors += 1
                     continue
 
-            messages.success(request, f"{users_created} utilisateurs crÃ©Ã©s avec succÃ¨s. ({errors} erreurs)")
+            messages.success(request, f"{users_created} utilisateurs créés avec succÃ¨s. ({errors} erreurs)")
 
         except Exception as e:
             messages.error(request, f"Erreur lors du traitement : {e}")
@@ -6603,25 +8072,765 @@ from openpyxl import Workbook
 from django.http import HttpResponse
 
 
+@login_required
 def download_excel_template(request):
-    # CrÃ©ation d'un nouveau classeur Excel
+    # Création d'un nouveau classeur Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "Import Utilisateurs"
 
     # En-tÃªtes conformes Ã  votre script
-    headers = ['username', 'first_name', 'last_name', 'organe', 'tÃ©lÃ©phone', 'password', 'agence', 'expl']
+    headers = ['username', 'first_name', 'last_name', 'organe', 'téléphone', 'password', 'agence', 'expl']
     ws.append(headers)
 
-    # Exemple de donnÃ©es
-    ws.append(['m.diop', 'Moussa', 'Diop', 'ConformitÃ©', '771234567', 'Boa2026!', 'Agence Dakar', 'EXPL001'])
+    # Exemple de données
+    ws.append(['m.diop', 'Moussa', 'Diop', 'Conformité', '771234567', 'Boa2026!', 'Agence Dakar', 'EXPL001'])
 
-    # PrÃ©paration de la rÃ©ponse HTTP
+    # Préparation de la réponse HTTP
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="template_kyc_bulk.xlsx"'
 
     wb.save(response)
     return response
+
+
+@login_required
+def kyc_field_config(request):
+    KYC_PP_FIELD_LABELS = [
+        ("CLIENT", "CLIENT"),
+        ("EXPL", "EXPL"),
+        ("FILIALE", "FILIALE"),
+        ("AGENCE", "AGENCE"),
+        ("LIB_AGENCE", "LIB_AGENCE"),
+        ("IDP", "IDP"),
+        ("PAYNAIS", "PAYNAIS"),
+        ("PROFESSION", "PROFESSION"),
+        ("SALAIRE", "SALAIRE"),
+        ("NUMID", "NUMID"),
+        ("CODAPE", "CODAPE"),
+        ("TEL", "TEL"),
+        ("DATNAIS", "DATNAIS"),
+        ("ADRESSE", "ADRESSE"),
+        ("DATVALID", "DATVALID"),
+        ("ORIGINE_REV", "ORIGINE_REV"),
+        ("INTITULE_COMPTE", "INTITULE_COMPTE"),
+        ("EMPLOYEUR", "EMPLOYEUR"),
+        ("PAYS_RESID", "PAYS_RESID"),
+        ("LIEU_DELIVRANCE_CIN", "LIEU_DELIVRANCE_CIN"),
+        ("BOITE_POSTALE", "BOITE_POSTALE"),
+        ("CONSENT_BIC", "CONSENT_BIC"),
+        ("DATOUV", "DATOUV"),
+        ("PPE", "PPE"),
+        ("DEVISE", "DEVISE"),
+        ("RESID", "RESID"),
+        ("DATEREV", "DATEREV"),
+        ("RISQUE", "RISQUE"),
+    ]
+
+    KYC_PM_FIELD_LABELS = [
+        ("CLIENT", "CLIENT"),
+        ("EXPL", "EXPL"),
+        ("FILIALE", "FILIALE"),
+        ("AGENCE", "AGENCE"),
+        ("LIB_AGENCE", "LIB_AGENCE"),
+        ("IDM", "IDM"),
+        ("CODAPE", "CODAPE"),
+        ("AGEC", "AGEC"),
+        ("CAPITAL", "CAPITAL"),
+        ("CA", "CA"),
+        ("RESULTAT", "RESULTAT"),
+        ("RCSNO", "RCSNO"),
+        ("ORIGINE_REV", "ORIGINE_REV"),
+        ("TEL", "TEL"),
+        ("INTITULE_COMPTE", "INTITULE_COMPTE"),
+        ("ADRESSE_SOCIALE", "ADRESSE_SOCIALE"),
+        ("NUMERO_FISCAL", "NUMERO_FISCAL"),
+        ("PAYS_JUR", "PAYS_JUR"),
+        ("ACTIONNAIRE", "ACTIONNAIRE"),
+        ("MANDATAIRE", "MANDATAIRE"),
+        ("BOITE_POSTALE", "BOITE_POSTALE"),
+        ("CONSENT_BIC", "CONSENT_BIC"),
+        ("DATOUV", "DATOUV"),
+        ("DEVISE", "DEVISE"),
+        ("RESID", "RESID"),
+        ("DATEREV", "DATEREV"),
+        ("PPE", "PPE"),
+        ("RISQUE", "RISQUE"),
+    ]
+
+    # Retrieve all unique filiales
+    filiale_choices = sorted(list(set(
+        list(Kyc_pp.objects.exclude(FILIALE="").values_list('FILIALE', flat=True).distinct()) +
+        list(Kyc_pm.objects.exclude(FILIALE="").values_list('FILIALE', flat=True).distinct())
+    )))
+
+    selected_filiale = request.GET.get('filiale_modal', '').strip()
+
+    if request.method == "POST":
+        action = request.POST.get('action', '')
+        if action == "save_filiale_modal":
+            # Save configs for the modal popup of a specific filiale
+            sel_filiale = request.POST.get('selected_filiale', '').strip()
+            if sel_filiale:
+                for ct in ['pp', 'pm']:
+                    config_id = request.POST.get(f'{ct}_config_id', '')
+                    empty_fields = request.POST.getlist(f'{ct}_empty_fields')
+                    display_fields = request.POST.getlist(f'{ct}_display_fields')
+                    
+                    if config_id:
+                        config = KycFieldVisibilityConfig.objects.get(id=config_id)
+                        config.empty_check_fields = empty_fields
+                        config.display_fields = display_fields
+                        config.save()
+                    else:
+                        # Create specific config for this filiale
+                        KycFieldVisibilityConfig.objects.create(
+                            client_type=ct,
+                            filiales=[sel_filiale],
+                            empty_check_fields=empty_fields,
+                            display_fields=display_fields
+                        )
+                messages.success(request, f"Configurations spécifiques pour la filiale {sel_filiale} enregistrées.")
+            return redirect('kyc_field_config')
+            
+        else:
+            # Save standard global or filiale configurations
+            client_type = request.POST.get('client_type', 'pp')
+            config_id = request.POST.get('config_id', '')
+            scope = request.POST.get('scope', 'global')
+            filiales = request.POST.getlist('filiales') if scope == 'filiales' else []
+            empty_fields = request.POST.getlist('empty_fields')
+            display_fields = request.POST.getlist('display_fields')
+
+            if action == "delete":
+                if config_id:
+                    KycFieldVisibilityConfig.objects.filter(id=config_id).delete()
+                    messages.success(request, "Configuration supprimée.")
+                return redirect('kyc_field_config')
+
+            if config_id:
+                config = KycFieldVisibilityConfig.objects.get(id=config_id)
+                config.empty_check_fields = empty_fields
+                config.display_fields = display_fields
+                if not config.filiales or scope == 'filiales':
+                    config.filiales = filiales
+                config.save()
+            else:
+                KycFieldVisibilityConfig.objects.create(
+                    client_type=client_type,
+                    filiales=filiales,
+                    empty_check_fields=empty_fields,
+                    display_fields=display_fields
+                )
+            messages.success(request, "Configuration enregistrée.")
+            return redirect('kyc_field_config')
+
+    # Query all current configs
+    configs_qs = KycFieldVisibilityConfig.objects.all()
+    
+    # Ensure default global configs exist
+    for ct in ['pp', 'pm']:
+        global_exists = any(not c.filiales for c in configs_qs if c.client_type == ct)
+        if not global_exists:
+            default_fields = [f[0] for f in (KYC_PP_FIELD_LABELS if ct == 'pp' else KYC_PM_FIELD_LABELS)]
+            KycFieldVisibilityConfig.objects.create(
+                client_type=ct,
+                filiales=[],
+                empty_check_fields=[],
+                display_fields=default_fields
+            )
+            configs_qs = KycFieldVisibilityConfig.objects.all()
+
+    configs_list = list(configs_qs)
+    for c in configs_list:
+        c.is_global = not c.filiales or len(c.filiales) == 0
+        if c.is_global:
+            c.scope_label = "Toutes les filiales"
+        else:
+            c.scope_label = f"Filiales : {', '.join(c.filiales)}"
+        c.empty_fields = c.empty_check_fields
+        c.display_field_names = c.display_fields
+
+    sections = [
+        {
+            'client_type': 'pp',
+            'title': 'Particuliers (PP)',
+            'fields': KYC_PP_FIELD_LABELS,
+            'configs': [c for c in configs_list if c.client_type == 'pp']
+        },
+        {
+            'client_type': 'pm',
+            'title': 'Entreprises (PM)',
+            'fields': KYC_PM_FIELD_LABELS,
+            'configs': [c for c in configs_list if c.client_type == 'pm']
+        }
+    ]
+
+    selected_filiale_configs = []
+    if selected_filiale:
+        for ct in ['pp', 'pm']:
+            spec_config = None
+            for c in configs_list:
+                if c.client_type == ct and not c.is_global and selected_filiale in (c.filiales or []):
+                    spec_config = c
+                    break
+            
+            if spec_config:
+                is_specific = True
+                config_id = spec_config.id
+                empty_fields = spec_config.empty_check_fields
+                display_fields = spec_config.display_fields
+                scope_label = f"Règle spécifique pour {selected_filiale}"
+            else:
+                is_specific = False
+                global_c = next((c for c in configs_list if c.client_type == ct and c.is_global), None)
+                config_id = None
+                empty_fields = global_c.empty_check_fields if global_c else []
+                display_fields = global_c.display_fields if global_c else [f[0] for f in (KYC_PP_FIELD_LABELS if ct == 'pp' else KYC_PM_FIELD_LABELS)]
+                scope_label = "Hérité du global (Toutes les filiales)"
+
+            selected_filiale_configs.append({
+                'client_type': ct,
+                'title': 'Particuliers (PP)' if ct == 'pp' else 'Entreprises (PM)',
+                'config_id': config_id,
+                'is_specific': is_specific,
+                'scope_label': scope_label,
+                'empty_fields': empty_fields,
+                'display_field_names': display_fields,
+                'fields': KYC_PP_FIELD_LABELS if ct == 'pp' else KYC_PM_FIELD_LABELS,
+                'filiales': [selected_filiale]
+            })
+
+    context = {
+        'filia': getattr(request.user, 'filiale', ''),
+        'filiale_choices': filiale_choices,
+        'sections': sections,
+        'selected_filiale': selected_filiale,
+        'selected_filiale_configs': selected_filiale_configs,
+    }
+    return render(request, 'kyc_field_config.html', context)
+
+
+def get_rate_color(rate, threshold):
+    if rate < threshold:
+        return "#ef4444"
+    elif rate < threshold + 5:
+        return "#f59e0b"
+    else:
+        return "#10b981"
+
+
+def export_pilotage_excel(scope_data, summary, completeness_rows, quality_rows, notations_list, notation_kpis):
+    wb = Workbook()
+    
+    # Sheet 1: Synthèse
+    ws1 = wb.active
+    ws1.title = "Synthèse"
+    ws1.append(["RAPPORT DE PILOTAGE KYC - BOA GROUP"])
+    ws1.append([f"Périmètre: {scope_data.get('selected_filiale') or 'GROUPE'}"])
+    ws1.append([f"Date de génération: {timezone.localtime().strftime('%d/%m/%Y %H:%M')}"])
+    ws1.append([f"Seuil d'analyse: {summary.get('threshold', 90.0)}%"])
+    ws1.append([])
+    
+    ws1.append(["Indicateur", "Valeur", "Unité", "Statut"])
+    ws1.append(["Taux de complétude global", summary.get("completeness_rate"), "%", "Sous seuil" if (summary.get("completeness_rate") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Taux de complétude PP", summary.get("completeness_rate_pp"), "%", "Sous seuil" if (summary.get("completeness_rate_pp") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Taux de complétude PM", summary.get("completeness_rate_pm"), "%", "Sous seuil" if (summary.get("completeness_rate_pm") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Taux de conformité qualité global", summary.get("quality_rate"), "%", "Sous seuil" if (summary.get("quality_rate") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Taux de conformité qualité PP", summary.get("quality_rate_pp"), "%", "Sous seuil" if (summary.get("quality_rate_pp") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Taux de conformité qualité PM", summary.get("quality_rate_pm"), "%", "Sous seuil" if (summary.get("quality_rate_pm") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Nombre de champs sous seuil", summary.get("low_completeness_count"), "", ""])
+    ws1.append(["Nombre de règles sous seuil", summary.get("low_quality_count"), "", ""])
+    
+    # Sheet 2: Complétude
+    ws2 = wb.create_sheet(title="Complétude")
+    ws2.append(["Type", "Périmètre", "Champ (Code)", "Champ (Libellé)", "Total Clients", "Incomplets", "Taux", "Conformité"])
+    for row in completeness_rows:
+        status = "Sous seuil" if row.get("is_below_threshold") else "Conforme"
+        ws2.append([
+            row.get("type"),
+            row.get("filiale"),
+            row.get("field_name"),
+            row.get("field_label"),
+            row.get("total_clients"),
+            row.get("missing_count"),
+            row.get("rate"),
+            status
+        ])
+        
+    # Sheet 3: Qualité
+    ws3 = wb.create_sheet(title="Qualité")
+    ws3.append(["Type", "Périmètre", "Règle", "Champ", "Total Clients", "Anomalies", "Taux", "Conformité"])
+    for row in quality_rows:
+        status = "Sous seuil" if row.get("is_below_threshold") else "Conforme"
+        ws3.append([
+            row.get("type"),
+            row.get("scope_label"),
+            row.get("rule_name"),
+            row.get("field_label"),
+            row.get("total_clients"),
+            row.get("fail_count"),
+            row.get("rate"),
+            status
+        ])
+        
+    # Sheet 4: Notation
+    ws4 = wb.create_sheet(title="Notation")
+    ws4.append(["Agent Evalué", "Code Exploitant", "Filiale", "Note", "Flux / Stock", "Recommandations", "Evalué par", "Date évaluation"])
+    for n in notations_list:
+        ws4.append([
+            n.agent.username,
+            getattr(n.agent, "code_expl", "N/A"),
+            n.agent.filiale,
+            n.note,
+            n.flux_stock,
+            n.recommandation or "",
+            n.note_par.username,
+            n.date_notation.strftime("%d/%m/%Y %H:%M") if n.date_notation else ""
+        ])
+        
+    for ws in [ws1, ws2, ws3, ws4]:
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            col_letter = get_column_letter(col[0].column)
+            ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+            
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    scope_label = "GROUPE" if scope_data.get("scope") == "groupe" else scope_data.get("selected_filiale", "FILIALE")
+    scope_safe = re.sub(r"[^A-Za-z0-9_-]+", "_", scope_label)
+    date_file = timezone.localtime().strftime("%Y%m%d")
+    response['Content-Disposition'] = f'attachment; filename="rapport_pilotage_kyc_{scope_safe}_{date_file}.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required
+def pilotage_kyc(request):
+    user = request.user
+    
+    # 1. Access security: can the user access group scope?
+    user_groupe = [
+        "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
+        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
+    ]
+    can_group = user.is_superuser or user.organe in user_groupe
+    
+    # Allowed filiales list
+    allowed_filiales = sorted(list(set(
+        list(Kyc_pp.objects.exclude(FILIALE="").values_list('FILIALE', flat=True).distinct()) +
+        list(Kyc_pm.objects.exclude(FILIALE="").values_list('FILIALE', flat=True).distinct())
+    )))
+    if not can_group:
+        user_filiale = getattr(user, 'filiale', '')
+        allowed_filiales = [user_filiale] if user_filiale else []
+        scope = "filiale"
+        selected_filiale = user_filiale
+    else:
+        scope = request.GET.get('scope', 'filiale')
+        if scope not in ['filiale', 'groupe']:
+            scope = 'filiale'
+        
+        if scope == 'filiale':
+            selected_filiale = request.GET.get('filiale', '')
+            if not selected_filiale and allowed_filiales:
+                selected_filiale = allowed_filiales[0]
+        else:
+            selected_filiale = ""
+
+    # Threshold
+    try:
+        threshold = float(request.GET.get('threshold', '90.0').replace(',', '.'))
+    except ValueError:
+        threshold = 90.0
+
+    KYC_PP_FIELD_LABELS = [
+        ("CLIENT", "CLIENT"),
+        ("EXPL", "EXPL"),
+        ("FILIALE", "FILIALE"),
+        ("AGENCE", "AGENCE"),
+        ("LIB_AGENCE", "LIB_AGENCE"),
+        ("IDP", "IDP"),
+        ("PAYNAIS", "PAYNAIS"),
+        ("PROFESSION", "PROFESSION"),
+        ("SALAIRE", "SALAIRE"),
+        ("NUMID", "NUMID"),
+        ("CODAPE", "CODAPE"),
+        ("TEL", "TEL"),
+        ("DATNAIS", "DATNAIS"),
+        ("ADRESSE", "ADRESSE"),
+        ("DATVALID", "DATVALID"),
+        ("ORIGINE_REV", "ORIGINE_REV"),
+        ("INTITULE_COMPTE", "INTITULE_COMPTE"),
+        ("EMPLOYEUR", "EMPLOYEUR"),
+        ("PAYS_RESID", "PAYS_RESID"),
+        ("LIEU_DELIVRANCE_CIN", "LIEU_DELIVRANCE_CIN"),
+        ("BOITE_POSTALE", "BOITE_POSTALE"),
+        ("CONSENT_BIC", "CONSENT_BIC"),
+        ("DATOUV", "DATOUV"),
+        ("PPE", "PPE"),
+        ("DEVISE", "DEVISE"),
+        ("RESID", "RESID"),
+        ("DATEREV", "DATEREV"),
+        ("RISQUE", "RISQUE"),
+    ]
+
+    KYC_PM_FIELD_LABELS = [
+        ("CLIENT", "CLIENT"),
+        ("EXPL", "EXPL"),
+        ("FILIALE", "FILIALE"),
+        ("AGENCE", "AGENCE"),
+        ("LIB_AGENCE", "LIB_AGENCE"),
+        ("IDM", "IDM"),
+        ("CODAPE", "CODAPE"),
+        ("AGEC", "AGEC"),
+        ("CAPITAL", "CAPITAL"),
+        ("CA", "CA"),
+        ("RESULTAT", "RESULTAT"),
+        ("RCSNO", "RCSNO"),
+        ("ORIGINE_REV", "ORIGINE_REV"),
+        ("TEL", "TEL"),
+        ("INTITULE_COMPTE", "INTITULE_COMPTE"),
+        ("ADRESSE_SOCIALE", "ADRESSE_SOCIALE"),
+        ("NUMERO_FISCAL", "NUMERO_FISCAL"),
+        ("PAYS_JUR", "PAYS_JUR"),
+        ("ACTIONNAIRE", "ACTIONNAIRE"),
+        ("MANDATAIRE", "MANDATAIRE"),
+        ("BOITE_POSTALE", "BOITE_POSTALE"),
+        ("CONSENT_BIC", "CONSENT_BIC"),
+        ("DATOUV", "DATOUV"),
+        ("DEVISE", "DEVISE"),
+        ("RESID", "RESID"),
+        ("DATEREV", "DATEREV"),
+        ("PPE", "PPE"),
+        ("RISQUE", "RISQUE"),
+    ]
+
+    # PP Active fields
+    pp_config = None
+    if scope == 'filiale' and selected_filiale:
+        pp_config = next((c for c in KycFieldVisibilityConfig.objects.filter(client_type='pp') if selected_filiale in (c.filiales or [])), None)
+    if not pp_config:
+        pp_config = next((c for c in KycFieldVisibilityConfig.objects.filter(client_type='pp') if not c.filiales), None)
+        
+    if pp_config and pp_config.empty_check_fields:
+        pp_fields_list = pp_config.empty_check_fields
+    elif pp_config and pp_config.display_fields:
+        pp_fields_list = pp_config.display_fields
+    else:
+        pp_fields_list = [f[0] for f in KYC_PP_FIELD_LABELS]
+        
+    pp_active_fields = [(f_name, dict(KYC_PP_FIELD_LABELS).get(f_name, f_name)) for f_name in pp_fields_list]
+
+    # PM Active fields
+    pm_config = None
+    if scope == 'filiale' and selected_filiale:
+        pm_config = next((c for c in KycFieldVisibilityConfig.objects.filter(client_type='pm') if selected_filiale in (c.filiales or [])), None)
+    if not pm_config:
+        pm_config = next((c for c in KycFieldVisibilityConfig.objects.filter(client_type='pm') if not c.filiales), None)
+        
+    if pm_config and pm_config.empty_check_fields:
+        pm_fields_list = pm_config.empty_check_fields
+    elif pm_config and pm_config.display_fields:
+        pm_fields_list = pm_config.display_fields
+    else:
+        pm_fields_list = [f[0] for f in KYC_PM_FIELD_LABELS]
+        
+    pm_active_fields = [(f_name, dict(KYC_PM_FIELD_LABELS).get(f_name, f_name)) for f_name in pm_fields_list]
+
+    # Filter by user selection for report
+    selected_report_fields = request.GET.getlist('report_fields')
+    if selected_report_fields:
+        pp_fields_to_analyze = [f for f in pp_active_fields if f[0] in selected_report_fields]
+        pm_fields_to_analyze = [f for f in pm_active_fields if f[0] in selected_report_fields]
+    else:
+        pp_fields_to_analyze = pp_active_fields
+        pm_fields_to_analyze = pm_active_fields
+
+    # 3. Base Querysets
+    if scope == 'filiale':
+        pp_queryset = Kyc_pp.objects.filter(FILIALE=selected_filiale)
+        pm_queryset = Kyc_pm.objects.filter(FILIALE=selected_filiale)
+    else:
+        pp_queryset = Kyc_pp.objects.filter(FILIALE__in=allowed_filiales)
+        pm_queryset = Kyc_pm.objects.filter(FILIALE__in=allowed_filiales)
+
+    total_pp = pp_queryset.count()
+    total_pm = pm_queryset.count()
+
+    # 4. Completeness calculations
+    completeness_rows_pp = []
+    total_evaluated_pp = 0
+    total_missing_pp = 0
+    
+    for f_name, f_label in pp_fields_to_analyze:
+        missing_count = pp_queryset.filter(Q(**{f"{f_name}__isnull": True}) | Q(**{f_name: ""})).count()
+        rate = compliance_rate_floor(total_pp - missing_count, total_pp)
+        if rate is None:
+            rate = 100.0
+        completeness_rows_pp.append({
+            'type': 'PP',
+            'filiale': selected_filiale if scope == 'filiale' else 'GROUPE',
+            'field_name': f_name,
+            'field_label': f_label,
+            'total_clients': total_pp,
+            'missing_count': missing_count,
+            'rate': rate,
+            'is_below_threshold': rate < threshold
+        })
+        total_evaluated_pp += total_pp
+        total_missing_pp += missing_count
+
+    completeness_rows_pm = []
+    total_evaluated_pm = 0
+    total_missing_pm = 0
+    
+    for f_name, f_label in pm_fields_to_analyze:
+        missing_count = pm_queryset.filter(Q(**{f"{f_name}__isnull": True}) | Q(**{f_name: ""})).count()
+        rate = compliance_rate_floor(total_pm - missing_count, total_pm)
+        if rate is None:
+            rate = 100.0
+        completeness_rows_pm.append({
+            'type': 'PM',
+            'filiale': selected_filiale if scope == 'filiale' else 'GROUPE',
+            'field_name': f_name,
+            'field_label': f_label,
+            'total_clients': total_pm,
+            'missing_count': missing_count,
+            'rate': rate,
+            'is_below_threshold': rate < threshold
+        })
+        total_evaluated_pm += total_pm
+        total_missing_pm += missing_count
+
+    completeness_rows = completeness_rows_pp + completeness_rows_pm
+    low_completeness_rows = [r for r in completeness_rows if r['is_below_threshold']]
+    low_completeness_rows.sort(key=lambda r: r['rate'])
+
+    # Aggregate completeness KPIs
+    total_pp_compliant = max(total_evaluated_pp - total_missing_pp, 0)
+    completeness_rate_pp = round((total_pp_compliant / total_evaluated_pp) * 100, 1) if total_evaluated_pp > 0 else 100.0
+    
+    total_pm_compliant = max(total_evaluated_pm - total_missing_pm, 0)
+    completeness_rate_pm = round((total_pm_compliant / total_evaluated_pm) * 100, 1) if total_evaluated_pm > 0 else 100.0
+    
+    total_evaluated_global = total_evaluated_pp + total_evaluated_pm
+    total_compliant_global = total_pp_compliant + total_pm_compliant
+    completeness_rate = round((total_compliant_global / total_evaluated_global) * 100, 1) if total_evaluated_global > 0 else 100.0
+
+    low_completeness_count_pp = sum(1 for r in completeness_rows_pp if r['is_below_threshold'])
+    low_completeness_count_pm = sum(1 for r in completeness_rows_pm if r['is_below_threshold'])
+    low_completeness_count = low_completeness_count_pp + low_completeness_count_pm
+
+    # 5. Quality calculations
+    all_quality_rules = DataQualityRule.objects.filter(active=True)
+    selected_report_rules = request.GET.getlist('report_rules')
+    if selected_report_rules:
+        rules_to_evaluate = all_quality_rules.filter(id__in=selected_report_rules)
+    else:
+        rules_to_evaluate = all_quality_rules
+
+    quality_rows_pp = []
+    quality_rows_pm = []
+    total_ok_pp = 0
+    total_eval_rules_pp = 0
+    total_ok_pm = 0
+    total_eval_rules_pm = 0
+
+    for rule in rules_to_evaluate:
+        eval_fil = selected_filiale if scope == 'filiale' else None
+        stat = evaluate_data_quality_rule(rule, filiale=eval_fil)
+        total = stat.get('total', 0)
+        fail_count = stat.get('fail_count', 0)
+        ok_count = stat.get('ok_count', 0)
+        rate = compliance_rate_floor(ok_count, total, fail_count)
+        if rate is None:
+            rate = 100.0
+
+        row = {
+            'id': rule.id,
+            'type': rule.applicability,
+            'scope_label': selected_filiale if scope == 'filiale' else 'GROUPE',
+            'rule_name': rule.name,
+            'field_label': dict(DATA_QUALITY_FIELD_CHOICES).get(rule.field_name, rule.field_name),
+            'total_clients': total,
+            'fail_count': fail_count,
+            'rate': rate,
+            'is_below_threshold': rate < threshold,
+            'export_url': reverse('kyc:export_rule_failures', kwargs={'rule_id': rule.id})
+        }
+
+        if rule.applicability == 'PP':
+            quality_rows_pp.append(row)
+            total_ok_pp += ok_count
+            total_eval_rules_pp += total
+        else:
+            quality_rows_pm.append(row)
+            total_ok_pm += ok_count
+            total_eval_rules_pm += total
+
+    quality_rows = quality_rows_pp + quality_rows_pm
+    low_quality_rows = [r for r in quality_rows if r['is_below_threshold']]
+    low_quality_rows.sort(key=lambda r: r['rate'])
+
+    # Aggregate quality KPIs
+    quality_rate_pp = round((total_ok_pp / total_eval_rules_pp) * 100, 1) if total_eval_rules_pp > 0 else 100.0
+    quality_rate_pm = round((total_ok_pm / total_eval_rules_pm) * 100, 1) if total_eval_rules_pm > 0 else 100.0
+    
+    total_ok_global = total_ok_pp + total_ok_pm
+    total_eval_global = total_eval_rules_pp + total_eval_rules_pm
+    quality_rate = round((total_ok_global / total_eval_global) * 100, 1) if total_eval_global > 0 else 100.0
+
+    low_quality_count_pp = sum(1 for r in quality_rows_pp if r['is_below_threshold'])
+    low_quality_count_pm = sum(1 for r in quality_rows_pm if r['is_below_threshold'])
+    low_quality_count = low_quality_count_pp + low_quality_count_pm
+
+    summary_dict = {
+        'threshold': threshold,
+        'completeness_rate': completeness_rate,
+        'completeness_rate_pp': completeness_rate_pp,
+        'completeness_rate_pm': completeness_rate_pm,
+        'low_completeness_count': low_completeness_count,
+        'low_completeness_count_pp': low_completeness_count_pp,
+        'low_completeness_count_pm': low_completeness_count_pm,
+        'completeness_total': total_pp + total_pm,
+        'quality_rate': quality_rate,
+        'quality_rate_pp': quality_rate_pp,
+        'quality_rate_pm': quality_rate_pm,
+        'low_quality_count': low_quality_count,
+        'low_quality_count_pp': low_quality_count_pp,
+        'low_quality_count_pm': low_quality_count_pm,
+        'quality_total': total_eval_global
+    }
+
+    # 6. Notation and KPIs
+    if scope == 'filiale':
+        notations = Notation.objects.filter(agent__filiale=selected_filiale).select_related('agent', 'note_par')
+    else:
+        notations = Notation.objects.filter(agent__filiale__in=allowed_filiales).select_related('agent', 'note_par')
+
+    total_notations = notations.count()
+    total_agents = notations.values('agent').distinct().count()
+    excellence_count = notations.filter(note__in=['Très Bien', 'Bien']).count()
+    excellence_rate = round((excellence_count / total_notations) * 100, 1) if total_notations > 0 else 0.0
+
+    notation_kpis = {
+        'total_agents': total_agents,
+        'total_notations': total_notations,
+        'excellence_rate': excellence_rate
+    }
+    notations_list = list(notations.order_by('-date_notation'))
+
+    # Exports
+    export_format = request.GET.get('export')
+    if export_format:
+        scope_data = {
+            'scope': scope,
+            'selected_filiale': selected_filiale
+        }
+        if export_format == 'pdf':
+            from kyc.pilotage_exports import export_pilotage_pdf
+            return export_pilotage_pdf(scope_data, summary_dict, completeness_rows, quality_rows)
+        elif export_format == 'pptx':
+            from kyc.pilotage_exports import export_pilotage_pptx
+            return export_pilotage_pptx(scope_data, summary_dict, completeness_rows, quality_rows)
+        elif export_format == 'excel':
+            return export_pilotage_excel(scope_data, summary_dict, completeness_rows, quality_rows, notations_list, notation_kpis)
+
+    # 7. Chart preparation
+    chart_comp_pp_labels = [r['field_label'] for r in completeness_rows_pp]
+    chart_comp_pp_values = [r['rate'] for r in completeness_rows_pp]
+    chart_comp_pp_colors = [get_rate_color(r['rate'], threshold) for r in completeness_rows_pp]
+
+    chart_comp_pm_labels = [r['field_label'] for r in completeness_rows_pm]
+    chart_comp_pm_values = [r['rate'] for r in completeness_rows_pm]
+    chart_comp_pm_colors = [get_rate_color(r['rate'], threshold) for r in completeness_rows_pm]
+
+    chart_qual_pp_labels = [r['rule_name'] for r in quality_rows_pp]
+    chart_qual_pp_values = [r['rate'] for r in quality_rows_pp]
+    chart_qual_pp_colors = [get_rate_color(r['rate'], threshold) for r in quality_rows_pp]
+
+    chart_qual_pm_labels = [r['rule_name'] for r in quality_rows_pm]
+    chart_qual_pm_values = [r['rate'] for r in quality_rows_pm]
+    chart_qual_pm_colors = [get_rate_color(r['rate'], threshold) for r in quality_rows_pm]
+
+    chart_notation_overall_labels = ['Très Bien', 'Bien', 'Passable', 'Insuffisant']
+    chart_notation_overall_values = [
+        notations.filter(note='Très Bien').count(),
+        notations.filter(note='Bien').count(),
+        notations.filter(note='Passable').count(),
+        notations.filter(note='Insuffisant').count()
+    ]
+    chart_notation_overall_colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
+
+    chart_notation_filiales = sorted(list(set(notations.values_list('agent__filiale', flat=True).distinct())))
+    chart_notation_filiales = [f for f in chart_notation_filiales if f]
+    
+    chart_notation_by_filiale_datasets = []
+    notes_order = ['Très Bien', 'Bien', 'Passable', 'Insuffisant']
+    colors_map = {
+        'Très Bien': '#10b981',
+        'Bien': '#3b82f6',
+        'Passable': '#f59e0b',
+        'Insuffisant': '#ef4444'
+    }
+    for note in notes_order:
+        data = []
+        for fil in chart_notation_filiales:
+            count = notations.filter(agent__filiale=fil, note=note).count()
+            data.append(count)
+        chart_notation_by_filiale_datasets.append({
+            'label': note,
+            'data': data,
+            'backgroundColor': colors_map[note]
+        })
+
+    context = {
+        'scope': scope,
+        'can_group': can_group,
+        'allowed_filiales': allowed_filiales,
+        'selected_filiale': selected_filiale,
+        'threshold': threshold,
+        'summary': summary_dict,
+        
+        'pp_active_fields': pp_active_fields,
+        'pm_active_fields': pm_active_fields,
+        'selected_report_fields': selected_report_fields,
+        'selected_report_rules': [int(rid) for rid in selected_report_rules if rid.isdigit()],
+        'all_quality_rules': all_quality_rules,
+        
+        'low_completeness_rows': low_completeness_rows,
+        'low_quality_rows': low_quality_rows,
+        
+        'notations_list': notations_list,
+        'notation_kpis': notation_kpis,
+        
+        # Charts
+        'chart_comp_pp_labels': chart_comp_pp_labels,
+        'chart_comp_pp_values': chart_comp_pp_values,
+        'chart_comp_pp_colors': chart_comp_pp_colors,
+        'chart_comp_pm_labels': chart_comp_pm_labels,
+        'chart_comp_pm_values': chart_comp_pm_values,
+        'chart_comp_pm_colors': chart_comp_pm_colors,
+        
+        'chart_qual_pp_labels': chart_qual_pp_labels,
+        'chart_qual_pp_values': chart_qual_pp_values,
+        'chart_qual_pp_colors': chart_qual_pp_colors,
+        'chart_qual_pm_labels': chart_qual_pm_labels,
+        'chart_qual_pm_values': chart_qual_pm_values,
+        'chart_qual_pm_colors': chart_qual_pm_colors,
+        
+        'chart_notation_overall_labels': chart_notation_overall_labels,
+        'chart_notation_overall_values': chart_notation_overall_values,
+        'chart_notation_overall_colors': chart_notation_overall_colors,
+        
+        'chart_notation_filiales': chart_notation_filiales,
+        'chart_notation_by_filiale_datasets': chart_notation_by_filiale_datasets,
+        
+        'pp_fields_json': json.dumps(pp_active_fields),
+        'pm_fields_json': json.dumps(pm_active_fields),
+    }
+
+    return render(request, 'pilotage_kyc.html', context)
 
 
 

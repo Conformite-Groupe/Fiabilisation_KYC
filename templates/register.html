@@ -3,18 +3,45 @@
 {% load tailwind_filters %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+<style>
+    body {
+        background-color: #f8fafc;
+        background-image:
+            radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%);
+    }
 
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200 max-w-4xl mx-auto">
+    .glass-panel {
+        background: var(--glass-bg, rgba(255, 255, 255, 0.7));
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.5));
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    }
+</style>
+<div class="min-h-screen px-4 pb-4 pt-1 lg:px-8 lg:pb-8 lg:pt-2 space-y-6 max-w-[1600px] mx-auto">
+
+    <div class="glass-panel page-header flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 rounded-2xl">
         <div>
-            <h1 class="text-xl font-black text-gray-800 tracking-tight uppercase">
-                Création <span class="text-green-700 font-light">Utilisateur</span>
-            </h1>
-            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Page de création de nouvel utilisateur</p>
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shrink-0">
+                    <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3"
+                            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">Création <span
+                            class="text-emerald-500 font-light">Utilisateur</span></h1>
+                    <div class="flex items-center gap-2 mt-1.5">
+                        <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Page de création de nouvel utilisateur</p>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100 animate-pulse">
-            <span class="w-1.5 h-1.5 bg-green-500 rounded-full "></span>
-              <a href="/user_list" class="text-[10px] font-black text-gray-400 hover:text-gray-600 uppercase tracking-widest transition-colors">
+        <div class="flex items-center gap-4">
+            <a href="/user_list" class="flex items-center justify-center gap-2 px-6 py-3 bg-white/70 border border-slate-200 hover:bg-white text-slate-700 text-[10px] font-black uppercase rounded-xl tracking-[0.15em] transition-all shadow-sm">
                 ← Retour à la liste
             </a>
         </div>
@@ -22,7 +49,7 @@
 
     <div class="max-w-lg mx-auto">
         {% if user.organe == "PASS" or user.organe == "DSI" %}
-        <div class="bg-white rounded-[2rem] shadow-lg border border-gray-200 overflow-hidden">
+        <div class="bg-white rounded-[2rem] shadow-sm border border-gray-200 overflow-hidden">
 
             <div class="bg-gray-800 p-5 text-white relative overflow-hidden">
                 <div class="relative z-10 flex items-center gap-4">

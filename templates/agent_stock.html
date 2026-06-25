@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 {% load tailwind_filters %}
+{% load country_flag %}
+{% load static %}
 
 {% block content %}
 <style>
@@ -62,42 +64,6 @@
         </div>
     </div>
 
-                  {% if notation and user.organe in user_stat %}
-    {% with derniere_note=notation.0 %}
-    <div class="flex items-center rounded-2xl shadow-xl border-4 border-white min-w-[240px] overflow-hidden group transition-all
-        {% if derniere_note.note == 'Très Bien' %} bg-emerald-600 text-white
-        {% elif derniere_note.note == 'Bien' %} bg-green-600 text-white
-        {% elif derniere_note.note == 'Passable' %} bg-amber-500 text-white
-        {% elif derniere_note.note == 'Insuffisant' %} bg-orange-600 text-white
-        {% else %} bg-slate-600 text-white {% endif %}">
-
-        <div class="px-6 py-3 flex-1">
-            <p class="text-[9px] font-black uppercase tracking-widest opacity-80 mb-1">
-                Note Actuelle
-            </p>
-            <div class="flex items-baseline gap-2">
-                <p class="text-3xl font-black tracking-widest uppercase">
-                    {{ derniere_note.note }}
-                </p>
-            </div>
-            <p class="text-[8px] font-bold opacity-70 uppercase tracking-tighter">
-                Mise à jour le {{ derniere_note.date_notation|date:"d/m/Y" }}
-            </p>
-        </div>
-
-        <div class="bg-black/10 h-full px-4 flex items-center justify-center self-stretch">
-             <svg class="w-8 h-8 drop-shadow-md animate-pulse
-                {% if derniere_note.note == 'Très Bien' %} text-emerald-200
-                {% elif derniere_note.note == 'Bien' %} text-green-200
-                {% elif derniere_note.note == 'Passable' %} text-amber-200
-                {% else %} text-white {% endif %}"
-                fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-             </svg>
-        </div>
-    </div>
-    {% endwith %}
-{% endif %}
 
     </div>
 
@@ -141,7 +107,9 @@
             {% for note in notes %}
             <tr class="group hover:bg-slate-50/80 transition-all duration-150">
                 <td class="px-4 py-4 text-slate-500 font-bold whitespace-nowrap uppercase border-b border-slate-50">
-                    <span class="bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">{{ note.note_par.filiale }}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">{{ note.agent.filiale }}</span>
+                    </div>
                 </td>
                 <td class="px-4 py-4 text-slate-700 font-mono font-bold border-b border-slate-50">
                     {{ note.agent.expl }}

@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block content %}
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+    @import url('/static/vendor/css/outfit_plus_jakarta.css');
 
     .screening-page {
         font-family: 'Plus Jakarta Sans', sans-serif;
@@ -24,7 +25,6 @@
         box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
     }
 
-    .screening-page nav > div,
     .screening-page .document-panel:not(.document-modal-panel) {
         background: rgba(255, 255, 255, 0.78) !important;
         backdrop-filter: blur(12px);
@@ -33,8 +33,8 @@
         box-shadow: 0 16px 38px rgba(15, 23, 42, 0.07) !important;
     }
 
-    .screening-page .document-panel > div:first-child:not(.document-modal-scroll),
-    .screening-page .document-panel > form + div {
+    .screening-page .document-panel>div:first-child:not(.document-modal-scroll),
+    .screening-page .document-panel>form+div {
         border-color: rgba(226, 232, 240, 0.8) !important;
     }
 
@@ -96,11 +96,11 @@
         color: #ffffff !important;
     }
 
-    body.result-modal-open > nav,
+    body.result-modal-open>nav,
     body.result-modal-open aside,
     body.result-modal-open #toast-container,
-    body.result-modal-open .screening-page > nav,
-    body.result-modal-open .screening-page > header {
+    body.result-modal-open .screening-page>nav,
+    body.result-modal-open .screening-page>header {
         display: none !important;
     }
 
@@ -114,8 +114,10 @@
         <div class="flex items-center gap-4">
             <div class="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shrink-0">
                 <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 3h6l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2z"></path>
-                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 3v5h5M8 13h8M8 17h5M8 9h2"></path>
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 3h6l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2z"></path>
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        d="M14 3v5h5M8 13h8M8 17h5M8 9h2"></path>
                 </svg>
             </div>
             <div>
@@ -131,7 +133,7 @@
             </div>
         </div>
         <div class="flex flex-wrap items-center justify-center lg:justify-end gap-3">
-         
+
             <div class="bg-slate-900 text-white rounded-2xl px-5 py-3 text-right shadow-xl">
                 <p class="text-[9px] font-black text-emerald-300 uppercase tracking-widest">Base documentaire</p>
                 <span class="text-sm font-black">{{ documents_count }} document{{ documents_count|pluralize }}</span>
@@ -139,35 +141,49 @@
         </div>
     </header>
 
-    <nav class="flex items-center justify-center" aria-label="Navigation extraction documents">
-        <div class="inline-flex w-full sm:w-auto p-1.5 bg-gray-100 rounded-2xl border border-gray-100 shadow-inner">
+    <nav class="flex" aria-label="Navigation extraction documents">
+        <div class="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200/50 shadow-inner">
+            {% if can_insert_batches %}
             <button type="button" data-tab="charger"
-                    class="document-tab flex-1 sm:w-40 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+                class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
                 Charger
             </button>
             <button type="button" data-tab="suivi"
-                    class="document-tab flex-1 sm:w-40 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+                class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
                 Suivi
             </button>
+            {% endif %}
             <button type="button" data-tab="consulter"
-                    data-tab-url="{% url 'document_extraction' %}?tab=results#consulter"
-                    class="document-tab flex-1 sm:w-40 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+                data-tab-url="{% url 'document_extraction' %}?tab=results#consulter"
+                class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
                 Resultats
             </button>
+            {% if can_insert_batches %}
+            <button type="button" data-tab="sources"
+                class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
+                Sources par champ
+            </button>
+            {% endif %}
             <button type="button" data-tab="base"
-                    class="document-tab flex-1 sm:w-40 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+                class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
                 Documents extraits
             </button>
         </div>
     </nav>
 
-    <section data-panel="charger" class="document-panel bg-white border border-green-100 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-5 py-3 bg-gray-800 border-b border-green-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    {% if can_insert_batches %}
+    <section data-panel="charger"
+        class="document-panel bg-white border border-green-100 rounded-2xl shadow-sm overflow-hidden">
+        <div
+            class="px-5 py-3 bg-gray-800 border-b border-green-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
                 <h2 class="text-[10px] font-black uppercase tracking-widest text-white">Charger des documents</h2>
-                <p class="text-[9px] font-bold text-gray-200 mt-0.5">Fichier simple, import multiple, archive ZIP ou PDF groupe</p>
+                <p class="text-[9px] font-bold text-gray-200 mt-0.5">Fichier simple, import multiple, archive ZIP ou PDF
+                    groupe</p>
             </div>
-            <span class="inline-flex items-center justify-center rounded-xl bg-white/10 border border-white/10 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-green-100">PDF, JPG, PNG, TIFF, TXT, ZIP</span>
+            <span
+                class="inline-flex items-center justify-center rounded-xl bg-white/10 border border-white/10 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-green-100">PDF,
+                JPG, PNG, TIFF, TXT, ZIP</span>
         </div>
 
         <form method="post" enctype="multipart/form-data" class="p-5 lg:p-6 space-y-6">
@@ -177,16 +193,25 @@
                     <div>
                         <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Mode d'import</p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <label class="relative block cursor-pointer rounded-2xl border border-green-200 bg-green-50/80 p-4 import-mode-card shadow-sm">
-                                <input type="radio" name="import_mode" value="single" checked class="absolute right-4 top-4 h-4 w-4 accent-green-700">
-                                <span class="block text-[11px] font-black uppercase tracking-widest text-green-800 pr-8">Fichiers ou ZIP</span>
+                            <label
+                                class="relative block cursor-pointer rounded-2xl border border-green-200 bg-green-50/80 p-4 import-mode-card shadow-sm">
+                                <input type="radio" name="import_mode" value="single" checked
+                                    class="absolute right-4 top-4 h-4 w-4 accent-green-700">
+                                <span
+                                    class="block text-[11px] font-black uppercase tracking-widest text-green-800 pr-8">Fichiers
+                                    ou ZIP</span>
                                 <span class="block mt-2 text-[11px] font-bold leading-5 text-green-700">
-                                    Pour charger un document, plusieurs fichiers separes ou une archive de plusieuers pieces.
+                                    Pour charger un document, plusieurs fichiers separes ou une archive de plusieuers
+                                    pieces.
                                 </span>
                             </label>
-                            <label class="relative block cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 import-mode-card shadow-sm">
-                                <input type="radio" name="import_mode" value="grouped_pdf" class="absolute right-4 top-4 h-4 w-4 accent-green-700">
-                                <span class="block text-[11px] font-black uppercase tracking-widest text-gray-800 pr-8">PDF groupe</span>
+                            <label
+                                class="relative block cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 import-mode-card shadow-sm">
+                                <input type="radio" name="import_mode" value="grouped_pdf"
+                                    class="absolute right-4 top-4 h-4 w-4 accent-green-700">
+                                <span
+                                    class="block text-[11px] font-black uppercase tracking-widest text-gray-800 pr-8">PDF
+                                    groupe</span>
                                 <span class="block mt-2 text-[11px] font-bold leading-5 text-gray-500">
                                     Pour un seul PDF contenant plusieurs documents d'identite.
                                 </span>
@@ -197,44 +222,69 @@
                     <div class="rounded-2xl border-2 border-dashed border-green-200 bg-gray-50 p-6 shadow-inner">
                         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                             <div>
-                                <p class="text-[10px] font-black uppercase tracking-widest text-gray-800">Fichier(s) a charger</p>
+                                <p class="text-[10px] font-black uppercase tracking-widest text-gray-800">Fichier(s) a
+                                    charger</p>
                                 <p class="text-[11px] font-bold text-gray-500 mt-2">
                                     PDF, JPG, PNG, TIFF, TXT ou ZIP. Selection multiple autorisee.
                                 </p>
                             </div>
-                            <input type="file" name="documents" multiple accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.txt,.zip"
-                                   class="block w-full md:w-auto text-[11px] font-bold text-gray-600 file:mr-4 file:rounded-xl file:border-0 file:bg-green-700 file:px-4 file:py-3 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:text-white hover:file:bg-green-800">
+                            <input type="file" name="documents" multiple
+                                accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.txt,.zip"
+                                class="block w-full md:w-auto text-[11px] font-bold text-gray-600 file:mr-4 file:rounded-xl file:border-0 file:bg-green-700 file:px-4 file:py-3 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:text-white hover:file:bg-green-800">
                         </div>
                     </div>
                 </div>
 
                 <div class="xl:col-span-5 space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
+                        <div class="block">
+                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Type
+                                de client</span>
+                            <div class="flex gap-4 py-2">
+                                <label
+                                    class="inline-flex items-center gap-2 cursor-pointer font-bold text-xs text-gray-700">
+                                    <input type="radio" name="client_type" value="pp" {% if client_type  ==  'pp' or not client_type %}checked{% endif %} class="h-4 w-4 accent-green-700" onchange="filterDocumentTypes(this.value)">
+                                    Particuliers (PP)
+                                </label>
+                                <label
+                                    class="inline-flex items-center gap-2 cursor-pointer font-bold text-xs text-gray-700">
+                                    <input type="radio" name="client_type" value="pm" {% if client_type  ==  'pm' %}checked{% endif %} class="h-4 w-4 accent-green-700" onchange="filterDocumentTypes(this.value)">
+                                    Entreprises (PM)
+                                </label>
+                            </div>
+                        </div>
+
                         <label class="block">
-                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Type de document</span>
-                            <select name="document_type"
-                                    class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[11px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
-                                {% for value, label in document_type_choices %}
-                                <option value="{{ value }}">{{ label }}</option>
+                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Type
+                                de document</span>
+                            <select name="document_type" id="upload_document_type"
+                                class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[11px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
+                                {% for dt in all_document_types %}
+                                <option value="{{ dt.code }}" data-client-type="{{ dt.client_type }}">{{ dt.label }}
+                                </option>
                                 {% endfor %}
                             </select>
                         </label>
 
                         <label class="block">
-                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Nom du lot</span>
+                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Nom
+                                du lot</span>
                             <input type="text" name="batch_name" placeholder="Ex: Stock CNI agence Dakar"
-                                   class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[11px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
+                                class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[11px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
                         </label>
                     </div>
 
                     <label class="block rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                        <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Pages par document</span>
+                        <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Pages
+                            par document</span>
                         <input type="number" name="pages_per_document" min="1" value="1"
-                               class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[11px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
-                        <span class="block text-[10px] font-bold text-gray-400 mt-2">Utile uniquement pour un PDF groupe : 1 page par piece, ou 2 en recto-verso.</span>
+                            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[11px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
+                        <span class="block text-[10px] font-bold text-gray-400 mt-2">Utile uniquement pour un PDF groupe
+                            : 1 page par piece, ou 2 en recto-verso.</span>
                     </label>
 
-                    <button class="w-full flex items-center justify-center px-4 py-3.5 nav-link-active text-white text-[10px] font-black rounded-xl tracking-[0.15em] hover:bg-green-800 transition-all shadow-lg shadow-green-100 uppercase">
+                    <button
+                        class="w-full flex items-center justify-center px-4 py-3.5 nav-link-active text-white text-[10px] font-black rounded-xl tracking-[0.15em] hover:bg-green-800 transition-all shadow-lg shadow-green-100 uppercase">
                         Charger le lot
                     </button>
                 </div>
@@ -245,33 +295,33 @@
         <div class="border-t border-gray-200 bg-gray-50 px-6 py-6">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                 <div>
-                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">Fichiers charges avec succes</h3>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">Fichiers charges avec
+                        succes</h3>
                     <p class="text-[11px] font-bold text-gray-400 mt-1">
                         Lot : {{ uploaded_batch }} | {{ uploaded_documents_count }} document{{ uploaded_documents_count|pluralize }}
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <a href="?import_batch={{ uploaded_batch|urlencode }}#base"
-                       class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-gray-800 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-700">
+                        class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-gray-800 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-700">
                         Documents du lot
                     </a>
                     {% if uploaded_batch_running_job %}
                     <a href="{{ uploaded_batch_running_job.follow_url }}"
-                       class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-700">
+                        class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-700">
                         Suivre le rapprochement
                     </a>
                     {% elif not uploaded_batch_matching_done %}
                     <a href="{% url 'start_document_extraction_match_job' %}?import_batch={{ uploaded_batch|urlencode }}"
-                       data-processing-link
-                       data-processing-title="Rapprochement KYC PP en cours"
-                       data-processing-detail="Analyse du lot charge et recherche des champs vides dans KYC PP."
-                       data-processing-count="{{ uploaded_documents_count }}"
-                       class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-800">
+                        data-processing-link data-processing-title="Rapprochement KYC PP en cours"
+                        data-processing-detail="Analyse du lot charge et recherche des champs vides dans KYC PP."
+                        data-processing-count="{{ uploaded_documents_count }}"
+                        class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-800">
                         Lancer le rapprochement
                     </a>
                     {% else %}
                     <a href="{{ uploaded_batch_result_url|default:'#consulter' }}"
-                       class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-green-800 text-[10px] font-black uppercase tracking-widest hover:bg-green-100">
+                        class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-green-800 text-[10px] font-black uppercase tracking-widest hover:bg-green-100">
                         Voir resultats
                     </a>
                     {% endif %}
@@ -285,11 +335,12 @@
                             Alerte qualite et detection automatique
                         </p>
                         <p class="text-[11px] font-bold text-amber-700 mt-1">
-                            {{ uploaded_quality_alerts_count }} document{{ uploaded_quality_alerts_count|pluralize }} avec avertissement. Verifiez les pieces signalees avant rapprochement.
+                            {{ uploaded_quality_alerts_count }} document{{ uploaded_quality_alerts_count|pluralize }}
+                            avec avertissement. Verifiez les pieces signalees avant rapprochement.
                         </p>
                     </div>
                     <a href="?import_batch={{ uploaded_batch|urlencode }}#base"
-                       class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-white border border-amber-200 text-amber-800 text-[10px] font-black uppercase tracking-widest hover:bg-amber-100">
+                        class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-white border border-amber-200 text-amber-800 text-[10px] font-black uppercase tracking-widest hover:bg-amber-100">
                         Voir les details
                     </a>
                 </div>
@@ -318,22 +369,21 @@
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                    <span class="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                    <span
+                        class="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700">
                         {{ upload_batch_queue|length }} lot{{ upload_batch_queue|length|pluralize }}
                     </span>
                     {% if upload_batch_queue %}
-                    <a href="{% url 'start_document_extraction_match_job' %}"
-                       data-processing-link
-                       data-processing-title="Rapprochement global KYC PP"
-                       data-processing-detail="Analyse de tous les lots et recherche des champs vides dans KYC PP."
-                       data-processing-count="{{ documents_count }}"
-                       class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
+                    <a href="{% url 'start_document_extraction_match_job' %}" data-processing-link
+                        data-processing-title="Rapprochement global KYC PP"
+                        data-processing-detail="Analyse de tous les lots et recherche des champs vides dans KYC PP."
+                        data-processing-count="{{ documents_count }}"
+                        class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
                         Tout lancer
                     </a>
                     {% else %}
-                    <button type="button"
-                            disabled
-                            class="inline-flex cursor-not-allowed items-center justify-center rounded-xl bg-slate-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <button type="button" disabled
+                        class="inline-flex cursor-not-allowed items-center justify-center rounded-xl bg-slate-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
                         Tout lancer
                     </button>
                     {% endif %}
@@ -350,71 +400,79 @@
                         </tr>
                     </thead>
                     <tbody>
-                {% for batch in upload_batch_queue %}
+                        {% for batch in upload_batch_queue %}
                         <tr class="border-t border-slate-100 text-slate-700 transition-colors hover:bg-emerald-50">
                             <td class="border-t border-slate-100 px-4 py-3 align-middle">
-                                <p class="max-w-[520px] truncate text-[11px] font-black text-slate-800" title="{{ batch.import_batch }}">{{ batch.import_batch }}</p>
+                                <p class="max-w-[520px] truncate text-[11px] font-black text-slate-800"
+                                    title="{{ batch.import_batch }}">{{ batch.import_batch }}</p>
                                 <p class="mt-0.5 text-[9px] font-black uppercase tracking-widest text-slate-400">{{ batch.latest_created_at|date:"d/m/Y H:i" }}</p>
                             </td>
                             <td class="border-t border-slate-100 px-4 py-3 text-center align-middle">
-                                <span class="inline-flex min-w-10 justify-center rounded-lg bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-800">{{ batch.documents_count }}</span>
+                                <span
+                                    class="inline-flex min-w-10 justify-center rounded-lg bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-800">{{ batch.documents_count }}</span>
                             </td>
                             <td class="border-t border-slate-100 px-4 py-3 text-center align-middle">
-                                <span class="inline-flex rounded border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest {% if batch.status == 'failed' %}border-red-100 bg-red-50 text-red-700{% else %}border-slate-200 bg-slate-50 text-slate-700{% endif %}">
+                                <span
+                                    class="inline-flex rounded border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest {% if batch.status  ==  'failed' %}border-red-100 bg-red-50 text-red-700{% else %}border-slate-200 bg-slate-50 text-slate-700{% endif %}">
                                     {{ batch.status_label }}
                                 </span>
                             </td>
                             <td class="border-t border-slate-100 px-4 py-3 text-right align-middle">
                                 <div class="inline-flex items-center gap-2">
                                     <a href="{{ batch.documents_url }}"
-                                       class="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-[9px] font-black uppercase tracking-widest text-slate-700 hover:bg-white">
+                                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-[9px] font-black uppercase tracking-widest text-slate-700 hover:bg-white">
                                         Documents
                                     </a>
-                                    <a href="{{ batch.start_url }}"
-                                       data-processing-link
-                                       data-processing-title="Rapprochement KYC PP en cours"
-                                       data-processing-detail="Analyse du lot et recherche des champs vides dans KYC PP."
-                                       data-processing-count="{{ batch.documents_count }}"
-                                       class="inline-flex h-8 items-center rounded-lg bg-emerald-700 px-3 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
+                                    <a href="{{ batch.start_url }}" data-processing-link
+                                        data-processing-title="Rapprochement KYC PP en cours"
+                                        data-processing-detail="Analyse du lot et recherche des champs vides dans KYC PP."
+                                        data-processing-count="{{ batch.documents_count }}"
+                                        class="inline-flex h-8 items-center rounded-lg bg-emerald-700 px-3 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
                                         Lancer
                                     </a>
                                 </div>
                             </td>
                         </tr>
-                {% empty %}
+                        {% empty %}
                         <tr>
                             <td colspan="4" class="px-4 py-8 text-center text-[11px] font-bold text-slate-400">
                                 Aucun lot en attente. Les lots en cours ou termines sont visibles dans l'onglet Suivi.
                             </td>
                         </tr>
-                {% endfor %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </section>
+    {% endif %}
 
     {% if show_document_modal %}
     <div class="fixed inset-0 z-[80] bg-slate-950/65 backdrop-blur-md"></div>
     {% endif %}
 
-    <section data-panel="suivi" class="document-panel bg-white border border-emerald-100 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-5 py-3 bg-gray-800 border-b border-emerald-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
+    {% if can_insert_batches %}
+    <section data-panel="suivi"
+        class="document-panel bg-white border border-emerald-100 rounded-2xl shadow-sm overflow-hidden">
+        <div
+            class="px-5 py-3 bg-gray-800 border-b border-emerald-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
             <div>
                 <h2 class="text-[10px] font-black uppercase tracking-widest text-white">Suivi des rapprochements</h2>
-                <p class="text-[9px] font-bold text-gray-200 mt-0.5">Traitements en arriere-plan, progression et acces aux resultats</p>
+                <p class="text-[9px] font-bold text-gray-200 mt-0.5">Traitements en arriere-plan, progression et acces
+                    aux resultats</p>
             </div>
         </div>
 
         <div class="p-6 space-y-5">
             {% if selected_match_job and not show_match_job_results %}
             <div id="matchJobProgress"
-                 data-status-url="{% url 'document_extraction_match_job_status' selected_match_job.pk %}"
-                 data-initial-status="{{ selected_match_job.status }}"
-                 class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4">
+                data-status-url="{% url 'document_extraction_match_job_status' selected_match_job.pk %}"
+                data-initial-status="{{ selected_match_job.status }}"
+                class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4">
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-800">Traitement selectionne</p>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-800">Traitement
+                            selectionne</p>
                         <p class="mt-1 text-[12px] font-black text-slate-800">
                             {{ selected_match_job.scope_params.import_batch|default:"Tous les lots" }}
                         </p>
@@ -426,25 +484,29 @@
                     <div class="min-w-[180px] text-right">
                         <p class="mb-1 text-[9px] font-black uppercase tracking-widest text-emerald-700">{{ selected_match_job.get_status_display }}</p>
                         <p id="matchJobPercent" class="text-lg font-black text-emerald-800">{{ selected_match_job.progress_percent }}%</p>
-                        <p id="matchJobCount" class="text-[9px] font-black uppercase tracking-widest text-emerald-600">{{ selected_match_job.progress_current }} / {{ selected_match_job.progress_total }}</p>
+                        <p id="matchJobCount" class="text-[9px] font-black uppercase tracking-widest text-emerald-600">
+                            {{ selected_match_job.progress_current }} / {{ selected_match_job.progress_total }}</p>
                     </div>
                 </div>
                 <div class="mt-3 h-3 overflow-hidden rounded-full bg-white">
-                    <div id="matchJobBar" class="h-full rounded-full bg-emerald-700 transition-all duration-500" style="width: {{ selected_match_job.progress_percent }}%"></div>
+                    <div id="matchJobBar" class="h-full rounded-full bg-emerald-700 transition-all duration-500"
+                        style="width: {{ selected_match_job.progress_percent }}%"></div>
                 </div>
-                <div id="matchJobResultActions" class="{% if selected_match_job.status != 'completed' %}hidden{% endif %} mt-4 flex flex-wrap items-center gap-2">
-                    <a id="matchJobResultLink"
-                       href="{{ selected_match_job_result_url }}"
-                       class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
+                <div id="matchJobResultActions"
+                    class="{% if selected_match_job.status  !=  'completed' %}hidden{% endif %} mt-4 flex flex-wrap items-center gap-2">
+                    <a id="matchJobResultLink" href="{{ selected_match_job_result_url }}"
+                        class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
                         Voir les resultats du lot
                     </a>
                 </div>
-                {% if selected_match_job.status == 'failed' %}
-                <div class="mt-4 rounded-xl border border-red-100 bg-white px-4 py-3 text-[10px] font-bold text-red-700">
+                {% if selected_match_job.status  ==  'failed' %}
+                <div
+                    class="mt-4 rounded-xl border border-red-100 bg-white px-4 py-3 text-[10px] font-bold text-red-700">
                     Ce rapprochement est en echec. Vous pouvez relancer le lot depuis l'onglet Charger.
                 </div>
-                {% elif selected_match_job.status != 'completed' %}
-                <div class="mt-4 rounded-xl border border-emerald-100 bg-white px-4 py-3 text-[10px] font-bold text-emerald-700">
+                {% elif selected_match_job.status  !=  'completed' %}
+                <div
+                    class="mt-4 rounded-xl border border-emerald-100 bg-white px-4 py-3 text-[10px] font-bold text-emerald-700">
                     La progression se met a jour automatiquement toutes les deux secondes.
                 </div>
                 {% endif %}
@@ -462,512 +524,757 @@
                         </tr>
                     </thead>
                     <tbody>
-                {% for job in recent_match_jobs %}
+                        {% for job in recent_match_jobs %}
                         <tr class="text-slate-700 transition-colors hover:bg-emerald-50">
                             <td class="border-t border-slate-100 px-4 py-3 align-middle">
-                                <p class="max-w-[520px] truncate text-[11px] font-black text-slate-800" title="{{ job.scope_params.import_batch|default:'Tous les lots' }}">
+                                <p class="max-w-[520px] truncate text-[11px] font-black text-slate-800"
+                                    title="{{ job.scope_params.import_batch|default:'Tous les lots' }}">
                                     {{ job.scope_params.import_batch|default:"Tous les lots" }}
                                 </p>
                                 <p class="mt-0.5 text-[9px] font-black uppercase tracking-widest text-slate-400">{{ job.created_at|date:"d/m/Y H:i" }}</p>
                             </td>
                             <td class="border-t border-slate-100 px-4 py-3 text-center align-middle">
-                                <span class="inline-flex rounded border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest {% if job.status == 'completed' %}border-emerald-100 bg-emerald-50 text-emerald-800{% elif job.status == 'failed' %}border-red-100 bg-red-50 text-red-700{% else %}border-amber-100 bg-amber-50 text-amber-800{% endif %}">
+                                <span
+                                    class="inline-flex rounded border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest {% if job.status  ==  'completed' %}border-emerald-100 bg-emerald-50 text-emerald-800{% elif job.status  ==  'failed' %}border-red-100 bg-red-50 text-red-700{% else %}border-amber-100 bg-amber-50 text-amber-800{% endif %}">
                                     {{ job.get_status_display }}
                                 </span>
                             </td>
                             <td class="border-t border-slate-100 px-4 py-3 align-middle">
                                 <div class="h-2 overflow-hidden rounded-full bg-slate-100">
-                                    <div class="h-full rounded-full bg-emerald-700" style="width: {{ job.progress_percent }}%"></div>
+                                    <div class="h-full rounded-full bg-emerald-700"
+                                        style="width: {{ job.progress_percent }}%"></div>
                                 </div>
                                 <p class="mt-1 text-center text-[9px] font-black text-slate-400">{{ job.progress_current }} / {{ job.progress_total }}</p>
                             </td>
                             <td class="border-t border-slate-100 px-4 py-3 text-right align-middle">
-                                {% if job.status == 'completed' %}
+                                {% if job.status  ==  'completed' %}
                                 <a href="{{ job.result_url }}"
-                                   class="inline-flex h-8 items-center rounded-lg bg-emerald-700 px-3 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
+                                    class="inline-flex h-8 items-center rounded-lg bg-emerald-700 px-3 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
                                     Voir resultats
                                 </a>
-                                {% elif job.status == 'failed' %}
+                                {% elif job.status  ==  'failed' %}
                                 <span class="text-[9px] font-black uppercase tracking-widest text-red-600">Echec</span>
                                 {% else %}
-                                <span class="text-[9px] font-black uppercase tracking-widest text-amber-700">En cours</span>
+                                <span class="text-[9px] font-black uppercase tracking-widest text-amber-700">En
+                                    cours</span>
                                 {% endif %}
                             </td>
                         </tr>
-                {% empty %}
+                        {% empty %}
                         <tr>
                             <td colspan="4" class="px-4 py-8 text-center text-[11px] font-bold text-slate-400">
                                 Aucun rapprochement lance pour le moment.
                             </td>
                         </tr>
-                {% endfor %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </section>
+    {% endif %}
 
     <section data-panel="consulter"
-             class="document-panel {% if show_document_modal %}document-modal-panel fixed inset-3 lg:inset-6 z-[90] overflow-hidden rounded-2xl bg-gray-50 border border-white/20 shadow-2xl{% else %}space-y-6{% endif %}">
+        class="document-panel {% if show_document_modal %}document-modal-panel fixed inset-3 lg:inset-6 z-[90] overflow-hidden rounded-2xl bg-gray-50 border border-white/20 shadow-2xl{% else %}space-y-6{% endif %}">
         {% if show_document_modal %}
-        <div class="sticky top-0 z-[95] bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div
+            class="sticky top-0 z-[95] bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
                 <p class="text-[9px] font-black uppercase tracking-[0.2em] text-green-700">
                     {% if extraction %}Fichier ouvert{% else %}Lot ouvert{% endif %}
                 </p>
                 <h2 class="text-sm lg:text-base font-black text-gray-800 mt-1">
                     {% if extraction %}
-                        {{ extraction.filename }}
+                    {{ extraction.filename }}
                     {% else %}
-                        {{ selected_import_batch }}
+                    {{ selected_import_batch }}
                     {% endif %}
                 </h2>
                 <p class="text-[10px] font-bold text-gray-400 mt-0.5">
                     {% if extraction and extraction.import_batch %}
-                        Lot : {{ extraction.import_batch }}
+                    Lot : {{ extraction.import_batch }}
                     {% elif selected_import_batch %}
-                        Consultation limitee aux documents et correspondances de ce lot
+                    Consultation limitee aux documents et correspondances de ce lot
                     {% else %}
-                        Consultation du fichier charge
+                    Consultation du fichier charge
                     {% endif %}
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 {% if extraction and selected_import_batch %}
                 <a href="?import_batch={{ selected_import_batch|urlencode }}#consulter"
-                   class="inline-flex items-center justify-center rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50">
+                    class="inline-flex items-center justify-center rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50">
                     Retour au lot
                 </a>
                 {% elif extraction %}
                 <a href="{{ all_match_results_url }}"
-                   class="inline-flex items-center justify-center rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50">
+                    class="inline-flex items-center justify-center rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50">
                     Retour
                 </a>
                 {% else %}
                 <a href="{% url 'document_extraction' %}#charger"
-                   class="inline-flex items-center justify-center rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50">
+                    class="inline-flex items-center justify-center rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50">
                     Retour
                 </a>
                 {% endif %}
                 <a href="{{ all_match_results_url }}"
-                   class="inline-flex items-center justify-center rounded-xl bg-slate-800 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-black">
+                    class="inline-flex items-center justify-center rounded-xl bg-slate-800 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-black">
                     Tous les lots
                 </a>
             </div>
         </div>
         <div class="document-modal-scroll p-4 lg:p-6 space-y-6 overflow-y-auto">
-        {% endif %}
-        {% if extraction %}
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-            <div class="px-5 py-3 bg-gray-800 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                    <h2 class="text-[10px] font-black uppercase tracking-widest">Resultat d'analyse</h2>
-                    <p class="text-[9px] font-bold text-gray-300 mt-0.5">
-                        {{ extraction.document_type }} - {{ extraction.filename }}
-                        {% if extraction.page_range %} | page(s) {{ extraction.page_range }}{% endif %}
-                        {% if extraction.import_batch %} | {{ extraction.import_batch }}{% endif %}
-                    </p>
-                </div>
-                {% if extraction.file_url %}
-                <a href="{{ extraction.file_url }}" target="_blank" class="text-[10px] font-black uppercase tracking-widest text-green-200 hover:text-white">
-                    Voir le fichier
-                </a>
-                {% endif %}
-            </div>
-
-            <div class="p-6 space-y-6">
-                {% if extraction.warnings %}
-                <div class="space-y-2">
-                    {% for warning in extraction.warnings %}
-                    <div class="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-[11px] font-bold text-amber-700">
-                        {{ warning }}
+            {% endif %}
+            {% if extraction %}
+            <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                <div
+                    class="px-5 py-3 bg-gray-800 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                        <h2 class="text-[10px] font-black uppercase tracking-widest">Resultat d'analyse</h2>
+                        <p class="text-[9px] font-bold text-gray-300 mt-0.5">
+                            {{ extraction.document_type }} - {{ extraction.filename }}
+                            {% if extraction.page_range %} |page(s) {{ extraction.page_range }}{% endif %}
+                            {% if extraction.import_batch %} | {{ extraction.import_batch }}{% endif %}
+                        </p>
                     </div>
-                    {% endfor %}
+                    {% if extraction.file_url %}
+                    <a href="{{ extraction.file_url }}" target="_blank"
+                        class="text-[10px] font-black uppercase tracking-widest text-green-200 hover:text-white">
+                        Voir le fichier
+                    </a>
+                    {% endif %}
                 </div>
-                {% endif %}
 
-                <div>
-                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Champs detectes</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                        {% if extraction.field_rows %}
+                <div class="p-6 space-y-6">
+                    {% if extraction.warnings %}
+                    <div class="space-y-2">
+                        {% for warning in extraction.warnings %}
+                        <div
+                            class="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-[11px] font-bold text-amber-700">
+                            {{ warning }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Champs detectes
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                            {% if extraction.field_rows %}
                             {% for field in extraction.field_rows %}
                             <div class="rounded-2xl bg-gray-50 border border-gray-100 p-4">
                                 <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">{{ field.label }}</p>
                                 <p class="text-sm font-black text-gray-800 mt-1 break-words">{{ field.value }}</p>
                             </div>
                             {% endfor %}
-                        {% else %}
+                            {% else %}
                             <div class="md:col-span-2 xl:col-span-3 rounded-2xl bg-gray-50 border border-gray-100 p-4">
                                 <p class="text-[11px] font-bold text-gray-500">
-                                    Aucun champ standard n'a ete reconnu automatiquement. Consultez le texte brut ci-dessous.
+                                    Aucun champ standard n'a ete reconnu automatiquement. Consultez le texte brut
+                                    ci-dessous.
                                 </p>
                             </div>
-                        {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Texte extrait
+                        </h3>
+                        <pre
+                            class="min-h-[180px] max-h-[360px] overflow-auto whitespace-pre-wrap bg-gray-50 border border-gray-200 rounded-2xl p-4 text-[11px] text-gray-700 font-mono">{% if extraction.text %}{{ extraction.text }}{% else %}Aucun texte extrait.{% endif %}</pre>
                     </div>
                 </div>
-
-                <div>
-                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Texte extrait</h3>
-                    <pre class="min-h-[180px] max-h-[360px] overflow-auto whitespace-pre-wrap bg-gray-50 border border-gray-200 rounded-2xl p-4 text-[11px] text-gray-700 font-mono">{% if extraction.text %}{{ extraction.text }}{% else %}Aucun texte extrait.{% endif %}</pre>
-                </div>
             </div>
-        </div>
-        {% endif %}
+            {% endif %}
 
-        {% if not extraction %}
-        <div class="bg-white border border-green-100 rounded-2xl shadow-sm overflow-hidden">
-            <div class="px-5 py-3 bg-gray-800 border-b border-green-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
-                <div>
-                    <h2 class="text-[10px] font-black uppercase tracking-widest text-white">Resultats de rapprochement KYC PP</h2>
-                    <p class="text-[9px] font-bold text-gray-200 mt-0.5">
-                        Champs vides dans KYC PP mais presents dans les documents charges
-                    </p>
-                </div>
-                {% if show_match_actions %}
-           
-                    <div class="flex flex-wrap items-center justify-start lg:justify-end gap-2">
-                            <span class="inline-flex h-8 items-center justify-center rounded-xl px-3 text-[9px] font-black uppercase tracking-widest text-white shadow-sm">
-                                client{{ kyc_pp_match_total_count|pluralize }} trouve{{ kyc_pp_match_total_count|pluralize }} {{ kyc_pp_match_filtered_count }} / {{ kyc_pp_match_total_count }}
-                            </span>
-                            <a href="{% url 'export_document_extraction_matches' %}{% if export_match_querystring %}?{{ export_match_querystring }}{% endif %}"
-                               class="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-600 px-3.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-emerald-900/10 transition hover:bg-emerald-700">
-                                Exporter CSV
-                            </a>
-                            <button type="submit" form="kyc-match-filter-form" class="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-600 px-3.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-emerald-900/10 transition hover:bg-emerald-700">Filtrer</button>
-                            <a href="{% url 'document_extraction' %}{% if match_reset_querystring %}?{{ match_reset_querystring }}{% endif %}#consulter" class="inline-flex h-8 items-center justify-center rounded-xl border border-white/15 bg-white px-3.5 text-[9px] font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-100">Reset</a>
-                        </div>
-                {% elif not selected_match_job and not wants_results_tab %}
-                <a href="{% url 'start_document_extraction_match_job' %}{% if match_querystring %}?{{ match_querystring }}{% endif %}"
-                   data-processing-link
-                   data-processing-title="Rapprochement KYC PP en cours"
-                   data-processing-detail="Analyse des documents et recherche des champs vides dans KYC PP."
-                   data-processing-count="{{ documents_count }}"
-                   class="inline-flex items-center justify-center px-5 py-3 rounded-2xl nav-link-active text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-800 shadow-sm">
-                    Lancer le rapprochement
-                </a>
-                {% endif %}
-            </div>
-
-            <div class="p-6">
-                {% if selected_import_batch %}
-                <div class="mb-5 rounded-2xl border border-green-200 bg-green-50 px-3 py-2 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
+            {% if not extraction %}
+            <div class="bg-white border border-green-100 rounded-2xl shadow-sm overflow-hidden">
+                <div
+                    class="px-5 py-3 bg-gray-800 border-b border-green-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
                     <div>
-                     
-                        <p class="text-sm font-black text-gray-800 mt-1">{{ selected_import_batch }}</p>
-                        <p class="text-[11px] font-bold text-green-700 mt-1">
-                            Les documents et les correspondances affiches sont limites a ce lot.
+                        <h2 class="text-[10px] font-black uppercase tracking-widest text-white">Resultats de
+                            rapprochement KYC PP</h2>
+                        <p class="text-[9px] font-bold text-gray-200 mt-0.5">
+                            Champs vides dans KYC PP mais presents dans les documents charges
                         </p>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <a href="{{ all_match_results_url }}"
-                           class="inline-flex items-center justify-center rounded-xl border border-green-200 bg-white px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-green-800 hover:bg-green-100">
-                            Voir tous les lots
-                        </a>
-                        {% if run_kyc_pp_matching and match_scope_import_batch == selected_import_batch %}
-                        <span class="">
+                    {% if show_match_actions %}
+
+                    <div class="flex flex-wrap items-center justify-start lg:justify-end gap-2">
+                        <span
+                            class="inline-flex h-8 items-center justify-center rounded-xl px-3 text-[9px] font-black uppercase tracking-widest text-white shadow-sm">
+                            client{{ kyc_pp_match_total_count|pluralize }} trouve{{ kyc_pp_match_total_count|pluralize }} {{ kyc_pp_match_filtered_count }} / {{ kyc_pp_match_total_count }}
                         </span>
-                        {% else %}
-                        <a href="{% url 'start_document_extraction_match_job' %}?import_batch={{ selected_import_batch|urlencode }}"
-                           data-processing-link
-                           data-processing-title="Rapprochement KYC PP en cours"
-                           data-processing-detail="Analyse du lot selectionne et recherche des champs vides dans KYC PP."
-                           data-processing-count="{{ documents_count }}"
-                           class="inline-flex items-center justify-center rounded-xl bg-green-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-green-800">
-                            Lancer les correspondances du lot
+                        <a href="{% url 'export_document_extraction_matches' %}{% if export_match_querystring %}?{{ export_match_querystring }}{% endif %}"
+                            class="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-600 px-3.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-emerald-900/10 transition hover:bg-emerald-700">
+                            Exporter CSV
                         </a>
-                        {% endif %}
+                        <button type="submit" form="kyc-match-filter-form"
+                            class="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-600 px-3.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-emerald-900/10 transition hover:bg-emerald-700">Filtrer</button>
+                        <a href="{% url 'document_extraction' %}{% if match_reset_querystring %}?{{ match_reset_querystring }}{% endif %}#consulter"
+                            class="inline-flex h-8 items-center justify-center rounded-xl border border-white/15 bg-white px-3.5 text-[9px] font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-100">Reset</a>
                     </div>
+                    {% elif not selected_match_job and not wants_results_tab %}
+                    <a href="{% url 'start_document_extraction_match_job' %}{% if match_querystring %}?{{ match_querystring }}{% endif %}"
+                        data-processing-link data-processing-title="Rapprochement KYC PP en cours"
+                        data-processing-detail="Analyse des documents et recherche des champs vides dans KYC PP."
+                        data-processing-count="{{ documents_count }}"
+                        class="inline-flex items-center justify-center px-5 py-3 rounded-2xl nav-link-active text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-800 shadow-sm">
+                        Lancer le rapprochement
+                    </a>
+                    {% endif %}
                 </div>
-                {% endif %}
-                {% if selected_match_job and not show_match_job_results %}
-                {% elif wants_results_tab and not run_kyc_pp_matching and not expired_document_matches %}
-                <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
-                    <p class="text-sm font-black text-gray-700">Aucun resultat global disponible.</p>
-                    <p class="text-[11px] font-bold text-gray-400 mt-2">
-                        Lance un rapprochement global depuis l'onglet Charger avec le bouton Tout lancer.
-                    </p>
-                </div>
-                {% elif not run_kyc_pp_matching and not expired_document_matches %}
-                <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
-                    <p class="text-sm font-black text-gray-700">Rapprochement non lance.</p>
-                    <p class="text-[11px] font-bold text-gray-400 mt-2">
-                        Le calcul peut parcourir plusieurs milliers de documents et clients. Lancez-le uniquement apres avoir filtre un lot ou une recherche.
-                    </p>
-                </div>
-                {% elif kyc_pp_match_total_count or expired_document_matches %}
-                <form id="kyc-match-filter-form" method="get" action="{% url 'document_extraction' %}#consulter">
-                    {% for key, value in match_filter_hidden_params.items %}
-                    <input type="hidden" name="{{ key }}" value="{{ value }}">
-                    {% endfor %}
-                    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        <div class="min-w-fit">
-                            <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">Clients trouves</h3>
-                           
+
+                <div class="p-6">
+                    {% if selected_import_batch %}
+                    <div
+                        class="mb-5 rounded-2xl border border-green-200 bg-green-50 px-3 py-2 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
+                        <div>
+
+                            <p class="text-sm font-black text-gray-800 mt-1">{{ selected_import_batch }}</p>
+                            <p class="text-[11px] font-bold text-green-700 mt-1">
+                                Les documents et les correspondances affiches sont limites a ce lot.
+                            </p>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-widest">
-                            <span class="inline-flex items-center gap-1.5 rounded border border-green-100 bg-green-50 px-2.5 py-1 text-green-800">
-                                <span class="h-2 w-2 rounded-full bg-green-600"></span>
-                                A completer
+                        <div class="flex flex-wrap items-center gap-2">
+                            <a href="{{ all_match_results_url }}"
+                                class="inline-flex items-center justify-center rounded-xl border border-green-200 bg-white px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-green-800 hover:bg-green-100">
+                                Voir tous les lots
+                            </a>
+                            {% if run_kyc_pp_matching and match_scope_import_batch  ==  selected_import_batch %}
+                            <span class="">
                             </span>
-                            <span class="inline-flex items-center gap-1.5 rounded border border-amber-100 bg-amber-50 px-2.5 py-1 text-amber-800">
-                                <span class="h-2 w-2 rounded-full bg-amber-500"></span>
-                                A modifier
-                            </span>
+                            {% else %}
+                            <a href="{% url 'start_document_extraction_match_job' %}?import_batch={{ selected_import_batch|urlencode }}"
+                                data-processing-link data-processing-title="Rapprochement KYC PP en cours"
+                                data-processing-detail="Analyse du lot selectionne et recherche des champs vides dans KYC PP."
+                                data-processing-count="{{ documents_count }}"
+                                class="inline-flex items-center justify-center rounded-xl bg-green-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-green-800">
+                                Lancer les correspondances du lot
+                            </a>
+                            {% endif %}
                         </div>
-                    
                     </div>
-                    <div class="overflow-x-auto overflow-y-auto max-h-[520px] relative custom-scrollbar rounded-xl border border-slate-200 shadow-sm bg-white">
-                        <table class="kyc-match-table min-w-[980px] w-full border-separate border-spacing-0 text-[8.5px]">
-                            <thead>
-                                <tr class="sticky top-0 z-50">
-                                    <th class="px-1.5 py-2.5 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[96px] border-b border-green-900">Client</th>
-                                    <th class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">IDP</th>
-                                       {% if user.organe not in user_filiale %}
-                                    <th class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Filiale</th>
-                                      {% endif %}
-                                    <th class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Agence</th>
-                                    <th class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Taux correspondance</th>
-                                    <th class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">A completer / A modifier</th>
-                                    <th class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Document</th>
-                                </tr>
-                                <tr class="sticky top-[29px] z-40 bg-slate-900/95">
-                                    <th class="px-1 py-1.5 bg-slate-900 sticky left-0 z-[60]">
-                                        <input name="match_client" value="{{ kyc_pp_match_filters.match_client }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300">
-                                    </th>
-                                    <th class="px-1 py-1.5 bg-slate-900">
-                                        <input name="match_idp" value="{{ kyc_pp_match_filters.match_idp }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300">
-                                    </th>
-                                    {% if user.organe not in user_filiale %}
-                                    <th class="px-1 py-1.5 bg-slate-900">
-                                        <input name="match_filiale" value="{{ kyc_pp_match_filters.match_filiale }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300">
-                                    </th>
-                                    {% endif %}
-                                    <th class="px-1 py-1.5 bg-slate-900">
-                                        <input name="match_agence" value="{{ kyc_pp_match_filters.match_agence }}" placeholder="Filtre" class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300">
-                                    </th>
-                                    <th class="px-1 py-1.5 bg-slate-900"></th>
-                                    <th class="px-1 py-1.5 bg-slate-900"></th>
-                                    <th class="px-1 py-1.5 bg-slate-900"></th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                {% for match in kyc_pp_matches %}
-                                <tr class="group {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-green-50 transition-colors">
-                                    <td class="match-client-cell px-1.5 py-1.5 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-md bg-inherit truncate max-w-[115px]">{{ match.client.CLIENT }}</td>
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-700 whitespace-nowrap">{{ match.client.IDP|default:"-" }}</td>
+                    {% endif %}
+                    {% if selected_match_job and not show_match_job_results %}
+                    {% elif wants_results_tab and not run_kyc_pp_matching and not expired_document_matches %}
+                    <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
+                        <p class="text-sm font-black text-gray-700">Aucun resultat global disponible.</p>
+                        <p class="text-[11px] font-bold text-gray-400 mt-2">
+
+                        </p>
+                    </div>
+                    {% elif not run_kyc_pp_matching and not expired_document_matches %}
+                    <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
+                        <p class="text-sm font-black text-gray-700">Rapprochement non lance.</p>
+                        <p class="text-[11px] font-bold text-gray-400 mt-2">
+                            Le calcul peut parcourir plusieurs milliers de documents et clients. Lancez-le uniquement
+                            apres avoir filtre un lot ou une recherche.
+                        </p>
+                    </div>
+                    {% elif kyc_pp_match_total_count or expired_document_matches %}
+                    <form id="kyc-match-filter-form" method="get" action="{% url 'document_extraction' %}#consulter">
+                        {% for key, value in match_filter_hidden_params.items %}
+                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endfor %}
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <div class="min-w-fit">
+                                <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">Clients
+                                    trouves</h3>
+
+                            </div>
+                            <div
+                                class="flex flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-widest">
+                                <span
+                                    class="inline-flex items-center gap-1.5 rounded border border-green-100 bg-green-50 px-2.5 py-1 text-green-800">
+                                    <span class="h-2 w-2 rounded-full bg-green-600"></span>
+                                    A completer
+                                </span>
+                                <span
+                                    class="inline-flex items-center gap-1.5 rounded border border-amber-100 bg-amber-50 px-2.5 py-1 text-amber-800">
+                                    <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                                    A modifier
+                                </span>
+                            </div>
+
+                        </div>
+                        <div
+                            class="overflow-x-auto overflow-y-auto max-h-[520px] relative custom-scrollbar rounded-xl border border-slate-200 shadow-sm bg-white">
+                            <table
+                                class="kyc-match-table min-w-[980px] w-full border-separate border-spacing-0 text-[8.5px]">
+                                <thead>
+                                    <tr class="sticky top-0 z-50">
+                                        <th
+                                            class="px-1.5 py-2.5 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[96px] border-b border-green-900">
+                                            Client</th>
+                                        {% if client_type  ==  'pm' %}
+                                        <th
+                                            class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                            IDM</th>
+                                        {% else %}
+                                        <th
+                                            class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                            IDP</th>
+                                        {% endif %}
                                         {% if user.organe not in user_filiale %}
-         
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-600 whitespace-nowrap">{{ match.client.FILIALE|default:"-" }}</td>
+                                        <th
+                                            class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                            Filiale</th>
+                                        {% endif %}
+                                        <th
+                                            class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                            Agence</th>
+                                        <th
+                                            class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                            Taux correspondance</th>
+                                        <th
+                                            class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                            A completer / A modifier</th>
+                                        <th
+                                            class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                            Document</th>
+                                    </tr>
+                                    <tr class="sticky top-[29px] z-40 bg-slate-900/95">
+                                        <th class="px-1 py-1.5 bg-slate-900 sticky left-0 z-[60]">
+                                            <input name="match_client" value="{{ kyc_pp_match_filters.match_client }}"
+                                                placeholder="Filtre"
+                                                class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300">
+                                        </th>
+                                        <th class="px-1 py-1.5 bg-slate-900">
+                                            <input name="match_idp" value="{{ kyc_pp_match_filters.match_idp }}"
+                                                placeholder="{% if client_type  ==  'pm' %}Filtre IDM{% else %}Filtre IDP{% endif %}"
+                                                class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300">
+                                        </th>
+                                        {% if user.organe not in user_filiale %}
+                                        <th class="px-1 py-1.5 bg-slate-900">
+                                            <input name="match_filiale" value="{{ kyc_pp_match_filters.match_filiale }}"
+                                                placeholder="Filtre"
+                                                class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300">
+                                        </th>
+                                        {% endif %}
+                                        <th class="px-1 py-1.5 bg-slate-900">
+                                            <input name="match_agence" value="{{ kyc_pp_match_filters.match_agence }}"
+                                                placeholder="Filtre"
+                                                class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300">
+                                        </th>
+                                        <th class="px-1 py-1.5 bg-slate-900"></th>
+                                        <th class="px-1 py-1.5 bg-slate-900"></th>
+                                        <th class="px-1 py-1.5 bg-slate-900"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    {% for match in kyc_pp_matches %}
+                                    <tr
+                                        class="group {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-green-50 transition-colors">
+                                        <td
+                                            class="match-client-cell px-1.5 py-1.5 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-md bg-inherit truncate max-w-[115px]">
+                                            {{ match.client.CLIENT }}</td>
+                                        {% if client_type  ==  'pm' %}
+                                        <td
+                                            class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-700 whitespace-nowrap">
+                                            {{ match.client.IDM|default:"-" }}</td>
+                                        {% else %}
+                                        <td
+                                            class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-700 whitespace-nowrap">
+                                            {{ match.client.IDP|default:"-" }}</td>
+                                        {% endif %}
+                                        {% if user.organe not in user_filiale %}
 
-                                      {% endif %}
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-600 whitespace-nowrap">{{ match.client.AGENCE|default:"-" }}</td>
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100 font-black text-green-700 whitespace-nowrap">{{ match.match_rate }}%</td>
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100">
-                                        <div class="flex min-w-[260px] max-w-[520px] flex-col items-stretch gap-1 text-left">
-                                            {% for action in match.action_items %}
-                                            <span class="block rounded {% if action.kind == 'modify' %}bg-amber-50 border-amber-100 text-amber-800{% else %}bg-green-50 border-green-100 text-green-800{% endif %} border px-1.5 py-0.5 text-[8px] font-black leading-snug whitespace-normal break-words">
-                                                {{ action.text }}
+                                        <td
+                                            class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-600 whitespace-nowrap">
+                                            {{ match.client.FILIALE|default:"-" }}</td>
+
+                                        {% endif %}
+                                        <td
+                                            class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-600 whitespace-nowrap">
+                                            {{ match.client.AGENCE|default:"-" }}</td>
+                                        <td
+                                            class="px-1.5 py-1.5 text-center border-b border-slate-100 font-black text-green-700 whitespace-nowrap">
+                                            {{ match.match_rate }}%</td>
+                                        <td class="px-1.5 py-1.5 text-center border-b border-slate-100">
+                                            <div
+                                                class="flex min-w-[260px] max-w-[520px] flex-col items-stretch gap-1 text-left">
+                                                {% for action in match.action_items %}
+                                                <span
+                                                    class="block rounded {% if action.kind  ==  'modify' %}bg-amber-50 border-amber-100 text-amber-800{% else %}bg-green-50 border-green-100 text-green-800{% endif %} border px-1.5 py-0.5 text-[8px] font-black leading-snug whitespace-normal break-words">
+                                                    {{ action.text }}
+                                                </span>
+                                                {% empty %}
+                                                {% for suggestion in match.suggestions %}
+                                                <span
+                                                    class="block rounded bg-green-50 border border-green-100 px-1.5 py-0.5 text-[8px] font-black leading-snug text-green-800 whitespace-normal break-words">
+                                                    {{ suggestion.field }}: {{ suggestion.document_value }}
+                                                </span>
+                                                {% endfor %}
+                                                {% if match.expired_document_match %}
+                                                <span
+                                                    class="block rounded bg-amber-50 border border-amber-100 px-1.5 py-0.5 text-[8px] font-black leading-snug text-amber-800 whitespace-normal break-words">
+                                                    DATVALID: {{ match.expired_document_match.old_validity_date|default:"-" }} -> {{ match.expired_document_match.document_validity_date|default:"-" }}
+                                                </span>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </td>
+                                        <td class="px-1.5 py-1.5 text-center border-b border-slate-100">
+                                            <a href="?extraction_id={{ match.document.id }}{% if selected_import_batch %}&import_batch={{ selected_import_batch|urlencode }}{% endif %}#consulter"
+                                                class="inline-flex px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[8px] font-black uppercase tracking-widest hover:bg-green-700">
+                                                Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% if expired_document_matches %}
+                                    {% for expired_match in expired_document_matches %}
+                                    <tr
+                                        class="group {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-amber-50 transition-colors">
+                                        <td
+                                            class="expired-client-cell px-1.5 py-1.5 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-md bg-inherit truncate max-w-[115px]">
+                                            {{ expired_match.client_code|default:"-" }}</td>
+                                        <td
+                                            class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-700 whitespace-nowrap">
+                                            {{ expired_match.idp|default:"-" }}</td>
+                                        {% if user.organe not in user_filiale %}
+                                        <td
+                                            class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-600 whitespace-nowrap">
+                                            {{ expired_match.filiale|default:"-" }}</td>
+                                        {% endif %}
+                                        <td
+                                            class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-600 whitespace-nowrap">
+                                            {{ expired_match.agence|default:"-" }}</td>
+                                        <td
+                                            class="px-1.5 py-1.5 text-center border-b border-slate-100 font-black text-amber-700 whitespace-nowrap">
+                                            {{ expired_match.match_rate }}%</td>
+                                        <td class="px-1.5 py-1.5 text-center border-b border-slate-100">
+                                            <span
+                                                class="inline-flex items-center rounded bg-amber-50 border border-amber-100 px-1.5 py-0.5 text-[8px] font-black text-amber-800 text-center">
+                                                DATVALID: {{ expired_match.old_validity_date|default:"-" }} -> {{ expired_match.document_validity_date|default:"-" }}
                                             </span>
-                                            {% empty %}
-                                            {% for suggestion in match.suggestions %}
-                                            <span class="block rounded bg-green-50 border border-green-100 px-1.5 py-0.5 text-[8px] font-black leading-snug text-green-800 whitespace-normal break-words">
-                                                {{ suggestion.field }}: {{ suggestion.document_value }}
-                                            </span>
-                                            {% endfor %}
-                                            {% if match.expired_document_match %}
-                                            <span class="block rounded bg-amber-50 border border-amber-100 px-1.5 py-0.5 text-[8px] font-black leading-snug text-amber-800 whitespace-normal break-words">
-                                                DATVALID: {{ match.expired_document_match.old_validity_date|default:"-" }} -> {{ match.expired_document_match.document_validity_date|default:"-" }}
-                                            </span>
-                                            {% endif %}
-                                            {% endfor %}
-                                        </div>
-                                    </td>
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100">
-                                        <a href="?extraction_id={{ match.document.id }}{% if selected_import_batch %}&import_batch={{ selected_import_batch|urlencode }}{% endif %}#consulter"
-                                           class="inline-flex px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[8px] font-black uppercase tracking-widest hover:bg-green-700">
-                                            Details
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                                {% if expired_document_matches %}
-                                {% for expired_match in expired_document_matches %}
-                                <tr class="group {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-amber-50 transition-colors">
-                                    <td class="expired-client-cell px-1.5 py-1.5 text-center sticky left-0 z-20 font-bold uppercase border-b border-slate-100 shadow-md bg-inherit truncate max-w-[115px]">{{ expired_match.client_code|default:"-" }}</td>
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-700 whitespace-nowrap">{{ expired_match.idp|default:"-" }}</td>
-                                    {% if user.organe not in user_filiale %}
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-600 whitespace-nowrap">{{ expired_match.filiale|default:"-" }}</td>
+                                        </td>
+                                        <td class="px-1.5 py-1.5 text-center border-b border-slate-100">
+                                            <a href="?extraction_id={{ expired_match.document.id }}{% if selected_import_batch %}&import_batch={{ selected_import_batch|urlencode }}{% endif %}#consulter"
+                                                class="inline-flex px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[8px] font-black uppercase tracking-widest hover:bg-green-700">
+                                                Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
                                     {% endif %}
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100 text-gray-600 whitespace-nowrap">{{ expired_match.agence|default:"-" }}</td>
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100 font-black text-amber-700 whitespace-nowrap">{{ expired_match.match_rate }}%</td>
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100">
-                                        <span class="inline-flex items-center rounded bg-amber-50 border border-amber-100 px-1.5 py-0.5 text-[8px] font-black text-amber-800 text-center">
-                                            DATVALID: {{ expired_match.old_validity_date|default:"-" }} -> {{ expired_match.document_validity_date|default:"-" }}
-                                        </span>
-                                    </td>
-                                    <td class="px-1.5 py-1.5 text-center border-b border-slate-100">
-                                        <a href="?extraction_id={{ expired_match.document.id }}{% if selected_import_batch %}&import_batch={{ selected_import_batch|urlencode }}{% endif %}#consulter"
-                                           class="inline-flex px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[8px] font-black uppercase tracking-widest hover:bg-green-700">
-                                            Details
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                </form>
-                <p class="text-[10px] font-bold text-gray-400 mt-3">
-                    Correspondance par numero d'identite, date de naissance, date de validité du document d'identité et la nationalité.
-                </p>
-                {% else %}
-                <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
-                    <p class="text-sm font-black text-gray-700">Aucune correspondance exploitable detectee.</p>
-                    <p class="text-[11px] font-bold text-gray-400 mt-2">
-                        Les documents doivent contenir un numero d'identite deja present dans KYC PP, ou le code client dans le nom du fichier/lot.
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                    <p class="text-[10px] font-bold text-gray-400 mt-3">
+                        Correspondance par numero d'identite, date de naissance, date de validité du document d'identité
+                        et la nationalité.
                     </p>
+                    {% else %}
+                    <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
+                        <p class="text-sm font-black text-gray-700">Aucune correspondance exploitable detectee.</p>
+                        <p class="text-[11px] font-bold text-gray-400 mt-2">
+                            Les documents doivent contenir un numero d'identite deja present dans KYC PP, ou le code
+                            client dans le nom du fichier/lot.
+                        </p>
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
-        </div>
-        {% endif %}
+            {% endif %}
 
-        {% if show_document_modal %}
+            {% if show_document_modal %}
         </div>
         {% endif %}
     </section>
 
-    <section data-panel="base" class="document-panel bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-            <div class="px-5 py-3 bg-gray-800 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                    <h2 class="text-[10px] font-black uppercase tracking-widest">Documents extraits</h2>
-                    <p class="text-[9px] font-bold text-gray-300 mt-0.5">Recherche par lot, type et champs extraits</p>
+    {% if can_insert_batches %}
+    <section data-panel="sources"
+        class="document-panel bg-white border border-green-100 rounded-2xl shadow-sm overflow-hidden">
+        <div
+            class="px-5 py-3 bg-gray-800 border-b border-green-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+                <h2 class="text-[10px] font-black uppercase tracking-widest text-white">Sources documentaires par champ
+                </h2>
+                <p class="text-[9px] font-bold text-gray-200 mt-0.5">Choisir quel type de document utiliser pour
+                    completer ou modifier chaque champ KYC.</p>
+            </div>
+        </div>
+        <div class="p-6 space-y-6">
+            <!-- Selecteur de filiale -->
+            <div class="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                {% if is_group_user %}
+                <form method="get" action="{% url 'document_extraction' %}#sources"
+                    class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    {% for key, value in request.GET.items %}
+                    {% if key  !=  'filiale' %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endif %}
+                    {% endfor %}
+                    <label for="filiale_select"
+                        class="text-[10px] font-black uppercase tracking-widest text-slate-700">Filiale cible :</label>
+                    <select id="filiale_select" name="filiale" onchange="this.form.submit()"
+                        class="h-9 rounded-xl border border-slate-200 bg-white px-3 text-[10px] font-black uppercase tracking-wider text-slate-700 focus:border-emerald-500 focus:ring-emerald-500 min-w-[200px]">
+                        <option value="" {% if not selected_filiale %}selected{% endif %}>-- Globale (Groupe) --
+                        </option>
+                        {% for fil in liste_filiales %}
+                        <option value="{{ fil }}" {% if selected_filiale == fil %}selected{% endif %}>{{ fil }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="text-[9px] font-bold uppercase tracking-widest text-slate-400 sm:ml-auto">
+                        Les variables ci-dessous s'adaptent selon les parametres de la filiale choisie.
+                    </span>
+                </form>
+                {% else %}
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-700">Affichage des champs
+                        configurés :</span>
+                    <span
+                        class="inline-flex h-9 items-center rounded-xl bg-emerald-50 border border-emerald-100 px-4 text-[10px] font-black uppercase tracking-widest text-emerald-800">
+                        {{ user.filiale|default:"Globale" }}
+                    </span>
                 </div>
-                {% if selected_import_batch %}
-                <a href="{% url 'document_extraction' %}#base" class="text-[10px] font-black uppercase tracking-widest text-green-200 hover:text-white">
-                    Tous les lots
-                </a>
                 {% endif %}
             </div>
 
-            <form method="get" action="{% url 'document_extraction' %}#base" class="p-4 lg:p-5 bg-gray-50/60 border-b border-gray-100">
-                {% if selected_import_batch %}
-                <input type="hidden" name="import_batch" value="{{ selected_import_batch }}">
-                {% endif %}
-                <div class="mx-auto grid max-w-4xl grid-cols-1 md:grid-cols-12 gap-2.5 items-end">
-                    <label class="md:col-span-3 block">
-                        <span class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">Type</span>
-                        <select name="document_type"
-                                class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[10px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
-                            <option value="">Tous</option>
-                            {% for value, label in document_type_choices %}
-                            <option value="{{ value }}" {% if selected_document_type == value %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </label>
-                    <label class="md:col-span-3 block">
-                        <span class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">Champ</span>
-                        <select name="field"
-                                class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[10px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
-                            {% for value, label in search_fields %}
-                            <option value="{{ value }}" {% if search_field == value %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </label>
-                    <label class="md:col-span-4 block">
-                        <span class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">Recherche</span>
-                        <input type="search" name="q" value="{{ search_query }}" placeholder="Nom, numero, nationalite..."
-                               class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[10px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
-                    </label>
-                    <button class="md:col-span-2 h-9 px-3 nav-link-active text-white text-[9px] font-black rounded-lg tracking-widest uppercase">
-                        Rechercher
-                    </button>
-                </div>
-            </form>
-
-            <div class="px-6 pb-6">
-                <div class="overflow-x-auto overflow-y-auto max-h-[560px] relative custom-scrollbar rounded-xl border border-slate-200 shadow-sm bg-white">
-                    <table class="kyc-base-table min-w-[1680px] w-full border-separate border-spacing-0 text-[9px]">
-                        <thead>
-                            <tr class="sticky top-0 z-50">
-                                <th class="px-2 py-3 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-slate-900 min-w-[180px] border-b border-slate-800">Fichier</th>
-                              <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Type</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Lot</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Page(s)</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Prenom</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Nom</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Naissance</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Lieu naissance</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Expiration</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">NIN</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Numero doc.</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Nationalite</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Adresse</th>
-                                <th class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            {% for document in documents %}
-                            <tr class="group {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-green-50 transition-colors">
-                                <td class="px-2 py-2 text-center sticky left-0 z-20 font-bold border-b border-slate-100 truncate max-w-[220px]" title="{{ document.original_filename }}">{{ document.original_filename }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 font-black text-gray-700 whitespace-nowrap">{{ document.get_document_type_display }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-600 max-w-[180px] truncate" title="{{ document.import_batch|default:'-' }}">{{ document.import_batch|default:"-" }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.page_range|default:"-" }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.prenom|default:"-" }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.nom|default:"-" }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.date_naissance|default:"-" }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.lieu_naissance|default:"-" }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.date_expiration|default:"-" }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.numero_identification_nationale|default:"-" }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.numero_document|default:"-" }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.nationalite|default:"-" }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700 max-w-[240px] truncate" title="{{ document.adresse|default:'-' }}">{{ document.adresse|default:"-" }}</td>
-                                <td class="px-2 py-2 text-center border-b border-slate-100 whitespace-nowrap">
-                                    <a href="?extraction_id={{ document.id }}{% if selected_import_batch %}&import_batch={{ selected_import_batch|urlencode }}{% endif %}{% if selected_document_type %}&document_type={{ selected_document_type }}{% endif %}{% if search_field %}&field={{ search_field }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}#consulter"
-                                       class="inline-flex px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[8px] font-black uppercase tracking-widest hover:bg-green-700">
-                                        Details
-                                    </a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="16" class="px-4 py-8 text-center text-[11px] font-bold text-gray-400">
-                                    Aucun document trouve.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                {% if documents.has_other_pages %}
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                        Page {{ documents.number }} / {{ documents.paginator.num_pages }}
-                    </p>
-                    <div class="flex items-center gap-2">
-                        {% if documents.has_previous %}
-                        <a class="px-3 py-2 rounded-xl border border-gray-200 text-[10px] font-black text-gray-600 hover:bg-gray-50"
-                           href="?page={{ documents.previous_page_number }}{% if page_querystring %}&{{ page_querystring }}{% endif %}#base">Precedent</a>
+            <form method="post"
+                action="{% url 'document_extraction' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}#sources"
+                class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_document_field_sources">
+                <input type="hidden" name="return_url" value="{{ document_field_source_return_url }}">
+                <div
+                    class="flex flex-col gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-900">Sources documentaires
+                            par champ</p>
+                        <p class="mt-1 text-[10px] font-bold text-slate-400">
+                            Choisir quel type de document utiliser pour completer ou modifier chaque champ KYC.
+                        </p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                        {% if is_group_user %}
+                        <label
+                            class="inline-flex items-center gap-2 cursor-pointer bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm hover:bg-slate-50 transition-colors">
+                            <input type="checkbox" name="apply_to_all_filiales" value="1"
+                                class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                            <span
+                                class="text-[9px] font-black uppercase tracking-widest text-slate-700 select-none">Appliquer
+                                à toutes les filiales</span>
+                        </label>
                         {% endif %}
-                        {% if documents.has_next %}
-                        <a class="px-3 py-2 rounded-xl border border-gray-200 text-[10px] font-black text-gray-600 hover:bg-gray-50"
-                           href="?page={{ documents.next_page_number }}{% if page_querystring %}&{{ page_querystring }}{% endif %}#base">Suivant</a>
-                        {% endif %}
+                        <button type="submit"
+                            class="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700 transition-colors">
+                            Enregistrer les choix
+                        </button>
                     </div>
                 </div>
-                {% endif %}
+                <div class="grid grid-cols-1 xl:grid-cols-2">
+                    {% for section in document_field_source_sections %}
+                    <section
+                        class="p-4 {% if not forloop.last %}border-b xl:border-b-0 xl:border-r{% endif %} border-slate-100">
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-emerald-700">{{ section.title }}</h3>
+                        <div class="mt-3 max-h-[480px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+                            {% for field, label in section.fields %}
+                            {% with selected_source=section.sources|get_item:field %}
+                            <label
+                                class="grid grid-cols-1 gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-700 md:grid-cols-[1fr_280px] md:items-center">
+                                <span class="uppercase tracking-wider">{{ label }}</span>
+                                <select name="source_{{ section.client_type }}_{{ field }}"
+                                    class="w-full py-1.5 px-2 rounded-lg border border-slate-200 bg-white text-[10px] font-black uppercase tracking-normal text-slate-700 focus:border-emerald-500 focus:ring-emerald-500 leading-normal">
+                                    <option value="" {% if not selected_source %}selected{% endif %}>Tous documents
+                                    </option>
+                                    {% for value, doc_label in document_type_choices %}
+                                    <option value="{{ value }}" {% if selected_source == value %}selected{% endif %}>{{ doc_label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            {% endwith %}
+                            {% endfor %}
+                        </div>
+                    </section>
+                    {% endfor %}
+                </div>
+            </form>
+        </div>
+    </section>
+    {% endif %}
+
+    <section data-panel="base"
+        class="document-panel bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div
+            class="px-5 py-3 bg-gray-800 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+                <h2 class="text-[10px] font-black uppercase tracking-widest">Documents extraits</h2>
+                <p class="text-[9px] font-bold text-gray-300 mt-0.5">Recherche par lot, type et champs extraits</p>
             </div>
+            {% if selected_import_batch %}
+            <a href="{% url 'document_extraction' %}#base"
+                class="text-[10px] font-black uppercase tracking-widest text-green-200 hover:text-white">
+                Tous les lots
+            </a>
+            {% endif %}
+        </div>
+
+        <form method="get" action="{% url 'document_extraction' %}#base"
+            class="p-4 lg:p-5 bg-gray-50/60 border-b border-gray-100">
+            {% if selected_import_batch %}
+            <input type="hidden" name="import_batch" value="{{ selected_import_batch }}">
+            {% endif %}
+            <div class="mx-auto grid max-w-4xl grid-cols-1 md:grid-cols-12 gap-2.5 items-end">
+                <label class="md:col-span-3 block">
+                    <span
+                        class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">Type</span>
+                    <select name="document_type"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[10px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
+                        <option value="">Tous</option>
+                        {% for value, label in document_type_choices %}
+                        <option value="{{ value }}" {% if selected_document_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="md:col-span-3 block">
+                    <span
+                        class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">Champ</span>
+                    <select name="field"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[10px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
+                        {% for value, label in search_fields %}
+                        <option value="{{ value }}" {% if search_field == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="md:col-span-4 block">
+                    <span
+                        class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">Recherche</span>
+                    <input type="search" name="q" value="{{ search_query }}" placeholder="Nom, numero, nationalite..."
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[10px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
+                </label>
+                <button
+                    class="md:col-span-2 h-9 px-3 nav-link-active text-white text-[9px] font-black rounded-lg tracking-widest uppercase">
+                    Rechercher
+                </button>
+            </div>
+        </form>
+
+        <div class="px-6 pb-6">
+            <div
+                class="overflow-x-auto overflow-y-auto max-h-[560px] relative custom-scrollbar rounded-xl border border-slate-200 shadow-sm bg-white">
+                <table class="kyc-base-table min-w-[1680px] w-full border-separate border-spacing-0 text-[9px]">
+                    <thead>
+                        <tr class="sticky top-0 z-50">
+                            <th
+                                class="px-2 py-3 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-slate-900 min-w-[180px] border-b border-slate-800">
+                                Fichier</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Type</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Lot</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Page(s)</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Prenom</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Nom</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Naissance</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Lieu naissance</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Expiration</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                NIN</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Numero doc.</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Nationalite</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Adresse</th>
+                            <th
+                                class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for document in documents %}
+                        <tr class="group {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-green-50 transition-colors">
+                            <td class="px-2 py-2 text-center sticky left-0 z-20 font-bold border-b border-slate-100 truncate max-w-[220px]"
+                                title="{{ document.original_filename }}">{{ document.original_filename }}</td>
+                            <td
+                                class="px-2 py-2 text-center border-b border-slate-100 font-black text-gray-700 whitespace-nowrap">
+                                {{ document.get_document_type_display }}</td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-600 max-w-[180px] truncate"
+                                title="{{ document.import_batch|default:'-' }}">{{ document.import_batch|default:"-" }}
+                            </td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.page_range|default:"-" }}</td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.prenom|default:"-" }}</td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.nom|default:"-" }}</td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.date_naissance|default:"-" }}</td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.lieu_naissance|default:"-" }}</td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.date_expiration|default:"-" }}</td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.numero_identification_nationale|default:"-" }}</td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.numero_document|default:"-" }}</td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700">{{ document.nationalite|default:"-" }}</td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-700 max-w-[240px] truncate"
+                                title="{{ document.adresse|default:'-' }}">{{ document.adresse|default:"-" }}</td>
+                            <td class="px-2 py-2 text-center border-b border-slate-100 whitespace-nowrap">
+                                <a href="?extraction_id={{ document.id }}{% if selected_import_batch %}&import_batch={{ selected_import_batch|urlencode }}{% endif %}{% if selected_document_type %}&document_type={{ selected_document_type }}{% endif %}{% if search_field %}&field={{ search_field }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}#consulter"
+                                    class="inline-flex px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[8px] font-black uppercase tracking-widest hover:bg-green-700">
+                                    Details
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="16" class="px-4 py-8 text-center text-[11px] font-bold text-gray-400">
+                                Aucun document trouve.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if documents.has_other_pages %}
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
+                <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                    Page {{ documents.number }} / {{ documents.paginator.num_pages }}
+                </p>
+                <div class="flex items-center gap-2">
+                    {% if documents.has_previous %}
+                    <a class="px-3 py-2 rounded-xl border border-gray-200 text-[10px] font-black text-gray-600 hover:bg-gray-50"
+                        href="?page={{ documents.previous_page_number }}{% if page_querystring %}&{{ page_querystring }}{% endif %}#base">Precedent</a>
+                    {% endif %}
+                    {% if documents.has_next %}
+                    <a class="px-3 py-2 rounded-xl border border-gray-200 text-[10px] font-black text-gray-600 hover:bg-gray-50"
+                        href="?page={{ documents.next_page_number }}{% if page_querystring %}&{{ page_querystring }}{% endif %}#base">Suivant</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
     </section>
 </div>
 
 {% if show_match_result_modal and selected_match_job %}
 <div data-result-modal class="fixed inset-0 z-[9999] bg-slate-950/55 backdrop-blur-sm p-3 lg:p-6">
-    <div class="mx-auto flex h-full max-w-[1500px] flex-col overflow-hidden rounded-2xl border border-white/20 bg-white shadow-2xl">
-        <div class="flex flex-col gap-3 border-b border-slate-200 bg-slate-900 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">
+    <div
+        class="mx-auto flex h-full max-w-[1500px] flex-col overflow-hidden rounded-2xl border border-white/20 bg-white shadow-2xl">
+        <div
+            class="flex flex-col gap-3 border-b border-slate-200 bg-slate-900 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <p class="text-[10px] font-black uppercase tracking-widest text-emerald-300">Resultats de rapprochement</p>
+                <p class="text-[10px] font-black uppercase tracking-widest text-emerald-300">Resultats de rapprochement
+                </p>
                 <h3 class="mt-1 text-sm font-black text-white">
                     {{ selected_match_job.scope_params.import_batch|default:"Tous les lots" }}
                 </h3>
@@ -977,11 +1284,11 @@
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <a href="{% url 'export_document_extraction_matches' %}{% if export_match_querystring %}?{{ export_match_querystring }}{% endif %}"
-                   class="inline-flex h-9 items-center justify-center rounded-xl bg-emerald-600 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700">
+                    class="inline-flex h-9 items-center justify-center rounded-xl bg-emerald-600 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700">
                     Exporter CSV
                 </a>
                 <a href="{{ selected_match_job_follow_url }}"
-                   class="inline-flex h-9 items-center justify-center rounded-xl border border-white/15 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 hover:bg-slate-100">
+                    class="inline-flex h-9 items-center justify-center rounded-xl border border-white/15 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 hover:bg-slate-100">
                     Fermer
                 </a>
             </div>
@@ -989,11 +1296,13 @@
 
         <div class="flex-1 overflow-auto bg-slate-50 p-4">
             <div class="mb-3 flex flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-widest">
-                <span class="inline-flex items-center gap-1.5 rounded border border-green-100 bg-green-50 px-2.5 py-1 text-green-800">
+                <span
+                    class="inline-flex items-center gap-1.5 rounded border border-green-100 bg-green-50 px-2.5 py-1 text-green-800">
                     <span class="h-2 w-2 rounded-full bg-green-600"></span>
                     A completer
                 </span>
-                <span class="inline-flex items-center gap-1.5 rounded border border-amber-100 bg-amber-50 px-2.5 py-1 text-amber-800">
+                <span
+                    class="inline-flex items-center gap-1.5 rounded border border-amber-100 bg-amber-50 px-2.5 py-1 text-amber-800">
                     <span class="h-2 w-2 rounded-full bg-amber-500"></span>
                     A modifier
                 </span>
@@ -1003,13 +1312,18 @@
                     <thead>
                         <tr class="bg-slate-900 text-white">
                             <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">Client</th>
+                            {% if client_type  ==  'pm' %}
+                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">IDM</th>
+                            {% else %}
                             <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">IDP</th>
+                            {% endif %}
                             {% if user.organe not in user_filiale %}
                             <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">Filiale</th>
                             {% endif %}
                             <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">Agence</th>
                             <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">Taux</th>
-                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">A completer / A modifier</th>
+                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">A completer / A
+                                modifier</th>
                             <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">Document</th>
                         </tr>
                     </thead>
@@ -1017,7 +1331,11 @@
                         {% for match in kyc_pp_matches %}
                         <tr class="{% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-emerald-50">
                             <td class="border-b border-slate-100 px-2 py-2 text-center font-black uppercase">{{ match.client.CLIENT }}</td>
+                            {% if client_type  ==  'pm' %}
+                            <td class="border-b border-slate-100 px-2 py-2 text-center">{{ match.client.IDM|default:"-" }}</td>
+                            {% else %}
                             <td class="border-b border-slate-100 px-2 py-2 text-center">{{ match.client.IDP|default:"-" }}</td>
+                            {% endif %}
                             {% if user.organe not in user_filiale %}
                             <td class="border-b border-slate-100 px-2 py-2 text-center">{{ match.client.FILIALE|default:"-" }}</td>
                             {% endif %}
@@ -1026,7 +1344,8 @@
                             <td class="border-b border-slate-100 px-2 py-2">
                                 <div class="flex min-w-[280px] max-w-[620px] flex-col gap-1 text-left">
                                     {% for action in match.action_items %}
-                                    <span class="block rounded {% if action.kind == 'modify' %}bg-amber-50 border-amber-100 text-amber-800{% else %}bg-green-50 border-green-100 text-green-800{% endif %} border px-1.5 py-0.5 text-[8px] font-black leading-snug whitespace-normal break-words">
+                                    <span
+                                        class="block rounded {% if action.kind  ==  'modify' %}bg-amber-50 border-amber-100 text-amber-800{% else %}bg-green-50 border-green-100 text-green-800{% endif %} border px-1.5 py-0.5 text-[8px] font-black leading-snug whitespace-normal break-words">
                                         {{ action.text }}
                                     </span>
                                     {% endfor %}
@@ -1034,7 +1353,7 @@
                             </td>
                             <td class="border-b border-slate-100 px-2 py-2 text-center">
                                 <a href="{{ match.child_detail_url }}"
-                                   class="inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-white hover:bg-emerald-700">
+                                    class="inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-white hover:bg-emerald-700">
                                     Details
                                 </a>
                             </td>
@@ -1056,8 +1375,10 @@
 
 {% if show_match_child_modal and extraction %}
 <div data-result-child-modal class="fixed inset-0 z-[10000] bg-slate-950/35 p-4 lg:p-10">
-    <div class="mx-auto flex h-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/30 bg-white shadow-2xl">
-        <div class="flex flex-col gap-3 border-b border-slate-200 bg-slate-900 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">
+    <div
+        class="mx-auto flex h-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/30 bg-white shadow-2xl">
+        <div
+            class="flex flex-col gap-3 border-b border-slate-200 bg-slate-900 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <p class="text-[10px] font-black uppercase tracking-widest text-emerald-300">Detail document</p>
                 <h3 class="mt-1 text-sm font-black text-white">{{ extraction.filename }}</h3>
@@ -1066,7 +1387,7 @@
                 </p>
             </div>
             <a href="{{ selected_match_job_parent_modal_url }}"
-               class="inline-flex h-9 items-center justify-center rounded-xl border border-white/15 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 hover:bg-slate-100">
+                class="inline-flex h-9 items-center justify-center rounded-xl border border-white/15 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 hover:bg-slate-100">
                 Retour aux resultats du lot
             </a>
         </div>
@@ -1074,7 +1395,8 @@
             {% if extraction.warnings %}
             <div class="mb-5 space-y-2">
                 {% for warning in extraction.warnings %}
-                <div class="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-[11px] font-bold text-amber-700">
+                <div
+                    class="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-[11px] font-bold text-amber-700">
                     {{ warning }}
                 </div>
                 {% endfor %}
@@ -1083,22 +1405,23 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {% if extraction.field_rows %}
-                    {% for field in extraction.field_rows %}
-                    <div class="rounded-xl bg-white border border-slate-100 p-4 shadow-sm">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ field.label }}</p>
-                        <p class="mt-1 break-words text-sm font-black text-slate-800">{{ field.value }}</p>
-                    </div>
-                    {% endfor %}
+                {% for field in extraction.field_rows %}
+                <div class="rounded-xl bg-white border border-slate-100 p-4 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ field.label }}</p>
+                    <p class="mt-1 break-words text-sm font-black text-slate-800">{{ field.value }}</p>
+                </div>
+                {% endfor %}
                 {% else %}
-                    <div class="md:col-span-2 xl:col-span-3 rounded-xl bg-white border border-slate-100 p-4">
-                        <p class="text-[11px] font-bold text-slate-500">Aucun champ standard reconnu automatiquement.</p>
-                    </div>
+                <div class="md:col-span-2 xl:col-span-3 rounded-xl bg-white border border-slate-100 p-4">
+                    <p class="text-[11px] font-bold text-slate-500">Aucun champ standard reconnu automatiquement.</p>
+                </div>
                 {% endif %}
             </div>
 
             <div class="mt-5">
                 <p class="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Texte extrait</p>
-                <pre class="min-h-[180px] max-h-[320px] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-4 text-[11px] text-slate-700 font-mono">{% if extraction.text %}{{ extraction.text }}{% else %}Aucun texte extrait.{% endif %}</pre>
+                <pre
+                    class="min-h-[180px] max-h-[320px] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-4 text-[11px] text-slate-700 font-mono">{% if extraction.text %}{{ extraction.text }}{% else %}Aucun texte extrait.{% endif %}</pre>
             </div>
         </div>
     </div>
@@ -1119,7 +1442,8 @@
                 <div>
                     <h3 class="text-sm font-black text-gray-800">Voulez-vous lancer le rapprochement maintenant ?</h3>
                     <p class="text-[11px] font-bold text-gray-500 leading-5 mt-2">
-                        Attention, ce processus peut prendre du temps selon le nombre de documents charges et le volume de clients KYC PP a analyser.
+                        Attention, ce processus peut prendre du temps selon le nombre de documents charges et le volume
+                        de clients KYC PP a analyser.
                     </p>
                 </div>
                 <div class="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
@@ -1133,22 +1457,22 @@
                         Documents a verifier
                     </p>
                     <p class="text-[10px] font-bold text-red-700 leading-5 mt-1">
-                        {{ uploaded_quality_alerts_count }} document{{ uploaded_quality_alerts_count|pluralize }} comporte{{ uploaded_quality_alerts_count|pluralize }} une alerte de qualite ou un ajustement automatique du type.
+                        {{ uploaded_quality_alerts_count }} document{{ uploaded_quality_alerts_count|pluralize }}
+                        comporte{{ uploaded_quality_alerts_count|pluralize }} une alerte de qualite ou un ajustement
+                        automatique du type.
                     </p>
                 </div>
                 {% endif %}
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
-                    <button type="button"
-                            data-close-post-upload
-                            class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
+                    <button type="button" data-close-post-upload
+                        class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
                         Plus tard
                     </button>
                     <a href="{% url 'start_document_extraction_match_job' %}?import_batch={{ uploaded_batch|urlencode }}"
-                       data-processing-link
-                       data-processing-title="Rapprochement KYC PP en cours"
-                       data-processing-detail="Analyse du lot charge et recherche des champs vides dans KYC PP."
-                       data-processing-count="{{ uploaded_documents_count }}"
-                       class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-800">
+                        data-processing-link data-processing-title="Rapprochement KYC PP en cours"
+                        data-processing-detail="Analyse du lot charge et recherche des champs vides dans KYC PP."
+                        data-processing-count="{{ uploaded_documents_count }}"
+                        class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-800">
                         Lancer le rapprochement
                     </a>
                 </div>
@@ -1219,15 +1543,18 @@
         <div class="w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
             <div class="px-6 py-5 bg-gray-800 text-white">
                 <p id="processingTitle" class="text-[11px] font-black uppercase tracking-widest">Traitement en cours</p>
-                <p id="processingDetail" class="text-[11px] font-bold text-gray-300 mt-2">Merci de patienter pendant l'analyse.</p>
+                <p id="processingDetail" class="text-[11px] font-bold text-gray-300 mt-2">Merci de patienter pendant
+                    l'analyse.</p>
             </div>
             <div class="p-6 space-y-5">
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Progression estimee</span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Progression
+                        estimee</span>
                     <span id="processingPercent" class="text-sm font-black text-green-700">0%</span>
                 </div>
                 <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
-                    <div id="processingBar" class="h-full w-0 rounded-full bg-green-700 transition-all duration-500"></div>
+                    <div id="processingBar" class="h-full w-0 rounded-full bg-green-700 transition-all duration-500">
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="rounded-2xl bg-gray-50 border border-gray-100 p-4">
@@ -1240,7 +1567,8 @@
                     </div>
                 </div>
                 <p class="text-[11px] font-bold text-gray-400 leading-5">
-                    Cette jauge est une estimation. Le resultat s'affichera automatiquement des que le serveur aura termine.
+                    Cette jauge est une estimation. Le resultat s'affichera automatiquement des que le serveur aura
+                    termine.
                 </p>
             </div>
         </div>
@@ -1248,195 +1576,232 @@
 </div>
 
 <script>
-  const startProcessingOverlay = ({ title, detail, count, baseSeconds }) => {
-    const overlay = document.getElementById("processingOverlay");
-    const titleNode = document.getElementById("processingTitle");
-    const detailNode = document.getElementById("processingDetail");
-    const percentNode = document.getElementById("processingPercent");
-    const barNode = document.getElementById("processingBar");
-    const etaNode = document.getElementById("processingEta");
-    const statusNode = document.getElementById("processingStatus");
-
-    if (!overlay || !percentNode || !barNode || !etaNode || !statusNode) {
-      return;
+    function filterDocumentTypes(clientType) {
+        const select = document.getElementById("upload_document_type");
+        if (!select) return;
+        const options = select.options;
+        let firstVisibleIndex = -1;
+        for (let i = 0; i < options.length; i++) {
+            const option = options[i];
+            const optionClientType = option.getAttribute("data-client-type");
+            if (!optionClientType ||optionClientType === clientType) {
+                option.style.display = "";
+                if (firstVisibleIndex === -1) {
+                    firstVisibleIndex = i;
+                }
+            } else {
+                option.style.display = "none";
+            }
+        }
+        if (firstVisibleIndex !== -1) {
+            select.selectedIndex = firstVisibleIndex;
+        }
     }
 
-    const itemCount = Number.parseInt(count || "0", 10) || 0;
-    const estimatedSeconds = baseSeconds || Math.min(120, Math.max(12, Math.ceil(itemCount / 40)));
-    const startedAt = Date.now();
-
-    titleNode.textContent = title || "Traitement en cours";
-    detailNode.textContent = detail || "Merci de patienter pendant l'analyse.";
-    overlay.classList.remove("hidden");
-    document.body.classList.add("overflow-hidden");
-
-    const formatSeconds = (seconds) => {
-      if (seconds <= 1) return "moins de 1 s";
-      if (seconds < 60) return `${seconds} s`;
-      const minutes = Math.floor(seconds / 60);
-      const remaining = seconds % 60;
-      return remaining ? `${minutes} min ${remaining} s` : `${minutes} min`;
-    };
-
-    const update = () => {
-      const elapsed = (Date.now() - startedAt) / 1000;
-      const rawPercent = Math.floor((elapsed / estimatedSeconds) * 100);
-      const percent = Math.min(95, Math.max(4, rawPercent));
-      const remaining = Math.max(1, Math.ceil(estimatedSeconds - elapsed));
-
-      percentNode.textContent = `${percent}%`;
-      barNode.style.width = `${percent}%`;
-      etaNode.textContent = percent >= 95 ? "Finalisation..." : formatSeconds(remaining);
-      statusNode.textContent = percent < 35 ? "Analyse en cours" : percent < 75 ? "Rapprochement" : "Finalisation";
-
-      window.setTimeout(update, 700);
-    };
-
-    update();
-  };
-
-  const activateDocumentTab = (tabName) => {
-    document.querySelectorAll("[data-panel]").forEach((panel) => {
-      panel.classList.toggle("hidden", panel.dataset.panel !== tabName);
+    document.addEventListener("DOMContentLoaded", () => {
+        const activeClientTypeInput = document.querySelector('input[name="client_type"]:checked');
+        if (activeClientTypeInput) {
+            filterDocumentTypes(activeClientTypeInput.value);
+        }
     });
+
+    const startProcessingOverlay = ({ title, detail, count, baseSeconds }) => {
+        const overlay = document.getElementById("processingOverlay");
+        const titleNode = document.getElementById("processingTitle");
+        const detailNode = document.getElementById("processingDetail");
+        const percentNode = document.getElementById("processingPercent");
+        const barNode = document.getElementById("processingBar");
+        const etaNode = document.getElementById("processingEta");
+        const statusNode = document.getElementById("processingStatus");
+
+        if (!overlay || !percentNode || !barNode || !etaNode || !statusNode) {
+            return;
+        }
+
+        const itemCount = Number.parseInt(count || "0", 10) ||0;
+        const estimatedSeconds = baseSeconds ||Math.min(120, Math.max(12, Math.ceil(itemCount / 40)));
+        const startedAt = Date.now();
+
+        titleNode.textContent = title || "Traitement en cours";
+        detailNode.textContent = detail || "Merci de patienter pendant l'analyse.";
+        overlay.classList.remove("hidden");
+        document.body.classList.add("overflow-hidden");
+
+        const formatSeconds = (seconds) => {
+            if (seconds <= 1) return "moins de 1 s";
+            if (seconds < 60) return `${seconds} s`;
+            const minutes = Math.floor(seconds / 60);
+            const remaining = seconds % 60;
+            return remaining ? `${minutes} min ${remaining} s` : `${minutes} min`;
+        };
+
+        const update = () => {
+            const elapsed = (Date.now() - startedAt) / 1000;
+            const rawPercent = Math.floor((elapsed / estimatedSeconds) * 100);
+            const percent = Math.min(95, Math.max(4, rawPercent));
+            const remaining = Math.max(1, Math.ceil(estimatedSeconds - elapsed));
+
+            percentNode.textContent = `${percent}%`;
+            barNode.style.width = `${percent}%`;
+            etaNode.textContent = percent >= 95 ? "Finalisation..." : formatSeconds(remaining);
+            statusNode.textContent = percent < 35 ? "Analyse en cours" : percent < 75 ? "Rapprochement" : "Finalisation";
+
+            window.setTimeout(update, 700);
+        };
+
+        update();
+    };
+
+    const activateDocumentTab = (tabName) => {
+        document.querySelectorAll("[data-panel]").forEach((panel) => {
+            panel.classList.toggle("hidden", panel.dataset.panel !== tabName);
+        });
+
+        document.querySelectorAll("[data-tab]").forEach((button) => {
+            const isActive = button.dataset.tab === tabName;
+            button.classList.toggle("bg-gradient-to-r", isActive);
+            button.classList.toggle("from-emerald-700", isActive);
+            button.classList.toggle("to-emerald-900", isActive);
+            button.classList.toggle("text-white", isActive);
+            button.classList.toggle("shadow-sm", isActive);
+
+            button.classList.toggle("text-slate-500", !isActive);
+            button.classList.toggle("hover:text-slate-800", !isActive);
+        });
+
+        if (window.location.hash !== `#${tabName}`) {
+            history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${tabName}`);
+        }
+    };
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashTab = ["#charger", "#suivi", "#consulter", "#sources", "#base"].includes(window.location.hash)
+        ? window.location.hash.slice(1)
+        : "";
+    const canInsertBatches = {{ can_insert_batches|yesno:"true,false" }};
+    const defaultTab = canInsertBatches ? "charger" : "consulter";
+    const initialTab = hashTab || (searchParams.has("match_job") ? "suivi" : (window.location.search ? "consulter" : defaultTab));
+
+    if (document.querySelector(".document-modal-panel")) {
+        document.body.classList.add("overflow-hidden");
+    }
+
+    if (document.querySelector("[data-result-modal]") ||document.querySelector("[data-result-child-modal]")) {
+        document.body.classList.add("overflow-hidden", "result-modal-open");
+    }
 
     document.querySelectorAll("[data-tab]").forEach((button) => {
-      const isActive = button.dataset.tab === tabName;
-      button.classList.toggle("nav-link-active", isActive);
-      button.classList.toggle("text-white", isActive);
-      button.classList.toggle("text-gray-500", !isActive);
-      button.classList.toggle("hover:text-gray-700", !isActive);
-      button.classList.toggle("hover:text-green-700", !isActive);
+        button.addEventListener("click", () => {
+            if (button.dataset.tabUrl) {
+                const targetUrl = new URL(button.dataset.tabUrl, window.location.origin);
+                if (targetUrl.pathname !== window.location.pathname ||targetUrl.search !== window.location.search) {
+                    window.location.href = button.dataset.tabUrl;
+                    return;
+                }
+            }
+            activateDocumentTab(button.dataset.tab);
+        });
     });
+    activateDocumentTab(initialTab);
 
-    if (window.location.hash !== `#${tabName}`) {
-      history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${tabName}`);
-    }
-  };
-
-  const searchParams = new URLSearchParams(window.location.search);
-  const hashTab = ["#charger", "#suivi", "#consulter", "#base"].includes(window.location.hash)
-    ? window.location.hash.slice(1)
-    : "";
-  const initialTab = hashTab || (searchParams.has("match_job") ? "suivi" : (window.location.search ? "consulter" : "charger"));
-
-  if (document.querySelector(".document-modal-panel")) {
-    document.body.classList.add("overflow-hidden");
-  }
-
-  if (document.querySelector("[data-result-modal]") || document.querySelector("[data-result-child-modal]")) {
-    document.body.classList.add("overflow-hidden", "result-modal-open");
-  }
-
-  document.querySelectorAll("[data-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
-      if (button.dataset.tabUrl && window.location.href !== button.dataset.tabUrl) {
-        window.location.href = button.dataset.tabUrl;
-        return;
-      }
-      activateDocumentTab(button.dataset.tab);
-    });
-  });
-  activateDocumentTab(initialTab);
-
-  const refreshImportModeCards = () => {
-    document.querySelectorAll(".import-mode-card").forEach((card) => {
-      const input = card.querySelector("input[type='radio']");
-      const selected = input && input.checked;
-      card.classList.toggle("border-green-200", selected);
-      card.classList.toggle("bg-green-50", selected);
-      card.classList.toggle("border-gray-200", !selected);
-      card.classList.toggle("bg-gray-50", !selected);
-    });
-  };
-
-  document.querySelectorAll("input[name='import_mode']").forEach((input) => {
-    input.addEventListener("change", refreshImportModeCards);
-  });
-  refreshImportModeCards();
-
-  document.querySelectorAll("form[enctype='multipart/form-data']").forEach((form) => {
-    form.addEventListener("submit", () => {
-      const btn = form.querySelector("button");
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = "Analyse en cours...";
-        btn.classList.add("opacity-70", "cursor-wait");
-      }
-      const filesInput = form.querySelector("input[type='file']");
-      const fileCount = filesInput && filesInput.files ? filesInput.files.length : 1;
-      startProcessingOverlay({
-        title: "Chargement des documents en cours",
-        detail: "Extraction OCR et enregistrement des fichiers charges.",
-        count: fileCount * 25,
-        baseSeconds: Math.min(120, Math.max(15, fileCount * 8))
-      });
-    });
-  });
-
-  document.querySelectorAll("[data-processing-link]").forEach((link) => {
-    link.addEventListener("click", () => {
-      const postUploadOverlay = document.getElementById("postUploadChoiceOverlay");
-      if (postUploadOverlay) {
-        postUploadOverlay.classList.add("hidden");
-      }
-      startProcessingOverlay({
-        title: link.dataset.processingTitle,
-        detail: link.dataset.processingDetail,
-        count: link.dataset.processingCount
-      });
-    });
-  });
-
-  document.querySelectorAll("[data-close-post-upload]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const postUploadOverlay = document.getElementById("postUploadChoiceOverlay");
-      if (postUploadOverlay) {
-        postUploadOverlay.classList.add("hidden");
-      }
-    });
-  });
-
-  const matchJobProgress = document.getElementById("matchJobProgress");
-  if (matchJobProgress) {
-    const statusUrl = matchJobProgress.dataset.statusUrl;
-    const messageNode = document.getElementById("matchJobMessage");
-    const percentNode = document.getElementById("matchJobPercent");
-    const countNode = document.getElementById("matchJobCount");
-    const barNode = document.getElementById("matchJobBar");
-    const actionsNode = document.getElementById("matchJobResultActions");
-    const resultLink = document.getElementById("matchJobResultLink");
-
-    const pollMatchJob = async () => {
-      try {
-        const response = await fetch(statusUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } });
-        const data = await response.json();
-        const percent = Number.parseInt(data.percent || "0", 10);
-
-        if (messageNode) messageNode.textContent = data.message || "Traitement en cours";
-        if (percentNode) percentNode.textContent = `${percent}%`;
-        if (countNode) countNode.textContent = `${data.current || 0} / ${data.total || 0}`;
-        if (barNode) barNode.style.width = `${percent}%`;
-
-        if (data.status === "completed") {
-          if (messageNode) messageNode.textContent = "Rapprochement termine";
-          if (percentNode) percentNode.textContent = "100%";
-          if (barNode) barNode.style.width = "100%";
-          if (resultLink && data.result_url) resultLink.href = data.result_url;
-          if (actionsNode) actionsNode.classList.remove("hidden");
-          return;
-        }
-        if (data.status === "failed") {
-          if (messageNode) messageNode.textContent = data.error || "Echec du rapprochement";
-          return;
-        }
-      } catch (error) {
-        if (messageNode) messageNode.textContent = "Lecture de la progression interrompue temporairement.";
-      }
-      window.setTimeout(pollMatchJob, 2000);
+    const refreshImportModeCards = () => {
+        document.querySelectorAll(".import-mode-card").forEach((card) => {
+            const input = card.querySelector("input[type='radio']");
+            const selected = input && input.checked;
+            card.classList.toggle("border-green-200", selected);
+            card.classList.toggle("bg-green-50", selected);
+            card.classList.toggle("border-gray-200", !selected);
+            card.classList.toggle("bg-gray-50", !selected);
+        });
     };
 
-    pollMatchJob();
-  }
+    document.querySelectorAll("input[name='import_mode']").forEach((input) => {
+        input.addEventListener("change", refreshImportModeCards);
+    });
+    refreshImportModeCards();
+
+    document.querySelectorAll("form[enctype='multipart/form-data']").forEach((form) => {
+        form.addEventListener("submit", () => {
+            const btn = form.querySelector("button");
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = "Analyse en cours...";
+                btn.classList.add("opacity-70", "cursor-wait");
+            }
+            const filesInput = form.querySelector("input[type='file']");
+            const fileCount = filesInput && filesInput.files ? filesInput.files.length : 1;
+            startProcessingOverlay({
+                title: "Chargement des documents en cours",
+                detail: "Extraction OCR et enregistrement des fichiers charges.",
+                count: fileCount * 25,
+                baseSeconds: Math.min(120, Math.max(15, fileCount * 8))
+            });
+        });
+    });
+
+    document.querySelectorAll("[data-processing-link]").forEach((link) => {
+        link.addEventListener("click", () => {
+            const postUploadOverlay = document.getElementById("postUploadChoiceOverlay");
+            if (postUploadOverlay) {
+                postUploadOverlay.classList.add("hidden");
+            }
+            startProcessingOverlay({
+                title: link.dataset.processingTitle,
+                detail: link.dataset.processingDetail,
+                count: link.dataset.processingCount
+            });
+        });
+    });
+
+    document.querySelectorAll("[data-close-post-upload]").forEach((button) => {
+        button.addEventListener("click", () => {
+            const postUploadOverlay = document.getElementById("postUploadChoiceOverlay");
+            if (postUploadOverlay) {
+                postUploadOverlay.classList.add("hidden");
+            }
+        });
+    });
+
+    const matchJobProgress = document.getElementById("matchJobProgress");
+    if (matchJobProgress) {
+        const statusUrl = matchJobProgress.dataset.statusUrl;
+        const messageNode = document.getElementById("matchJobMessage");
+        const percentNode = document.getElementById("matchJobPercent");
+        const countNode = document.getElementById("matchJobCount");
+        const barNode = document.getElementById("matchJobBar");
+        const actionsNode = document.getElementById("matchJobResultActions");
+        const resultLink = document.getElementById("matchJobResultLink");
+
+        const pollMatchJob = async () => {
+            try {
+                const response = await fetch(statusUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+                const data = await response.json();
+                const percent = Number.parseInt(data.percent || "0", 10);
+
+                if (messageNode) messageNode.textContent = data.message || "Traitement en cours";
+                if (percentNode) percentNode.textContent = `${percent}%`;
+                if (countNode) countNode.textContent = `${data.current ||0} / ${data.total ||0}`;
+                if (barNode) barNode.style.width = `${percent}%`;
+
+                if (data.status === "completed") {
+                    if (messageNode) messageNode.textContent = "Rapprochement termine";
+                    if (percentNode) percentNode.textContent = "100%";
+                    if (barNode) barNode.style.width = "100%";
+                    if (resultLink && data.result_url) resultLink.href = data.result_url;
+                    if (actionsNode) actionsNode.classList.remove("hidden");
+                    return;
+                }
+                if (data.status === "failed") {
+                    if (messageNode) messageNode.textContent = data.error || "Echec du rapprochement";
+                    return;
+                }
+            } catch (error) {
+                if (messageNode) messageNode.textContent = "Lecture de la progression interrompue temporairement.";
+            }
+            window.setTimeout(pollMatchJob, 2000);
+        };
+
+        pollMatchJob();
+    }
 </script>
 {% endblock %}

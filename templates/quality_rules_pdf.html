@@ -46,6 +46,10 @@
                 <td style="width: 30%; border: 1px solid #e2e8f0; padding: 8px; background-color: #f7fafc; font-weight: bold;">Segment cible</td>
                 <td style="width: 70%; border: 1px solid #e2e8f0; padding: 8px;">{{ item.rule.get_applicability_display }}</td>
             </tr>
+            <tr>
+                <td style="width: 30%; border: 1px solid #e2e8f0; padding: 8px; background-color: #f7fafc; font-weight: bold;">Filiale(s) concernee(s)</td>
+                <td style="width: 70%; border: 1px solid #e2e8f0; padding: 8px;">{{ item.filiales_display|default:"Filiale non definie" }}</td>
+            </tr>
             {% if item.rule.description %}
             <tr>
                 <td style="border: 1px solid #e2e8f0; padding: 8px; background-color: #f7fafc; font-weight: bold;">Description</td>

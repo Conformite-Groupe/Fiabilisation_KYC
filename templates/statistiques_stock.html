@@ -130,14 +130,14 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
                     <div class="flex justify-between items-center mb-8">
-                        <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-widest">Performances Stock PP</h4>
+                        <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-widest">Evolution taux de completude PP</h4>
                         <span class="text-[9px] font-black text-emerald-600 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100">Cible 100%</span>
                     </div>
                     <div class="h-[380px]"><canvas id="canvasPP"></canvas></div>
                 </div>
                 <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
                     <div class="flex justify-between items-center mb-8">
-                        <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-widest">Performances Stock PM</h4>
+                        <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-widest">Evolution taux de completude PM</h4>
                         <span class="text-[9px] font-black text-orange-600 px-3 py-1 bg-orange-50 rounded-full border border-orange-100">Cible 100%</span>
                     </div>
                     <div class="h-[380px]"><canvas id="canvasPM"></canvas></div>
@@ -174,7 +174,11 @@
     ::-webkit-scrollbar { display: none; }
 </style>
 
-
+{% if selected_expl %}
+{{ dates_pp|json_script:"dates-pp-data" }}
+{{ taux_pp|json_script:"taux-pp-data" }}
+{{ dates_pm|json_script:"dates-pm-data" }}
+{{ taux_pm|json_script:"taux-pm-data" }}
 <script>
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
@@ -183,12 +187,11 @@ function switchTab(tabId) {
     document.getElementById('btn-' + tabId.replace('tab-', '')).classList.add('active-tab');
 }
 
-{% if selected_expl %}
 document.addEventListener('DOMContentLoaded', function() {
-    const datesPP = {{ dates_pp|safe }};
-    const tauxPP = {{ taux_pp|safe }};
-    const datesPM = {{ dates_pm|safe }};
-    const tauxPM = {{ taux_pm|safe }};
+    const datesPP = JSON.parse(document.getElementById('dates-pp-data').textContent);
+    const tauxPP = JSON.parse(document.getElementById('taux-pp-data').textContent);
+    const datesPM = JSON.parse(document.getElementById('dates-pm-data').textContent);
+    const tauxPM = JSON.parse(document.getElementById('taux-pm-data').textContent);
 
     // 1. KPI & Variations
     const updateKPI = (idVal, idVar, data) => {
@@ -226,8 +229,8 @@ document.addEventListener('DOMContentLoaded', function() {
         scales: {
             y: {
                 min: 0, max: 115,
-                ticks: { stepSize: 20, color: '#94a3b8', font: { weight: 'bold', size: 10 }, callback: (v) => v <= 100 ? v + '%' : '' },
-                grid: { color: (ctx) => ctx.tick.value === 100 ? lineColor : '#f1f5f9', lineWidth: (ctx) => ctx.tick.value === 100 ? 2 : 1, borderDash: (ctx) => ctx.tick.value === 100 ? [5, 5] : [] }
+                ticks: { stepSize: 20, color: '#94a3b8', font: { weight: 'bold', size: 10 }, callback: (v) => v <= 100  v + '%' : '' },
+                grid: { color: (ctx) => ctx.tick.value === 100  lineColor : '#f1f5f9', lineWidth: (ctx) => ctx.tick.value === 100  2 : 1, borderDash: (ctx) => ctx.tick.value === 100  [5, 5] : [] }
             },
             x: { ticks: { color: '#94a3b8', font: { weight: 'bold', size: 10 } }, grid: { display: false } }
         }
@@ -235,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function createChart(id, labels, data, baseColor) {
         const ctx = document.getElementById(id).getContext('2d');
-        const colorScale = (val) => val >= 90 ? '#10b981' : '#f97316';
+        const colorScale = (val) => val >= 90  '#10b981' : '#f97316';
         new Chart(ctx, {
             type: 'line',
             data: {

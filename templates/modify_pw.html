@@ -3,54 +3,53 @@
 {% load tailwind_filters %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 space-y-6 p-4 lg:p-6">
+<div class="min-h-screen bg-transparent relative overflow-hidden px-4 pb-4 pt-1 lg:px-8 lg:pb-8 lg:pt-2">
+    <!-- Décorations d'arrière-plan -->
+    <div class="absolute top-0 right-0 w-[30rem] h-[30rem] bg-green-700/10 rounded-full blur-[100px] pointer-events-none"></div>
+    <div class="absolute bottom-0 left-0 w-[40rem] h-[40rem] bg-green-800/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-        <div>
-            <h1 class="text-2xl font-black text-gray-800 tracking-tight uppercase">
-                Sécurité <span class="text-green-700 font-light">& Compte</span>
-            </h1>
-            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Mise à jour de vos accès personnels</p>
-        </div>
+    <div class="max-w-[1600px] mx-auto space-y-6">
+        <header class="glass-panel page-header relative z-10">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shrink-0">
+                    <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none uppercase">
+                        SÉCURITÉ<span class="text-emerald-500 font-light"> | COMPTE</span>
+                    </h1>
+                    <div class="flex items-center gap-2 mt-1.5">
+                        <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <p class="page-header-subtitle">Mise à jour de vos accès personnels</p>
+                    </div>
+                </div>
+            </div>
 
-        {% if notation %}
-        <div class="flex items-center space-x-3">
-            <span class="text-[10px] font-black text-gray-400 uppercase mr-2 ">Mon Évaluation :</span>
-            {% for note in notation %}
-            <span class="inline-block px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest shadow-sm border
-                {% if note.note == 'Très Bien' %}
-                    bg-green-100 text-green-700 border-green-200
-                {% elif note.note == 'Bien' %}
-                    bg-blue-100 text-blue-700 border-blue-200
-                {% elif note.note == 'Passable' %}
-                    bg-orange-100 text-orange-700 border-orange-200
-                {% elif note.note == 'Insuffisant' %}
-                    bg-red-100 text-red-700 border-red-200
-                {% else %}
-                    bg-gray-100 text-gray-700 border-gray-200
-                {% endif %}">
-                {{ note.note }}
-            </span>
-            {% endfor %}
-        </div>
-        {% endif %}
-    </div>
-<div class="max-w-md mx-auto mt-6"> {# MESSAGES DE SUCCÈS / ERREUR #}
+        </header>
+<div class="max-w-md mx-auto mt-12 relative z-10"> {# MESSAGES DE SUCCÈS / ERREUR #}
     {% if success_message %}
     <div class="mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
-        <div class="bg-green-50 border border-green-200 text-green-700 p-3 rounded-xl flex items-center gap-2 shadow-sm">
+        <div class="bg-green-50/90 backdrop-blur-md border border-green-200 text-green-700 p-3 rounded-xl flex items-center gap-2 shadow-sm">
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
             <p class="text-[9px] font-black uppercase tracking-tight">{{ success_message }}</p>
         </div>
     </div>
     {% endif %}
 
-    <div class="bg-white rounded-[1.5rem] shadow-lg shadow-gray-200/40 border border-gray-100 overflow-hidden">
+    <div class="glass-panel bg-white/70 backdrop-blur-2xl rounded-[1.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.08)] border-2 border-white/80 overflow-hidden">
 
-        <div class="bg-gray-800 p-6 text-white relative">
+        <div class="bg-slate-900 p-6 text-white relative overflow-hidden">
+            <!-- Motif abstrait -->
+            <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 20px 20px;"></div>
+            <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl"></div>
             <div class="relative z-10">
-                <h2 class="text-sm font-black uppercase tracking-widest">Modifier le mot de passe</h2>
-                <p class="text-[9px] text-gray-400 mt-0.5 font-medium">Nouveaux identifiants requis</p>
+                <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    Modifier le mot de passe
+                </h2>
+                <p class="text-[9px] text-slate-400 mt-1 font-medium ml-6">Nouveaux identifiants requis</p>
             </div>
         </div>
 
@@ -64,7 +63,7 @@
                 </div>
                 {% endif %}
 
-                <div class="pw-custom-fields space-y-3 text-gray-700 text-xs">
+                <div class="pw-custom-fields space-y-3 text-slate-700 text-xs">
                     {{ form|crispy }}
                 </div>
 
@@ -75,7 +74,7 @@
                     </button>
 
                     <a href="javascript:history.back()"
-                       class="w-full text-center py-2 text-gray-400 text-[9px] font-black uppercase tracking-widest hover:text-gray-600 transition-all">
+                       class="w-full text-center py-2 text-slate-400 text-[9px] font-black uppercase tracking-widest hover:text-slate-600 transition-all">
                         Retour
                     </a>
                 </div>

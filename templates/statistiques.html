@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load crispy_forms_tags %}
 {% load tailwind_filters %}
 
@@ -65,9 +65,11 @@
       </div>
 
       <div class="flex items-center gap-4 bg-white/50 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-green-100 shadow-sm">
+        {% if user.organe != 'Chargé Client' and user.organe != 'Directeur Agence' %}
         <a href="{% url 'evolution_filiale' %}" class="flex items-center nav-link-active px-3 py-2 rounded-xl text-[10px] border border-green-800 font-black uppercase tracking-widest hover:bg-green-900 transition-all shadow-md whitespace-nowrap">
           Voir Taux Banque
         </a>
+        {% endif %}
         <div class="flex flex-col border-r border-slate-200 pr-4">
           <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Filiale</span>
           <div class="flex items-center gap-2">
@@ -91,64 +93,90 @@
     <section class=" rounded-2xl p-3 lg:p-3">
       <form method="get" class="space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="inline-flex p-1.5 bg-gray-100 rounded-2xl border border-gray-100 shadow-inner">
+          <div class="inline-flex p-1.5 bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-sm">
             <a href="?mode=Flux{% if selected_expl %}&expl={{ selected_expl }}{% endif %}{% if selected_filiale %}&filiale={{ selected_filiale }}{% endif %}{% if periode %}&periode={{ periode }}{% endif %}"
-               class="px-6 py-2 text-[10px] font-black rounded-lg transition-all uppercase {% if not is_stock %}nav-link-active text-white shadow-inner{% else %}bg-transparent text-gray-500 hover:text-gray-700{% endif %}">
+               class="px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase {% if not is_stock %}nav-link-active text-white shadow-inner{% else %}bg-transparent text-gray-500 hover:text-gray-700{% endif %}">
                Flux
             </a>
             <a href="?mode=Stock{% if selected_expl %}&expl={{ selected_expl }}{% endif %}{% if selected_filiale %}&filiale={{ selected_filiale }}{% endif %}{% if periode %}&periode={{ periode }}{% endif %}"
-               class="px-6 py-2 text-[10px] font-black rounded-lg transition-all uppercase {% if is_stock %}nav-link-active text-white shadow-inner{% else %}bg-transparent text-gray-500 hover:text-gray-700{% endif %}">
+               class="px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase {% if is_stock %}nav-link-active text-white shadow-inner{% else %}bg-transparent text-gray-500 hover:text-gray-700{% endif %}">
                Stock
             </a>
           </div>
-          <div class="flex items-center gap-4 text-[11px] font-bold text-slate-600 ml-auto">
+          <div class="flex items-center gap-4 text-[11px] font-bold text-slate-600 ml-auto bg-white/70 backdrop-blur-md border border-slate-200/80 px-4 py-2.5 rounded-2xl shadow-sm">
             <span class="uppercase text-slate-500 tracking-wider">Legende</span>
-            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span><span>PP</span></div>
-            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-orange-500 inline-block"></span><span>PM</span></div>
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-sm"></span><span>PP</span></div>
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-orange-500 inline-block shadow-sm"></span><span>PM</span></div>
           </div>
         </div>
 
         <input type="hidden" name="mode" value="{{ mode }}">
-
-        <div class="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-4 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-4 gap-4 mt-4 relative z-10">
           {% if user.organe in user_groupe %}
-          <div>
-            <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Filiale</label>
-            <select name="filiale" onchange="this.form.submit()" class="w-full rounded-xl border-slate-300 text-[12px] font-bold">
-              <option value="">Filiale</option>
-              {% for f in liste_filiales %}
-              <option value="{{ f }}" {% if f == selected_filiale %}selected{% endif %}>{{ f }}</option>
-              {% endfor %}
-            </select>
+          <div class="relative group">
+            <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                Filiale
+            </label>
+            <div class="relative">
+                <select name="filiale" onchange="this.form.submit()" class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
+                  <option value="">Toutes les filiales</option>
+                  {% for f in liste_filiales %}
+                  <option value="{{ f }}" {% if f == selected_filiale %}selected{% endif %}>{{ f }}</option>
+                  {% endfor %}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
           </div>
           {% endif %}
 
-          <div>
-            <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Agent</label>
-            <select name="expl" onchange="this.form.submit()" {% if user.organe == 'Charg? Client' %}disabled{% endif %} class="w-full rounded-xl border-slate-300 text-[12px] font-bold {% if user.organe == 'Charg? Client' %}opacity-60{% endif %}">
-              <option value="">Choisir agent</option>
-              {% for e in liste_expl_display %}
-              <option value="{{ e.code }}" {% if e.code == selected_expl %}selected{% endif %}>{{ e.label }}</option>
-              {% endfor %}
-            </select>
+          <div class="relative group">
+            <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                Agent
+            </label>
+            <div class="relative">
+                <select name="expl" onchange="this.form.submit()" {% if user.organe == 'Chargé Client' %}disabled{% endif %} class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  <option value="">Choisir agent</option>
+                  {% for e in liste_expl_display %}
+                  <option value="{{ e.code }}" {% if e.code == selected_expl %}selected{% endif %}>{{ e.label }}</option>
+                  {% endfor %}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
           </div>
 
-          <div>
-            <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Periodicite</label>
-            <select name="periode" onchange="this.form.submit()" class="w-full rounded-xl border-slate-300 text-[12px] font-bold">
-              <option value="journalier" {% if periode == 'journalier' %}selected{% endif %}>Journalier</option>
-              <option value="hebdomadaire" {% if periode == 'hebdomadaire' %}selected{% endif %}>Hebdomadaire</option>
-              <option value="mensuel" {% if periode == 'mensuel' %}selected{% endif %}>Mensuel</option>
-              <option value="annuel" {% if periode == 'annuel' %}selected{% endif %}>Annuel</option>
-            </select>
+          <div class="relative group">
+            <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Periodicite
+            </label>
+            <div class="relative">
+                <select name="periode" onchange="this.form.submit()" class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
+                  <option value="journalier" {% if periode == 'journalier' %}selected{% endif %}>Quotidienne</option>
+                  <option value="hebdomadaire" {% if periode == 'hebdomadaire' %}selected{% endif %}>Hebdomadaire</option>
+                  <option value="mensuel" {% if periode == 'mensuel' %}selected{% endif %}>Mensuelle</option>
+                  <option value="annuel" {% if periode == 'annuel' %}selected{% endif %}>Annuelle</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
           </div>
 
           <div class="flex items-end gap-2">
-            <a href="?mode={{ mode }}" class="text-center rounded-xl border border-slate-300 px-3 py-2.5 text-[11px] font-black uppercase text-white bg-gray-800 hover:bg-gray-900">Reinitialiser</a>
+            <a href="?mode={{ mode }}" class="group relative w-32 h-10 overflow-hidden rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2 text-center">
+               <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+               <span class="relative z-10">Reset</span>
+            </a>
           </div>
         </div>
 
-        {% if user.organe == 'Charg? Client' %}
+        {% if user.organe == 'Chargé Client' %}
         <input type="hidden" name="filiale" value="{{ selected_filiale }}">
         <input type="hidden" name="expl" value="{{ selected_expl }}">
         {% endif %}
@@ -156,60 +184,112 @@
     </section>
 
     {% if selected_expl %}
-    <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-      <article class="glass-panel border border-slate-100 rounded-2xl p-4 ">
-        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Agent</p>
-        <h3 class="text-sm font-black text-slate-900 mt-1">{{ agent_nom|default:'Non selectionne' }}</h3>
-        <p class="text-xs text-slate-500 mt-2">Note CP: <span class="font-black text-emerald-700">{{ agent_note }}</span></p>
-      </article>
-
-      <article class="glass-panel border border-2 border-emerald-400 rounded-2xl p-4 flex items-center justify-between shadow-[0_14px_30px_rgba(16,185,129,0.30)] bg-white">
-        <div>
-          <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ mode }} PP</p>
-          <p class="text-xs mt-2 {% if var_pp > 0 %}text-emerald-600{% elif var_pp < 0 %}text-rose-600{% else %}text-slate-500{% endif %}">Variation: {% if var_pp > 0 %}+{% endif %}{{ var_pp }}%</p>
-        </div>
-        <div class="relative w-20 h-20">
-          <svg class="w-20 h-20 -rotate-90" viewBox="0 0 112 112">
-            <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-slate-200"></circle>
-            <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-emerald-500 progress-glow-circle stat-rate-circle" stroke-dasharray="314" stroke-dashoffset="314" data-rate="{{ last_pp_expl|default:0|floatformat:1 }}" stroke-linecap="round"></circle>
-          </svg>
-          <span class="absolute inset-0 flex items-center justify-center text-[11px] font-black text-slate-900">{{ last_pp_expl }}%</span>
-        </div>
-      </article>
-
-      <article class="glass-panel border border-2 border-orange-400 rounded-2xl p-4 flex items-center justify-between shadow-[0_14px_30px_rgba(249,115,22,0.30)] bg-white">
-        <div>
-          <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ mode }} PM</p>
-          <p class="text-xs mt-2 {% if var_pm > 0 %}text-emerald-600{% elif var_pm < 0 %}text-rose-600{% else %}text-slate-500{% endif %}">Variation: {% if var_pm > 0 %}+{% endif %}{{ var_pm }}%</p>
-        </div>
-        <div class="relative w-20 h-20">
-          <svg class="w-20 h-20 -rotate-90" viewBox="0 0 112 112">
-            <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-slate-200"></circle>
-            <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-orange-500 progress-glow-orange stat-rate-circle" stroke-dasharray="314" stroke-dashoffset="314" data-rate="{{ last_pm_expl|default:0|floatformat:1 }}" stroke-linecap="round"></circle>
-          </svg>
-          <span class="absolute inset-0 flex items-center justify-center text-[11px] font-black text-slate-900">{{ last_pm_expl }}%</span>
-        </div>
-      </article>
-
-      <article class="glass-panel border border-2 border-emerald-400 rounded-2xl p-4 flex items-center justify-between shadow-[0_14px_30px_rgba(16,185,129,0.30)] bg-white">
-        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Qualite PP</p>
-        <div class="relative w-20 h-20">
-          <svg class="w-20 h-20 -rotate-90" viewBox="0 0 112 112">
-            <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-slate-200"></circle>
-            <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-emerald-500 progress-glow-circle stat-rate-circle" stroke-dasharray="314" stroke-dashoffset="314" data-rate="{{ quality_rate_pp|default:0|floatformat:1 }}" stroke-linecap="round"></circle>
-          </svg>
-          <span class="absolute inset-0 flex items-center justify-center text-[11px] font-black text-slate-900">{{ quality_rate_pp|default:0|floatformat:1 }}%</span>
+    <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 max-w-7xl mx-auto">
+      <article class="glass-panel border-2 border-emerald-400 rounded-[1.25rem] p-4 flex items-center justify-between shadow-[0_14px_30px_rgba(16,185,129,0.25)] bg-white/90 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+        <div class="absolute -right-8 -top-8 w-32 h-32 bg-emerald-300/20 rounded-full blur-2xl group-hover:bg-emerald-300/30 transition-colors"></div>
+        <div class="relative z-10 flex flex-col justify-between h-full w-full">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="px-2 py-0.5 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-600 text-white text-[9px] font-black tracking-widest shadow-md shadow-emerald-500/30">PP</div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">Taux de Complétude</p>
+          </div>
+          <div class="flex items-end justify-between">
+              <div>
+                <p class="text-[9px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Évolution</p>
+                <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 {% if var_pp > 0 %}text-emerald-600{% elif var_pp < 0 %}text-rose-600{% else %}text-slate-500{% endif %}">
+                    {% if var_pp > 0 %}
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    <span class="text-xs font-black">+{{ var_pp }}%</span>
+                    {% elif var_pp < 0 %}
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path></svg>
+                    <span class="text-xs font-black">{{ var_pp }}%</span>
+                    {% else %}
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 12h14"></path></svg>
+                    <span class="text-xs font-black">0%</span>
+                    {% endif %}
+                </div>
+              </div>
+              <div class="relative w-[72px] h-[72px]">
+                <svg class="w-[72px] h-[72px] -rotate-90 drop-shadow-md" viewBox="0 0 112 112">
+                  <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-slate-100"></circle>
+                  <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-emerald-500 progress-glow-circle stat-rate-circle" stroke-dasharray="314" stroke-dashoffset="314" data-rate="{{ last_pp_expl|default:0|floatformat:1 }}" stroke-linecap="round"></circle>
+                </svg>
+                <span class="absolute inset-0 flex items-center justify-center text-[13px] font-black text-slate-800">{{ last_pp_expl }}%</span>
+              </div>
+          </div>
         </div>
       </article>
 
-      <article class="glass-panel border border-2 border-orange-400 rounded-2xl p-4 flex items-center justify-between shadow-[0_14px_30px_rgba(249,115,22,0.30)] bg-white">
-        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Qualite PM</p>
-        <div class="relative w-20 h-20">
-          <svg class="w-20 h-20 -rotate-90" viewBox="0 0 112 112">
-            <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-slate-200"></circle>
-            <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-orange-500 progress-glow-orange stat-rate-circle" stroke-dasharray="314" stroke-dashoffset="314" data-rate="{{ quality_rate_pm|default:0|floatformat:1 }}" stroke-linecap="round"></circle>
-          </svg>
-          <span class="absolute inset-0 flex items-center justify-center text-[11px] font-black text-slate-900">{{ quality_rate_pm|default:0|floatformat:1 }}%</span>
+      <article class="glass-panel border-2 border-orange-400 rounded-[1.25rem] p-4 flex items-center justify-between shadow-[0_14px_30px_rgba(249,115,22,0.25)] bg-white/90 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+        <div class="absolute -right-8 -top-8 w-32 h-32 bg-orange-300/20 rounded-full blur-2xl group-hover:bg-orange-300/30 transition-colors"></div>
+        <div class="relative z-10 flex flex-col justify-between h-full w-full">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="px-2 py-0.5 rounded-md bg-gradient-to-br from-orange-400 to-orange-600 text-white text-[9px] font-black tracking-widest shadow-md shadow-orange-500/30">PM</div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">Taux de Complétude</p>
+          </div>
+          <div class="flex items-end justify-between">
+              <div>
+                <p class="text-[9px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Évolution</p>
+                <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 {% if var_pm > 0 %}text-emerald-600{% elif var_pm < 0 %}text-rose-600{% else %}text-slate-500{% endif %}">
+                    {% if var_pm > 0 %}
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    <span class="text-xs font-black">+{{ var_pm }}%</span>
+                    {% elif var_pm < 0 %}
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path></svg>
+                    <span class="text-xs font-black">{{ var_pm }}%</span>
+                    {% else %}
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 12h14"></path></svg>
+                    <span class="text-xs font-black">0%</span>
+                    {% endif %}
+                </div>
+              </div>
+              <div class="relative w-[72px] h-[72px]">
+                <svg class="w-[72px] h-[72px] -rotate-90 drop-shadow-md" viewBox="0 0 112 112">
+                  <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-slate-100"></circle>
+                  <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-orange-500 progress-glow-orange stat-rate-circle" stroke-dasharray="314" stroke-dashoffset="314" data-rate="{{ last_pm_expl|default:0|floatformat:1 }}" stroke-linecap="round"></circle>
+                </svg>
+                <span class="absolute inset-0 flex items-center justify-center text-[13px] font-black text-slate-800">{{ last_pm_expl }}%</span>
+              </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="glass-panel border-2 border-emerald-400 rounded-[1.25rem] p-4 flex items-center justify-between shadow-[0_14px_30px_rgba(16,185,129,0.25)] bg-white/90 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+        <div class="absolute -right-8 -top-8 w-32 h-32 bg-emerald-300/20 rounded-full blur-2xl group-hover:bg-emerald-300/30 transition-colors"></div>
+        <div class="relative z-10 flex flex-col justify-center h-full w-full">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="px-2 py-0.5 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-600 text-white text-[9px] font-black tracking-widest shadow-md shadow-emerald-500/30">PP</div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">Taux de Qualité</p>
+          </div>
+          <div class="flex items-center justify-between">
+              <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-tight w-24">Qualité des<br>données saisies</p>
+              <div class="relative w-[72px] h-[72px]">
+                <svg class="w-[72px] h-[72px] -rotate-90 drop-shadow-md" viewBox="0 0 112 112">
+                  <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-slate-100"></circle>
+                  <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-emerald-500 progress-glow-circle stat-rate-circle" stroke-dasharray="314" stroke-dashoffset="314" data-rate="{{ quality_rate_pp|default:0|floatformat:1 }}" stroke-linecap="round"></circle>
+                </svg>
+                <span class="absolute inset-0 flex items-center justify-center text-[13px] font-black text-slate-800">{{ quality_rate_pp|default:0|floatformat:1 }}%</span>
+              </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="glass-panel border-2 border-orange-400 rounded-[1.25rem] p-4 flex items-center justify-between shadow-[0_14px_30px_rgba(249,115,22,0.25)] bg-white/90 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+        <div class="absolute -right-8 -top-8 w-32 h-32 bg-orange-300/20 rounded-full blur-2xl group-hover:bg-orange-300/30 transition-colors"></div>
+        <div class="relative z-10 flex flex-col justify-center h-full w-full">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="px-2 py-0.5 rounded-md bg-gradient-to-br from-orange-400 to-orange-600 text-white text-[9px] font-black tracking-widest shadow-md shadow-orange-500/30">PM</div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">Taux de Qualité</p>
+          </div>
+          <div class="flex items-center justify-between">
+              <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-tight w-24">Qualité des<br>données saisies</p>
+              <div class="relative w-[72px] h-[72px]">
+                <svg class="w-[72px] h-[72px] -rotate-90 drop-shadow-md" viewBox="0 0 112 112">
+                  <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-slate-100"></circle>
+                  <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-orange-500 progress-glow-orange stat-rate-circle" stroke-dasharray="314" stroke-dashoffset="314" data-rate="{{ quality_rate_pm|default:0|floatformat:1 }}" stroke-linecap="round"></circle>
+                </svg>
+                <span class="absolute inset-0 flex items-center justify-center text-[13px] font-black text-slate-800">{{ quality_rate_pm|default:0|floatformat:1 }}%</span>
+              </div>
+          </div>
         </div>
       </article>
     </section>
@@ -221,24 +301,32 @@
     {% endif %}
 
     {% if selected_expl %}
-    <section class="bg-gray-100 border border-slate-200 rounded-2xl p-4 lg:p-5 shadow-sm">
-      <div class="flex flex-wrap items-center gap-2 mb-4">
-        <div class="inline-flex p-1.5 bg-gray-100 rounded-2xl border border-gray-100 shadow-inner">
-          <button onclick="switchTab('tab-charts')" id="btn-charts" class="tab-btn active-tab px-6 py-2 text-[10px] font-black rounded-lg transition-all uppercase">Graphiques</button>
-          <button onclick="switchTab('tab-data')" id="btn-data" class="tab-btn px-6 py-2 text-[10px] font-black rounded-lg transition-all hover:text-gray-700 uppercase">Historique</button>
+    <section class="glass-panel border-2 border-white/60 rounded-[1.5rem] p-5 lg:p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] bg-white/40 relative overflow-hidden mt-6">
+      <div class="flex flex-wrap items-center gap-2 mb-6">
+        <div class="inline-flex p-1.5 bg-white/70 backdrop-blur-md rounded-xl border border-slate-200/80 shadow-sm">
+          <button onclick="switchTab('tab-charts')" id="btn-charts" class="tab-btn active-tab px-6 py-2 text-[10px] font-black rounded-lg transition-all uppercase text-emerald-700 bg-emerald-50 shadow-sm">Graphiques</button>
+          <button onclick="switchTab('tab-data')" id="btn-data" class="tab-btn px-6 py-2 text-[10px] font-black rounded-lg transition-all text-slate-500 hover:text-slate-700 hover:bg-slate-50 uppercase">Historique</button>
         </div>
       </div>
 
       <div id="tab-charts" class="tab-content">
         {% if selected_expl %}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div class="border border-slate-200 rounded-2xl p-4">
-            <h4 class="text-[11px] font-black uppercase text-slate-500 mb-3">Evolution PP ({{ periode }})</h4>
-            <div class="h-[300px]"><canvas id="canvasPP"></canvas></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="glass-panel border-2 border-slate-100 rounded-2xl p-5 bg-white/80 hover:shadow-[0_10px_40px_rgba(16,185,129,0.1)] transition-all duration-300 group relative">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-100/50 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div class="flex items-center gap-2.5 mb-5 relative z-10">
+              <span class="px-2 py-0.5 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-600 text-white text-[9px] font-black tracking-widest shadow-md shadow-emerald-500/30">PP</span>
+              <h4 class="text-[11px] font-black uppercase text-slate-600 tracking-widest">Évolution taux de complétude - ({{ periode }})</h4>
+            </div>
+            <div class="h-[300px] relative z-10"><canvas id="canvasPP"></canvas></div>
           </div>
-          <div class="border border-slate-200 rounded-2xl p-4">
-            <h4 class="text-[11px] font-black uppercase text-slate-500 mb-3">Evolution PM ({{ periode }})</h4>
-            <div class="h-[300px]"><canvas id="canvasPM"></canvas></div>
+          <div class="glass-panel border-2 border-slate-100 rounded-2xl p-5 bg-white/80 hover:shadow-[0_10px_40px_rgba(249,115,22,0.1)] transition-all duration-300 group relative">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-orange-100/50 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div class="flex items-center gap-2.5 mb-5 relative z-10">
+              <span class="px-2 py-0.5 rounded-md bg-gradient-to-br from-orange-400 to-orange-600 text-white text-[9px] font-black tracking-widest shadow-md shadow-orange-500/30">PM</span>
+              <h4 class="text-[11px] font-black uppercase text-slate-600 tracking-widest">Évolution taux de complétude - ({{ periode }})</h4>
+            </div>
+            <div class="h-[300px] relative z-10"><canvas id="canvasPM"></canvas></div>
           </div>
         </div>
         {% else %}
@@ -305,9 +393,9 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   {% if selected_expl %}
-  const labels = {{ labels_json|safe }};
-  const dataPP = {{ data_expl_pp|safe }};
-  const dataPM = {{ data_expl_pm|safe }};
+  const labels = JSON.parse('{{ labels_json|escapejs }}');
+  const dataPP = JSON.parse('{{ data_expl_pp|escapejs }}');
+  const dataPM = JSON.parse('{{ data_expl_pm|escapejs }}');
 
   const commonOptions = {
     responsive: true,

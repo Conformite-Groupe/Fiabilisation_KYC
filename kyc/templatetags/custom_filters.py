@@ -32,10 +32,31 @@ def as_bool(value):
         return value > 0
     return bool(value)
 
-
-from django import template
-register = template.Library()
-
 @register.filter
 def get_item(dictionary, key):
-    return dictionary.get(key)
+    if not hasattr(dictionary, "get"):
+        return ""
+    lower_key = str(key).lower()
+    return dictionary.get(f"col_{lower_key}", dictionary.get(key, dictionary.get(lower_key, "")))
+
+
+@register.filter
+def attr(obj, name):
+    if obj is None:
+        return ""
+    if isinstance(obj, dict):
+        return obj.get(name, "")
+    return getattr(obj, name, "")
+
+import json
+@register.filter
+def to_json(value):
+    return json.dumps(value)
+
+
+@register.filter
+def latest_flux_notation(user):
+    if not user or not user.is_authenticated:
+        return None
+    return user.notations.filter(flux_stock='Flux').order_by('-date_notation').first()
+

@@ -1,67 +1,92 @@
 import csv
+import logging
 import os
 import sys
-import chardet
-import logging
-import django
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
-from django.db import transaction, connection
+from pathlib import Path
+
+import django
+from django.conf import settings
+from django.db import connection, transaction
+
+try:
+    import chardet
+except Exception:
+    chardet = None
+
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Fiabilisation_kyc.settings")
 django.setup()
 
 from kyc.models import Kyc_pm, Kyc_pp
 
+
 # --- 1. CONFIGURATION ---
-STRICT_FIELD_LIMIT = 131072
+BASE_DIR = Path(__file__).resolve().parent
+DEFAULT_DATA_DIR = r"C:/Users/mamsylla/OneDrive - BANK OF AFRICA/Documents/Projets/2025/Plateforme notatio kyc v2/data"
+
+STRICT_FIELD_LIMIT = int(os.environ.get("KYC_FIELD_LIMIT", "131072"))
 csv.field_size_limit(STRICT_FIELD_LIMIT)
 
-FILIALES = ['SN]']
-CHEMIN_BASE = r"C:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2025\Plateforme notatio kyc v2\data"
-DELIMITEUR_CSV = ";"
-BULK_SIZE = 50000
-MAX_DB_WORKERS = 4
+CHEMIN_BASE = os.environ.get("KYC_DATA_DIR", DEFAULT_DATA_DIR)
+DELIMITEUR_CSV = os.environ.get("KYC_DELIMITER", ";")
+BULK_SIZE = int(os.environ.get("KYC_BULK_SIZE", "10000"))
+LOG_STEP = int(os.environ.get("KYC_LOG_STEP", "100000"))
+IMPORT_METHOD = os.environ.get("KYC_IMPORT_METHOD", "auto").strip().lower()
+
+
+def build_filiales_codes():
+    raw = os.environ.get("KYC_FILIALES", "SN")
+    return [part.strip() for part in raw.replace(";", ",").split(",") if part.strip()]
+
+
+FILIALES = build_filiales_codes()
+KYC_ONLY = os.environ.get("KYC_ONLY", "all").strip().lower()
+
 
 # --- 2. LOGGING ---
 def setup_logging():
-    log_dir = os.path.join(os.getcwd(), 'logs')
-    os.makedirs(log_dir, exist_ok=True)
-    logger = logging.getLogger('KYC_Importer')
+    log_dir = BASE_DIR / "logs"
+    log_dir.mkdir(exist_ok=True)
+    logger = logging.getLogger("KYC_Importer")
     logger.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setFormatter(formatter)
-    if not logger.hasHandlers():
-        logger.addHandler(ch)
-        fh = RotatingFileHandler(
-            os.path.join(log_dir, 'import_kyc.log'),
-            maxBytes=5*1024*1024, backupCount=5, encoding='utf-8'
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
+    if not logger.handlers:
+        console = logging.StreamHandler(sys.stdout)
+        console.setFormatter(formatter)
+        logger.addHandler(console)
+
+        file_handler = RotatingFileHandler(
+            log_dir / "import_kyc.log",
+            maxBytes=5 * 1024 * 1024,
+            backupCount=5,
+            encoding="utf-8",
         )
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
     return logger
+
 
 logger = setup_logging()
 
+
 # --- 3. REJETS ---
 def log_rejected_line(filename, line_num, error_msg):
-    reject_file = os.path.join(CHEMIN_BASE, "lignes_ignorees.txt")
+    reject_file = Path(CHEMIN_BASE) / "lignes_ignorees.txt"
+    reject_file.parent.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%H:%M:%S")
     with open(reject_file, "a", encoding="utf-8") as f:
         f.write(f"[{timestamp}] Fichier: {filename} | Ligne: {line_num} | Erreur: {error_msg}\n")
+
 
 # --- 4. UTILITAIRES ---
 def normalize_header(name):
     return (name or "").replace("\ufeff", "").strip().upper()
 
-def pick_value(row_norm, candidates):
-    for col in candidates:
-        val = row_norm.get(col, "")
-        if val:
-            return val.strip()
-    return (row_norm.get(candidates[0], "") or "").strip() if candidates else ""
 
 def unique_values(values):
     seen = set()
@@ -73,9 +98,22 @@ def unique_values(values):
             unique.append(value)
     return unique
 
+
 FIELD_ALIASES = {
+    "INTITULE_COMPTE": ["INTITULE", "INTITULE COMPTE", "INTITULE_COMPTE", "NOM_COMPTE", "NOM COMPTE"],
+    "EMPLOYEUR": ["EMPLOYEUR", "EMPLOYER"],
     "LIB_AGENCE": ["AGENCELIB", "AGENCE_LIB", "LIBELLE_AGENCE", "LIB AGENCE"],
+    "ADRESSE_SOCIALE": ["ADRESSE_SOCIALE", "ADRESSE SOCIALE", "SIEGE_SOCIAL", "SIEGE SOCIAL"],
+    "NUMERO_FISCAL": ["NUMERO_FISCAL", "NUMERO FISCAL", "NIF", "IFU", "TIN"],
+    "PAYS_JUR": ["PAYS_JUR", "PAYS JUR", "PAYS_JURIDICTION", "PAYS JURIDICTION"],
+    "ACTIONNAIRE": ["ACTIONNAIRE", "ACTIONNAIRES"],
+    "MANDATAIRE": ["MANDATAIRE", "MANDATAIRES"],
+    "BOITE_POSTALE": ["BOITE_POSTALE", "BOITE POSTALE", "BP", "B.P."],
+    "CONSENT_BIC": ["CONSENT_BIC", "CONSENT BIC", "CONSENTEMENT_BIC", "CONSENTEMENT BIC"],
+    "LIEU_DELIVRANCE_CIN": ["LIEU_DELIVRANCE_CIN", "LIEU DELIVRANCE CIN", "LIEU_DELIVRANCE", "LIEU DELIVRANCE"],
     "ORIGINE_REV": ["ORIGINE_REVENU", "ORIGINE_REVENUS", "ORIGINE REVENU", "ORIGINE REVENUS"],
+    "DATEREV": ["DATREV", "DATEREV"],
+    "RISQUE": ["RISQUE", "CLASSE", "CLASSE_RISQUE", "CLASSE RISQUE", "RISK"],
     "PAYS_RESID": ["PAYS_RESIDENCE", "PAYS_RESID", "PAYS RESIDENCE", "PAYS RESID"],
     "NUMID": ["NUM_ID", "NUMERO_ID", "NUMERO_IDENTITE", "NUMERO DOCUMENT", "NUMERO_DOCUMENT"],
     "DATVALID": ["DATE_VALIDITE", "DAT_VALID", "DATE VALIDITE", "DATE_EXPIRATION", "DATE EXPIRATION"],
@@ -89,102 +127,231 @@ FIELD_ALIASES = {
     "RCSNO": ["RCCM", "RCS", "NUMERO_RCS", "RCS NO"],
 }
 
+NUMERIC_TEXT_FIELDS = {"CAPITAL", "CA", "RESULTAT"}
+
+
+def detect_encoding(path):
+    if chardet is None:
+        return "utf-8-sig"
+    try:
+        with open(path, "rb") as f:
+            raw = f.read(100000)
+        return chardet.detect(raw).get("encoding") or "utf-8-sig"
+    except Exception:
+        return "utf-8-sig"
+
+
 def build_model_mapping(model):
     mapping = {}
-    for field in model._meta.fields:
-        if field.primary_key or field.auto_created:
-            continue
+    for field in get_insert_fields(model):
         name = field.name
-        mapping[name] = unique_values([
-            name,
-            name.upper(),
-            *FIELD_ALIASES.get(name, []),
-        ])
+        mapping[name] = unique_values([name, name.upper(), *FIELD_ALIASES.get(name, [])])
     return mapping
 
-# --- 5. INSERTION EN THREAD (compatible MSSQL) ---
-def _bulk_insert(model, batch):
-    connection.close()  # Nouvelle connexion propre dans ce thread
-    model.objects.bulk_create(batch)  # Sans ignore_conflicts (non supporté par MSSQL)
+
+def get_insert_fields(model):
+    return [
+        field
+        for field in model._meta.concrete_fields
+        if not field.primary_key and not field.auto_created
+    ]
+
+
+def build_column_plan(headers, fields, mapping):
+    header_positions = {}
+    for idx, header in enumerate(headers):
+        header_positions.setdefault(normalize_header(header), idx)
+
+    plan = []
+    missing = []
+    for field in fields:
+        if field.name == "FILIALE":
+            plan.append((field.name, None))
+            continue
+
+        candidates = [normalize_header(candidate) for candidate in mapping.get(field.name, [field.name])]
+        idx = next((header_positions[candidate] for candidate in candidates if candidate in header_positions), None)
+        plan.append((field.name, idx))
+        if idx is None:
+            missing.append(field.name)
+
+    return plan, missing
+
+
+def row_to_values(row, plan, filiale_value):
+    values = []
+    for field_name, idx in plan:
+        if field_name == "FILIALE":
+            value = filiale_value
+        elif idx is None or idx >= len(row):
+            value = ""
+        else:
+            value = (row[idx] or "").strip()
+
+        if field_name in NUMERIC_TEXT_FIELDS and value:
+            value = value.replace(",", ".").replace(" ", "")
+
+        values.append(value)
+    return tuple(values)
+
+
+def quoted_name(name):
+    return connection.ops.quote_name(name)
+
+
+def is_mssql_database():
+    engine = settings.DATABASES["default"]["ENGINE"].lower()
+    vendor = getattr(connection, "vendor", "").lower()
+    return "mssql" in engine or vendor in {"microsoft", "mssql"}
+
+
+def should_use_direct_insert():
+    if IMPORT_METHOD in {"direct", "sql", "fast"}:
+        return True
+    if IMPORT_METHOD in {"orm", "django"}:
+        return False
+    return is_mssql_database()
+
+
+# --- 5. INSERTION ---
+def build_insert_sql(model, columns):
+    table = quoted_name(model._meta.db_table)
+    column_sql = ", ".join(quoted_name(column) for column in columns)
+    placeholders = ", ".join(["%s"] * len(columns))
+    return f"INSERT INTO {table} ({column_sql}) VALUES ({placeholders})"
+
+
+def direct_insert_batch(model, columns, rows_with_lines, filename):
+    if not rows_with_lines:
+        return 0
+
+    sql = build_insert_sql(model, columns)
+    rows = [values for _, values in rows_with_lines]
+
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                raw_cursor = getattr(cursor, "cursor", None)
+                if is_mssql_database() and raw_cursor is not None and hasattr(raw_cursor, "fast_executemany"):
+                    raw_cursor.fast_executemany = True
+                cursor.executemany(sql, rows)
+        return len(rows)
+    except Exception as batch_error:
+        logger.error(f"Insertion batch refusee ({len(rows)} lignes) dans {model._meta.db_table}: {batch_error}")
+
+    inserted = 0
+    for line_num, values in rows_with_lines:
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute(sql, values)
+            inserted += 1
+        except Exception as row_error:
+            log_rejected_line(filename, line_num, f"Insertion SQL: {row_error}")
+
+    return inserted
+
+
+def orm_insert_batch(model, fields, rows_with_lines, filename):
+    if not rows_with_lines:
+        return 0
+
+    field_names = [field.name for field in fields]
+    prepared = []
+    for line_num, values in rows_with_lines:
+        try:
+            prepared.append((line_num, model(**dict(zip(field_names, values)))))
+        except Exception as obj_error:
+            log_rejected_line(filename, line_num, f"Preparation ORM: {obj_error}")
+
+    if not prepared:
+        return 0
+
+    objects = [obj for _, obj in prepared]
+    try:
+        model.objects.bulk_create(objects, batch_size=BULK_SIZE)
+        return len(objects)
+    except Exception as batch_error:
+        logger.error(f"bulk_create refuse ({len(objects)} lignes) dans {model._meta.db_table}: {batch_error}")
+
+    inserted = 0
+    for line_num, obj in prepared:
+        try:
+            obj.save(force_insert=True)
+            inserted += 1
+        except Exception as row_error:
+            log_rejected_line(filename, line_num, f"Insertion ORM: {row_error}")
+
+    return inserted
+
+
+def insert_batch(model, fields, rows_with_lines, filename, direct_mode):
+    columns = [field.name for field in fields]
+    if direct_mode:
+        return direct_insert_batch(model, columns, rows_with_lines, filename)
+    return orm_insert_batch(model, fields, rows_with_lines, filename)
+
+
+def delete_filiale_rows(model, filiale_value):
+    table = quoted_name(model._meta.db_table)
+    column = quoted_name("FILIALE")
+    sql = f"DELETE FROM {table} WHERE {column} = %s"
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(sql, [filiale_value])
+            return cursor.rowcount
+
 
 # --- 6. IMPORTATION ---
 def importer_csv_optimise(path, model, mapping, code_filiale):
     inserted = 0
+    read_rows = 0
     filename = os.path.basename(path)
-    logger.info(f"--- Lecture de {filename} ---")
+    filiale_value = f"BOA {code_filiale}"
+    direct_mode = should_use_direct_insert()
+    fields = get_insert_fields(model)
 
-    # Détection encodage sur 50 Ko
-    enc = 'utf-8'
-    try:
-        with open(path, 'rb') as f:
-            raw = f.read(51200)
-            enc = chardet.detect(raw)['encoding'] or 'utf-8'
-    except Exception:
-        pass
+    logger.info(f"--- Lecture de {filename} vers {model._meta.db_table} ({'SQL direct' if direct_mode else 'ORM'}) ---")
 
-    # Mapping candidats pré-normalisés (une seule fois avant la boucle)
-    mapping_norm = {
-        field: [normalize_header(c) for c in (
-            [candidates] if isinstance(candidates, str) else candidates
-        )]
-        for field, candidates in mapping.items()
-    }
-
-    pending_futures = []
+    enc = detect_encoding(path)
+    pending_rows = []
 
     try:
-        with open(path, newline="", encoding=enc, errors='replace') as f:
-            reader = csv.DictReader(f, delimiter=DELIMITEUR_CSV)
+        with open(path, newline="", encoding=enc, errors="replace") as f:
+            reader = csv.reader(f, delimiter=DELIMITEUR_CSV)
+            headers = next(reader, None)
+            if not headers:
+                logger.warning(f"{filename}: fichier vide.")
+                return 0
 
-            if reader.fieldnames:
-                reader.fieldnames = [normalize_header(fn) for fn in reader.fieldnames]
+            plan, missing = build_column_plan(headers, fields, mapping)
+            if missing:
+                logger.warning(f"{filename}: colonnes absentes ou non reconnues: {', '.join(missing)}")
 
-            all_rows = []
+            for line_counter, row in enumerate(reader, start=2):
+                try:
+                    pending_rows.append((line_counter, row_to_values(row, plan, filiale_value)))
+                    read_rows += 1
 
-            with ThreadPoolExecutor(max_workers=MAX_DB_WORKERS) as executor:
-                for line_counter, row in enumerate(reader, start=2):
-                    try:
-                        row_norm = {k: (v or "").strip() for k, v in row.items() if k}
+                    if len(pending_rows) >= BULK_SIZE:
+                        inserted += insert_batch(model, fields, pending_rows, filename, direct_mode)
+                        pending_rows = []
+                        if inserted and inserted % LOG_STEP == 0:
+                            logger.info(f"    -> {inserted} lignes inserees...")
 
-                        data = {}
-                        for field, candidates in mapping_norm.items():
-                            data[field] = pick_value(row_norm, candidates)
+                except Exception as row_error:
+                    log_rejected_line(filename, line_counter, f"Lecture CSV: {row_error}")
 
-                        for num_field in ("CAPITAL", "CA", "RESULTAT"):
-                            if num_field in data:
-                                data[num_field] = data[num_field].replace(",", ".").replace(" ", "")
+            if pending_rows:
+                inserted += insert_batch(model, fields, pending_rows, filename, direct_mode)
 
-                        data["FILIALE"] = f"BOA {code_filiale}"
-                        all_rows.append(model(**data))
+    except Exception as file_error:
+        logger.critical(f"Erreur fatale sur {filename}: {file_error}")
+        return inserted
+    finally:
+        connection.close_if_unusable_or_obsolete()
 
-                        if len(all_rows) >= BULK_SIZE:
-                            batch = all_rows
-                            all_rows = []
-                            future = executor.submit(_bulk_insert, model, batch)
-                            pending_futures.append((future, len(batch)))
-                            inserted += len(batch)
-                            logger.info(f"    -> {inserted} lignes soumises...")
-
-                    except Exception as e:
-                        log_rejected_line(filename, line_counter, f"Erreur: {e}")
-
-                # Dernier batch
-                if all_rows:
-                    future = executor.submit(_bulk_insert, model, all_rows)
-                    pending_futures.append((future, len(all_rows)))
-                    inserted += len(all_rows)
-
-                # Attente des insertions + gestion erreurs
-                for future, count in pending_futures:
-                    try:
-                        future.result()
-                    except Exception as e:
-                        logger.error(f"Erreur insertion batch ({count} lignes) : {e}")
-
-    except Exception as e:
-        logger.critical(f"🛑 Erreur fatale sur {filename} : {e}")
-
-    logger.info(f"✅ {filename} : {inserted} lignes insérées.")
+    logger.info(f"{filename}: {inserted}/{read_rows} lignes inserees.")
     return inserted
 
 
@@ -194,37 +361,80 @@ MAPPING_PP = build_model_mapping(Kyc_pp)
 
 
 # --- 8. TRAITEMENT PAR FILIALE ---
+def should_import(kind):
+    if KYC_ONLY in {"", "all", "both", "*"}:
+        return True
+    normalized = KYC_ONLY.replace(" ", "").replace("-", "_")
+    return kind in {part.strip().lower() for part in normalized.replace(";", ",").split(",")}
+
+
+def resolve_import_path(code, kind):
+    env_key = f"KYC_{kind.upper()}_PATTERN"
+    pattern = os.environ.get(env_key)
+    if pattern:
+        return pattern.format(code=code)
+
+    candidates = [
+        os.path.join(CHEMIN_BASE, f"{kind}_{code}_STOCK.csv"),
+        os.path.join(CHEMIN_BASE, f"{kind}_{code}_STOCK_F.csv"),
+    ]
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
+    return candidates[0]
+
+
+def traiter_fichier_si_present(code, kind, model, mapping):
+    path = resolve_import_path(code, kind)
+    if not os.path.exists(path):
+        logger.warning(f"Fichier absent, import ignore: {path}")
+        return 0
+
+    filiale_value = f"BOA {code}"
+    deleted = delete_filiale_rows(model, filiale_value)
+    logger.info(f"{model._meta.db_table}: {deleted} anciennes lignes supprimees pour {filiale_value}.")
+    return importer_csv_optimise(path, model, mapping, code)
+
+
 def traiter_filiale(code):
     logger.info(f"\n>>> FILIALE {code}")
+    total = 0
 
-    with transaction.atomic():
-        Kyc_pm.objects.filter(FILIALE=f"BOA {code}").delete()
-        Kyc_pp.objects.filter(FILIALE=f"BOA {code}").delete()
+    if should_import("pm"):
+        total += traiter_fichier_si_present(code, "pm", Kyc_pm, MAPPING_PM)
+    if should_import("pp"):
+        total += traiter_fichier_si_present(code, "pp", Kyc_pp, MAPPING_PP)
 
-    pm_f = os.path.join(CHEMIN_BASE, f"pm_{code}_STOCK_F.csv")
-    pp_f = os.path.join(CHEMIN_BASE, f"pp_{code}_STOCK_F.csv")
-
-    if os.path.exists(pm_f):
-        importer_csv_optimise(pm_f, Kyc_pm, MAPPING_PM, code)
-    if os.path.exists(pp_f):
-        importer_csv_optimise(pp_f, Kyc_pp, MAPPING_PP, code)
+    logger.info(f"FILIALE {code}: {total} lignes inserees au total.")
+    return total
 
 
 # --- 9. MAIN ---
-if __name__ == '__main__':
-    with open(os.path.join(CHEMIN_BASE, "lignes_ignorees.txt"), "w", encoding="utf-8") as f:
+if __name__ == "__main__":
+    Path(CHEMIN_BASE).mkdir(parents=True, exist_ok=True)
+    with open(Path(CHEMIN_BASE) / "lignes_ignorees.txt", "w", encoding="utf-8") as f:
         f.write(f"--- REJETS DU {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+
+    logger.info(
+        "Demarrage import KYC | filiales=%s | data_dir=%s | bulk_size=%s | only=%s | method=%s",
+        ",".join(FILIALES),
+        CHEMIN_BASE,
+        BULK_SIZE,
+        KYC_ONLY,
+        IMPORT_METHOD,
+    )
 
     if len(FILIALES) == 1:
         traiter_filiale(FILIALES[0])
     else:
-        with ProcessPoolExecutor(max_workers=min(len(FILIALES), os.cpu_count())) as executor:
+        workers = min(len(FILIALES), os.cpu_count() or 1)
+        with ProcessPoolExecutor(max_workers=workers) as executor:
             futures = {executor.submit(traiter_filiale, code): code for code in FILIALES}
             for future in as_completed(futures):
                 code = futures[future]
                 try:
                     future.result()
-                except Exception as e:
-                    logger.error(f"Erreur filiale {code} : {e}")
+                except Exception as exc:
+                    logger.error(f"Erreur filiale {code}: {exc}")
 
-    logger.info("\n✨ Processus terminé.")
+    logger.info("\nProcessus termine.")

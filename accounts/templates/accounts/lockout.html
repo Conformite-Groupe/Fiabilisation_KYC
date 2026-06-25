@@ -1,0 +1,95 @@
+{% load tailwind_tags %}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accès Verrouillé | KYC</title>
+    {% tailwind_css %}
+    <link rel="stylesheet" href="{% static 'css/dist/styles.css' %}">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+            overflow: hidden;
+        }
+
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            background: white;
+            opacity: 0.05;
+            animation: float 20s infinite linear;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(100vw, 100vh) rotate(360deg); }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+
+<body class="h-full flex items-center justify-center p-4 relative">
+
+    <div class="circle w-48 h-48 -top-10 -left-10"></div>
+    <div class="circle w-64 h-64 bottom-10 right-10"></div>
+    <div class="circle w-24 h-24 left-8 -bottom-0 animate-[drift_32s_infinite]"></div>
+
+    <div class="w-full max-w-[420px] z-10">
+
+        <div class="glass-card rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20">
+
+            <div class="bg-transparent py-8 flex flex-col items-center relative">
+                <img class="h-20 relative z-10" src="/media/images/boa.png" alt="Logo BOA">
+            </div>
+
+            <div class="flex justify-center items-center bg-red-600 h-1 w-full"></div>
+
+            <div class="p-8 text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+
+                <span class="inline-block px-3 py-1 rounded-full bg-red-50 text-red-700 text-[9px] font-black uppercase tracking-widest mb-3">
+                    Sécurité Système
+                </span>
+                
+                <h2 class="text-xl font-extrabold text-slate-800 tracking-tight mb-4">
+                    Accès temporairement verrouillé
+                </h2>
+
+                <p class="text-xs font-semibold text-slate-500 leading-relaxed mb-6">
+                    Votre compte ou votre adresse IP a été temporairement bloqué suite à trop de tentatives de connexion infructueuses. 
+                    Veuillez patienter 1 heure avant de réessayer ou contacter votre administrateur.
+                </p>
+
+                <a href="{% url 'login_kyc' %}"
+                    class="inline-flex w-full justify-center items-center bg-slate-800 hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 active:scale-95">
+                    Retour à la page de connexion
+                </a>
+            </div>
+        </div>
+
+        <div class="mt-6 text-center">
+            <p class="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em]">
+                © <span id="year"></span> Compliance Group
+            </p>
+            <a href="mailto:safkyc@boaholding.com" class="text-[9px] font-black text-white/80 hover:text-white transition-colors uppercase tracking-widest mt-2 block">Assistance technique</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>

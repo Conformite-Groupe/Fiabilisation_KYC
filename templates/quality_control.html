@@ -5,7 +5,7 @@
 {% block content %}
 <!-- Premium Fonts & Styles -->
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+    @import url('/static/vendor/css/outfit_plus_jakarta.css');
 
     :root {
         --glass-bg: rgba(255, 255, 255, 0.7);
@@ -95,13 +95,59 @@
     .premium-label label {
         @apply text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 ml-1 block !important;
     }
+
+    #div_id_filiale > div,
+    .checkboxselectmultiple {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.65rem;
+    }
+
+    #div_id_filiale .form-check,
+    .checkboxselectmultiple li {
+        list-style: none;
+        margin: 0;
+    }
+
+    #div_id_filiale label:not(:first-child),
+    .checkboxselectmultiple label {
+        display: flex !important;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.75rem 0.85rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        background: #ffffff;
+        color: #334155;
+        font-size: 0.72rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.02em !important;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    #div_id_filiale label:not(:first-child):has(input:checked),
+    .checkboxselectmultiple label:has(input:checked) {
+        border-color: #10b981;
+        background: #ecfdf5;
+        color: #047857;
+        box-shadow: 0 8px 18px rgba(16, 185, 129, 0.12);
+    }
+
+    #div_id_filiale input[type="checkbox"],
+    .checkboxselectmultiple input[type="checkbox"] {
+        width: 1rem;
+        height: 1rem;
+        accent-color: #10b981;
+    }
 </style>
 
-<div class="min-h-screen px-4 pb-4 pt-1 lg:px-8 lg:pb-8 lg:pt-2 space-y-6 max-w-[1600px] mx-auto">
+<div class="min-h-screen px-4 pb-4 pt-0 lg:px-8 lg:pb-8 lg:pt-0 space-y-4 max-w-[1600px] mx-auto">
 
     <!-- HEADER AREA -->
     <header
-        class="glass-panel rounded-none px-5 py-6 lg:px-6 lg:py-7 flex flex-col lg:flex-row items-center justify-between gap-4">
+        class="glass-panel rounded-none px-5 py-4 lg:px-6 lg:py-5 flex flex-col lg:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-4">
             <div class="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl">
                 <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,14 +157,15 @@
                 </svg>
             </div>
             <div>
-                <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                    CONTRÔLE <span class="text-emerald-500 font-light">QUALITÉ</span> KYC
+                <h1 class="uppercase text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
+                    Régles de  <span class="uppercase text-emerald-500 font-light"> Qualité</span> 
                 </h1>
                 <div class="flex items-center gap-2 mt-1.5">
                     <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Gestion des
                         règles de contrôle qualité KYC</p>
                 </div>
+        
             </div>
         </div>
 
@@ -154,62 +201,93 @@
     </header>
 
     <!-- STATISTICS GRID -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="glass-panel premium-card px-5 py-4 rounded-2xl border-l-4 border-slate-900 group">
-            <div class="flex justify-between items-start mb-2">
-                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Total Règles</p>
-                <div
-                    class="w-7 h-7 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-900 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
-                        </path>
+    <div class="flex flex-wrap justify-center gap-4">
+        <!-- Total Règles -->
+        <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-slate-900">
+            <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-slate-900">
+                        Total Règles
+                    </p>
+                    <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
+                        {{ total_rules }}
+                    </p>
+                </div>
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-900">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                     </svg>
                 </div>
             </div>
-            <p class="text-3xl font-black text-slate-900 tracking-tighter">{{ total_rules }}</p>
+            <div class="mt-1.5 flex items-center justify-between gap-3">
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">Toutes les règles</p>
+            </div>
         </div>
 
-        <div
-            class="glass-panel premium-card px-5 py-4 rounded-2xl border-l-4 border-emerald-500 group stat-glow-emerald">
-            <div class="flex justify-between items-start mb-2">
-                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">Opérationnelles</p>
-                <div class="w-7 h-7 bg-emerald-50 rounded-2xl flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white text-emerald-500">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M5 13l4 4L19 7"></path>
+        <!-- Opérationnelles -->
+        <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-emerald-500">
+            <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-emerald-600">
+                        Opérationnelles
+                    </p>
+                    <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
+                        {{ active_rules }}
+                    </p>
+                </div>
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
                     </svg>
                 </div>
             </div>
-            <p class="text-3xl font-black text-slate-900 tracking-tighter">{{ active_rules }}</p>
+            <div class="mt-1.5 flex items-center justify-between gap-3">
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">Règles actives</p>
+            </div>
         </div>
 
-        <div class="glass-panel premium-card px-5 py-4 rounded-2xl border-l-4 border-blue-500 group stat-glow-blue">
-            <div class="flex justify-between items-start mb-2">
-                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">Score Global</p>
-                <div class="w-7 h-7 bg-blue-50 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white text-blue-600">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+        <!-- Score Global -->
+        <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-blue-500">
+            <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-blue-600">
+                        Score Global
+                    </p>
+                    <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
+                        {% if global_compliance_rate is not None %}{{ global_compliance_rate|floatformat:1 }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
+                    </p>
+                </div>
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                     </svg>
                 </div>
             </div>
-            <p class="text-3xl font-black text-slate-900 tracking-tighter">
-                {% if global_compliance_rate is not None %}{{ global_compliance_rate|floatformat:1 }}<span
-                    class="text-lg ml-1 text-slate-400">%</span>{% else %}--{% endif %}
-            </p>
+            <div class="mt-1.5 flex items-center justify-between gap-3">
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">Conformité moyenne</p>
+            </div>
         </div>
 
-        <div class="glass-panel premium-card px-5 py-4 rounded-2xl border-l-4 border-red-500 group stat-glow-red">
-            <div class="flex justify-between items-start mb-2">
-                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-red-600">Clients non conformes</p>
-                <div class="w-7 h-7 bg-red-50 rounded-2xl flex items-center justify-center group-hover:bg-red-600 group-hover:text-white text-red-600">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                        </path>
+        <!-- Clients non conformes -->
+        <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-red-500">
+            <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-red-600">
+                        Non Conformes
+                    </p>
+                    <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
+                        {{ total_failures }}
+                    </p>
+                </div>
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                     </svg>
                 </div>
             </div>
-            <p class="text-3xl font-black text-slate-900 tracking-tighter">{{ total_failures }}</p>
+            <div class="mt-1.5 flex items-center justify-between gap-3">
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">Clients non conformes</p>
+            </div>
         </div>
     </div>
 
@@ -266,6 +344,10 @@
                                         <span
                                             class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[8px] font-black uppercase tracking-widest border border-blue-100">
                                             {{ rule.get_applicability_display }}
+                                        </span>
+                                        <span
+                                            class="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full text-[8px] font-black uppercase tracking-widest border border-amber-100">
+                                            {{ item.filiales_display|default:"Filiale non definie" }}
                                         </span>
                                         <span
                                             class="px-2 py-0.5 bg-red-50 text-red-900 rounded-full text-[8px] font-black uppercase tracking-widest border border-blue-100">
@@ -490,6 +572,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="md:col-span-2">{{ form.name|as_crispy_field }}</div>
                                 <div class="md:col-span-2">{{ form.applicability|as_crispy_field }}</div>
+                                <div class="md:col-span-2">{{ form.filiale|as_crispy_field }}</div>
                                 <div class="md:col-span-2">{{ form.description|as_crispy_field }}</div>
                                 {{ form.control_type }}
                                 {{ form.field_name }}
@@ -621,10 +704,11 @@
         openBtn.addEventListener('click', () => toggleModal(true));
         closeBtns.forEach(btn => btn?.addEventListener('click', () => toggleModal(false)));
 
-        // Labels en français
+        // Labels en franà§ais
         const fieldLabels = {
             id_name: 'Nom de la règle',
             id_applicability: 'Segment Cible',
+            id_filiale: 'Filiale(s) concernee(s)',
             id_field_name: 'Champ de Contrôle Principal',
             id_control_type: 'Algorithme d\'Audit',
             id_parameter: 'Valeur de Base',
@@ -638,8 +722,8 @@
         });
 
         const fieldOptions = {
-            PP: [['CODAPE', 'Code APE'], ['IDP', 'Identifiant PP'], ['PAYNAIS', 'Pays Naissance'], ['PROFESSION', 'Profession'], ['ADRESSE', 'Adresse'], ['PAYS_RESID', 'Pays Résidence'], ['NUMID', 'Numéro ID'], ['SALAIRE', 'Salaire'], ['DATVALID', 'Date Validité'], ['DATNAIS', 'Date Naissance'], ['TEL', 'Téléphone'], ['DATOUV', 'Date Ouverture'], ['PPE', 'Statut PPE'], ['DEVISE', 'Devise'], ['RESID', 'Résidence']],
-            PM: [['CODAPE', 'Code APE'], ['AGEC', 'Code AGEC'], ['IDM', 'Identifiant PM'], ['RCSNO', 'Numéro RCS'], ['CAPITAL', 'Capital Social'], ['CA', 'Chiffre d\'Affaires'], ['DATOUV', 'Date Ouverture'], ['TEL', 'Téléphone'], ['DEVISE', 'Devise'], ['RESID', 'Résidence']]
+            PP: [['FILIALE', 'FILIALE'], ['AGENCE', 'AGENCE'], ['LIB_AGENCE', 'LIB_AGENCE'], ['EXPL', 'EXPL'], ['CLIENT', 'CLIENT'], ['CODAPE', 'CODAPE'], ['IDP', 'IDP'], ['PAYNAIS', 'PAYNAIS'], ['PROFESSION', 'PROFESSION'], ['ADRESSE', 'ADRESSE'], ['PAYS_RESID', 'PAYS_RESID'], ['NUMID', 'NUMID'], ['SALAIRE', 'SALAIRE'], ['ORIGINE_REV', 'ORIGINE_REV'], ['DATVALID', 'DATVALID'], ['DATNAIS', 'DATNAIS'], ['TEL', 'TEL'], ['DATOUV', 'DATOUV'], ['PPE', 'PPE'], ['DEVISE', 'DEVISE'], ['RESID', 'RESID'], ['DATEREV', 'DATEREV'], ['RISQUE', 'RISQUE'], ['BOITE_POSTALE', 'BOITE_POSTALE'], ['CONSENT_BIC', 'CONSENT_BIC'], ['EMPLOYEUR', 'EMPLOYEUR'], ['INTITULE_COMPTE', 'INTITULE_COMPTE'], ['LIEU_DELIVRANCE_CIN', 'LIEU_DELIVRANCE_CIN']],
+            PM: [['FILIALE', 'FILIALE'], ['AGENCE', 'AGENCE'], ['LIB_AGENCE', 'LIB_AGENCE'], ['EXPL', 'EXPL'], ['CLIENT', 'CLIENT'], ['AGEC', 'AGEC'], ['CODAPE', 'CODAPE'], ['IDM', 'IDM'], ['RCSNO', 'RCSNO'], ['CAPITAL', 'CAPITAL'], ['CA', 'CA'], ['RESULTAT', 'RESULTAT'], ['ORIGINE_REV', 'ORIGINE_REV'], ['DATOUV', 'DATOUV'], ['TEL', 'TEL'], ['DEVISE', 'DEVISE'], ['RESID', 'RESID'], ['DATEREV', 'DATEREV'], ['PPE', 'PPE'], ['RISQUE', 'RISQUE'], ['ACTIONNAIRE', 'ACTIONNAIRE'], ['ADRESSE_SOCIALE', 'ADRESSE_SOCIALE'], ['BOITE_POSTALE', 'BOITE_POSTALE'], ['CONSENT_BIC', 'CONSENT_BIC'], ['INTITULE_COMPTE', 'INTITULE_COMPTE'], ['MANDATAIRE', 'MANDATAIRE'], ['NUMERO_FISCAL', 'NUMERO_FISCAL'], ['PAYS_JUR', 'PAYS_JUR']]
         };
 
         const applicabilitySelect = document.querySelector('#id_applicability');
@@ -784,3 +868,6 @@
     }
 </style>
 {% endblock %}
+
+
+

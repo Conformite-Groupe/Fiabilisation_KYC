@@ -44,3 +44,6 @@ Thumbs.db
 *.xls
 *.csv
 *.pdf
+
+# Base de donnees
+*.sqlite3

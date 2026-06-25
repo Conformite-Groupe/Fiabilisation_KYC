@@ -17,7 +17,7 @@ from kyc.models import Person
 
 User = get_user_model()
 
-@csrf_exempt
+# SECURITE: @csrf_exempt retiré — la protection CSRF Django est activée globalement
 def register(request):
     formCamb = Utilisateur()
     if len(request.GET) > 0:
@@ -29,13 +29,12 @@ def register(request):
             return render(request, 'accounts/register.html', {'formCamb': formCamb})
     return render(request, 'accounts/register.html', {'formCamb': formCamb})
 
-@csrf_exempt
-
+# SECURITE: @csrf_exempt retiré — le login doit être protégé contre les attaques CSRF
 def login_kyc(request):
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
-        user = authenticate(username=email, password=password)
+        user = authenticate(request, username=email, password=password)
         if user:
             if user.force_password_change:
                 # Rediriger vers le formulaire de changement de mot de passe

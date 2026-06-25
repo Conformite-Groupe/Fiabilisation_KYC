@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen px-4 pb-6 pt-1 lg:px-8 lg:pt-2 max-w-[1700px] mx-auto space-y-6">
+    <div class="glass-panel page-header">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shrink-0">
+                <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7">
+                    </path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
+                    Configuration <span class="text-emerald-500 font-light">champs KYC</span>
+                </h1>
+                <p class="mt-2 text-[10px] font-bold uppercase tracking-[0.35em] text-slate-400">
+                    {% if user.filiale %}Affichage des champs configures{% else %}Regle globale d'affichage de clients et des champs{% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-600">{% if user.filiale %}Affichage des champs configures{% else %}Vue par filiale{% endif %}</p>
+                <h2 class="text-lg font-black text-slate-900">Afficher et modifier les configurations appliquees</h2>
+            </div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                La modale montre PP et PM pour la filiale choisie
+            </p>
+        </div>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+            {% for filiale in filiale_choices %}
+            <a href="?filiale_modal={{ filiale|urlencode }}"
+                class="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-[10px] font-black uppercase tracking-widest text-slate-700 hover:bg-emerald-600 hover:text-white">
+                {{ filiale }}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <nav class="glass-panel sticky top-0 z-30 rounded-2xl border border-slate-100 p-1.5">
+        <div class="flex flex-col gap-1.5 sm:flex-row">
+            <a href="#config-pp" data-config-nav
+                class="nav-link nav-link-active flex-1 rounded-xl px-5 py-3 text-center text-[10px] font-black uppercase tracking-widest">
+                Particuliers (PP)
+            </a>
+            <a href="#config-pm" data-config-nav
+                class="nav-link flex-1 rounded-xl px-5 py-3 text-center text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-emerald-50 hover:text-emerald-700">
+                Entreprises (PM)
+            </a>
+        </div>
+    </nav>
+
+    {% for section in sections %}
+    <section id="config-{{ section.client_type }}" class="space-y-4 scroll-mt-24">
+
+
+        <div class="grid grid-cols-1 gap-5 justify-items-center">
+            {% for config in section.configs %}
+            {% if config.is_global %}
+            <form method="post"
+                class="w-full max-w-[1180px] bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                {% csrf_token %}
+                <input type="hidden" name="client_type" value="{{ section.client_type }}">
+                <input type="hidden" name="config_id" value="{{ config.id }}">
+
+                <div
+                    class="px-5 py-4 bg-slate-950 text-white flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p
+                            class="text-[10px] font-black uppercase tracking-[0.25em] {% if config.is_global %}text-emerald-300{% else %}text-amber-300{% endif %}">
+                            {% if config.is_global %}Regle globale {% else %}Regle filiale{% endif %} | {{ section.title }}
+                        </p>
+                        <h3 class="mt-1 text-base font-black">{{ config.scope_label }}</h3>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="submit"
+                            class="h-9 rounded-xl bg-emerald-600 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700">
+                            Enregistrer
+                        </button>
+                        {% if not config.is_global %}
+                        <button type="submit" name="action" value="delete"
+                            class="h-9 rounded-xl bg-red-600 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-700">
+                            Supprimer
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <section class="p-5 border-b border-slate-100">
+                        <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                            <div class="min-w-[220px]">
+                                <p class="text-[10px] font-black uppercase tracking-widest text-slate-900">Perimetre</p>
+                                <div class="mt-3 flex flex-wrap gap-3">
+                                    <label
+                                        class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                                        <input type="radio" name="scope" value="global" {% if config.is_global %}checked{% endif %} class="text-emerald-600 focus:ring-emerald-500" data-scope-radio>
+                                        Toutes les filiales
+                                    </label>
+                                    <label
+                                        class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                                        <input type="radio" name="scope" value="filiales" {% if not config.is_global %}checked{% endif %} class="text-emerald-600 focus:ring-emerald-500" data-scope-radio>
+                                        Filiales choisies
+                                    </label>
+                                </div>
+                                <p class="mt-3 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                                    La regle filiale prime sur la regle globale.
+                                </p>
+                            </div>
+                            <div class="w-full xl:max-w-[520px]" data-filiales-box>
+                                <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Filiales
+                                    ciblees</p>
+                                <select name="filiales" multiple size="6"
+                                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500">
+                                    {% for filiale in filiale_choices %}
+                                    <option value="{{ filiale }}" {% if filiale in config.filiales %}selected{% endif %}>{{ filiale }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                        <section class="p-5 border-b lg:border-b-0 lg:border-r border-slate-100">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-900">Clients a
+                                afficher</p>
+                            <p class="mt-1 text-[10px] font-bold text-slate-400">Au moins un de ces champs doit etre
+                                vide.</p>
+                            <div class="mt-4 space-y-2 max-h-[360px] overflow-y-auto custom-scrollbar pr-1">
+                                {% for field, label in section.fields %}
+                                <label
+                                    class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-700 hover:bg-emerald-50">
+                                    <span>{{ label }}</span>
+                                    <input type="checkbox" name="empty_fields" value="{{ field }}" {% if field in config.empty_fields %}checked{% endif %} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </section>
+
+                        <section class="p-5">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-900">Colonnes visibles
+                            </p>
+                            <p class="mt-1 text-[10px] font-bold text-slate-400">Tableau et export Excel.</p>
+                            <div class="mt-4 space-y-2 max-h-[360px] overflow-y-auto custom-scrollbar pr-1">
+                                {% for field, label in section.fields %}
+                                <label
+                                    class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-700 hover:bg-emerald-50">
+                                    <span>{{ label }}</span>
+                                    <input type="checkbox" name="display_fields" value="{{ field }}" {% if field in config.display_field_names %}checked{% endif %} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+</div>
+
+{% if selected_filiale %}
+<div class="fixed inset-0 z-[9999] bg-slate-950/55 p-3 backdrop-blur-sm lg:p-6">
+    <form method="post"
+        class="mx-auto flex h-full max-w-[1500px] flex-col overflow-hidden rounded-3xl border border-white/30 bg-white shadow-2xl">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_filiale_modal">
+        <input type="hidden" name="selected_filiale" value="{{ selected_filiale }}">
+        <div
+            class="flex flex-col gap-3 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-300">{% if user.filiale %}Affichage des champs configures{% else %}Configuration filiale{% endif %}</p>
+                <h3 class="mt-1 text-lg font-black text-white">{{ selected_filiale }}</h3>
+                <p class="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-300">Regles PP et PM
+                    appliquees a cette filiale</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="submit"
+                    class="h-9 rounded-xl bg-emerald-600 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700">
+                    Enregistrer
+                </button>
+                <a href="{% url 'kyc_field_config' %}"
+                    class="inline-flex h-9 items-center rounded-xl border border-white/15 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 hover:bg-slate-100">
+                    Fermer
+                </a>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto bg-slate-50 p-4 custom-scrollbar">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                {% for modal_config in selected_filiale_configs %}
+                <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    {% if modal_config.config_id %}
+                    <input type="hidden" name="{{ modal_config.client_type }}_config_id" value="{{ modal_config.config_id }}">
+                    {% endif %}
+                    {% for filiale in modal_config.filiales %}
+                    <input type="hidden" name="{{ modal_config.client_type }}_filiales" value="{{ filiale }}">
+                    {% endfor %}
+
+                    <div class="bg-slate-900 px-5 py-4 text-white">
+                        <div>
+                            <p
+                                class="text-[10px] font-black uppercase tracking-[0.25em] {% if modal_config.is_specific %}text-amber-300{% else %}text-emerald-300{% endif %}">
+                                {% if modal_config.is_specific %}Regle specifique{% else %}Heritee du global{% endif %}
+                            </p>
+                            <h4 class="mt-1 text-base font-black">{{ modal_config.title }}</h4>
+                            <p class="mt-1 text-[9px] font-bold uppercase tracking-widest text-slate-300">{{ modal_config.scope_label }}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                        <section class="p-5 border-b lg:border-b-0 lg:border-r border-slate-100">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-900">Clients a
+                                afficher</p>
+                            <p class="mt-1 text-[10px] font-bold text-slate-400">Au moins un de ces champs doit etre
+                                vide.</p>
+                            <div class="mt-4 space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+                                {% for field, label in modal_config.fields %}
+                                <label
+                                    class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-700 hover:bg-emerald-50">
+                                    <span>{{ label }}</span>
+                                    <input type="checkbox" name="{{ modal_config.client_type }}_empty_fields" value="{{ field }}" {% if field in modal_config.empty_fields %}checked{% endif %} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </section>
+
+                        <section class="p-5">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-900">Colonnes visibles
+                            </p>
+                            <p class="mt-1 text-[10px] font-bold text-slate-400">Tableau et export Excel.</p>
+                            <div class="mt-4 space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+                                {% for field, label in modal_config.fields %}
+                                <label
+                                    class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-700 hover:bg-emerald-50">
+                                    <span>{{ label }}</span>
+                                    <input type="checkbox" name="{{ modal_config.client_type }}_display_fields" value="{{ field }}" {% if field in modal_config.display_field_names %}checked{% endif %} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </section>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </form>
+</div>
+<script>document.body.classList.add('overflow-hidden');</script>
+{% endif %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const configNavLinks = document.querySelectorAll("[data-config-nav]");
+        const setActiveConfigNav = (activeLink) => {
+            configNavLinks.forEach((link) => {
+                link.classList.remove("nav-link-active");
+                link.classList.add("text-slate-600", "hover:bg-emerald-50", "hover:text-emerald-700");
+            });
+            activeLink.classList.add("nav-link-active");
+            activeLink.classList.remove("text-slate-600", "hover:bg-emerald-50", "hover:text-emerald-700");
+        };
+
+        configNavLinks.forEach((link) => {
+            link.addEventListener("click", (event) => {
+                event.preventDefault();
+                const target = document.querySelector(link.getAttribute("href"));
+                if (!target) return;
+                setActiveConfigNav(link);
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
+                history.replaceState(null, "", link.getAttribute("href"));
+            });
+        });
+
+        const currentHashLink = document.querySelector(`[data-config-nav][href="${window.location.hash}"]`);
+        if (currentHashLink) {
+            setActiveConfigNav(currentHashLink);
+        }
+
+        const configSections = Array.from(configNavLinks)
+            .map((link) => ({
+                link,
+                section: document.querySelector(link.getAttribute("href")),
+            }))
+            .filter((item) => item.section);
+
+        const updateActiveConfigNavFromScroll = () => {
+            if (!configSections.length) return;
+            const activationLine = window.innerHeight * 0.35;
+            let activeItem = configSections[0];
+
+            configSections.forEach((item) => {
+                const rect = item.section.getBoundingClientRect();
+                if (rect.top <= activationLine) {
+                    activeItem = item;
+                }
+            });
+
+            setActiveConfigNav(activeItem.link);
+        };
+
+        let tickingConfigNav = false;
+        window.addEventListener("scroll", () => {
+            if (tickingConfigNav) return;
+            tickingConfigNav = true;
+            window.requestAnimationFrame(() => {
+                updateActiveConfigNavFromScroll();
+                tickingConfigNav = false;
+            });
+        }, { passive: true });
+        updateActiveConfigNavFromScroll();
+
+        document.querySelectorAll("form").forEach((form) => {
+            const radios = form.querySelectorAll("[data-scope-radio]");
+            const filialesBox = form.querySelector("[data-filiales-box]");
+            if (!radios.length || !filialesBox) return;
+
+            const updateVisibility = () => {
+                const selected = form.querySelector("[data-scope-radio]:checked");
+                const showFiliales = selected && selected.value === "filiales";
+                filialesBox.classList.toggle("hidden", !showFiliales);
+            };
+
+            radios.forEach((radio) => radio.addEventListener("change", updateVisibility));
+            updateVisibility();
+        });
+    });
+</script>
+{% endblock %}

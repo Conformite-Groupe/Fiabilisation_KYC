@@ -219,34 +219,64 @@ def _has_enough_core_fields(text):
     return len(core_fields.intersection(fields)) >= 4
 
 
-def detect_document_type(text, original_name="", fields=None):
+def detect_document_type(text, original_name="", fields=None, filiale=None):
+    from kyc.models import KycDocumentType
+    from django.db.models import Q
+
     content = f"{original_name or ''}\n{text or ''}".upper()
     compact_content = re.sub(r"\s+", "", content)
 
-    passport_score = 0
-    identity_score = 0
+    if not KycDocumentType.objects.exists():
+        KycDocumentType.objects.create(
+            code="piece_identite",
+            label="Pièce d'identité",
+            keywords="CARTE NATIONALE, CARTE D'IDENTITE, CNI, IDENTITY CARD, NATIONAL ID, NIN, NPI, EID NUMBER, CARD NUMBER",
+            min_score=2.0,
+            filiale=""
+        )
+        KycDocumentType.objects.create(
+            code="passeport",
+            label="Passeport",
+            keywords="PASSEPORT, PASSPORT, N° PASSEPORT, PASSPORT NO, PASSPORT NUMBER",
+            min_score=2.0,
+            filiale=""
+        )
 
-    if re.search(r"(^|\n)\s*P<", text or "", flags=re.IGNORECASE):
-        passport_score += 5
-    if re.search(r"\b(PASSEPORT|PASSPORT)\b", content):
-        passport_score += 3
-    if re.search(r"\b(N[Â°O]\s*PASSEPORT|PASSPORT\s*(NO|NUMBER))\b", content):
-        passport_score += 3
-    if re.search(r"(PASSEPORT|PASSPORT)", (original_name or "").upper()):
-        passport_score += 2
+    query = KycDocumentType.objects.filter(Q(filiale=filiale or "") | Q(filiale=""))
+    sorted_types = sorted(list(query), key=lambda x: 0 if x.filiale else 1)
 
-    if re.search(r"\b(CARTE\s+NATIONALE|CARTE\s+D[' ]?IDENTITE|IDENTITY\s+CARD|NATIONAL\s+ID)\b", content):
-        identity_score += 4
-    if re.search(r"\b(CNI|NIN|NPI|EID\s*NUMBER|CARD\s*NUMBER)\b", content):
-        identity_score += 3
-    if re.search(r"(CNI|IDENTITE|IDENTITY|NATIONALID)", compact_content):
-        identity_score += 2
+    doc_types = []
+    seen_codes = set()
+    for dt in sorted_types:
+        if dt.code not in seen_codes:
+            seen_codes.add(dt.code)
+            doc_types.append(dt)
 
-    if passport_score >= 3 and passport_score >= identity_score + 1:
-        return "passeport"
-    if identity_score >= 3 and identity_score >= passport_score + 1:
-        return "piece_identite"
-    return ""
+    best_type = ""
+    best_score = 0.0
+
+    for doc_type in doc_types:
+        score = 0.0
+        for keyword in doc_type.get_keyword_list():
+            if keyword in content:
+                score += 1.0
+
+        clean_filename = (original_name or "").upper()
+        if doc_type.code.upper() in clean_filename or doc_type.label.upper() in clean_filename:
+            score += 3.0
+
+        if doc_type.code == "passeport":
+            if re.search(r"(^|\n)\s*P<", text or "", flags=re.IGNORECASE):
+                score += 5.0
+        elif doc_type.code == "piece_identite":
+            if re.search(r"(CNI|IDENTITE|IDENTITY|NATIONALID)", compact_content):
+                score += 1.5
+
+        if score >= doc_type.min_score and score > best_score:
+            best_score = score
+            best_type = doc_type.code
+
+    return best_type
 
 
 def extraction_quality_warnings(text, fields=None):
@@ -275,10 +305,10 @@ def extraction_quality_warnings(text, fields=None):
     return warnings
 
 
-def _apply_detection_metadata(result, original_name=""):
+def _apply_detection_metadata(result, original_name="", filiale=None):
     fields = result.get("fields") or {}
     text = result.get("text") or ""
-    result["detected_document_type"] = detect_document_type(text, original_name or result.get("filename", ""), fields)
+    result["detected_document_type"] = detect_document_type(text, original_name or result.get("filename", ""), fields, filiale)
 
     existing_warnings = list(result.get("warnings") or [])
     for warning in extraction_quality_warnings(text, fields):
@@ -456,9 +486,10 @@ def parse_identity_fields(text):
         ) or passport_fields.get("prenom", ""),
         "nom": mrz_fields.get("nom", "") or _next_value_after_label(
             normalized,
-            [r"\bnom\b", r"\bnorn\b", r"\bsurname\b", r"\bsumame\b"],
+            [r"\bdenomination\s+sociale\b", r"\braison\s+sociale\b", r"\bnom\s+de\s+l[' ]?entreprise\b", r"\bnom\s+social\b", r"\bnom\b", r"\bnorn\b", r"\bsurname\b", r"\bsumame\b"],
         ) or _first_match(
             [
+                r"\b(?:denomination\s+sociale|raison\s+sociale|nom\s+de\s+l[' ]?entreprise|nom\s+social)\s*[:\/\-]?\s*([A-Z0-9][A-Z0-9 \t'._-]{2,})",
                 r"^\s*(?:nom|norn|surname|sumame)\s*[:\/\-]?\s*([A-Z][A-Z \t'._-]{2,})$",
                 r"\b(?:nom|norn|surname|sumame)\s*[:\/\-]?\s*([A-Z][A-Z \t'._-]{2,})",
             ],
@@ -466,6 +497,7 @@ def parse_identity_fields(text):
         ) or passport_fields.get("nom", ""),
         "numero_document": mrz_fields.get("numero_document", "") or _first_match(
             [
+                r"\b(?:rcs|rccm|registre\s+du\s+commerce|n°\s+rccm|rc)\s*[:\-]?\s*([A-Z0-9][A-Z0-9 \t\-\/._]{4,})",
                 r"\b(?:numero\s+de\s+carte|card\s+number)\s*[:\-]?\s*([A-Z0-9][A-Z0-9 \t\-\/]{4,})",
                 r"\b(?:n[°o]\s*passeport|passport\s*(?:no|number))\s*[:\-]?\s*([A-Z0-9][A-Z0-9 \t\-\/]{4,})",
                 r"\b(?:cni|numero|num|no\b|n[°o]\b)\s*[:\-]?\s*([A-Z0-9][A-Z0-9 \t\-\/]{4,})",
@@ -474,6 +506,7 @@ def parse_identity_fields(text):
         ) or passport_fields.get("numero_document", ""),
         "numero_identification_nationale": _first_match(
             [
+                r"\b(?:nif|numero\s+fiscal|identification\s+fiscale|identifiant\s+fiscal|num[eé]ro\s+d[' ]?identification\s+fiscale|fiscal\s+id(?:entification)?\s*(?:number|no)?|matricule\s+fiscal).*?([A-Z0-9][A-Z0-9 \t\-\/._]{5,})",
                 r"\b(?:numero\s+personnel\s+d[' ]?identification|npi|e[idlD]\s+number|numero\s+d[' ]?identification\s+nationale|national\s+identification\s+number|nin).*?([0-9][0-9 \t]{7,})",
                 r"\b(?:personal\s+no|personal\s+number|n[°o]\s+personnel)\s*[:\/\-]?\s*([0-9][0-9 \t]{5,})",
             ],
@@ -499,7 +532,7 @@ def parse_identity_fields(text):
         ) or passport_fields.get("date_expiration", ""),
         "adresse": _next_value_after_label(
             normalized,
-            [r"adresse\s+du\s+dom[il1c]{2,}le", r"adresse\s+du\s+dorm", r"\badresse\b", r"\baddress\b"],
+            [r"adresse\s+sociale\b", r"si[eè]ge\s+social\b", r"adresse\s+du\s+si[eè]ge\b", r"adresse\s+du\s+dom[il1c]{2,}le", r"adresse\s+du\s+dorm", r"\badresse\b", r"\baddress\b"],
         ),
         "pays_naissance": _next_value_after_label(
             normalized,
@@ -733,7 +766,7 @@ def _extract_pdf_pages_with_ocr(path):
         return [], [f"OCR PDF page par page impossible: {exc}"]
 
 
-def extract_pdf_grouped_documents(path, original_name="", pages_per_document=1):
+def extract_pdf_grouped_documents(path, original_name="", pages_per_document=1, filiale=None):
     pages_per_document = max(int(pages_per_document or 1), 1)
     page_texts, warnings = _extract_pdf_pages_with_text_layer(path)
 
@@ -753,7 +786,7 @@ def extract_pdf_grouped_documents(path, original_name="", pages_per_document=1):
             "supported": True,
             "page_number": None,
             "page_range": "",
-        }, original_name)]
+        }, original_name, filiale)]
 
     grouped_results = []
     for start in range(0, len(page_texts), pages_per_document):
@@ -774,12 +807,12 @@ def extract_pdf_grouped_documents(path, original_name="", pages_per_document=1):
             "supported": True,
             "page_number": page_numbers[0],
             "page_range": page_range,
-        }, original_name))
+        }, original_name, filiale))
 
     return grouped_results
 
 
-def extract_document_data(path, original_name=""):
+def extract_document_data(path, original_name="", filiale=None):
     extension = os.path.splitext(original_name or path)[1].lower()
     result = {
         "filename": original_name or os.path.basename(path),
@@ -812,4 +845,55 @@ def extract_document_data(path, original_name=""):
     else:
         result["warnings"].append("Aucun texte exploitable n'a ete extrait du document.")
 
-    return _apply_detection_metadata(result, original_name)
+    return _apply_detection_metadata(result, original_name, filiale)
+
+
+def learn_document_keywords(document_text, document_type_code, filiale=None):
+    if not document_text or not document_type_code:
+        return
+
+    from kyc.models import KycDocumentType
+
+    try:
+        doc_type = KycDocumentType.objects.get(code=document_type_code, filiale=filiale or "")
+    except KycDocumentType.DoesNotExist:
+        try:
+            doc_type = KycDocumentType.objects.get(code=document_type_code, filiale="")
+        except KycDocumentType.DoesNotExist:
+            return
+
+    text = re.sub(r"[^A-ZÀ-Ÿa-zà-ÿ\s]", " ", document_text)
+    words = text.upper().split()
+
+    STOPWORDS = {
+        "LE", "LA", "LES", "UN", "UNE", "DES", "DE", "DU", "D'", "EN", "AU", "AUX", "PAR", "POUR", 
+        "SUR", "AVEC", "DANS", "SANS", "SOUS", "ET", "OU", "MAIS", "DONC", "OR", "NI", "CAR", 
+        "CE", "CET", "CETTE", "CES", "MON", "TON", "SON", "MA", "TA", "SA", "MES", "TES", "SES",
+        "THE", "AND", "OF", "IN", "TO", "FOR", "WITH", "ON", "AT", "BY", "AN", "THIS", "THAT",
+        "DATE", "LIEU", "NOM", "PRENOM", "PRENOMS", "SEXE", "TAILLE", "ADRESSE", "SENEGAL", 
+        "BENIN", "MALI", "TOGO", "NIGER", "REPUBLIQUE", "MINISTERE", "CARTE", "CARD"
+    }
+
+    candidate_words = []
+    for word in words:
+        word = word.strip()
+        if len(word) >= 4 and word not in STOPWORDS and not word.isdigit():
+            candidate_words.append(word)
+
+    from collections import Counter
+    word_counts = Counter(candidate_words)
+    top_words = [word for word, count in word_counts.most_common(5)]
+
+    if not top_words:
+        return
+
+    current_keywords = doc_type.get_keyword_list()
+    added_any = False
+    for word in top_words:
+        if word not in current_keywords:
+            current_keywords.append(word)
+            added_any = True
+
+    if added_any:
+        doc_type.keywords = ", ".join(current_keywords)
+        doc_type.save()

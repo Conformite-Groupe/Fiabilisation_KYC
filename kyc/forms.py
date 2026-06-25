@@ -62,9 +62,14 @@ class NotationForm(forms.ModelForm):
         }
 
 class DataQualityRuleForm(forms.ModelForm):
+    filiale = forms.MultipleChoiceField(
+        required=True,
+        widget=forms.CheckboxSelectMultiple,
+    )
+
     class Meta:
         model = DataQualityRule
-        fields = ['name', 'applicability', 'description', 'active', 'control_type', 'field_name', 'parameter']
+        fields = ['name', 'applicability', 'filiale', 'description', 'active', 'control_type', 'field_name', 'parameter']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'block w-full rounded-xl border border-gray-200 p-3 text-sm'}),
             'applicability': forms.Select(attrs={'class': 'block w-full rounded-xl border border-gray-200 p-3 text-sm'}),
@@ -76,10 +81,50 @@ class DataQualityRuleForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        filiale_choices = kwargs.pop('filiale_choices', None)
         super().__init__(*args, **kwargs)
         self.fields['field_name'].required = False
         self.fields['parameter'].required = False
         self.fields['control_type'].initial = 'composite'
+        self.fields['filiale'].required = True
+        if filiale_choices is None:
+            from kyc.models import Filiales as ModelFiliales
+            filiale_choices = [f[0] for f in ModelFiliales]
+        if filiale_choices is not None:
+            choices = [(filiale, filiale) for filiale in filiale_choices if filiale]
+            current_filiales = self._parse_filiales(getattr(self.instance, 'filiale', '') or '')
+            existing_values = {value for value, _ in choices}
+            for current_filiale in current_filiales:
+                if current_filiale and current_filiale not in existing_values:
+                    choices.append((current_filiale, current_filiale))
+                    existing_values.add(current_filiale)
+            self.fields['filiale'].choices = choices
+            self.fields['filiale'].widget.choices = choices
+            if current_filiales:
+                self.initial['filiale'] = current_filiales
+
+    @staticmethod
+    def _parse_filiales(value):
+        raw = (value or '').strip()
+        if not raw:
+            return []
+        if raw.startswith('|') and raw.endswith('|'):
+            return [item for item in raw.strip('|').split('|') if item]
+        if ',' in raw:
+            return [item.strip() for item in raw.split(',') if item.strip()]
+        return [raw]
+
+    @staticmethod
+    def _serialize_filiales(values):
+        cleaned = []
+        for value in values or []:
+            item = str(value or '').strip()
+            if item and item not in cleaned:
+                cleaned.append(item)
+        return f"|{'|'.join(cleaned)}|" if cleaned else ''
+
+    def clean_filiale(self):
+        return self._serialize_filiales(self.cleaned_data.get('filiale'))
 
 class DataQualityConditionForm(forms.ModelForm):
     class Meta:

@@ -50,7 +50,7 @@ class KycAdminBase(admin.ModelAdmin):
 @admin.register(Kyc_pm)
 class KycPmAdmin(KycAdminBase):
     # On ajoute les colonnes spécifiques aux Personnes Morales
-    list_display = ('CLIENT', 'FILIALE', 'IDM', 'RCSNO', 'DATOUV')
+    list_display = ('CLIENT', 'FILIALE', 'IDM', 'RCSNO', 'DATOUV', 'DATEREV')
     # Recherche par Nom Client, IDM (Numéro ID), ou RCS
     search_fields = ('CLIENT', 'IDM', 'RCSNO')
 
@@ -62,6 +62,7 @@ class KycPpAdmin(KycAdminBase):
         'IDP',
         'FILIALE',
         'AGENCE',
+        'DATEREV',
     )
     # Recherche par Nom Client, NUMID, ou IDP
     list_filter = ('FILIALE', 'AGENCE', 'PAYNAIS', 'RESID', 'PPE')
@@ -87,7 +88,7 @@ class KycPpAdmin(KycAdminBase):
             'fields': ('DATNAIS', 'DATVALID', 'PAYNAIS', 'PROFESSION', 'ADRESSE', 'PAYS_RESID')
         }),
         ('Autres informations', {
-            'fields': ('CODAPE', 'SALAIRE', 'ORIGINE_REV', 'TEL', 'DATOUV', 'PPE', 'DEVISE', 'RESID')
+            'fields': ('CODAPE', 'SALAIRE', 'ORIGINE_REV', 'TEL', 'DATOUV', 'DATEREV', 'PPE', 'DEVISE', 'RESID')
         }),
     )
 admin.site.register(Anomalie)

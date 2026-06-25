@@ -56,6 +56,11 @@ OPERATOR_CHOICES = (
 )
 
 PP_FIELD_CHOICES = (
+    ('FILIALE', 'FILIALE'),
+    ('AGENCE', 'AGENCE'),
+    ('LIB_AGENCE', 'LIB_AGENCE'),
+    ('EXPL', 'EXPL'),
+    ('CLIENT', 'CLIENT'),
     ('CODAPE', 'CODAPE'),
     ('IDP', 'IDP'),
     ('PAYNAIS', 'PAYNAIS'),
@@ -64,6 +69,7 @@ PP_FIELD_CHOICES = (
     ('PAYS_RESID', 'PAYS_RESID'),
     ('NUMID', 'NUMID'),
     ('SALAIRE', 'SALAIRE'),
+    ('ORIGINE_REV', 'ORIGINE_REV'),
     ('DATVALID', 'DATVALID'),
     ('DATNAIS', 'DATNAIS'),
     ('TEL', 'TEL'),
@@ -71,19 +77,44 @@ PP_FIELD_CHOICES = (
     ('PPE', 'PPE'),
     ('DEVISE', 'DEVISE'),
     ('RESID', 'RESID'),
+    ('DATEREV', 'DATEREV'),
+    ('RISQUE', 'RISQUE'),
+    ('BOITE_POSTALE', 'BOITE_POSTALE'),
+    ('CONSENT_BIC', 'CONSENT_BIC'),
+    ('EMPLOYEUR', 'EMPLOYEUR'),
+    ('INTITULE_COMPTE', 'INTITULE_COMPTE'),
+    ('LIEU_DELIVRANCE_CIN', 'LIEU_DELIVRANCE_CIN'),
 )
 
 PM_FIELD_CHOICES = (
-    ('CODAPE', 'CODAPE'),
+    ('FILIALE', 'FILIALE'),
+    ('AGENCE', 'AGENCE'),
+    ('LIB_AGENCE', 'LIB_AGENCE'),
+    ('EXPL', 'EXPL'),
+    ('CLIENT', 'CLIENT'),
     ('AGEC', 'AGEC'),
+    ('CODAPE', 'CODAPE'),
     ('IDM', 'IDM'),
     ('RCSNO', 'RCSNO'),
     ('CAPITAL', 'CAPITAL'),
     ('CA', 'CA'),
+    ('RESULTAT', 'RESULTAT'),
+    ('ORIGINE_REV', 'ORIGINE_REV'),
     ('DATOUV', 'DATOUV'),
     ('TEL', 'TEL'),
     ('DEVISE', 'DEVISE'),
     ('RESID', 'RESID'),
+    ('DATEREV', 'DATEREV'),
+    ('PPE', 'PPE'),
+    ('RISQUE', 'RISQUE'),
+    ('ACTIONNAIRE', 'ACTIONNAIRE'),
+    ('ADRESSE_SOCIALE', 'ADRESSE_SOCIALE'),
+    ('BOITE_POSTALE', 'BOITE_POSTALE'),
+    ('CONSENT_BIC', 'CONSENT_BIC'),
+    ('INTITULE_COMPTE', 'INTITULE_COMPTE'),
+    ('MANDATAIRE', 'MANDATAIRE'),
+    ('NUMERO_FISCAL', 'NUMERO_FISCAL'),
+    ('PAYS_JUR', 'PAYS_JUR'),
 )
 
 DATA_QUALITY_FIELD_CHOICES = PP_FIELD_CHOICES + PM_FIELD_CHOICES
@@ -96,6 +127,7 @@ class DataQualityRule(models.Model):
     parameter = models.CharField(blank=True, max_length=200, help_text='Seuil, longueur ou valeur de référence')
     description = models.TextField(blank=True, null=True)
     active = models.BooleanField(default=True)
+    filiale = models.TextField(blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -122,10 +154,92 @@ class DataQualityRuleAudit(models.Model):
         ordering = ['-timestamp']
 
 
+Filiales = (
+    ('BOA NE', 'BOA NE'),
+    ('BOA CI', 'BOA CI'),
+    ('BOA TG', 'BOA TG'),
+    ('BOA SN', 'BOA SN'),
+    ('BOA ML', 'BOA ML'),
+    ('BOA BF', 'BOA BF'),
+    ('BOA BJ', 'BOA BJ'),
+    ('BOA RDC', 'RDC'),
+    ('LCB', 'LCB'),
+    ('BCB', 'BCB'),
+    ('BOA MR', 'BOA MR'),
+    ('BOA MG', 'BOA MG'),
+    ('BOA UG', 'BOA UG'),
+    ('BOA TZ', 'BOA TZ'),
+    ('BOA RW', 'BOA RW'),
+    ('BOA KE', 'BOA KE'),
+    ('BOA FR', 'BOA FR'),
+    ('BOA KM', 'BOA KM'),
+    ('BOA GH', 'BOA GH'),
+    ('BOA Group', 'BOA Group'),
+)
+
+
+class FilialeModuleConfig(models.Model):
+    filiale = models.CharField(max_length=15, choices=Filiales, unique=True, verbose_name="Filiale/Pays")
+    screening_kyc_paye_active = models.BooleanField(default=False, verbose_name="Module Screening KYC PAYE actif")
+
+    class Meta:
+        verbose_name = "Configuration Module Filiale"
+        verbose_name_plural = "Configurations Modules Filiales"
+
+    def __str__(self):
+        return f"Config {self.filiale} - Screening KYC: {'Oui' if self.screening_kyc_paye_active else 'Non'}"
+
+
 DOCUMENT_EXTRACTION_TYPE_CHOICES = (
     ('piece_identite', "Piece d'identite"),
     ('passeport', 'Passeport'),
 )
+
+CLIENT_TYPE_CHOICES = (
+    ('pp', 'Particuliers (PP)'),
+    ('pm', 'Entreprises (PM)'),
+)
+
+
+class KycDocumentType(models.Model):
+    code = models.CharField(max_length=50, verbose_name="Code technique")
+    label = models.CharField(max_length=150, verbose_name="Libellé affiché")
+    filiale = models.CharField(max_length=15, choices=Filiales, blank=True, default="", verbose_name="Filiale/Pays")
+    client_type = models.CharField(max_length=10, choices=CLIENT_TYPE_CHOICES, default='pp', verbose_name="Type de client")
+    keywords = models.TextField(blank=True, help_text="Mots-clés séparés par des virgules")
+    min_score = models.FloatField(default=2.0, help_text="Score minimum pour être détecté")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['label']
+        unique_together = ('code', 'filiale', 'client_type')
+
+    def __str__(self):
+        return self.label
+
+    def get_keyword_list(self):
+        return [k.strip().upper() for k in self.keywords.split(',') if k.strip()]
+
+
+class KycFieldVisibilityConfig(models.Model):
+    CLIENT_TYPE_CHOICES = [
+        ("pp", "Particuliers (PP)"),
+        ("pm", "Entreprises (PM)"),
+    ]
+    client_type = models.CharField(max_length=2, choices=CLIENT_TYPE_CHOICES)
+    empty_check_fields = models.JSONField(blank=True, default=list)
+    display_fields = models.JSONField(blank=True, default=list)
+    filiales = models.JSONField(blank=True, default=list)
+    field_sources = models.JSONField(blank=True, default=dict)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuration champs KYC"
+        verbose_name_plural = "Configurations champs KYC"
+
+    def __str__(self):
+        return f"{self.get_client_type_display()} - {len(self.filiales)} filiales"
 
 
 class KycDocumentExtraction(models.Model):
@@ -134,6 +248,7 @@ class KycDocumentExtraction(models.Model):
     original_filename = models.CharField(max_length=255, blank=True)
     source_filename = models.CharField(max_length=255, blank=True)
     import_batch = models.CharField(max_length=120, blank=True)
+    client_type = models.CharField(max_length=10, choices=CLIENT_TYPE_CHOICES, default='pp', verbose_name="Type de client")
     page_number = models.PositiveIntegerField(null=True, blank=True)
     page_range = models.CharField(max_length=30, blank=True)
     nom = models.CharField(max_length=120, blank=True)
@@ -165,6 +280,7 @@ class KycDocumentExtraction(models.Model):
             models.Index(fields=['nationalite']),
             models.Index(fields=['pays_delivrance']),
             models.Index(fields=['import_batch']),
+            models.Index(fields=['client_type']),
         ]
 
     def __str__(self):
@@ -296,28 +412,7 @@ class KycDocumentMatchJob(models.Model):
         return f"Rapprochement documents #{self.pk} - {self.get_status_display()}"
 
 
-Filiales = (
-    ('BOA NE', 'BOA NE'),
-    ('BOA CI', 'BOA CI'),
-    ('BOA TG', 'BOA TG'),
-    ('BOA SN', 'BOA SN'),
-    ('BOA ML', 'BOA ML'),
-    ('BOA BF', 'BOA BF'),
-    ('BOA BJ', 'BOA BJ'),
-    ('BOA RDC', 'RDC'),
-    ('LCB', 'LCB'),
-    ('BCB', 'BCB'),
-    ('BOA MR', 'BOA MR'),
-    ('BOA MG', 'BOA MG'),
-    ('BOA UG', 'BOA UG'),
-    ('BOA TZ', 'BOA TZ'),
-    ('BOA RW', 'BOA RW'),
-    ('BOA KE', 'BOA KE'),
-    ('BOA FR', 'BOA FR'),
-    ('BOA KM', 'BOA KM'),
-    ('BOA GH', 'BOA GH'),
-    ('BOA Group', 'BOA Group'),
-)
+
 
 
 
@@ -374,7 +469,7 @@ class Kyc_pm(models.Model):
     AGENCE = models.CharField(blank=True,max_length=200)
     LIB_AGENCE = models.CharField(blank=True,max_length=50)
     EXPL = models.CharField(blank=True,max_length=200)
-    CLIENT = models.CharField(blank=True,max_length=200)
+    CLIENT = models.CharField(blank=True,max_length=200, db_index=True)
     AGEC = models.CharField(blank=True,max_length=200)
     CODAPE = models.CharField(blank=True,max_length=200)
     IDM = models.CharField(blank=True,max_length=200)
@@ -387,6 +482,17 @@ class Kyc_pm(models.Model):
     TEL = models.CharField(blank=True,max_length=200)
     DEVISE = models.CharField(blank=True, max_length=200)
     RESID = models.CharField(blank=True, max_length=200)
+    DATEREV = models.CharField(blank=True, max_length=200)
+    PPE = models.CharField(blank=True, max_length=200)
+    RISQUE = models.CharField(blank=True, max_length=200)
+    ACTIONNAIRE = models.CharField(blank=True, max_length=200)
+    ADRESSE_SOCIALE = models.CharField(blank=True, max_length=200)
+    BOITE_POSTALE = models.CharField(blank=True, max_length=200)
+    CONSENT_BIC = models.CharField(blank=True, max_length=200)
+    INTITULE_COMPTE = models.CharField(blank=True, max_length=200)
+    MANDATAIRE = models.CharField(blank=True, max_length=200)
+    NUMERO_FISCAL = models.CharField(blank=True, max_length=200)
+    PAYS_JUR = models.CharField(blank=True, max_length=200)
 
     def __str__(self):
         return f"{self.CLIENT} - {self.FILIALE}"
@@ -396,7 +502,7 @@ class Kyc_pp(models.Model):
     AGENCE = models.CharField(blank=True,max_length=200)
     LIB_AGENCE = models.CharField(blank=True,max_length=50)
     EXPL = models.CharField(blank=True,max_length=200)
-    CLIENT = models.CharField(blank=True,max_length=200)
+    CLIENT = models.CharField(blank=True,max_length=200, db_index=True)
     CODAPE = models.CharField(blank=True,max_length=200)
     IDP = models.CharField(blank=True,max_length=200)
     PAYNAIS = models.CharField(blank=True,max_length=200)
@@ -413,6 +519,13 @@ class Kyc_pp(models.Model):
     PPE = models.CharField(blank=True,max_length=200)
     DEVISE = models.CharField(blank=True, max_length=200)
     RESID = models.CharField(blank=True, max_length=200)
+    DATEREV = models.CharField(blank=True, max_length=200)
+    RISQUE = models.CharField(blank=True, max_length=200)
+    BOITE_POSTALE = models.CharField(blank=True, max_length=200)
+    CONSENT_BIC = models.CharField(blank=True, max_length=200)
+    EMPLOYEUR = models.CharField(blank=True, max_length=200)
+    INTITULE_COMPTE = models.CharField(blank=True, max_length=200)
+    LIEU_DELIVRANCE_CIN = models.CharField(blank=True, max_length=200)
     def __str__(self):
         return f"{self.CLIENT} - {self.FILIALE}"
 

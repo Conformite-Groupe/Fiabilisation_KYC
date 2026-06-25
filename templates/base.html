@@ -1,16 +1,17 @@
 {% load tailwind_tags %}
 {% load static %}
 {% load country_flag %}
+{% load custom_filters %}
 
 <!DOCTYPE html>
 <html lang="fr" class="h-full bg-[#F8FAFC]">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KYC Portal | BOA Group</title>
+    <title>KYC Portal v3.0 | BOA Group</title>
     {% tailwind_css v=static_version %}
    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+        @import url('/static/vendor/css/outfit_plus_jakarta.css');
 
         :root {
             --glass-bg: rgba(255, 255, 255, 0.7);
@@ -82,7 +83,7 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #15803d; border-radius: 10px; }
 
-        /* Ã‰tat actif des liens avec dégradé institutionnel */
+        /* état actif des liens avec dégradé institutionnel */
         .nav-link-active {
             background: linear-gradient(135deg, #15803d 0%, #166534 100%);
             color: white !important;
@@ -91,6 +92,18 @@
 
         /* Animation douce pour les menus */
         .nav-link { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Ajustements globaux des entêtes de tableau (th) pour un meilleur affichage des titres */
+        th, thead th {
+            font-weight: 700 !important; /* Réduire le bold */
+            font-size: 8.5px !important;  /* Réduire la police */
+            letter-spacing: normal !important; /* Réduire l'espacement */
+        }
+        th input, thead th input {
+            font-weight: normal !important;
+            font-size: 9px !important;
+            letter-spacing: normal !important;
+        }
     </style>
     <script src="{% static 'js/chart.min.js' %}?v={{ static_version }}"></script>
     <script src="{% static 'js/alpine.min.js' %}?v={{ static_version }}" defer></script>
@@ -148,7 +161,29 @@
                             {% endwith %}
                         </div>
                     </div>
-                        </a>
+                    </a>
+                    
+                    {% with derniere_note=user|latest_flux_notation %}
+                    {% if derniere_note %}
+                    <div class="mt-4 flex items-center rounded-2xl shadow-md border-2 border-white/40 overflow-hidden transition-all
+                        {% if derniere_note.note == 'Tres Bien' or derniere_note.note == 'Très Bien' %} bg-emerald-600 text-white
+                        {% elif derniere_note.note == 'Bien' %} bg-green-600 text-white
+                        {% elif derniere_note.note == 'Passable' %} bg-amber-500 text-white
+                        {% elif derniere_note.note == 'Insuffisant' %} bg-orange-600 text-white
+                        {% else %} bg-slate-600 text-white {% endif %}">
+                        <div class="px-4 py-2 flex-1">
+                            <p class="text-[8px] font-black uppercase tracking-widest opacity-80 mb-0.5">Note actuelle</p>
+                            <p class="text-xl font-black tracking-widest uppercase leading-none">{{ derniere_note.note }}</p>
+                            <p class="text-[7px] font-bold opacity-70 uppercase tracking-tighter mt-1">MAJ le {{ derniere_note.date_notation|date:"d/m/Y" }}</p>
+                        </div>
+                        <div class="bg-black/10 h-full px-3 flex items-center justify-center self-stretch">
+                            <svg class="w-6 h-6 drop-shadow-md animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
 
                 </div>
                 {% endif %}
@@ -168,9 +203,7 @@
                                    class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'evolution_filiale' or current_name == 'statistiques' or current_name == 'statistiques_stock' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
                                     Tableau de bord
                                 </a>
-                                 <a href="{% url 'clients_scorer' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'clients_scorer' or current_name == 'sans_classe_s' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
-                                    Scoring Clients
-                                </a>
+                              
 
                                 {% else %}
 
@@ -182,7 +215,7 @@
 
                                 {% endif %}
 
-
+                           
 
                                 {% if user.organe not in user_stat %}
                                 <a href="{% url 'agent' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'agent' or current_name == 'agent_stock' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
@@ -196,15 +229,15 @@
                                      <a href="{% url 'non_anom' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'non_anom' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
                                     Clients en anomalie
                                 </a>
+                                  <a href="{% url 'clients_scorer' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'clients_scorer' or current_name == 'sans_classe_s' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                    Scoring Clients
+                                </a>
+                                {% if module_screening_kyc_paye_enabled %}
                                 <a href="{% url 'document_extraction' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'document_extraction' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
                                     Screening KYC ID
                                 </a>
-                                {% if user.organe == "Contrôle Permanent" or user.organe == "Conformité" or user.organe == "Qualité" or user.organe == "DSI" or user.organe == "Risques" or user.organe == "DAI" or user.organe == "PASS" %}
-                                 <a href="{% url 'kyc:quality_control' %}" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'quality_control' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
-                                    Contrôle qualité
-                                </a>
                                 {% endif %}
-
+        
 
 
 
@@ -212,11 +245,11 @@
                             </div>
                         </div>
 
-                        {% if user.organe == "ContrÃ´le Permanent" %}
+                        {% if user.organe == "Contrôle Permanent" or user.organe == "PASS" %}
                         <div>
                             <div class="flex items-center gap-2 px-3 mb-4">
                                 <span class="h-4 w-1.5 bg-green-600 rounded-full"></span>
-                                <p class="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">Audit & Notation</p>
+                                <p class="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">Notations</p>
                             </div>
                              <div class="space-y-1 px-2 border-l border-slate-200 ml-4">
                                           <a href="/notation" class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'notation' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">Nouvelle Notation</a>
@@ -224,7 +257,7 @@
                             </div>
                         </div>
                         {% endif %}
-                        {% if user.organe == "Conformité" or user.organe == "Conformité Groupe" %}
+                        {% if user.organe == "Conformité" or user.organe == "Conformité Groupe" or user.organe == "PASS" %}
                         <div>
                             <div class="flex items-center gap-2 px-3 mb-4">
                                 <span class="h-4 w-1.5 bg-green-600 rounded-full"></span>
@@ -232,10 +265,7 @@
                             </div>
                             
                             <div class="space-y-1 px-2 border-l border-slate-200 ml-4">
-                                <a href="{% url 'scoring' %}" 
-                                   class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'scoring' or current_name == 'sans_classe' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
-                                    Scoring
-                                </a>
+                             
                                 
                                 <a href="{% url 'ppe' %}" 
                                    class="nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'ppe' or current_name == 'anom_ppe' or current_name == 'daterev_ppe' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
@@ -257,16 +287,28 @@
                                 <p class="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">Administration</p>
                             </div>
                             <a href="/user_list" class="ml-4 nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'user_list' or current_name == 'register' or current_name == 'bulk_user_upload' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
-                                Param&egrave;tres Syst&egrave;me
+                                Paramétrage Utilisateurs
                             </a>
-                            <a href="/user_statistics" class="ml-4 nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'user_statistics' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
-                                Historique connexions
+                            <a href="{% url 'kyc:quality_control' %}" class="ml-4 nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'quality_control' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                  Régles de Qualité
                             </a>
-                          {# {% if user.is_superuser %} #}
-                            {# <a href="{% url 'import_page' %}" class="ml-4 nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'import_page' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}"> #}
-                            {#     Importation #}
-                            {# </a> #}
-                            {# {% endif %} #}
+                         {% if user.organe == "PASS" %}
+                            <a href="{% url 'kyc_field_config' %}" class="ml-4 nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'kyc_field_config' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                Champs KYC
+                            </a>
+                            <a href="{% url 'config_document_types' %}" class="ml-4 nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'config_document_types' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                Types de documents
+                            </a>
+                            <a href="{% url 'import_page' %}" class="ml-4 nav-link flex items-center px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'import_page' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                Importation
+                            </a>
+                          
+                             <a href="/pilotage-kyc/" class="ml-4 nav-link flex items-center gap-2 px-3 py-2 text-[11px] font-bold rounded-2xl {% if current_name == 'pilotage_kyc' %}nav-link-active{% else %}text-gray-400 hover:bg-green-50 hover:text-green-700{% endif %}">
+                                 Pilotage
+                             </a>
+                                 
+                             {% endif %}
+
                         </div>
                         {% endif %}
 
@@ -277,10 +319,13 @@
                 </div>
 
 
-                   <div class="mb-10 px-2 py-2">
+                   <div class="mb-10 px-2 py-2 flex flex-col gap-2">
                          <a href="/logout" class="flex items-center justify-center px-2 py-2 bg-red-50 text-red-600 rounded-2xl text-[9px] font-black hover:bg-red-600 hover:text-white transition-all uppercase tracking-[0.2em]">
                         Déconnexion
                     </a>
+                    <div class="text-center">
+                        <span class="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em]">Version 3.0</span>
+                    </div>
                    </div>
 
             </div>
@@ -298,7 +343,7 @@
     </div>
 
     <!-- TOAST NOTIFICATIONS -->
-    <div id="toast-container" class="fixed top-6 right-6 z-[200] space-y-4">
+    <div id="toast-container" class="fixed top-6 right-6 z-[100000] space-y-4">
         {% if messages %}
             {% for message in messages %}
                 <div class="toast-item transform transition-all duration-500 ease-out translate-x-full opacity-0 flex items-center gap-4 px-6 py-4 rounded-2xl shadow-2xl border-l-4 min-w-[320px] bg-white 
@@ -371,11 +416,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const datesPM = JSON.parse('{{ dates_pm|default:"[]"|escapejs }}');
-    const tauxPM  = JSON.parse('{{ taux_pm |default:"[]"|escapejs }}').map(v => (v > 100 ? 100 : v));
+    const tauxPM  = JSON.parse('{{ taux_pm |default:"[]"|escapejs }}').map(v => (v > 100  100 : v));
     const datesPP = JSON.parse('{{ dates_pp|default:"[]"|escapejs }}');
-    const tauxPP  = JSON.parse('{{ taux_pp |default:"[]"|escapejs }}').map(v => (v > 100 ? 100 : v));
+    const tauxPP  = JSON.parse('{{ taux_pp |default:"[]"|escapejs }}').map(v => (v > 100  100 : v));
 
-    // Mise Ã  jour des KPI boxes (on garde l'affichage individuel en haut)
+    // Mise à  jour des KPI boxes (on garde l'affichage individuel en haut)
     if (datesPP.length > 0) {
         document.getElementById('lastRatePP').innerText = tauxPP[tauxPP.length - 1];
         document.getElementById('lastDatePP').innerText = `Dernier : ${datesPP[datesPP.length - 1]}`;
@@ -399,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function () {
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: datesPP.length > datesPM.length ? datesPP : datesPM, // Utilise l'axe le plus long
+            labels: datesPP.length > datesPM.length  datesPP : datesPM, // Utilise l'axe le plus long
             datasets: [
                 {
                     label: 'PP',
@@ -460,7 +505,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         stepSize: 20,
                         font: { size: 10, weight: '600' },
                         color: '#94a3b8',
-                        callback: v => v <= 100 ? v + '%' : ''
+                        callback: v => v <= 100  v + '%' : ''
                     }
                 }
             }
@@ -536,11 +581,11 @@ function createLineChart(canvasId, label, labels, data, borderColor, backgroundC
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // Récupération des données (assure-toi que ces variables sont envoyées par ta vue)
-    const labels = {{ labels_json|safe }};
-    const dataPM = {{ data_pm_json|safe }}.map(v => (v > 100 ? 100 : v));
-    const dataPP = {{ data_pp_json|safe }}.map(v => (v > 100 ? 100 : v));
+    const labels = JSON.parse('{{ labels_json|escapejs }}');
+    const dataPM = JSON.parse('{{ data_pm_json|escapejs }}').map(v => (v > 100  100 : v));
+    const dataPP = JSON.parse('{{ data_pp_json|escapejs }}').map(v => (v > 100  100 : v));
 
-    // Mise Ã  jour des boites KPI
+    // Mise à  jour des boites KPI
     if (labels.length > 0) {
         const lastIdx = labels.length - 1;
         document.getElementById('lastRatePM').innerText = dataPM[lastIdx] || '0';
@@ -620,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         stepSize: 20,
                         font: { size: 9, weight: '600' },
                         color: '#94a3b8',
-                        callback: v => v <= 100 ? v + '%' : ''
+                        callback: v => v <= 100  v + '%' : ''
                     }
                 }
             }
@@ -635,9 +680,9 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const labels = {{ labels_json|safe }};
-    const dataPM = {{ data_pm_json|safe }}.map(v => (v > 100 ? 100 : v));
-    const dataPP = {{ data_pp_json|safe }}.map(v => (v > 100 ? 100 : v));
+    const labels = JSON.parse('{{ labels_json|escapejs }}');
+    const dataPM = JSON.parse('{{ data_pm_json|escapejs }}').map(v => (v > 100  100 : v));
+    const dataPP = JSON.parse('{{ data_pp_json|escapejs }}').map(v => (v > 100  100 : v));
 
     if (labels.length > 0) {
         const lastIdx = labels.length - 1;
@@ -709,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         stepSize: 20,
                         font: { size: 9, weight: '600' },
                         color: '#94a3b8',
-                        callback: v => v <= 100 ? v + '%' : ''
+                        callback: v => v <= 100  v + '%' : ''
                     }
                 }
             }
@@ -730,7 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fetch(url, {
                 method: 'GET',
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest', // Header pour indiquer Ã  Django que c'est de l'AJAX
+                    'X-Requested-With': 'XMLHttpRequest', // Header pour indiquer à  Django que c'est de l'AJAX
                 }
             })
             .then(response => {
@@ -776,7 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Gestionnaire de clic
         function handlePaginationClick(event) {
-            event.preventDefault(); // EmpÃªcher la navigation classique
+            event.preventDefault(); // Empàªcher la navigation classique
             const url = event.currentTarget.getAttribute('href');
             loadPage(url);
         }
@@ -798,5 +843,6 @@ document.addEventListener('DOMContentLoaded', () => {
 </body>
 
 </html>
+
 
 

@@ -629,3 +629,37 @@ class Devise(models.Model):
     def __str__(self):
         return f"{self.filiale} - {self.devise}"
 
+
+class EmailReminderConfig(models.Model):
+    FREQUENCY_CHOICES = [
+        ('manual', 'Manuel uniquement'),
+        ('daily',  'Quotidien'),
+        ('weekly', 'Hebdomadaire'),
+        ('monthly', 'Mensuel'),
+    ]
+
+    # ── SMTP ──────────────────────────────────────────────
+    smtp_host     = models.CharField(max_length=200, default='smtp.gmail.com', verbose_name='Serveur SMTP')
+    smtp_port     = models.IntegerField(default=587, verbose_name='Port SMTP')
+    smtp_user     = models.EmailField(verbose_name='Utilisateur SMTP')
+    smtp_password = models.CharField(max_length=300, verbose_name='Mot de passe SMTP')
+    smtp_use_tls  = models.BooleanField(default=True, verbose_name='Utiliser TLS')
+    smtp_use_ssl  = models.BooleanField(default=False, verbose_name='Utiliser SSL')
+    from_email    = models.EmailField(verbose_name='Email expéditeur')
+    from_name     = models.CharField(max_length=100, default='KYC Portal BOA', verbose_name='Nom expéditeur')
+
+    # ── Paramètres rappel ─────────────────────────────────
+    frequency    = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default='manual', verbose_name='Fréquence')
+    days_before  = models.IntegerField(default=30, verbose_name='Jours avant expiration', help_text='Inclure les clients dont la DATEREV expire dans ce nombre de jours')
+    active       = models.BooleanField(default=True, verbose_name='Actif')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuration Rappel DATEREV"
+        verbose_name_plural = "Configurations Rappel DATEREV"
+
+    def __str__(self):
+        return f"SMTP {self.smtp_host}:{self.smtp_port} — {self.get_frequency_display()}"
+

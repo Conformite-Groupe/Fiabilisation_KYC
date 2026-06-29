@@ -6,11 +6,12 @@ from django.core.management.base import BaseCommand
 from django.test import RequestFactory
 from django.utils import timezone
 
-from kyc.models import DataQualityRule, TauxEvolution_filiale
+from kyc.models import DataQualityRule, TauxEvolution_filiale, EmailReminderConfig, Kyc_pp, Kyc_pm
 from kyc.views import (
     _evaluate_data_quality_rule_scoped,
     _quality_cache_version,
     _rule_eval_filiale,
+    _get_exploitants_daterev_expired,
     devise,
     devise_pm,
     non_anom,
@@ -49,7 +50,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Aucun utilisateur actif trouve."))
             return
 
-        warmed = {"quality": 0, "non_anom": 0, "dashboards": 0, "specific": 0}
+        warmed = {"quality": 0, "non_anom": 0, "dashboards": 0, "specific": 0, "daterev": 0}
 
         if not dashboards_only and not specific_only:
             warmed["quality"] = self._warm_quality_rule_stats(users)
@@ -61,11 +62,14 @@ class Command(BaseCommand):
         if not quality_only and not dashboards_only:
             warmed["specific"] = self._warm_specific_accounts(users)
 
+        warmed["daterev"] = self._warm_daterev_reminders()
+
         self.stdout.write(
             self.style.SUCCESS(
                 "Prechauffage termine: "
                 f"quality={warmed['quality']}, non_anom={warmed['non_anom']}, "
-                f"dashboards={warmed['dashboards']}, specific={warmed['specific']}."
+                f"dashboards={warmed['dashboards']}, specific={warmed['specific']}, "
+                f"daterev={warmed['daterev']}."
             )
         )
 
@@ -180,6 +184,34 @@ class Command(BaseCommand):
                     request.user = user
                     taux_evolution_view(request)
                     warmed += 1
+
+        return warmed
+
+    def _warm_daterev_reminders(self):
+        import hashlib
+        from django.utils import timezone
+        config = EmailReminderConfig.objects.filter(active=True).order_by('-updated_at').first()
+        days_before = config.days_before if config else 30
+        today = timezone.localdate().isoformat()
+
+        def _drev_key(fil):
+            slug = hashlib.md5((fil or 'all').encode()).hexdigest()[:12]
+            return f"drev:{slug}:{today}:{days_before}"
+
+        global_key = _drev_key(None)
+        if cache.get(global_key) is None:
+            cache.set(global_key, _get_exploitants_daterev_expired(None, days_before), timeout=3600)
+
+        filiales = sorted(filter(None, set(
+            list(Kyc_pp.objects.values_list('FILIALE', flat=True).distinct()) +
+            list(Kyc_pm.objects.values_list('FILIALE', flat=True).distinct())
+        )))
+        warmed = 1
+        for filiale in filiales:
+            fkey = _drev_key(filiale)
+            if cache.get(fkey) is None:
+                cache.set(fkey, _get_exploitants_daterev_expired(filiale, days_before), timeout=3600)
+                warmed += 1
 
         return warmed
 

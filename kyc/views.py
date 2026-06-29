@@ -30,7 +30,7 @@ from kyc.models import (
     DataQualityRule, DataQualityRuleAudit, KycDocumentExtraction, KycExpiredDocumentScanMatch,
     KycDocumentMatchJob, KycDocumentMatchSettings, DOCUMENT_EXTRACTION_TYPE_CHOICES,
     KycFieldVisibilityConfig, KycDocumentType, Filiales, CLIENT_TYPE_CHOICES,
-    DATA_QUALITY_FIELD_CHOICES,
+    DATA_QUALITY_FIELD_CHOICES, EmailReminderConfig,
 )
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -8833,9 +8833,453 @@ def pilotage_kyc(request):
     return render(request, 'pilotage_kyc.html', context)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  RAPPELS DATEREV
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _parse_daterev(value):
+    """Parse une chaîne DATEREV en objet date, retourne None si invalide."""
+    if not value:
+        return None
+    value = str(value).strip()
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y%m%d"):
+        try:
+            from datetime import datetime as _dt
+            return _dt.strptime(value, fmt).date()
+        except (ValueError, TypeError):
+            continue
+    return None
 
 
+def _get_exploitants_daterev_expired(filiale_filter=None, days_before=30):
+    """
+    Retourne un dict {filiale: {expl: {clients_pp, clients_pm}}}
+    pour les exploitants ayant des clients avec DATEREV dépassée ou dans `days_before` jours.
+    Optimisé : seuls les champs utiles sont récupérés, le parsing date se fait en Python
+    uniquement sur les lignes ayant une DATEREV non vide.
+    """
+    from datetime import date, timedelta
+    today = date.today()
+    limit_date = today + timedelta(days=days_before)
+    today_str = today.isoformat()  # pour comparaison rapide format YYYY-MM-DD
+
+    result = {}
+
+    for model, label in [(Kyc_pp, 'PP'), (Kyc_pm, 'PM')]:
+        qs = (model.objects
+              .exclude(DATEREV='').exclude(DATEREV__isnull=True)
+              .exclude(EXPL='').exclude(FILIALE='')
+              .only('FILIALE', 'EXPL', 'CLIENT', 'AGENCE', 'LIB_AGENCE', 'DATEREV'))
+        if filiale_filter:
+            qs = qs.filter(FILIALE=filiale_filter)
+
+        key_label = f'clients_{label.lower()}'
+        for obj in qs.values('FILIALE', 'EXPL', 'CLIENT', 'AGENCE', 'LIB_AGENCE', 'DATEREV'):
+            dr = _parse_daterev(obj['DATEREV'])
+            if dr is None or dr > limit_date:
+                continue
+
+            filiale = obj['FILIALE']
+            expl = obj['EXPL']
+
+            fil_dict = result.setdefault(filiale, {})
+            expl_dict = fil_dict.setdefault(expl, {'clients_pp': [], 'clients_pm': []})
+
+            expl_dict[key_label].append({
+                'client': obj['CLIENT'],
+                'agence': obj['AGENCE'],
+                'lib_agence': obj['LIB_AGENCE'],
+                'daterev': dr,
+                'statut': 'Dépassée' if dr < today else f'Dans {(dr - today).days} j.',
+            })
+
+    return result
 
 
+@login_required
+def daterev_reminder(request):
+    from accounts.models import ProfileV
+    if request.user.organe not in ("PASS", "DSI"):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
+    config = EmailReminderConfig.objects.filter(active=True).order_by('-updated_at').first()
+    days_before = config.days_before if config else 30
+
+    filiale_filter = request.GET.get('filiale', '').strip()
+
+    from django.core.cache import cache
+    from django.utils import timezone
+    import hashlib
+    _fil_slug = hashlib.md5((filiale_filter or 'all').encode()).hexdigest()[:12]
+    _cache_key = f"drev:{_fil_slug}:{timezone.localdate().isoformat()}:{days_before}"
+    raw = cache.get(_cache_key)
+    if raw is None:
+        raw = _get_exploitants_daterev_expired(filiale_filter or None, days_before)
+        cache.set(_cache_key, raw, timeout=3600)
+
+    # Pré-charger tous les ProfileV indexés par (filiale_upper, code_expl_upper)
+    all_profiles = {}
+    for p in ProfileV.objects.exclude(code_expl='').exclude(code_expl__isnull=True):
+        key = (p.filiale.strip().upper(), p.code_expl.strip().upper())
+        all_profiles[key] = p
+
+    # Convertir en structure liste pour le template
+    data = []
+    total_exploitants = 0
+    total_clients = 0
+
+    for filiale in sorted(raw.keys()):
+        expls_data = raw[filiale]
+        exploitants_list = []
+
+        for expl in sorted(expls_data.keys()):
+            clients = expls_data[expl]
+            user_obj = all_profiles.get((filiale.strip().upper(), expl.strip().upper()))
+
+            count_pp = len(clients['clients_pp'])
+            count_pm = len(clients['clients_pm'])
+            total = count_pp + count_pm
+
+            exploitants_list.append({
+                'expl': expl,
+                'user': user_obj,
+                'count_pp': count_pp,
+                'count_pm': count_pm,
+                'total': total,
+                'sent': False,
+                'clients_pp': sorted(clients['clients_pp'], key=lambda x: x['daterev']),
+                'clients_pm': sorted(clients['clients_pm'], key=lambda x: x['daterev']),
+            })
+            total_exploitants += 1
+            total_clients += total
+
+        if exploitants_list:
+            data.append({'filiale': filiale, 'exploitants': exploitants_list})
+
+    filiales_list = sorted(filter(None, set(
+        list(Kyc_pp.objects.values_list('FILIALE', flat=True).distinct()) +
+        list(Kyc_pm.objects.values_list('FILIALE', flat=True).distinct())
+    )))
+
+    return render(request, 'daterev_reminder.html', {
+        'data': data,
+        'config': config,
+        'filiale_filter': filiale_filter,
+        'filiales_list': filiales_list,
+        'days_before': days_before,
+        'total_exploitants': total_exploitants,
+        'total_clients': total_clients,
+    })
+
+
+@login_required
+def send_daterev_reminders(request):
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from django.template.loader import render_to_string
+    from accounts.models import ProfileV
+
+    if request.method != 'POST':
+        return redirect('daterev_reminder')
+    if request.user.organe not in ("PASS", "DSI"):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
+    config = EmailReminderConfig.objects.filter(active=True).order_by('-updated_at').first()
+    if not config:
+        messages.error(request, "Aucune configuration SMTP active trouvée. Configurez-la dans l'admin.")
+        return redirect('daterev_reminder')
+
+    filiale_filter = request.POST.get('filiale', '')
+    expl_filter = request.POST.get('expl', '')
+    data = _get_exploitants_daterev_expired(filiale_filter or None, config.days_before)
+
+    sent, skipped, errors = 0, 0, 0
+
+    def _open_smtp(cfg):
+        if cfg.smtp_use_ssl:
+            srv = smtplib.SMTP_SSL(cfg.smtp_host, cfg.smtp_port, timeout=15)
+        else:
+            srv = smtplib.SMTP(cfg.smtp_host, cfg.smtp_port, timeout=15)
+            if cfg.smtp_use_tls:
+                srv.ehlo()
+                srv.starttls()
+                srv.ehlo()
+        if cfg.smtp_user and cfg.smtp_password:
+            try:
+                srv.login(cfg.smtp_user, cfg.smtp_password)
+            except smtplib.SMTPAuthenticationError:
+                srv.quit()
+                # Relais interne sans auth
+                if cfg.smtp_use_ssl:
+                    srv = smtplib.SMTP_SSL(cfg.smtp_host, cfg.smtp_port, timeout=15)
+                else:
+                    srv = smtplib.SMTP(cfg.smtp_host, cfg.smtp_port, timeout=15)
+                    if cfg.smtp_use_tls:
+                        srv.ehlo()
+                        srv.starttls()
+                        srv.ehlo()
+        return srv
+
+    try:
+        server = _open_smtp(config)
+
+        # Pré-charger ProfileV indexé par (filiale, code_expl)
+        profiles_index = {}
+        for p in ProfileV.objects.exclude(code_expl='').exclude(code_expl__isnull=True):
+            profiles_index[(p.filiale.strip().upper(), p.code_expl.strip().upper())] = p
+
+        for filiale, expls in data.items():
+            for expl, clients in expls.items():
+                if expl_filter and expl.strip().upper() != expl_filter.strip().upper():
+                    continue
+
+                user_obj = profiles_index.get((filiale.strip().upper(), expl.strip().upper()))
+
+                recipient_email = user_obj.email if user_obj else None
+                if not recipient_email:
+                    skipped += 1
+                    continue
+
+                nom = f"{user_obj.first_name} {user_obj.last_name}".strip() if user_obj else expl
+                all_clients = clients['clients_pp'] + clients['clients_pm']
+                all_clients_sorted = sorted(all_clients, key=lambda x: x['daterev'])
+
+                html_body = render_to_string('email_daterev_reminder.html', {
+                    'nom': nom,
+                    'expl': expl,
+                    'filiale': filiale,
+                    'clients': all_clients_sorted,
+                    'days_before': config.days_before,
+                })
+
+                # Si liste volumineuse (>30 clients) : résumé HTML + pièce jointe Excel
+                ATTACH_THRESHOLD = 30
+                if len(all_clients_sorted) > ATTACH_THRESHOLD:
+                    import io, openpyxl
+                    from email.mime.base import MIMEBase
+                    from email import encoders
+
+                    # Corps allégé
+                    html_body = render_to_string('email_daterev_reminder.html', {
+                        'nom': nom, 'expl': expl, 'filiale': filiale,
+                        'clients': all_clients_sorted[:10],
+                        'days_before': config.days_before,
+                        'truncated': True, 'total': len(all_clients_sorted),
+                    })
+
+                    # Génération Excel en mémoire
+                    wb = openpyxl.Workbook()
+                    ws = wb.active
+                    ws.title = "Clients DATEREV"
+                    ws.append(['Client', 'Agence', 'Lib. Agence', 'DATEREV', 'Statut'])
+                    for c in all_clients_sorted:
+                        ws.append([c['client'], c['agence'], c.get('lib_agence', ''), str(c['daterev']), c['statut']])
+                    buf = io.BytesIO()
+                    wb.save(buf)
+                    buf.seek(0)
+
+                    msg = MIMEMultipart('mixed')
+                    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+                    part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                    part.set_payload(buf.read())
+                    encoders.encode_base64(part)
+                    part.add_header('Content-Disposition', f'attachment; filename="daterev_{expl}_{filiale}.xlsx"')
+                    msg.attach(part)
+                else:
+                    msg = MIMEMultipart('alternative')
+                    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+
+                msg['Subject'] = f"[KYC BOA] Rappel — Revue de portefeuille client à effectuer ({filiale})"
+                msg['From'] = f"{config.from_name} <{config.from_email}>"
+                msg['To'] = recipient_email
+
+                server.sendmail(config.from_email, recipient_email, msg.as_string())
+                sent += 1
+
+        server.quit()
+
+    except Exception as e:
+        messages.error(request, f"Erreur SMTP : {e}")
+        return redirect('daterev_reminder')
+
+    if sent:
+        messages.success(request, f"{sent} mail(s) envoyé(s) avec succès.")
+    if skipped:
+        messages.warning(request, f"{skipped} exploitant(s) ignoré(s) — email non trouvé.")
+
+    return redirect('daterev_reminder')
+
+
+@login_required
+def test_smtp_config(request):
+    import smtplib
+    from email.mime.text import MIMEText
+
+    if request.user.organe not in ("PASS", "DSI"):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
+    config = EmailReminderConfig.objects.filter(active=True).order_by('-updated_at').first()
+    if not config:
+        messages.error(request, "Aucune configuration SMTP active. Ajoutez-en une dans l'admin Django.")
+        return redirect('daterev_reminder')
+
+    test_recipient = request.POST.get('test_email') or request.user.email
+
+    # Validation combinaison port/SSL
+    if config.smtp_use_ssl and config.smtp_use_tls:
+        messages.error(request, "Configuration invalide : SSL et TLS ne peuvent pas être activés simultanément. Port 465 → SSL uniquement. Port 587 → TLS uniquement.")
+        return redirect('daterev_reminder')
+    if config.smtp_port == 465 and config.smtp_use_tls and not config.smtp_use_ssl:
+        messages.error(request, "Configuration suspecte : port 465 nécessite SSL (pas TLS/STARTTLS). Activez 'Utiliser SSL' et désactivez 'Utiliser TLS' dans l'admin.")
+        return redirect('daterev_reminder')
+    if config.smtp_port == 587 and config.smtp_use_ssl and not config.smtp_use_tls:
+        messages.error(request, "Configuration suspecte : port 587 nécessite TLS/STARTTLS (pas SSL direct). Activez 'Utiliser TLS' et désactivez 'Utiliser SSL' dans l'admin.")
+        return redirect('daterev_reminder')
+
+    def _build_server(cfg):
+        if cfg.smtp_use_ssl:
+            srv = smtplib.SMTP_SSL(cfg.smtp_host, cfg.smtp_port, timeout=15)
+        else:
+            srv = smtplib.SMTP(cfg.smtp_host, cfg.smtp_port, timeout=15)
+            if cfg.smtp_use_tls:
+                srv.ehlo()
+                srv.starttls()
+                srv.ehlo()
+        return srv
+
+    auth_used = False
+    try:
+        server = _build_server(config)
+        if config.smtp_user and config.smtp_password:
+            try:
+                server.login(config.smtp_user, config.smtp_password)
+                auth_used = True
+            except smtplib.SMTPAuthenticationError:
+                # Serveur relais interne — recrée la connexion sans login
+                server.quit()
+                server = _build_server(config)
+
+        msg = MIMEText(
+            "<h3>Test SMTP — KYC Portal BOA</h3><p>La configuration SMTP fonctionne correctement.</p>"
+            f"<p style='color:#666;font-size:12px'>Serveur : {config.smtp_host}:{config.smtp_port} · "
+            f"Mode : {'SSL' if config.smtp_use_ssl else 'STARTTLS' if config.smtp_use_tls else 'Non chiffré'} · "
+            f"Auth : {'oui' if auth_used else 'relais sans auth'}</p>",
+            'html', 'utf-8'
+        )
+        msg['Subject'] = "[KYC BOA] Test de configuration SMTP"
+        msg['From'] = f"{config.from_name} <{config.from_email}>"
+        msg['To'] = test_recipient
+        server.sendmail(config.from_email, test_recipient, msg.as_string())
+        server.quit()
+        auth_note = "avec authentification" if auth_used else "sans authentification (relais interne)"
+        messages.success(request, f"✓ Email envoyé à {test_recipient} via {config.smtp_host}:{config.smtp_port} — {auth_note}.")
+    except smtplib.SMTPConnectError as e:
+        messages.error(request, f"Échec SMTP : impossible de se connecter à {config.smtp_host}:{config.smtp_port} — {e}")
+    except Exception as e:
+        err = str(e)
+        hint = ""
+        if "WRONG_VERSION_NUMBER" in err:
+            hint = " → Mauvaise combinaison port/SSL : port 587 = TLS, port 465 = SSL."
+        elif "Connection refused" in err:
+            hint = f" → Le serveur {config.smtp_host}:{config.smtp_port} refuse la connexion."
+        elif "timed out" in err.lower():
+            hint = " → Délai dépassé : vérifiez que le port SMTP n'est pas bloqué par un pare-feu."
+        messages.error(request, f"Échec SMTP : {e}{hint}")
+
+    return redirect('daterev_reminder')
+
+
+@login_required
+def export_daterev_excel(request):
+    import io, openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from django.http import HttpResponse
+
+    if request.user.organe not in ("PASS", "DSI"):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
+    config = EmailReminderConfig.objects.filter(active=True).order_by('-updated_at').first()
+    days_before = config.days_before if config else 30
+    filiale_filter = request.GET.get('filiale', '').strip()
+    expl_filter = request.GET.get('expl', '').strip()
+
+    from django.core.cache import cache
+    from django.utils import timezone
+    import hashlib
+    _fil_slug = hashlib.md5((filiale_filter or 'all').encode()).hexdigest()[:12]
+    _cache_key = f"drev:{_fil_slug}:{timezone.localdate().isoformat()}:{days_before}"
+    raw = cache.get(_cache_key) or _get_exploitants_daterev_expired(filiale_filter or None, days_before)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Rappels DATEREV"
+
+    green_fill = PatternFill("solid", fgColor="0a3d2e")
+    orange_fill = PatternFill("solid", fgColor="FFF3CD")
+    red_fill = PatternFill("solid", fgColor="FEE2E2")
+    header_font = Font(bold=True, color="FFFFFF", size=10)
+    normal = Font(size=9)
+    center = Alignment(horizontal='center', vertical='center')
+    thin = Border(
+        left=Side(style='thin', color='E2E8F0'),
+        right=Side(style='thin', color='E2E8F0'),
+        bottom=Side(style='thin', color='E2E8F0'),
+    )
+
+    headers = ['Filiale', 'Exploitant', 'Client', 'Agence', 'Lib. Agence', 'DATEREV', 'Type', 'Statut']
+    ws.append(headers)
+    for i, _ in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=i)
+        cell.font = header_font
+        cell.fill = green_fill
+        cell.alignment = center
+        cell.border = thin
+
+    row_num = 2
+    for filiale in sorted(raw.keys()):
+        for expl in sorted(raw[filiale].keys()):
+            if expl_filter and expl.strip().upper() != expl_filter.upper():
+                continue
+            clients = raw[filiale][expl]
+            for c in sorted(clients['clients_pp'], key=lambda x: x['daterev']):
+                ws.append([filiale, expl, c['client'], c['agence'], c.get('lib_agence', ''), str(c['daterev']), 'PP', c['statut']])
+                fill = red_fill if c['statut'] == 'Dépassée' else orange_fill
+                for col in range(1, 9):
+                    cell = ws.cell(row=row_num, column=col)
+                    cell.font = normal
+                    cell.border = thin
+                    if col == 8:
+                        cell.fill = fill
+                row_num += 1
+            for c in sorted(clients['clients_pm'], key=lambda x: x['daterev']):
+                ws.append([filiale, expl, c['client'], c['agence'], c.get('lib_agence', ''), str(c['daterev']), 'PM', c['statut']])
+                fill = red_fill if c['statut'] == 'Dépassée' else orange_fill
+                for col in range(1, 9):
+                    cell = ws.cell(row=row_num, column=col)
+                    cell.font = normal
+                    cell.border = thin
+                    if col == 8:
+                        cell.fill = fill
+                row_num += 1
+
+    for col, width in zip('ABCDEFGH', [14, 12, 14, 10, 22, 12, 6, 14]):
+        ws.column_dimensions[col].width = width
+    ws.freeze_panes = 'A2'
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    fname_parts = [p for p in [filiale_filter, expl_filter] if p]
+    fname = f"daterev_{'_'.join(fname_parts) if fname_parts else 'global'}_{timezone.localdate()}.xlsx"
+    fname = fname.replace(' ', '_')
+    response = HttpResponse(buf.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
 
 

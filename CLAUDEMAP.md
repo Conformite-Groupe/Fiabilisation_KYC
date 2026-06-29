@@ -1,5 +1,5 @@
 # CLAUDEMAP — Fiabilisation KYC v3.0
-> Carte de navigation du projet. Mise à jour : 2026-06-25.
+> Carte de navigation du projet. Mise à jour : 2026-06-25 (session 2).
 > Objectif : permettre à Claude de localiser rapidement n'importe quelle partie du code sans exploration coûteuse.
 
 ---
@@ -22,7 +22,7 @@
 ### `kyc/` — App principale
 | Fichier | Rôle |
 |---|---|
-| `kyc/models.py` | Modèles : `KYC_PP`, `KYC_PM`, `DateRev`, `DataQualityRule`, `DataQualityCondition`, `KYCDocumentExtraction`, `KYCDocumentMatchSettings`, `KYCCompletenessFieldConfig`, `KYCFieldVisibilityConfig`, `FilialeModuleConfig`, `KYCDocumentType`, `KYCExpiredDocumentScanMatch`, `KYCDocumentMatchJob` |
+| `kyc/models.py` | Modèles : `KYC_PP`, `KYC_PM`, `DateRev`, `DataQualityRule`, `DataQualityCondition`, `KYCDocumentExtraction`, `KYCDocumentMatchSettings`, `KYCCompletenessFieldConfig`, `KYCFieldVisibilityConfig`, `FilialeModuleConfig`, `KYCDocumentType`, `KYCExpiredDocumentScanMatch`, `KYCDocumentMatchJob`, **`EmailReminderConfig`** |
 | `kyc/views.py` | Toutes les vues métier (≈ fichier principal, très volumineux) |
 | `kyc/views_secours190925.py` | Vues de secours (backup 19/09/25, ne pas modifier) |
 | `kyc/urls.py` | URLs préfixées `/trade/` |
@@ -86,6 +86,9 @@
 | `/user_list/` | `user_list` | `user_list.html` |
 | `/bulk-upload/` | `bulk_user_upload` | `bulk_upload.html` |
 | `/kyc-field-config/` | `kyc_field_config` | `kyc_field_config.html` |
+| `/daterev-reminder/` | `daterev_reminder` | `daterev_reminder.html` ★ |
+| `/daterev-reminder/send/` | `send_daterev_reminders` | — (POST, redirect) |
+| `/daterev-reminder/test-smtp/` | `test_smtp_config` | — (POST, redirect) |
 | `/admin/` | Django admin | — |
 
 ---
@@ -115,6 +118,8 @@
 | `templates/kyc_field_config.html` | Visibilité des champs KYC |
 | `templates/config_document_types.html` | Types de documents |
 | `templates/includes/kpi_cards.html` | Composant KPI cards (include) |
+| `templates/daterev_reminder.html` | **Page Rappels DATEREV** — entête glass-panel, KPI cards, tableau par filiale/exploitant, détail clients dépliable, modal test SMTP ★ |
+| `templates/email_daterev_reminder.html` | **Email HTML** envoyé aux exploitants — tableau PP/PM, badges statut, branded BOA |
 
 ### Exports PDF
 | Template | Description |
@@ -173,6 +178,11 @@ Extraction OCR de documents d'identité avec matching fuzzy contre les données 
 ### `FilialeModuleConfig`
 Activation/désactivation des modules par filiale.
 
+### `EmailReminderConfig`
+Configuration SMTP + paramètres d'envoi pour les rappels DATEREV.
+Champs : `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_use_tls`, `smtp_use_ssl`, `from_email`, `from_name`, `frequency` (manuel/quotidien/hebdo/mensuel), `days_before`, `active`.
+Migration : `kyc/migrations/0037_emailreminderconfig.py`. Administrable via `/admin/kyc/emailreminderconfig/`.
+
 ---
 
 ## Conventions & patterns importants
@@ -181,10 +191,26 @@ Activation/désactivation des modules par filiale.
 - **Templates Tailwind** : la plupart des templates utilisent les classes Tailwind générées par `django-tailwind`. Rebuild nécessaire après modification des classes : `python manage.py tailwind build`.
 - **Login** : URL `/login_kyc/` → vue `accounts.views.login_kyc` → template `accounts/templates/accounts/login_kyc.html`.
 - **Exports** : les exports CSV/Excel passent par `kyc/pilotage_exports.py` et les vues `export_*` dans `kyc/views.py`.
-- **Cache** : FileBasedCache dans `.django_cache/`, configuré dans `settings.py` via `.env`.
+- **Cache** : FileBasedCache dans `.django_cache/`, configuré dans `settings.py` via `.env`. Clés toujours hashées MD5 (pas d'espaces ni caractères spéciaux) pour compatibilité memcached.
+- **Préchauffage cache** : `python manage.py warm_ui_caches` — préchauffe quality, dashboards, specific, et **daterev** (toutes filiales). Options : `--users N`, `--rules N`, `--quality-only`, `--dashboards-only`, `--specific-only`.
+- **Rappels DATEREV** : matching exploitant via `ProfileV.filiale` + `ProfileV.code_expl` (≠ `agence`). DATEREV est un CharField — parsing multi-format dans `_parse_daterev()`. Cache TTL 1h par `(filiale, date_today, days_before)`.
 - **Fichiers secours** : `views_secours190925.py`, `base_secour190925.html`, `settings_secours.py` — ne pas supprimer, servent de rollback.
 
 ---
 
 ## Dernières modifications connues (2026-06-25)
-- `accounts/templates/accounts/login_kyc.html` : redesign complet v3.0 (split-screen, floating KPI cards, toggle password, badges sécurité)
+
+### Session 1
+- `accounts/templates/accounts/login_kyc.html` : redesign v3.0 — fond vert `#0a3d2e` plein écran, bloc connexion blanc centré, logo BOA en couleur, police `Plus Jakarta Sans`, chip version, toggle mot de passe
+- `templates/base.html` (aside) : sidebar conserve le style blanc d'origine + icônes SVG sur chaque lien + animation hover (icône glisse à droite) + bouton déconnexion `mt-auto` en bas + active link `scrollIntoView()`
+
+### Session 2 — Feature Rappels DATEREV
+- `kyc/models.py` : ajout `EmailReminderConfig` (SMTP + fréquence)
+- `kyc/migrations/0037_emailreminderconfig.py` : migration créée
+- `kyc/admin.py` : `EmailReminderConfigAdmin` avec fieldsets SMTP / paramètres
+- `kyc/views.py` : fonctions `_parse_daterev`, `_get_exploitants_daterev_expired`, vues `daterev_reminder`, `send_daterev_reminders`, `test_smtp_config` — matching exploitant via `ProfileV.code_expl` + cache MD5
+- `Fiabilisation_kyc/urls.py` : 3 routes `/daterev-reminder/`, `/daterev-reminder/send/`, `/daterev-reminder/test-smtp/`
+- `templates/base.html` : lien "Rappels DATEREV" dans section Administration (icône calendrier), visible pour `organe == PASS | DSI`
+- `templates/daterev_reminder.html` : page admin — entête glass-panel style `evolution_filiale`, KPI cards (exploitants/clients/fenêtre), filtre filiale, tableau par filiale/exploitant, bouton envoi par exploitant/filiale/global, détail clients PP+PM dépliable, modal test SMTP, boutons `nav-link-active`
+- `templates/email_daterev_reminder.html` : email HTML branded BOA — tableau clients avec badges statut
+- `kyc/management/commands/warm_ui_caches.py` : ajout `_warm_daterev_reminders()` — préchauffe cache global + par filiale, clés MD5 safe

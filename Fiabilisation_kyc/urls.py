@@ -104,6 +104,10 @@ urlpatterns = [
                       template_name='password_reset_complete.html'), name='password_resete_complete'),
     path("password_resete", views.password_reset_request, name="password_resete"),
 
+path('daterev-reminder/', views.daterev_reminder, name='daterev_reminder'),
+path('daterev-reminder/send/', views.send_daterev_reminders, name='send_daterev_reminders'),
+path('daterev-reminder/test-smtp/', views.test_smtp_config, name='test_smtp_config'),
+path('daterev-reminder/export/', views.export_daterev_excel, name='export_daterev_excel'),
 path('bulk-upload/', views.bulk_user_upload, name='bulk_user_upload'),
 path('download-template/', views.download_excel_template, name='download_csv_template'),
     path('trade/', include('kyc.urls')),

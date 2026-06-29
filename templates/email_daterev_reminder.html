@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
+  .container { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  .header { background: #0a3d2e; padding: 28px 32px; }
+  .header h1 { color: #fff; font-size: 18px; margin: 0 0 4px; font-weight: 800; }
+  .header p { color: rgba(255,255,255,0.6); font-size: 12px; margin: 0; }
+  .body { padding: 28px 32px; }
+  .greeting { font-size: 15px; font-weight: 600; color: #0f172a; margin-bottom: 16px; }
+  .intro { font-size: 13px; color: #475569; line-height: 1.7; margin-bottom: 24px; }
+  .alert-box { background: #fff7ed; border-left: 4px solid #f97316; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; font-size: 12px; color: #9a3412; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #065f46; color: #fff; padding: 10px 12px; text-align: left; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+  td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .badge-expired { display: inline-block; background: #fee2e2; color: #b91c1c; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 100px; }
+  .badge-soon { display: inline-block; background: #fff7ed; color: #c2410c; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 100px; }
+  .footer { background: #f8fafc; padding: 20px 32px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; }
+  .footer strong { color: #059669; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🔔 Rappel — Revue de portefeuille KYC</h1>
+    <p>Plateforme Fiabilisation KYC v3.0 · BOA Group</p>
+  </div>
+  <div class="body">
+    <p class="greeting">Bonjour {{ nom }},</p>
+    <p class="intro">
+      Vous êtes chargé(e) de client pour la filiale <strong>{{ filiale }}</strong> (exploitant : <strong>{{ expl }}</strong>).<br>
+      Les clients ci-dessous ont une <strong>date de revue KYC (DATEREV)</strong> dépassée ou arrivant à échéance dans moins de <strong>{{ days_before }} jours</strong>.
+      Veuillez procéder à la mise à jour du scoring KYC de ces clients.
+    </p>
+
+    <div class="alert-box">
+      ⚠️ {{ clients|length }} client(s) nécessitent une action de votre part.
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>N° Client</th>
+          <th>Agence</th>
+          <th>Date de revue</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clients %}
+        <tr>
+          <td><strong>{{ c.client }}</strong></td>
+          <td>{{ c.lib_agence|default:c.agence }}</td>
+          <td>{{ c.daterev|date:"d/m/Y" }}</td>
+          <td>
+            {% if c.statut == "Dépassée" %}
+              <span class="badge-expired">Dépassée</span>
+            {% else %}
+              <span class="badge-soon">{{ c.statut }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="footer">
+    <p>Ce message est généré automatiquement par la <strong>Plateforme KYC BOA Group</strong>.<br>
+    Pour toute assistance : <a href="mailto:safkyc@boaholding.com" style="color:#059669;">safkyc@boaholding.com</a></p>
+  </div>
+</div>
+</body>
+</html>

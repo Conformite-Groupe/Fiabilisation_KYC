@@ -1024,111 +1024,98 @@ def _build_quality_table(rows, threshold, styles, full=False):
 #  EXPORT PPTX — Style fidèle au rapport BOA exemple
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows):
+def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
+                         notations_list=None, notation_kpis=None):
     """
-    Génère une présentation PowerPoint au style BOA officiel (Calibri, vert #009A56,
-    marine #1B2A4A), avec logo en haut à droite, en-tête plein, sections vertes,
-    pied de page gris — fidèle au fichier exemple rapport.
+    Génère une présentation PowerPoint reproduisant fidèlement le thème
+    "Conformité BOA Group" (Calibri, vert #009A56, marine #1B2A4A) :
+    couverture verte avec cercles décoratifs, en-têtes de section pleins,
+    cartes KPI, jauges en anneau, graphiques natifs et tableaux stylés.
     """
-    from pptx.util import Cm, Pt, Emu
-    from pptx.enum.text import PP_ALIGN
-    from pptx.chart.data import ChartData
-    from pptx.enum.chart import XL_CHART_TYPE
+    from pptx.util import Inches, Pt, Emu
 
-    scope      = scope_data["scope"]
-    fil        = scope_data.get("selected_filiale", "")
-    scope_label = "GROUPE" if scope == "groupe" else fil
+    scope       = scope_data["scope"]
+    fil         = scope_data.get("selected_filiale", "")
+    scope_label = "GROUPE" if scope == "groupe" else (fil or "GROUPE")
     threshold   = summary.get("threshold", 90.0)
-    date_str    = timezone.localtime().strftime("%d/%m/%Y à %H:%M")
+    _now        = timezone.localtime()
+    date_str    = _now.strftime("%d/%m/%Y")
+    _MOIS_FR    = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+                   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+    mois_str    = f"{_MOIS_FR[_now.month]} {_now.year}"
 
-    # ── Dimensions slide (25.4 × 14.29 cm — 16:9) ─────────────────────────────
     prs = Presentation()
-    prs.slide_width  = Cm(25.4)
-    prs.slide_height = Cm(14.29)
+    prs.slide_width  = Inches(10)
+    prs.slide_height = Inches(5.625)
+
+    # ── Plan dynamique (sommaire) ─────────────────────────────────────────────
+    below_comp = sorted([r for r in completeness_rows if r.get("is_below_threshold")],
+                        key=lambda r: r.get("rate", 0))
+    below_qual = sorted([r for r in quality_rows if r.get("is_below_threshold")],
+                        key=lambda r: r.get("rate", 0))
+
+    toc = [
+        ("I",   "Synthèse des indicateurs clés"),
+        ("II",  "Complétude des données - Taux par champs"),
+    ]
+    if below_comp:
+        toc.append(("III", "Complétude des données - Champs sous seuil"))
+    toc.append((_roman(len(toc) + 1), "Qualité des données - Taux par règles"))
+    if below_qual:
+        toc.append((_roman(len(toc) + 1), "Qualité des données - Règle sous seuil"))
 
     # ── Slide 1 : Couverture ──────────────────────────────────────────────────
-    sld = _boa_blank_slide(prs)
-    _boa_cover(sld, prs, scope_label, threshold, date_str)
+    _bx_cover(prs, scope_label, mois_str)
 
     # ── Slide 2 : Sommaire ────────────────────────────────────────────────────
-    sld_som = _boa_blank_slide(prs)
-    _boa_header(sld_som, prs, "SOMMAIRE", scope_label, threshold)
-    _boa_footer(sld_som, prs, date_str)
-    _boa_sommaire(sld_som, prs)
+    _bx_sommaire(prs, toc)
 
-    # ── Slide 3 : KPIs ────────────────────────────────────────────────────────
-    sld2 = _boa_content_slide(prs, "SYNTHÈSE DES INDICATEURS CLÉS", scope_label, threshold, date_str)
+    sec = 0
+    # ── Slide 3 : Synthèse des indicateurs ────────────────────────────────────
+    sec += 1
+    s = _bx_section(prs, _roman(sec), "SYNTHÈSE DES INDICATEURS CLÉS")
+    _bx_synthese(s, summary, threshold)
 
-    comp_rate = summary.get("completeness_rate")
-    qual_rate = summary.get("quality_rate")
-    low_comp  = summary.get("low_completeness_count", 0)
-    low_qual  = summary.get("low_quality_count", 0)
+    # ── Slide 4 : Complétude par champ (graphique) ────────────────────────────
+    sec += 1
+    s = _bx_section(prs, _roman(sec), "COMPLÉTUDE DES DONNÉES — TAUX PAR CHAMPS")
+    _bx_sublabel(s, "TAUX DE COMPLÉTUDE PAR CHAMP")
+    _bx_hbar_chart(s, completeness_rows, threshold, "rate", "field_label", "type",
+                   top=1.55, max_items=11)
 
-    kpis = [
-        ("TAUX DE COMPLÉTUDE",  f"{comp_rate:.1f}%" if comp_rate is not None else "—",
-         _boa_rate_color(comp_rate, threshold)),
-        ("TAUX DE QUALITÉ",     f"{qual_rate:.1f}%" if qual_rate is not None else "—",
-         _boa_rate_color(qual_rate, threshold)),
-        ("CHAMPS SOUS SEUIL",   str(low_comp),
-         PPTX_RED if low_comp > 0 else PPTX_GREEN),
-        ("RÈGLES SOUS SEUIL",   str(low_qual),
-         PPTX_RED if low_qual > 0 else PPTX_GREEN),
-    ]
-    card_w = Cm(5.5)
-    card_h = Cm(5.0)
-    card_y = Cm(5.5)
-    gap    = Cm(0.4)
-    total_w = len(kpis) * card_w + (len(kpis) - 1) * gap
-    start_x = (prs.slide_width - total_w) / 2
-    for i, (lbl, val, col) in enumerate(kpis):
-        cx = start_x + i * (card_w + gap)
-        _boa_kpi_card(sld2, cx, card_y, card_w, card_h, lbl, val, col)
-
-    # ── Slide 4 : Graphique Complétude ────────────────────────────────────────
-    if completeness_rows:
-        sld3 = _boa_content_slide(prs, "COMPLÉTUDE PAR CHAMP", scope_label, threshold, date_str)
-        _boa_section_separator(sld3, prs, "TAUX DE COMPLÉTUDE PAR CHAMP", 2.0)
-        _boa_bar_chart_native(sld3, prs, completeness_rows, threshold, "rate", "field_label", "type",
-                              left_cm=1.5, top_cm=3.2, w_cm=22.4, h_cm=9.5)
-
-    # ── Slide 5 : Tableau Complétude sous seuil ───────────────────────────────
-    below_comp = [r for r in completeness_rows if r.get("is_below_threshold")]
+    # ── Slide 5 : Champs sous seuil (tableau) ─────────────────────────────────
     if below_comp:
-        sld4 = _boa_content_slide(prs, f"CHAMPS SOUS SEUIL ({threshold:.0f}%) — COMPLÉTUDE", scope_label, threshold, date_str)
-        hdrs4 = ["Type", "Filiale", "Champ", "Total", "Incomplets", "Taux"]
-        rows4 = [
-            [r.get("type",""), r.get("filiale", scope_label), r.get("field_label","")[:28],
-              str(r.get("total_clients",0)), str(r.get("missing_count",0)),
-              f"{r.get('rate',0):.1f}%" if r.get("rate") is not None else "—"]
-            for r in below_comp[:18]
-        ]
-        col_w4 = [Cm(1.4), Cm(2.8), Cm(7.0), Cm(2.2), Cm(2.8), Cm(2.2)]
-        _boa_table(sld4, prs, hdrs4, rows4, col_w4, below_comp, threshold, "rate")
+        sec += 1
+        s = _bx_section(prs, _roman(sec), f"COMPLÉTUDE DES DONNÉES — CHAMPS SOUS SEUIL ({threshold:.0f}%)")
+        _bx_sublabel(s, "CHAMPS À FIABILISER EN PRIORITÉ")
+        hdrs = ["Type", "Champ", "Total", "Incomplets", "Taux"]
+        rows = [[r.get("type", ""), _trunc(r.get("field_label", ""), 40),
+                 _fmt_int(r.get("total_clients", 0)), _fmt_int(r.get("missing_count", 0)),
+                 f"{r.get('rate', 0):.1f}%"] for r in below_comp[:9]]
+        _bx_table(s, hdrs, rows, [0.10, 0.45, 0.15, 0.16, 0.14],
+                  below_comp, threshold, "rate")
 
-    # ── Slide 6 : Graphique Qualité ───────────────────────────────────────────
-    if quality_rows:
-        sld5 = _boa_content_slide(prs, "CONFORMITÉ PAR RÈGLE QUALITÉ", scope_label, threshold, date_str)
-        _boa_section_separator(sld5, prs, "TAUX DE CONFORMITÉ PAR RÈGLE QUALITÉ", 2.0)
-        _boa_bar_chart_native(sld5, prs, quality_rows, threshold, "rate", "rule_name", "type",
-                              left_cm=1.5, top_cm=3.2, w_cm=22.4, h_cm=9.5)
+    # ── Slide 6 : Qualité par règle (graphique) ───────────────────────────────
+    sec += 1
+    s = _bx_section(prs, _roman(sec), "QUALITÉ DES DONNÉES — TAUX PAR RÈGLES")
+    _bx_sublabel(s, "TAUX DE CONFORMITÉ PAR RÈGLE QUALITÉ")
+    _bx_hbar_chart(s, quality_rows, threshold, "rate", "rule_name", "type",
+                   top=1.55, max_items=11)
 
-    # ── Slide 7 : Tableau Qualité sous seuil ─────────────────────────────────
-    below_qual = [r for r in quality_rows if r.get("is_below_threshold")]
+    # ── Slide 7 : Règles sous seuil (tableau) ─────────────────────────────────
     if below_qual:
-        sld6 = _boa_content_slide(prs, f"RÈGLES SOUS SEUIL ({threshold:.0f}%) — QUALITÉ", scope_label, threshold, date_str)
-        hdrs6 = ["Type", "Filiale", "Règle", "Champ", "Total", "Anomalies", "Taux"]
-        rows6 = [
-            [r.get("type",""), r.get("scope_label", scope_label), r.get("rule_name","")[:24],
-             r.get("field_label","")[:20], str(r.get("total_clients",0)),
-             str(r.get("fail_count",0)),
-             f"{r.get('rate',0):.1f}%" if r.get("rate") is not None else "—"]
-            for r in below_qual[:15]
-        ]
-        col_w6 = [Cm(1.2), Cm(2.5), Cm(5.8), Cm(4.5), Cm(2.0), Cm(2.5), Cm(2.0)]
-        _boa_table(sld6, prs, hdrs6, rows6, col_w6, below_qual, threshold, "rate")
+        sec += 1
+        s = _bx_section(prs, _roman(sec), f"QUALITÉ DES DONNÉES — RÈGLES SOUS SEUIL ({threshold:.0f}%)")
+        _bx_sublabel(s, "RÈGLES NÉCESSITANT UNE ACTION")
+        hdrs = ["Type", "Règle", "Champ", "Anomalies", "Taux"]
+        rows = [[r.get("type", ""), _trunc(r.get("rule_name", ""), 34),
+                 _trunc(r.get("field_label", ""), 24), _fmt_int(r.get("fail_count", 0)),
+                 f"{r.get('rate', 0):.1f}%"] for r in below_qual[:9]]
+        _bx_table(s, hdrs, rows, [0.10, 0.36, 0.28, 0.14, 0.12],
+                  below_qual, threshold, "rate")
 
-    # ── Slide 8 : Fin de document ─────────────────────────────────────────────
-    _boa_end_slide(prs, scope_label, date_str)
+    # ── Slide final : Merci ───────────────────────────────────────────────────
+    _bx_end(prs, scope_label, mois_str)
 
     # ── Build ─────────────────────────────────────────────────────────────────
     buf = io.BytesIO()
@@ -1149,564 +1136,467 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows):
     return response
 
 
-# ─── Helpers PPTX — style BOA officiel ───────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+#  THÈME BOA — palette & primitives
+# ═══════════════════════════════════════════════════════════════════════════════
 
-def _boa_blank_slide(prs):
-    """Ajoute un slide vierge (layout Blank)."""
-    blank = prs.slide_layouts[6]
-    return prs.slides.add_slide(blank)
+BX_GREEN      = RGBColor(0x00, 0x9A, 0x56)   # Vert BOA principal
+BX_GREEN_BRT  = RGBColor(0x00, 0xC0, 0x60)   # Vert vif (cercles couverture)
+BX_GREEN_PALE = RGBColor(0xC8, 0xE6, 0xC9)   # Vert pâle décoratif
+BX_GREEN_SUB  = RGBColor(0xC8, 0xF0, 0xD8)   # Vert clair sous-titre
+BX_NAVY       = RGBColor(0x1B, 0x2A, 0x4A)   # Marine BOA
+BX_BODY       = RGBColor(0x33, 0x33, 0x33)   # Corps de texte
+BX_MUTED      = RGBColor(0x66, 0x66, 0x66)   # Texte secondaire
+BX_FOOT       = RGBColor(0x88, 0x88, 0x88)   # Pied de page
+BX_CARD       = RGBColor(0xF5, 0xF5, 0xF5)   # Fond carte
+BX_DIVIDER    = RGBColor(0xE0, 0xE0, 0xE0)   # Filets
+BX_TRACK      = RGBColor(0xEC, 0xEF, 0xF1)   # Piste de barre/anneau
+BX_WHITE      = RGBColor(0xFF, 0xFF, 0xFF)
+BX_RED        = RGBColor(0xD3, 0x2F, 0x2F)   # Rouge alerte
+BX_AMBER      = RGBColor(0xF5, 0xA6, 0x23)   # Ambre attention
+BX_CYAN       = RGBColor(0x29, 0xAB, 0xE2)   # Cyan accent
 
-
-def _boa_rect(slide, left, top, width, height, fill_color, border_color=None):
-    """Ajoute un rectangle de remplissage."""
-    from pptx.util import Pt
-    shape = slide.shapes.add_shape(1, int(left), int(top), int(width), int(height))
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = fill_color
-    if border_color:
-        shape.line.color.rgb = border_color
-        shape.line.width = Pt(1)
-    else:
-        shape.line.fill.background()
-    return shape
-
-def _boa_decorative_bg(slide, prs):
-    """Motif de fond simple et stylé pour toutes les slides."""
-    from pptx.util import Cm
-    from pptx.enum.shapes import MSO_SHAPE
-    W = prs.slide_width
-    H = prs.slide_height
-    # Un grand motif géométrique très pâle en bas à droite
-    shape = slide.shapes.add_shape(MSO_SHAPE.RIGHT_TRIANGLE, int(W - Cm(6.0)), int(H - Cm(4.0)), int(Cm(6.0)), int(Cm(4.0)))
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = RGBColor(0xFA, 0xFA, 0xFA)  # très clair
-    shape.line.fill.background()
-
-def _boa_logo(slide, prs):
-    """Logo est géré directement dans _boa_header et _boa_cover."""
-    pass
-
-def _boa_header(slide, prs, title, scope_label, threshold):
-    """
-    En-tête de page calqué sur le PDF :
-    - Bande gauche verte (55%)
-    - Bande droite bleue marine (45%)
-    """
-    from pptx.util import Cm, Pt
-    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-    W = prs.slide_width
-    H_HDR = Cm(1.3)
-    
-    split_x = int(W * 0.55)
-    _boa_rect(slide, 0, 0, split_x, H_HDR, PPTX_GREEN)
-    _boa_rect(slide, split_x, 0, W - split_x, H_HDR, PPTX_DARK)
-
-    # Titre rapport (bandeau vert gauche)
-    tb = slide.shapes.add_textbox(Cm(0.5), 0, split_x - Cm(1.0), H_HDR)
-    tf = tb.text_frame
-    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-    p = tf.paragraphs[0]
-    p.text = f"RAPPORT DE PILOTAGE KYC — BOA GROUP\nPérimètre : {scope_label}  |  Seuil : {threshold:.1f}%"
-    p.font.bold = True
-    p.font.size = Pt(8)
-    p.font.name = "Helvetica"
-    p.font.color.rgb = PPTX_WHITE
-    p.alignment = PP_ALIGN.LEFT
-    
-    # Titre de section (bandeau bleu)
-    tb2 = slide.shapes.add_textbox(split_x + Cm(0.5), 0, W - split_x - Cm(3.5), H_HDR)
-    tf2 = tb2.text_frame
-    tf2.vertical_anchor = MSO_ANCHOR.MIDDLE
-    p2 = tf2.paragraphs[0]
-    p2.text = title
-    p2.font.bold = True
-    p2.font.size = Pt(8)
-    p2.font.name = "Helvetica"
-    p2.font.color.rgb = PPTX_WHITE
-    p2.alignment = PP_ALIGN.CENTER
-
-    # Logo
-    logo = _logo_path()
-    if logo:
-        try:
-            logo_h = H_HDR - Cm(0.15)
-            slide.shapes.add_picture(
-                logo,
-                int(W - Cm(4.0)), int(Cm(0.08)),
-                height=int(logo_h),
-            )
-        except Exception:
-            pass
-
-def _boa_footer(slide, prs, date_str):
-    """
-    Pied de page calqué sur le PDF :
-    - Fond marine
-    - Ligne séparatrice verte
-    """
-    from pptx.util import Cm, Pt
-    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-    W = prs.slide_width
-    H = prs.slide_height
-    FH = Cm(0.9)
-    FY = H - FH
-
-    # Fond marine
-    _boa_rect(slide, 0, FY, W, FH, PPTX_DARK)
-    # Ligne verte
-    _boa_rect(slide, 0, FY, W, Cm(0.05), PPTX_GREEN)
-
-    # Texte gauche
-    tb = slide.shapes.add_textbox(Cm(0.5), FY, Cm(5.0), FH)
-    tf = tb.text_frame
-    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-    p = tf.paragraphs[0]
-    p.text = "BOA Group — Confidentiel"
-    p.font.bold = True
-    p.font.size = Pt(7)
-    p.font.name = "Helvetica"
-    p.font.color.rgb = PPTX_WHITE
-    p.alignment = PP_ALIGN.LEFT
-
-    # Texte centre
-    tb2 = slide.shapes.add_textbox(Cm(5.5), FY, W - Cm(11.0), FH)
-    tf2 = tb2.text_frame
-    tf2.vertical_anchor = MSO_ANCHOR.MIDDLE
-    p2 = tb2.text_frame.paragraphs[0]
-    p2.text = f"Rapport généré automatiquement le {date_str} — Ne pas diffuser sans autorisation"
-    p2.font.size = Pt(7)
-    p2.font.name = "Helvetica"
-    p2.font.color.rgb = PPTX_WHITE
-    p2.alignment = PP_ALIGN.CENTER
-
-def _boa_section_separator(slide, prs, subtitle, top_cm):
-    """
-    Sous-titre de section. (Version simple type PDF)
-    """
-    from pptx.util import Cm, Pt
-    from pptx.enum.text import PP_ALIGN
-    W = prs.slide_width
-
-    tb = slide.shapes.add_textbox(0, int(Cm(top_cm)), int(W), int(Cm(0.81)))
-    tf = tb.text_frame
-    p = tf.paragraphs[0]
-    p.text = subtitle
-    p.font.bold = True
-    p.font.size = Pt(11)
-    p.font.name = "Helvetica"
-    p.font.color.rgb = PPTX_DARK
-    p.alignment = PP_ALIGN.CENTER
-
-def _boa_content_slide(prs, title, scope_label, threshold, date_str):
-    slide = _boa_blank_slide(prs)
-    _boa_decorative_bg(slide, prs)
-    _boa_header(slide, prs, title, scope_label, threshold)
-    _boa_footer(slide, prs, date_str)
-    return slide
-
-def _boa_cover(slide, prs, scope_label, threshold, date_str):
-    """
-    Couverture calquée sur le PDF.
-    """
-    from pptx.util import Cm, Pt
-    W = prs.slide_width
-    H = prs.slide_height
-    
-    # Haut 55% vert
-    split_h = int(H * 0.55)
-    _boa_rect(slide, 0, 0, W, split_h, PPTX_GREEN)
-
-    # Logo
-    logo = _logo_path()
-    if logo:
-        try:
-            slide.shapes.add_picture(
-                logo,
-                int(W - Cm(5.5)), int(Cm(0.3)),
-                width=int(Cm(4.5)), height=int(Cm(2.0))
-            )
-        except Exception:
-            pass
-            
-    # Titre principal (dans la zone verte)
-    tb = slide.shapes.add_textbox(Cm(1.5), H * 0.33, W - Cm(3.0), Cm(2.0))
-    tf = tb.text_frame
-    p1 = tf.paragraphs[0]
-    p1.text = "Rapport de Pilotage\nKYC"
-    p1.font.bold = True
-    p1.font.size = Pt(28)
-    p1.font.name = "Helvetica"
-    p1.font.color.rgb = PPTX_WHITE
+_FONT = "Calibri"
+_FOOTER_TXT = "Conformité BOA Group | Pôle Projet"
 
 
-
-def _boa_end_slide(prs, scope_label, date_str):
-    """
-    Page de fin simple (style PDF).
-    """
-    slide = _boa_blank_slide(prs)
-    _boa_header(slide, prs, "FIN DU RAPPORT", scope_label, 90.0)
-    _boa_footer(slide, prs, date_str)
+def _roman(n):
+    return ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"][n] if n < 11 else str(n)
 
 
-def _boa_cover(slide, prs, scope_label, threshold, date_str):
-    """
-    Couverture calquée sur le PDF avec motif élégant.
-    """
-    from pptx.util import Cm, Pt
-    from pptx.enum.shapes import MSO_SHAPE
-    W = prs.slide_width
-    H = prs.slide_height
-    
-    # Haut 55% vert
-    split_h = int(H * 0.55)
-    _boa_rect(slide, 0, 0, W, split_h, PPTX_GREEN)
-
-    # Triangle décoratif
-    tri_w = int(W * 0.6)
-    tri_h = int(H * 0.15)
-    shape = slide.shapes.add_shape(MSO_SHAPE.RIGHT_TRIANGLE, 0, split_h, tri_w, tri_h)
-    shape.rotation = 180
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = RGBColor(0x16, 0x65, 0x34)
-    shape.line.fill.background()
-
-    # Logo
-    logo = _logo_path()
-    if logo:
-        try:
-            slide.shapes.add_picture(
-                logo,
-                int(W - Cm(5.0)), int(Cm(0.3)),
-                height=int(Cm(1.8))
-            )
-        except Exception:
-            pass
-            
-    # Titre principal (dans la zone verte)
-    tb = slide.shapes.add_textbox(Cm(1.5), H * 0.25, W - Cm(3.0), Cm(2.0))
-    tf = tb.text_frame
-    p1 = tf.paragraphs[0]
-    p1.text = "RAPPORT DE PILOTAGE\nKYC"
-    p1.font.bold = True
-    p1.font.size = Pt(36)
-    p1.font.name = "Helvetica"
-    p1.font.color.rgb = PPTX_WHITE
-
-    # Info bas (dans la zone blanche)
-    tb_i = slide.shapes.add_textbox(Cm(1.5), split_h + Cm(1.0), W - Cm(3.0), Cm(3.0))
-    tf_i = tb_i.text_frame
-    p_i = tf_i.paragraphs[0]
-    p_i.text = f"Périmètre : {scope_label}\nSeuil de tolérance : {threshold:.1f}%\nDate : {date_str}"
-    p_i.font.size = Pt(14)
-    p_i.font.name = "Helvetica"
-    p_i.font.color.rgb = PPTX_DARK
-
-def _boa_end_slide(prs, scope_label, date_str):
-    """
-    Page de fin colorée.
-    """
-    from pptx.util import Cm, Pt
-    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-    slide = _boa_blank_slide(prs)
-    W = prs.slide_width
-    H = prs.slide_height
-
-    _boa_rect(slide, 0, 0, W, H, PPTX_GREEN)
-
-    logo = _logo_path()
-    if logo:
-        try:
-            slide.shapes.add_picture(logo, int(W - Cm(5.0)), int(Cm(0.3)), height=int(Cm(1.8)))
-        except Exception:
-            pass
-
-    tb = slide.shapes.add_textbox(0, int(H * 0.4), int(W), int(Cm(2.0)))
-    tf = tb.text_frame
-    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-    p = tf.paragraphs[0]
-    p.text = "FIN DU RAPPORT"
-    p.font.bold = True
-    p.font.size = Pt(40)
-    p.font.name = "Helvetica"
-    p.font.color.rgb = PPTX_WHITE
-    p.alignment = PP_ALIGN.CENTER
-
-def _boa_sommaire(slide, prs):
-    """
-    Sommaire designé avec chiffres romains.
-    """
-    from pptx.util import Cm, Pt
-    from pptx.enum.text import PP_ALIGN
-    
-    W = prs.slide_width
-    _boa_decorative_bg(slide, prs)
-    
-    toc_entries = [
-        ("I",   "Synthèse des Indicateurs Clés"),
-        ("II",  "Complétude par champ"),
-        ("III", "Champs sous seuil — Complétude"),
-        ("IV",  "Conformité par règle qualité"),
-        ("V",   "Règles sous seuil — Qualité"),
-    ]
-    
-    top = Cm(4.0)
-    for num, title in toc_entries:
-        _boa_rect(slide, Cm(4.0), top + Cm(0.8), W - Cm(8.0), Cm(0.05), PPTX_GREEN)
-        
-        tb_n = slide.shapes.add_textbox(Cm(4.0), top, Cm(1.5), Cm(1.0))
-        p_n = tb_n.text_frame.paragraphs[0]
-        p_n.text = num
-        p_n.font.bold = True
-        p_n.font.size = Pt(16)
-        p_n.font.color.rgb = PPTX_GREEN
-        p_n.alignment = PP_ALIGN.LEFT
-        
-        tb = slide.shapes.add_textbox(Cm(5.5), top, W - Cm(9.5), Cm(1.0))
-        p = tb.text_frame.paragraphs[0]
-        p.text = title
-        p.font.bold = True
-        p.font.size = Pt(14)
-        p.font.name = "Helvetica"
-        p.font.color.rgb = PPTX_DARK
-        p.alignment = PP_ALIGN.LEFT
-        top += Cm(1.5)
+def _trunc(s, n):
+    s = str(s or "")
+    return s if len(s) <= n else s[: n - 1] + "…"
 
 
-def _boa_rate_color(rate, threshold):
+def _fmt_int(v):
+    try:
+        return f"{int(v):,}".replace(",", " ")
+    except (ValueError, TypeError):
+        return str(v)
+
+
+def _bx_rate_color(rate, threshold):
+    """Vert si le taux atteint/dépasse le seuil, orange en deçà. Pas d'autre couleur."""
     if rate is None:
-        return PPTX_SLATE
-    if rate < threshold:
-        return PPTX_RED
-    if rate < threshold + 5:
-        return PPTX_AMBER
-    return PPTX_GREEN
+        return BX_MUTED
+    return BX_GREEN if rate >= threshold else BX_AMBER
 
 
-def _boa_kpi_card(slide, left, top, width, height, label, value, color):
-    """
-    Carte KPI — style exemple rapport.
-    Fond #F5F5F5, en-tête coloré avec label blanc, valeur grande centrée.
-    Dimensions fidèles à l'exemple (Shape 9/10 slide 3).
-    """
-    from pptx.util import Cm, Pt
+def _bx_slide(prs):
+    return prs.slides.add_slide(prs.slide_layouts[6])
+
+
+def _bx_rect(slide, l, t, w, h, fill, line=None, line_w=1.0):
+    """Rectangle plein, sans ombre (Inches)."""
+    from pptx.util import Inches, Pt
+    from pptx.enum.shapes import MSO_SHAPE
+    sp = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(l), Inches(t), Inches(w), Inches(h))
+    sp.fill.solid()
+    sp.fill.fore_color.rgb = fill
+    if line is not None:
+        sp.line.color.rgb = line
+        sp.line.width = Pt(line_w)
+    else:
+        sp.line.fill.background()
+    sp.shadow.inherit = False
+    return sp
+
+
+def _bx_oval(slide, l, t, w, h, fill):
+    from pptx.util import Inches
+    from pptx.enum.shapes import MSO_SHAPE
+    sp = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(l), Inches(t), Inches(w), Inches(h))
+    sp.fill.solid()
+    sp.fill.fore_color.rgb = fill
+    sp.line.fill.background()
+    sp.shadow.inherit = False
+    return sp
+
+
+def _bx_ring(slide, l, t, w, h, line_color, line_w=1.5):
+    """Cercle décoratif simple : contour seul, sans remplissage."""
+    from pptx.util import Inches, Pt
+    from pptx.enum.shapes import MSO_SHAPE
+    sp = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(l), Inches(t), Inches(w), Inches(h))
+    sp.fill.background()
+    sp.line.color.rgb = line_color
+    sp.line.width = Pt(line_w)
+    sp.shadow.inherit = False
+    return sp
+
+
+def _bx_text(slide, l, t, w, h, text, size, color, bold=False, align=None,
+             anchor=None, italic=False, wrap=True, font=_FONT, spacing=None):
+    from pptx.util import Inches, Pt
     from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-
-    # Fond carte gris clair (F5F5F5)
-    _boa_rect(slide, int(left), int(top), int(width), int(height),
-              RGBColor(0xF5, 0xF5, 0xF5), border_color=PPTX_GRAY)
-
-    # En-tête coloré (0.81 cm de haut — comme Shape 10 de l'exemple)
-    header_h = int(Cm(0.81))
-    _boa_rect(slide, int(left), int(top), int(width), header_h, color)
-
-    # Label dans l'en-tête
-    tb_l = slide.shapes.add_textbox(int(left), int(top), int(width), header_h)
-    tf_l = tb_l.text_frame
-    tf_l.word_wrap = True
-    tf_l.vertical_anchor = MSO_ANCHOR.MIDDLE
-    tf_l.margin_top = tf_l.margin_bottom = int(Cm(0.02))
-    tf_l.margin_left = tf_l.margin_right = int(Cm(0.1))
-    p_l = tf_l.paragraphs[0]
-    p_l.text = label
-    p_l.font.bold = True
-    p_l.font.size = Pt(8)
-    p_l.font.name = "Calibri"
-    p_l.font.color.rgb = PPTX_WHITE
-    p_l.alignment = PP_ALIGN.CENTER
-
-    # Valeur dans le corps
-    body_y = int(top) + header_h
-    body_h = int(height) - header_h
-    tb_v = slide.shapes.add_textbox(int(left), body_y, int(width), body_h)
-    tf_v = tb_v.text_frame
-    tf_v.vertical_anchor = MSO_ANCHOR.MIDDLE
-    tf_v.margin_top = tf_v.margin_bottom = tf_v.margin_left = tf_v.margin_right = 0
-    p_v = tf_v.paragraphs[0]
-    p_v.text = value
-    p_v.font.bold = True
-    p_v.font.size = Pt(32)
-    p_v.font.name = "Calibri"
-    p_v.font.color.rgb = color
-    p_v.alignment = PP_ALIGN.CENTER
+    tb = slide.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
+    tf = tb.text_frame
+    tf.word_wrap = wrap
+    tf.margin_top = tf.margin_bottom = 0
+    tf.margin_left = tf.margin_right = 0
+    if anchor is not None:
+        tf.vertical_anchor = anchor
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.text = line
+        p.font.size = Pt(size)
+        p.font.bold = bold
+        p.font.italic = italic
+        p.font.name = font
+        p.font.color.rgb = color
+        if align is not None:
+            p.alignment = align
+        if spacing is not None:
+            p.line_spacing = spacing
+    return tb
 
 
-def _boa_bar_chart_native(slide, prs, rows, threshold, value_key, label_key, type_key,
-                          left_cm, top_cm, w_cm, h_cm, max_items=12):
-    """
-    Graphique à barres horizontales en rendu natif PPTX (rectangles dessinés),
-    style identique au rendu PDF ReportLab.
-    Compact : barres fines, labels à droite, ligne de seuil rouge pointillée.
-    """
-    from pptx.util import Cm, Pt, Emu
+def _bx_logo(slide):
+    """Boîte logo marine BOA en haut à droite (calquée sur l'exemple)."""
+    from pptx.util import Inches
+    logo = _logo_path()
+    if logo:
+        try:
+            slide.shapes.add_picture(logo, Inches(7.45), Inches(0.0), width=Inches(2.55))
+            return
+        except Exception:
+            pass
+    # Repli : boîte marine dessinée
+    _bx_rect(slide, 7.45, 0.0, 2.55, 0.62, BX_NAVY)
+    _bx_text(slide, 7.55, 0.06, 2.4, 0.5, "BANK OF AFRICA\nBMCE GROUP", 9, BX_WHITE,
+             bold=True, align=None)
+
+
+def _bx_decor(slide, color):
+    """Motif décoratif épuré : deux anneaux fins en haut à droite."""
+    _bx_ring(slide, 8.7, -1.1, 3.6, 3.6, color, 1.5)
+    _bx_ring(slide, 9.3, 1.4, 2.2, 2.2, color, 1.5)
+
+
+def _bx_footer(slide):
     from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+    _bx_rect(slide, 0.0, 5.35, 10.0, 0.005, BX_DIVIDER)
+    _bx_text(slide, 6.0, 5.37, 3.85, 0.25, _FOOTER_TXT, 8, BX_FOOT,
+             align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE)
 
-    items = rows[:max_items]
+
+def _bx_section(prs, roman, title):
+    """En-tête de section : bande verte pleine + cercles + logo + pied."""
+    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+    s = _bx_slide(prs)
+    _bx_decor(s, BX_GREEN_PALE)
+    _bx_rect(s, 0.0, 0.0, 10.0, 0.62, BX_GREEN)
+    _bx_text(s, 0.4, 0.0, 7.0, 0.62, f"{roman}.  {title}", 18, BX_WHITE,
+             bold=True, anchor=MSO_ANCHOR.MIDDLE)
+    _bx_logo(s)
+    _bx_footer(s)
+    return s
+
+
+def _bx_sublabel(slide, text, top=0.82):
+    """Sous-titre vert majuscule + filet vert pleine largeur."""
+    from pptx.enum.text import MSO_ANCHOR
+    _bx_text(slide, 0.4, top, 9.2, 0.3, text, 11, BX_GREEN, bold=True,
+             anchor=MSO_ANCHOR.MIDDLE)
+    _bx_rect(slide, 0.4, top + 0.3, 9.2, 0.035, BX_GREEN)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  THÈME BOA — slides composées
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _bx_cover(prs, scope_label, mois_str):
+    from pptx.util import Inches
+    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+    s = _bx_slide(prs)
+    _bx_rect(s, 0.0, 0.0, 10.0, 5.625, BX_GREEN)
+    _bx_ring(s, 7.9, -1.6, 4.6, 4.6, BX_GREEN_BRT, 2.0)
+    _bx_ring(s, 8.9, 2.0, 2.8, 2.8, BX_GREEN_BRT, 2.0)
+    _bx_logo(s)
+
+    _bx_text(s, 0.5, 1.35, 7.5, 1.5, "RAPPORT DE PILOTAGE KYC", 46, BX_WHITE,
+             bold=True, anchor=MSO_ANCHOR.MIDDLE)
+    _bx_text(s, 0.5, 2.9, 7.5, 0.5,
+             f"SYNTHÈSE QUALITÉ & COMPLÉTUDE — PÉRIMÈTRE {scope_label.upper()}",
+             14, BX_GREEN_SUB, bold=True)
+    _bx_rect(s, 0.52, 3.45, 6.0, 0.045, BX_WHITE)
+    _bx_text(s, 0.5, 3.65, 7.0, 0.35, mois_str, 11, RGBColor(0xD4, 0xF5, 0xE4))
+    _bx_text(s, 0.5, 5.2, 7.0, 0.28, _FOOTER_TXT, 8,
+             RGBColor(0xA0, 0xD4, 0xB8), italic=True)
+
+
+def _bx_sommaire(prs, toc):
+    from pptx.enum.text import MSO_ANCHOR
+    s = _bx_slide(prs)
+    _bx_decor(s, BX_GREEN_PALE)
+    _bx_logo(s)
+    _bx_footer(s)
+    _bx_text(s, 0.5, 0.5, 6.0, 1.1, "SOMMAIRE", 52, BX_GREEN, bold=True,
+             anchor=MSO_ANCHOR.MIDDLE)
+
+    n = len(toc)
+    top = 1.85
+    row_h = min(0.62, (4.9 - top) / max(n, 1))
+    for roman, title in toc:
+        _bx_rect(s, 0.5, top + 0.04, 0.07, 0.38, BX_GREEN)
+        _bx_text(s, 0.68, top, 0.6, 0.42, roman, 12, BX_GREEN, bold=True,
+                 anchor=MSO_ANCHOR.MIDDLE)
+        _bx_text(s, 1.3, top, 7.0, 0.42, title, 14, BX_NAVY, bold=True,
+                 anchor=MSO_ANCHOR.MIDDLE)
+        _bx_rect(s, 0.5, top + row_h - 0.12, 7.6, 0.02, BX_DIVIDER)
+        top += row_h
+
+
+def _bx_kpi_card(slide, l, t, w, h, label, value, color, sub=None):
+    """Carte KPI : bandeau coloré + corps gris clair + grand chiffre."""
+    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+    _bx_rect(slide, l, t, w, h, BX_CARD)
+    _bx_rect(slide, l, t, w, 0.34, color)
+    _bx_text(slide, l + 0.05, t, w - 0.1, 0.34, label, 8.5, BX_WHITE, bold=True,
+             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    val_h = (h - 0.34) if not sub else (h - 0.34 - 0.3)
+    _bx_text(slide, l, t + 0.34, w, val_h, value, 33, color, bold=True,
+             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    if sub:
+        _bx_text(slide, l, t + h - 0.32, w, 0.28, sub, 8.5, BX_MUTED,
+                 align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+
+
+def _bx_donut(slide, l, t, sz, rate, threshold, title):
+    """Jauge en anneau native + grand pourcentage centré + titre dessous."""
+    from pptx.util import Inches, Pt
+    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+    from pptx.chart.data import CategoryChartData
+    from pptx.enum.chart import XL_CHART_TYPE
+
+    color = _bx_rate_color(rate, threshold)
+    r = max(0.0, min(float(rate or 0), 100.0))
+    cd = CategoryChartData()
+    cd.categories = ["ok", "reste"]
+    cd.add_series("s", (r, 100.0 - r))
+    gf = slide.shapes.add_chart(XL_CHART_TYPE.DOUGHNUT, Inches(l), Inches(t),
+                                Inches(sz), Inches(sz), cd)
+    chart = gf.chart
+    chart.has_legend = False
+    chart.has_title = False
+    plot = chart.plots[0]
+    plot.has_data_labels = False
+    try:
+        from pptx.oxml.ns import qn
+        plot._element.find(qn("c:firstSliceAng"))
+        hole = plot._element.find(qn("c:holeSize"))
+        if hole is not None:
+            hole.set("val", "68")
+    except Exception:
+        pass
+    pts = plot.series[0].points
+    pts[0].format.fill.solid()
+    pts[0].format.fill.fore_color.rgb = color
+    pts[1].format.fill.solid()
+    pts[1].format.fill.fore_color.rgb = BX_TRACK
+    for pt in pts:
+        pt.format.line.fill.background()
+
+    # Pourcentage centré + titre sous l'anneau
+    _bx_text(slide, l, t + sz / 2 - 0.32, sz, 0.6,
+             f"{r:.1f}%", 26, color, bold=True,
+             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    _bx_text(slide, l - 0.4, t + sz + 0.05, sz + 0.8, 0.3, title, 11, BX_NAVY,
+             bold=True, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+
+
+def _bx_synthese(slide, summary, threshold):
+    """Slide synthèse : 2 jauges (complétude/qualité) + 2 cartes alertes + mini PP/PM."""
+    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+    _bx_sublabel(slide, "VUE D'ENSEMBLE DU PÉRIMÈTRE")
+
+    comp = summary.get("completeness_rate")
+    qual = summary.get("quality_rate")
+    comp_pp = summary.get("completeness_rate_pp")
+    comp_pm = summary.get("completeness_rate_pm")
+    qual_pp = summary.get("quality_rate_pp")
+    qual_pm = summary.get("quality_rate_pm")
+    low_c = summary.get("low_completeness_count", 0)
+    low_q = summary.get("low_quality_count", 0)
+
+    # Deux jauges
+    _bx_donut(slide, 0.7, 1.65, 2.1, comp, threshold, "COMPLÉTUDE GLOBALE")
+    _bx_donut(slide, 3.3, 1.65, 2.1, qual, threshold, "QUALITÉ GLOBALE")
+
+    # Mini PP/PM sous chaque jauge
+    _bx_text(slide, 0.3, 4.45, 2.9, 0.3,
+             f"PP {comp_pp:.0f}%    ·    PM {comp_pm:.0f}%" if comp_pp is not None else "",
+             10, BX_MUTED, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    _bx_text(slide, 2.9, 4.45, 2.9, 0.3,
+             f"PP {qual_pp:.0f}%    ·    PM {qual_pm:.0f}%" if qual_pp is not None else "",
+             10, BX_MUTED, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+
+    # Deux cartes alertes à droite
+    cx = 6.05
+    cw = 3.55
+    _bx_kpi_card(slide, cx, 1.65, cw, 1.35, "CHAMPS SOUS LE SEUIL",
+                 str(low_c), BX_AMBER if low_c else BX_GREEN,
+                 sub="champs de complétude à fiabiliser")
+    _bx_kpi_card(slide, cx, 3.2, cw, 1.35, "RÈGLES SOUS LE SEUIL",
+                 str(low_q), BX_AMBER if low_q else BX_GREEN,
+                 sub="règles qualité nécessitant une action")
+
+
+def _bx_hbar_chart(slide, rows, threshold, value_key, label_key, type_key,
+                   top=1.55, max_items=11):
+    """Graphique à barres horizontales natif, points colorés selon le seuil."""
+    from pptx.util import Inches, Pt
+    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+    from pptx.chart.data import CategoryChartData
+    from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION
+
+    items = list(rows)[:max_items]
     if not items:
+        _bx_text(slide, 0.4, 2.6, 9.2, 0.5, "Aucune donnée disponible pour ce périmètre.",
+                 12, BX_MUTED, align=PP_ALIGN.CENTER)
         return
 
-    left   = int(Cm(left_cm))
-    top    = int(Cm(top_cm))
-    w      = int(Cm(w_cm))
-    h      = int(Cm(h_cm))
+    cats, vals, colors = [], [], []
+    for it in items:
+        rate = it.get(value_key) or 0
+        typ = str(it.get(type_key, "")).strip()
+        lab = _trunc(it.get(label_key, ""), 34)
+        cats.append(f"{typ}  {lab}" if typ else lab)
+        vals.append(round(float(rate), 1))
+        colors.append(_bx_rate_color(rate, threshold))
 
-    n      = len(items)
-    bar_h  = int(h / (n + 1))
-    bar_h  = max(bar_h, int(Cm(0.32)))
-    label_w = int(Cm(4.8))
-    rate_w  = int(Cm(1.2))
-    bar_area_w = w - label_w - rate_w
+    cats.reverse(); vals.reverse(); colors.reverse()  # 1er en haut
 
-    for i, item in enumerate(items):
-        rate = item.get(value_key) or 0
-        lbl  = f"{str(item.get(type_key, ''))[:3]}  {str(item.get(label_key, ''))[:22]}"
-        color = _boa_rate_color(rate, threshold)
-        row_top = top + i * bar_h
+    cd = CategoryChartData()
+    cd.categories = cats
+    cd.add_series("Taux", vals)
+    chart_h = min(3.55, 0.31 * len(items) + 0.6)
+    gf = slide.shapes.add_chart(XL_CHART_TYPE.BAR_CLUSTERED,
+                                Inches(0.4), Inches(top + 0.05),
+                                Inches(9.2), Inches(chart_h), cd)
+    chart = gf.chart
+    chart.has_legend = False
+    chart.has_title = False
 
-        # Fond gris de la barre
-        _boa_rect(slide, left + label_w, row_top + int(Cm(0.04)),
-                  bar_area_w, bar_h - int(Cm(0.08)), RGBColor(0xF1, 0xF5, 0xF9))
+    plot = chart.plots[0]
+    plot.gap_width = 60
+    plot.has_data_labels = True
+    dl = plot.data_labels
+    dl.number_format = '0.0"%"'
+    dl.number_format_is_linked = False
+    dl.position = XL_LABEL_POSITION.OUTSIDE_END
+    dl.font.size = Pt(8.5)
+    dl.font.bold = True
+    dl.font.name = _FONT
+    dl.font.color.rgb = BX_BODY
 
-        # Barre colorée
-        fill_w = int(bar_area_w * min(max(rate, 0), 100) / 100)
-        if fill_w > 0:
-            _boa_rect(slide, left + label_w, row_top + int(Cm(0.04)),
-                      fill_w, bar_h - int(Cm(0.08)), color)
+    series = plot.series[0]
+    for idx, pt in enumerate(series.points):
+        pt.format.fill.solid()
+        pt.format.fill.fore_color.rgb = colors[idx]
+        pt.format.line.fill.background()
 
-        # Label à gauche
-        tb_lbl = slide.shapes.add_textbox(left, row_top, label_w - int(Cm(0.1)), bar_h)
-        tf_lbl = tb_lbl.text_frame
-        tf_lbl.vertical_anchor = MSO_ANCHOR.MIDDLE
-        tf_lbl.margin_top = tf_lbl.margin_bottom = 0
-        tf_lbl.margin_left = tf_lbl.margin_right = int(Cm(0.05))
-        p_lbl = tf_lbl.paragraphs[0]
-        p_lbl.text = lbl
-        p_lbl.font.size = Pt(6.5)
-        p_lbl.font.name = "Calibri"
-        p_lbl.font.color.rgb = PPTX_DARK
-        p_lbl.alignment = PP_ALIGN.RIGHT
+    va = chart.value_axis
+    va.minimum_scale = 0
+    va.maximum_scale = 100
+    va.has_major_gridlines = False
+    va.visible = False
+    ca = chart.category_axis
+    ca.tick_labels.font.size = Pt(8.5)
+    ca.tick_labels.font.name = _FONT
+    ca.tick_labels.font.color.rgb = BX_BODY
+    ca.format.line.color.rgb = BX_DIVIDER
 
-        # Taux à droite
-        rate_x = left + label_w + bar_area_w + int(Cm(0.1))
-        tb_rt = slide.shapes.add_textbox(rate_x, row_top, rate_w, bar_h)
-        tf_rt = tb_rt.text_frame
-        tf_rt.vertical_anchor = MSO_ANCHOR.MIDDLE
-        tf_rt.margin_top = tf_rt.margin_bottom = 0
-        tf_rt.margin_left = tf_rt.margin_right = 0
-        p_rt = tf_rt.paragraphs[0]
-        p_rt.text = f"{rate:.1f}%"
-        p_rt.font.bold = True
-        p_rt.font.size = Pt(7)
-        p_rt.font.name = "Calibri"
-        p_rt.font.color.rgb = color
-        p_rt.alignment = PP_ALIGN.LEFT
-
-    # Ligne de seuil verticale rouge
-    seuil_x = left + label_w + int(bar_area_w * threshold / 100)
-    _boa_rect(slide, seuil_x, top, int(Cm(0.05)), n * bar_h, PPTX_RED)
-
-    # Légende en bas
-    leg_y = top + n * bar_h + int(Cm(0.5))
-    
-    _boa_rect(slide, left + label_w, leg_y, int(Cm(0.3)), int(Cm(0.3)), PPTX_GREEN)
-    tb1 = slide.shapes.add_textbox(left + label_w + int(Cm(0.4)), leg_y - int(Cm(0.1)), int(Cm(4.0)), int(Cm(0.5)))
-    tb1.text_frame.paragraphs[0].text = f"Conforme (≥{threshold:.0f}%)"
-    tb1.text_frame.paragraphs[0].font.size = Pt(8)
-    tb1.text_frame.paragraphs[0].font.color.rgb = PPTX_SLATE
-    
-    _boa_rect(slide, left + label_w + int(Cm(4.5)), leg_y, int(Cm(0.3)), int(Cm(0.3)), PPTX_AMBER)
-    tb2 = slide.shapes.add_textbox(left + label_w + int(Cm(4.9)), leg_y - int(Cm(0.1)), int(Cm(3.0)), int(Cm(0.5)))
-    tb2.text_frame.paragraphs[0].text = "Proche du seuil"
-    tb2.text_frame.paragraphs[0].font.size = Pt(8)
-    tb2.text_frame.paragraphs[0].font.color.rgb = PPTX_SLATE
-
-    _boa_rect(slide, left + label_w + int(Cm(8.0)), leg_y, int(Cm(0.3)), int(Cm(0.3)), PPTX_RED)
-    tb3 = slide.shapes.add_textbox(left + label_w + int(Cm(8.4)), leg_y - int(Cm(0.1)), int(Cm(3.0)), int(Cm(0.5)))
-    tb3.text_frame.paragraphs[0].text = "Sous le seuil"
-    tb3.text_frame.paragraphs[0].font.size = Pt(8)
-    tb3.text_frame.paragraphs[0].font.color.rgb = PPTX_SLATE
+    # Légende seuil
+    ly = top + chart_h + 0.12
+    _bx_legend(slide, ly, threshold)
 
 
-def _boa_table(slide, prs, headers, rows_data, col_widths, source_rows, threshold, rate_key):
-    """Tableau stylisé BOA — en-tête vert BOA #009A56, alternance lignes."""
-    from pptx.util import Cm, Pt
+def _bx_legend(slide, y, threshold):
+    from pptx.enum.text import MSO_ANCHOR
+    items = [(BX_GREEN, f"Conforme (≥ {threshold:.0f}%)"),
+             (BX_AMBER, f"Sous le seuil (< {threshold:.0f}%)")]
+    x = 0.4
+    for col, lab in items:
+        _bx_rect(slide, x, y + 0.04, 0.22, 0.22, col)
+        _bx_text(slide, x + 0.3, y, 2.6, 0.3, lab, 9, BX_MUTED,
+                 anchor=MSO_ANCHOR.MIDDLE)
+        x += 0.32 + 0.022 * len(lab) * 8 / 8 + 1.7
+
+
+def _bx_table(slide, headers, rows_data, col_fracs, source_rows, threshold, rate_key,
+              top=1.5):
+    """Tableau stylé : en-tête vert, alternance de lignes, taux coloré."""
+    from pptx.util import Inches, Pt
     from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-
-    H  = prs.slide_height
-    FH = Cm(0.71)
-
-    _boa_section_separator(slide, prs, "DÉTAIL DES ÉLÉMENTS", 2.0)
 
     n_rows = len(rows_data) + 1
     n_cols = len(headers)
-    total_w = sum(col_widths)
-    left    = (prs.slide_width - total_w) / 2
-    top     = Cm(3.2)
-    max_h   = H - top - FH - Cm(0.3)
-    height  = min(Cm(0.45) * n_rows + Cm(0.3), max_h)
+    total_w = 9.2
+    left = 0.4
+    col_w = [f * total_w for f in col_fracs]
+    head_h = 0.42
+    row_h = min(0.4, (3.6 - head_h) / max(len(rows_data), 1))
+    height = head_h + row_h * len(rows_data)
 
-    tbl = slide.shapes.add_table(n_rows, n_cols, int(left), int(top), int(total_w), int(height)).table
+    tbl = slide.shapes.add_table(n_rows, n_cols, Inches(left), Inches(top),
+                                 Inches(total_w), Inches(height)).table
+    tbl.first_row = False
+    tbl.horz_banding = False
+    for i, w in enumerate(col_w):
+        tbl.columns[i].width = Inches(w)
+    tbl.rows[0].height = Inches(head_h)
+    for i in range(1, n_rows):
+        tbl.rows[i].height = Inches(row_h)
 
-    for i, w in enumerate(col_widths):
-        tbl.columns[i].width = int(w)
-
-    for i, row in enumerate(tbl.rows):
-        row.height = int(Cm(0.55)) if i == 0 else int(Cm(0.45))
-
-    # En-tête vert BOA
+    right_cols = {n_cols - 1, n_cols - 2}
+    # En-tête
     for j, h in enumerate(headers):
-        cell = tbl.cell(0, j)
-        cell.text = h
-        cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-        cell.margin_top = cell.margin_bottom = int(Cm(0.04))
-        cell.margin_left = cell.margin_right = int(Cm(0.08))
-        cell.fill.solid()
-        cell.fill.fore_color.rgb = PPTX_GREEN
-        para = cell.text_frame.paragraphs[0]
-        para.font.bold = True
-        para.font.size = Pt(8)
-        para.font.name = "Calibri"
-        para.font.color.rgb = PPTX_WHITE
-        if j >= len(headers) - 3:
-            para.alignment = PP_ALIGN.RIGHT
-        elif j == 0:
-            para.alignment = PP_ALIGN.CENTER
-        else:
-            para.alignment = PP_ALIGN.LEFT
+        c = tbl.cell(0, j)
+        c.text = h
+        c.vertical_anchor = MSO_ANCHOR.MIDDLE
+        c.margin_top = c.margin_bottom = Inches(0.02)
+        c.margin_left = c.margin_right = Inches(0.07)
+        c.fill.solid(); c.fill.fore_color.rgb = BX_GREEN
+        p = c.text_frame.paragraphs[0]
+        p.font.bold = True; p.font.size = Pt(9); p.font.name = _FONT
+        p.font.color.rgb = BX_WHITE
+        p.alignment = PP_ALIGN.CENTER if j == 0 else (PP_ALIGN.RIGHT if j in right_cols else PP_ALIGN.LEFT)
 
-    # Lignes de données
-    ROW_BG_ALT = RGBColor(0xF5, 0xF5, 0xF5)
-    ROW_BG_RED = RGBColor(0xFF, 0xEB, 0xEB)
-
-    for i, row_vals in enumerate(rows_data, start=1):
-        src   = source_rows[i-1] if i-1 < len(source_rows) else {}
-        rate  = src.get(rate_key)
-        below = src.get("is_below_threshold", False)
-        bg_col = ROW_BG_RED if below else (ROW_BG_ALT if i % 2 == 0 else PPTX_WHITE)
-
-        for j, val in enumerate(row_vals):
-            cell = tbl.cell(i, j)
-            cell.text = str(val)
-            cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-            cell.margin_top = cell.margin_bottom = int(Cm(0.04))
-            cell.margin_left = cell.margin_right = int(Cm(0.08))
-            cell.fill.solid()
-            cell.fill.fore_color.rgb = bg_col
-            para = cell.text_frame.paragraphs[0]
-            para.font.size = Pt(7.5)
-            para.font.name = "Calibri"
-            if j == len(row_vals) - 1:
-                color = _boa_rate_color(rate, threshold)
-                para.font.bold = True
-                para.font.color.rgb = color
-                para.alignment = PP_ALIGN.RIGHT
+    for i, vals in enumerate(rows_data, start=1):
+        src = source_rows[i - 1] if i - 1 < len(source_rows) else {}
+        bg = BX_WHITE if i % 2 else RGBColor(0xF2, 0xF6, 0xFA)
+        for j, val in enumerate(vals):
+            c = tbl.cell(i, j)
+            c.text = str(val)
+            c.vertical_anchor = MSO_ANCHOR.MIDDLE
+            c.margin_top = c.margin_bottom = Inches(0.01)
+            c.margin_left = c.margin_right = Inches(0.07)
+            c.fill.solid(); c.fill.fore_color.rgb = bg
+            p = c.text_frame.paragraphs[0]
+            p.font.size = Pt(8.5); p.font.name = _FONT
+            if j == n_cols - 1:
+                p.font.bold = True
+                p.font.color.rgb = _bx_rate_color(src.get(rate_key), threshold)
+                p.alignment = PP_ALIGN.RIGHT
             else:
-                para.font.color.rgb = PPTX_DARK
-                if j >= len(row_vals) - 3:
-                    para.alignment = PP_ALIGN.RIGHT
-                elif j == 0:
-                    para.alignment = PP_ALIGN.CENTER
-                else:
-                    para.alignment = PP_ALIGN.LEFT
+                p.font.color.rgb = BX_BODY
+                p.alignment = PP_ALIGN.CENTER if j == 0 else (PP_ALIGN.RIGHT if j in right_cols else PP_ALIGN.LEFT)
 
 
+def _bx_end(prs, scope_label, mois_str):
+    from pptx.enum.text import MSO_ANCHOR
+    s = _bx_slide(prs)
+    _bx_rect(s, 0.0, 0.0, 10.0, 5.625, BX_GREEN)
+    _bx_ring(s, 7.9, -1.6, 4.6, 4.6, BX_GREEN_BRT, 2.0)
+    _bx_ring(s, 8.9, 2.0, 2.8, 2.8, BX_GREEN_BRT, 2.0)
+    _bx_logo(s)
+    _bx_text(s, 0.5, 1.7, 7.5, 1.2, "FIN DU DOCUMENT", 44, BX_WHITE, bold=True,
+             anchor=MSO_ANCHOR.MIDDLE)
+    _bx_rect(s, 0.52, 3.05, 6.0, 0.045, BX_WHITE)
+    _bx_text(s, 0.5, 3.25, 7.5, 0.4,
+             f"RAPPORT DE PILOTAGE KYC — {_FOOTER_TXT}", 13, BX_WHITE, bold=True)
+    _bx_text(s, 0.5, 3.85, 7.0, 0.35, mois_str, 11,
+             RGBColor(0xD4, 0xF5, 0xE4), italic=True)

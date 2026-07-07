@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block content %}
 
@@ -22,7 +23,7 @@
                     <svg class="text-white  mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
-                    <h1 class="font-bold">Accueil</h1>
+                    <h1 class="font-bold">{{ "Accueil"|t }}</h1>
                   </a>
 
                     {% if user.organe == "Contrôle Permanent" %}
@@ -31,7 +32,7 @@
                     <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
-                       <h1 class="font-bold">Notation</h1>
+                       <h1 class="font-bold">{{ "Notation"|t }}</h1>
                   </a>
 
                   <a href="/historique" class="font-bold text-white tracking-normal hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
@@ -39,14 +40,14 @@
                     <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
-                    Historique
+                    {{ "Historique"|t }}
                   </a>
                            <a href="{% url 'profil' %}" class="font-bold text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
                     <!-- Heroicon name: outline/users -->
                     <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
-                    Mon profil
+                    {{ "Mon profil"|t }}
                   </a>
                     {% endif %}
 
@@ -57,7 +58,7 @@
                       <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                       </svg>
-                      Mon profil
+                      {{ "Mon profil"|t }}
                     </a>
                     {% endif %}
 
@@ -71,7 +72,7 @@
   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 0 15 0m-15 0a7.5 7.5 0 1 1 15 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077 1.41-.513m14.095-5.13 1.41-.513M5.106 17.785l1.15-.964m11.49-9.642 1.149-.964M7.501 19.795l.75-1.3m7.5-12.99.75-1.3m-6.063 16.658.26-1.477m2.605-14.772.26-1.477m0 17.726-.26-1.477M10.698 4.614l-.26-1.477M16.5 19.794l-.75-1.299M7.5 4.205 12 12m6.894 5.785-1.149-.964M6.256 7.178l-1.15-.964m15.352 8.864-1.41-.513M4.954 9.435l-1.41-.514M12.002 12l-3.75 6.495" />
 </svg>
 
-                                           <h1 class="font-bold">Paramètres</h1>
+                                           <h1 class="font-bold">{{ "Paramètres"|t }}</h1>
 
                   </a>
 
@@ -86,7 +87,7 @@
 
                     <div class="flex flex-col justify-center items-center">
                                   <a href="/logout" class="bg-white hover:bg-red-500 mt-8 block  py-2 px-2 border border-transparent rounded-md text-center font-bold text-cyan-800 tracking-normal  hover:text-gray-200
-                                  focus:outline focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-700 focus:ring-green-700 hover:scale-105 transition transform duration-200"> <h1>Déconnexion</h1></a>
+                                  focus:outline focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-700 focus:ring-green-700 hover:scale-105 transition transform duration-200"> <h1>{{ "Déconnexion"|t }}</h1></a>
                            </div>
                 </nav>
               </div>
@@ -107,20 +108,20 @@
                           <div class="relative items-center justify-center">
                        <br>
                        <div class="shadow-lg flex items-center justify-center">
-                          <span class="text-4xl sm:text-5xl text-gray-500 font-extrabold tracking-tight text-center ">LISTE DES AGENTS.</span>
+                          <span class="text-4xl sm:text-5xl text-gray-500 font-extrabold tracking-tight text-center ">{{ "LISTE DES AGENTS."|t }}</span>
                        </div>
                        <br>
 
                    <div class="flex items-center justify-center">
-                      <span class="text-gray-500 text-2xl text-center font-extrabold tracking-normal ">Pour rechercher un agent, veuillez renseigner son code exploitant.</span>
+                      <span class="text-gray-500 text-2xl text-center font-extrabold tracking-normal ">{{ "Pour rechercher un agent, veuillez renseigner son code exploitant."|t }}</span>
                    </div>
                   <br>
 
- <h2>Rapport de complétude KYC</h2>
+ <h2>{{ "Rapport de complétude KYC"|t }}</h2>
   <table border="1" cellspacing="0" cellpadding="4">
     <thead>
       <tr>
-        <th>Email</th><th>Code</th><th>Filiale</th><th>Complétude</th><th>Date</th>
+        <th>{{ "Email"|t }}</th><th>{{ "Code"|t }}</th><th>{{ "Filiale"|t }}</th><th>{{ "Complétude"|t }}</th><th>{{ "Date"|t }}</th>
       </tr>
     </thead>
     <tbody>
@@ -141,11 +142,11 @@
 
          <form method="GET">
             <div>
-                <input type="text" name="q" placeholder="Code exploitant" value="{{ query }}"
+                <input type="text" name="q" placeholder="{{ 'Code exploitant'|t }}" value="{{ query }}"
                        class="shadow-md text-sm text-gray-base w-30
                               mr-3 py-5 px-4 h-2 border
                               border-green-700 rounded mb-2" />
-            <button type="submit" class="bg-cyan-800 shadow-lg text-white px-4 py-2 rounded shadow">Rechercher</button>
+            <button type="submit" class="bg-cyan-800 shadow-lg text-white px-4 py-2 rounded shadow">{{ "Rechercher"|t }}</button>
         </div>
         </form>
     </div>
@@ -159,13 +160,13 @@
     <table class="min-w-full border-collapse">
       <thead class="bg-cyan-800 text-white">
         <tr>
-         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Filiale</th>
-         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Exploitant</th>
-         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Nom et Prénom</th>
-         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Agence</th>
-         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Email</th>
-         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Note</th>
-         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">Dernière notation</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">{{ "Filiale"|t }}</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">{{ "Exploitant"|t }}</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">{{ "Nom et Prénom"|t }}</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">{{ "Agence"|t }}</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">{{ "Email"|t }}</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">{{ "Note"|t }}</th>
+         <th class="px-6 py-4 text-center text-sm font-bold uppercase tracking-wider">{{ "Dernière notation"|t }}</th>
         </tr>
       </thead>
       <tbody class="bg-white">
@@ -183,7 +184,7 @@
       </tbody>
     </table>
     {% else %}
-    <p class="text-gray-700 mt-4">Aucun exploitant trouvé.</p>
+    <p class="text-gray-700 mt-4">{{ "Aucun exploitant trouvé."|t }}</p>
     {% endif %}
   </div>
 </div>

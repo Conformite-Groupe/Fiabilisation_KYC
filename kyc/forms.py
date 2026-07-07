@@ -62,9 +62,14 @@ class NotationForm(forms.ModelForm):
         }
 
 class DataQualityRuleForm(forms.ModelForm):
-    filiale = forms.MultipleChoiceField(
-        required=True,
-        widget=forms.CheckboxSelectMultiple,
+    # Valeur sentinelle du select "Toutes les filiales" -> stockée en base comme "" (vide).
+    ALL_FILIALES_SENTINEL = '__ALL__'
+
+    filiale = forms.ChoiceField(
+        required=False,
+        label="Filiale concernée",
+        help_text="Une seule filiale (seuils propres au pays) ou « Toutes les filiales ».",
+        widget=forms.Select(attrs={'class': 'block w-full rounded-xl border border-gray-200 p-3 text-sm'}),
     )
 
     class Meta:
@@ -86,22 +91,40 @@ class DataQualityRuleForm(forms.ModelForm):
         self.fields['field_name'].required = False
         self.fields['parameter'].required = False
         self.fields['control_type'].initial = 'composite'
-        self.fields['filiale'].required = True
         if filiale_choices is None:
             from kyc.models import Filiales as ModelFiliales
             filiale_choices = [f[0] for f in ModelFiliales]
-        if filiale_choices is not None:
-            choices = [(filiale, filiale) for filiale in filiale_choices if filiale]
-            current_filiales = self._parse_filiales(getattr(self.instance, 'filiale', '') or '')
-            existing_values = {value for value, _ in choices}
-            for current_filiale in current_filiales:
-                if current_filiale and current_filiale not in existing_values:
-                    choices.append((current_filiale, current_filiale))
-                    existing_values.add(current_filiale)
-            self.fields['filiale'].choices = choices
-            self.fields['filiale'].widget.choices = choices
-            if current_filiales:
-                self.initial['filiale'] = current_filiales
+
+        concrete = [f for f in (filiale_choices or []) if f]
+        raw_current = getattr(self.instance, 'filiale', '') or ''
+        current_filiales = self._parse_filiales(raw_current)
+
+        choices = []
+        # "Toutes les filiales" proposé aux profils gérant plusieurs filiales (Groupe/PASS).
+        # Un utilisateur mono-filiale ne peut créer que pour sa propre filiale.
+        allow_all = len(concrete) != 1
+        if allow_all:
+            choices.append((self.ALL_FILIALES_SENTINEL, 'Toutes les filiales'))
+        for f in concrete:
+            choices.append((f, f))
+
+        existing_values = {value for value, _ in choices}
+        if len(current_filiales) > 1:
+            # Règle multi-filiales héritée : on préserve la valeur combinée telle quelle
+            # (elle reste modifiable vers une filiale unique pour différencier les seuils).
+            label = ", ".join(current_filiales) + "  (multi — à scinder par filiale)"
+            choices.append((raw_current, label))
+            self.initial['filiale'] = raw_current
+        elif len(current_filiales) == 1:
+            cf = current_filiales[0]
+            if cf not in existing_values:
+                choices.append((cf, cf))
+            self.initial['filiale'] = cf
+        else:
+            # Règle sans filiale = toutes ; sinon (mono-filiale) présélection de la filiale.
+            self.initial['filiale'] = self.ALL_FILIALES_SENTINEL if allow_all else (concrete[0] if concrete else '')
+
+        self.fields['filiale'].choices = choices
 
     @staticmethod
     def _parse_filiales(value):
@@ -124,13 +147,22 @@ class DataQualityRuleForm(forms.ModelForm):
         return f"|{'|'.join(cleaned)}|" if cleaned else ''
 
     def clean_filiale(self):
-        return self._serialize_filiales(self.cleaned_data.get('filiale'))
+        value = (self.cleaned_data.get('filiale') or '').strip()
+        # "Toutes les filiales" -> stocké vide (interprété comme global par l'évaluation)
+        if value in ('', self.ALL_FILIALES_SENTINEL):
+            return ''
+        # Valeur combinée héritée (|F1|F2|) préservée si non modifiée
+        if value.startswith('|') and value.endswith('|'):
+            return value
+        # Filiale unique -> |FILIALE|
+        return self._serialize_filiales([value])
 
 class DataQualityConditionForm(forms.ModelForm):
     class Meta:
         model = DataQualityCondition
-        fields = ['field_name', 'operator', 'value']
+        fields = ['logic', 'field_name', 'operator', 'value']
         widgets = {
+            'logic': forms.Select(attrs={'class': 'js-cond-logic block w-full rounded-xl border border-gray-200 p-2 text-xs font-bold'}),
             'field_name': forms.Select(attrs={'class': 'block w-full rounded-xl border border-gray-200 p-2 text-xs'}),
             'operator': forms.Select(attrs={'class': 'block w-full rounded-xl border border-gray-200 p-2 text-xs'}),
             'value': forms.TextInput(attrs={'class': 'block w-full rounded-xl border border-gray-200 p-2 text-xs', 'placeholder': 'Valeur ou champ'}),
@@ -138,9 +170,9 @@ class DataQualityConditionForm(forms.ModelForm):
 
 from django.forms import inlineformset_factory
 DataQualityConditionFormSet = inlineformset_factory(
-    DataQualityRule, DataQualityCondition, 
-    form=DataQualityConditionForm, 
-    fields=['field_name', 'operator', 'value'],
+    DataQualityRule, DataQualityCondition,
+    form=DataQualityConditionForm,
+    fields=['logic', 'field_name', 'operator', 'value'],
     extra=1, can_delete=True
 )
 

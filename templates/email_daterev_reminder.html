@@ -26,47 +26,19 @@
 <body>
 <div class="container">
   <div class="header">
-    <h1>🔔 Rappel — Revue de portefeuille KYC</h1>
-    <p>Plateforme Fiabilisation KYC v3.0 · BOA Group</p>
+    <h1 style="color: #ffffff;">🔔 Rappel — Revue de portefeuille KYC</h1>
   </div>
   <div class="body">
     <p class="greeting">Bonjour {{ nom }},</p>
     <p class="intro">
       Vous êtes chargé(e) de client pour la filiale <strong>{{ filiale }}</strong> (exploitant : <strong>{{ expl }}</strong>).<br>
-      Les clients ci-dessous ont une <strong>date de revue KYC (DATEREV)</strong> dépassée ou arrivant à échéance dans moins de <strong>{{ days_before }} jours</strong>.
+      Les clients se trouvant dans le fichier ci-joint ont une <strong>date de revue KYC (DATEREV)</strong> dépassée ou arrivant à échéance dans moins de <strong>{{ days_before }} jours</strong>.
       Veuillez procéder à la mise à jour du scoring KYC de ces clients.
     </p>
 
     <div class="alert-box">
       ⚠️ {{ clients|length }} client(s) nécessitent une action de votre part.
     </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>N° Client</th>
-          <th>Agence</th>
-          <th>Date de revue</th>
-          <th>Statut</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for c in clients %}
-        <tr>
-          <td><strong>{{ c.client }}</strong></td>
-          <td>{{ c.lib_agence|default:c.agence }}</td>
-          <td>{{ c.daterev|date:"d/m/Y" }}</td>
-          <td>
-            {% if c.statut == "Dépassée" %}
-              <span class="badge-expired">Dépassée</span>
-            {% else %}
-              <span class="badge-soon">{{ c.statut }}</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
   </div>
   <div class="footer">
     <p>Ce message est généré automatiquement par la <strong>Plateforme KYC BOA Group</strong>.<br>

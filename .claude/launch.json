@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "django",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["manage.py", "runserver", "8000"],
+      "port": 8000
+    },
+    {
+      "name": "tailwind",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["manage.py", "tailwind", "start"],
+      "port": 3000
+    }
+  ]
+}

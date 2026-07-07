@@ -45,6 +45,9 @@ OPERATOR_CHOICES = (
     ('>=', 'Supérieur ou égal (>=)'),
     ('<=', 'Inférieur ou égal (<=)'),
     ('contains', 'Contient'),
+    ('not_contains', 'Ne contient pas'),
+    ('contains_alpha', 'Contient des lettres'),
+    ('contains_digit', 'Contient des chiffres'),
     ('regex', 'Expression régulière'),
     ('is_empty', 'Est vide'),
     ('is_not_empty', 'N\'est pas vide'),
@@ -53,6 +56,11 @@ OPERATOR_CHOICES = (
     ('age_lt', 'Âge inférieur à'),
     ('min_length', 'Longueur minimum'),
     ('max_length', 'Longueur maximum'),
+)
+
+LOGIC_CHOICES = (
+    ('AND', 'ET'),
+    ('OR', 'OU'),
 )
 
 PP_FIELD_CHOICES = (
@@ -139,9 +147,16 @@ class DataQualityCondition(models.Model):
     field_name = models.CharField(max_length=100, choices=DATA_QUALITY_FIELD_CHOICES)
     operator = models.CharField(max_length=20, choices=OPERATOR_CHOICES)
     value = models.CharField(max_length=255, blank=True, null=True, help_text="Valeur fixe")
+    logic = models.CharField(
+        max_length=3, choices=LOGIC_CHOICES, default='AND',
+        help_text="Connecteur logique avec la condition précédente (ET / OU). "
+                  "OU démarre un nouveau groupe ; ignoré pour la 1re condition.")
+
+    class Meta:
+        ordering = ['id']
 
     def __str__(self):
-        return f"{self.field_name} {self.operator} {self.value}"
+        return f"{self.logic} {self.field_name} {self.operator} {self.value}"
 
 class DataQualityRuleAudit(models.Model):
     rule_name = models.CharField(max_length=200)
@@ -181,6 +196,9 @@ Filiales = (
 class FilialeModuleConfig(models.Model):
     filiale = models.CharField(max_length=15, choices=Filiales, unique=True, verbose_name="Filiale/Pays")
     screening_kyc_paye_active = models.BooleanField(default=False, verbose_name="Module Screening KYC PAYE actif")
+    daterev_reminder_paye_active = models.BooleanField(
+        default=False, verbose_name="Module Rappels DATEREV PAYE actif",
+        help_text="Si décoché, les chargés de cette filiale ne reçoivent pas les rappels DATEREV automatiques.")
 
     class Meta:
         verbose_name = "Configuration Module Filiale"
@@ -243,11 +261,20 @@ class KycFieldVisibilityConfig(models.Model):
 
 
 class KycDocumentExtraction(models.Model):
+    EXTRACTION_STATUS_CHOICES = (
+        ("pending", "En attente OCR"),
+        ("processing", "OCR en cours"),
+        ("done", "Traite"),
+        ("failed", "Echec OCR"),
+    )
+
     document_type = models.CharField(max_length=30, choices=DOCUMENT_EXTRACTION_TYPE_CHOICES)
     uploaded_file = models.FileField(upload_to='document_extraction/')
     original_filename = models.CharField(max_length=255, blank=True)
     source_filename = models.CharField(max_length=255, blank=True)
     import_batch = models.CharField(max_length=120, blank=True)
+    extraction_status = models.CharField(max_length=20, choices=EXTRACTION_STATUS_CHOICES, default="done", db_index=True)
+    file_hash = models.CharField(max_length=64, blank=True, default="", db_index=True)
     client_type = models.CharField(max_length=10, choices=CLIENT_TYPE_CHOICES, default='pp', verbose_name="Type de client")
     page_number = models.PositiveIntegerField(null=True, blank=True)
     page_range = models.CharField(max_length=30, blank=True)
@@ -288,13 +315,43 @@ class KycDocumentExtraction(models.Model):
         return f"{self.get_document_type_display()} - {reference}"
 
 
+# Champs des modeles KYC pouvant contenir un nom / prenom (equivalence configurable en admin).
+# NB : CLIENT est un numero (identifiant) et ne doit pas servir au rapprochement par nom.
+KYC_PP_NAME_FIELD_CHOICES = (
+    ('INTITULE_COMPTE', "INTITULE_COMPTE (Nom & Prenom)"),
+    ('EMPLOYEUR', "EMPLOYEUR (Employeur)"),
+)
+KYC_PM_NAME_FIELD_CHOICES = (
+    ('INTITULE_COMPTE', "INTITULE_COMPTE (Raison sociale / Denomination)"),
+    ('ACTIONNAIRE', "ACTIONNAIRE (Actionnaire)"),
+    ('MANDATAIRE', "MANDATAIRE (Mandataire)"),
+)
+
+
 class KycDocumentMatchSettings(models.Model):
     name = models.CharField(max_length=80, default="Parametrage standard", unique=True)
-    birth_date_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="Poids date de naissance")
-    document_validity_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="Poids date de validite")
-    birth_place_weight = models.PositiveSmallIntegerField(default=10, validators=[MaxValueValidator(100)], verbose_name="Poids lieu de naissance")
-    nationality_weight = models.PositiveSmallIntegerField(default=20, validators=[MaxValueValidator(100)], verbose_name="Poids nationalite")
+
+    # ── Poids Personnes Physiques (PP) — NUMID (n° identification nationale) = 100 % ──
+    pp_fullname_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="PP · Poids nom & prenom")
+    pp_birth_date_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="PP · Poids date de naissance")
+    pp_birth_place_weight = models.PositiveSmallIntegerField(default=15, validators=[MaxValueValidator(100)], verbose_name="PP · Poids lieu de naissance")
+    pp_birth_country_weight = models.PositiveSmallIntegerField(default=15, validators=[MaxValueValidator(100)], verbose_name="PP · Poids pays de naissance")
+
+    # ── Poids Personnes Morales (PM) — RCSNO (registre commerce) = 100 % ──
+    pm_fullname_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="PM · Poids raison sociale")
+    pm_fiscal_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="PM · Poids numero fiscal")
+    pm_address_weight = models.PositiveSmallIntegerField(default=15, validators=[MaxValueValidator(100)], verbose_name="PM · Poids adresse sociale")
+    pm_country_weight = models.PositiveSmallIntegerField(default=15, validators=[MaxValueValidator(100)], verbose_name="PM · Poids pays de creation (PAYS_JUR)")
+
+    # equivalence nom & prenom / raison sociale du document dans les modeles KYC
+    pp_fullname_field = models.CharField(max_length=50, choices=KYC_PP_NAME_FIELD_CHOICES, default="INTITULE_COMPTE",
+                                         verbose_name="Champ nom & prenom (KYC PP)")
+    pm_fullname_field = models.CharField(max_length=50, choices=KYC_PM_NAME_FIELD_CHOICES, default="INTITULE_COMPTE",
+                                         verbose_name="Champ raison sociale (KYC PM)")
     combination_threshold = models.PositiveSmallIntegerField(default=65, validators=[MaxValueValidator(100)], verbose_name="Seuil de correspondance combinee")
+    min_display_score = models.PositiveSmallIntegerField(default=30, validators=[MaxValueValidator(100)],
+                                                         verbose_name="Score minimum affiche",
+                                                         help_text="Une correspondance dont le score est inferieur n'est pas proposee.")
     active = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -303,11 +360,14 @@ class KycDocumentMatchSettings(models.Model):
         verbose_name_plural = "Parametrage des correspondances KYC ID"
 
     def clean(self):
-        total = self.birth_date_weight + self.document_validity_weight + self.birth_place_weight + self.nationality_weight
-        if total > 100:
-            raise ValidationError(
-                "La somme des poids de correspondance ne doit pas depasser 100."
-            )
+        pp_total = (self.pp_fullname_weight + self.pp_birth_date_weight
+                    + self.pp_birth_place_weight + self.pp_birth_country_weight)
+        pm_total = (self.pm_fullname_weight + self.pm_fiscal_weight
+                    + self.pm_address_weight + self.pm_country_weight)
+        if pp_total > 100:
+            raise ValidationError("La somme des poids PP (nom, naissance, lieu, pays) ne doit pas depasser 100.")
+        if pm_total > 100:
+            raise ValidationError("La somme des poids PM (raison sociale, fiscal, adresse, pays) ne doit pas depasser 100.")
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -323,10 +383,10 @@ class KycDocumentMatchSettings(models.Model):
             return settings
         return cls(
             name="Parametrage standard",
-            birth_date_weight=35,
-            document_validity_weight=35,
-            birth_place_weight=10,
-            nationality_weight=20,
+            pp_fullname_weight=35, pp_birth_date_weight=35,
+            pp_birth_place_weight=15, pp_birth_country_weight=15,
+            pm_fullname_weight=35, pm_fiscal_weight=35,
+            pm_address_weight=15, pm_country_weight=15,
             combination_threshold=65,
             active=True,
         )
@@ -410,6 +470,136 @@ class KycDocumentMatchJob(models.Model):
 
     def __str__(self):
         return f"Rapprochement documents #{self.pk} - {self.get_status_display()}"
+
+
+class KycDocumentOcrJob(models.Model):
+    """File d'attente OCR d'un lot de documents, traitee par la commande
+    `python manage.py process_document_ocr` (cron ou manuelle)."""
+
+    STATUS_CHOICES = (
+        ("pending", "En attente"),
+        ("running", "En cours"),
+        ("completed", "Termine"),
+        ("failed", "Echec"),
+    )
+    MODE_CHOICES = (
+        ("files", "Fichiers individuels"),
+        ("grouped_pdf", "PDF groupe"),
+    )
+
+    import_batch = models.CharField(max_length=120, db_index=True)
+    mode = models.CharField(max_length=20, choices=MODE_CHOICES, default="files")
+    client_type = models.CharField(max_length=10, choices=CLIENT_TYPE_CHOICES, default="pp")
+    document_type = models.CharField(max_length=50, blank=True, default="")
+    pages_per_document = models.PositiveSmallIntegerField(default=1)
+    grouped_source_file = models.CharField(max_length=255, blank=True, default="",
+                                           help_text="Chemin relatif du PDF groupe (mode grouped_pdf).")
+    grouped_original_name = models.CharField(max_length=255, blank=True, default="")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True)
+    progress_current = models.PositiveIntegerField(default=0)
+    progress_total = models.PositiveIntegerField(default=0)
+    done_count = models.PositiveIntegerField(default=0)
+    failed_count = models.PositiveIntegerField(default=0)
+    message = models.CharField(max_length=255, blank=True)
+    error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Job OCR documents KYC"
+        verbose_name_plural = "Jobs OCR documents KYC"
+        indexes = [
+            models.Index(fields=["status", "created_at"]),
+            models.Index(fields=["import_batch"]),
+        ]
+
+    @property
+    def progress_percent(self):
+        if not self.progress_total:
+            return 100 if self.status == "completed" else 0
+        return min(100, int(self.progress_current / self.progress_total * 100))
+
+    def __str__(self):
+        return f"OCR lot {self.import_batch} - {self.get_status_display()}"
+
+
+class KycMatchValidatorRole(models.Model):
+    """Organe (profil) autorise a valider / rejeter les correspondances KYC ID."""
+    from accounts.models import Organe as _ORGANE_CHOICES
+    organe = models.CharField(max_length=50, choices=_ORGANE_CHOICES, unique=True,
+                              verbose_name="Organe autorise")
+    can_validate = models.BooleanField(default=True, verbose_name="Peut valider")
+    can_reject = models.BooleanField(default=True, verbose_name="Peut rejeter")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Profil validateur (correspondances KYC ID)"
+        verbose_name_plural = "Profils validateurs (correspondances KYC ID)"
+        ordering = ["organe"]
+
+    def __str__(self):
+        return self.organe
+
+    @classmethod
+    def user_can_validate(cls, user):
+        if not user or not getattr(user, "is_authenticated", False):
+            return False
+        if user.is_superuser:
+            return True
+        return cls.objects.filter(organe=getattr(user, "organe", ""), can_validate=True).exists()
+
+    @classmethod
+    def user_can_reject(cls, user):
+        if not user or not getattr(user, "is_authenticated", False):
+            return False
+        if user.is_superuser:
+            return True
+        return cls.objects.filter(organe=getattr(user, "organe", ""), can_reject=True).exists()
+
+
+class KycMatchDecision(models.Model):
+    """Decision de validation d'une correspondance document <-> client KYC.
+    Superpose un statut persistant (tracable) sur le resultat de rapprochement."""
+    STATUS_CHOICES = (
+        ("pending", "A valider"),
+        ("validated", "Valide"),
+        ("rejected", "Rejete"),
+    )
+
+    document = models.ForeignKey(KycDocumentExtraction, on_delete=models.CASCADE, related_name="match_decisions")
+    client_type = models.CharField(max_length=10, choices=CLIENT_TYPE_CHOICES, default="pp")
+    client_id = models.PositiveIntegerField(help_text="PK du client Kyc_pp / Kyc_pm concerne.")
+    client_code = models.CharField(max_length=200, blank=True, default="")
+    filiale = models.CharField(max_length=200, blank=True, default="")
+    agence = models.CharField(max_length=200, blank=True, default="")
+    match_rate = models.PositiveSmallIntegerField(default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True)
+    decided_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Decision de correspondance KYC ID"
+        verbose_name_plural = "Decisions de correspondance KYC ID"
+        ordering = ["-updated_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["document", "client_type", "client_id"],
+                                    name="unique_kyc_match_decision"),
+        ]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["client_type", "client_id"]),
+            models.Index(fields=["filiale", "agence"]),
+        ]
+
+    def __str__(self):
+        return f"{self.client_code or self.client_id} - {self.get_status_display()}"
 
 
 
@@ -653,6 +843,11 @@ class EmailReminderConfig(models.Model):
     days_before  = models.IntegerField(default=30, verbose_name='Jours avant expiration', help_text='Inclure les clients dont la DATEREV expire dans ce nombre de jours')
     active       = models.BooleanField(default=True, verbose_name='Actif')
 
+    # ── Supervision : destinataires du rapport quotidien (OK / erreurs) ──
+    notify_emails = models.TextField(
+        blank=True, default='', verbose_name="Emails de supervision (rapport quotidien)",
+        help_text="Destinataires du rapport d'exécution des tâches quotidiennes, séparés par des virgules / points-virgules / sauts de ligne.")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -662,4 +857,87 @@ class EmailReminderConfig(models.Model):
 
     def __str__(self):
         return f"SMTP {self.smtp_host}:{self.smtp_port} — {self.get_frequency_display()}"
+
+
+class AppreciationConfig(models.Model):
+    """Configuration de la campagne d'appréciation globale, propre à chaque filiale
+    (une seule et unique configuration possible par filiale).
+    La date de démarrage détermine le trimestre courant (trimestres écoulés + 1)."""
+    filiale = models.CharField(
+        max_length=50, unique=True, default="", verbose_name="Filiale",
+        help_text="Code de la filiale (ex. « BOA TG »). Une seule configuration possible par filiale.")
+    date_demarrage = models.DateField(
+        verbose_name="Date de démarrage de la campagne",
+        help_text="Le trimestre courant = nombre de trimestres écoulés depuis cette date + 1 (plafonné à 4).")
+    active = models.BooleanField(default=True, verbose_name="Active")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuration Appréciation globale"
+        verbose_name_plural = "Configurations Appréciation globale (par filiale)"
+
+    def __str__(self):
+        return f"{self.filiale} — démarrée le {self.date_demarrage}"
+
+    def trimestre_actuel(self):
+        from kyc.appreciation import current_trimestre
+        return current_trimestre(self.date_demarrage)
+
+
+class Appreciation_globale(models.Model):
+    """Appréciation globale calculée par agent (filiale + exploitant), selon la
+    matrice du script R appreciation_globale.r."""
+    agent = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                              null=True, blank=True, related_name="appreciations")
+    filiale = models.CharField(max_length=50, blank=True)
+    expl = models.CharField(max_length=50, blank=True)
+
+    trimestre = models.IntegerField(default=1)
+    taux_evolution = models.FloatField(null=True, blank=True,
+                                       verbose_name="Taux d'évolution (flux, moy. PP+PM)")
+    taux_qualite = models.FloatField(null=True, blank=True,
+                                     verbose_name="Taux de qualité agent")
+    notation = models.CharField(max_length=20, blank=True,
+                                verbose_name="Notation flux retenue")
+    appreciation_qualite = models.CharField(max_length=30, blank=True)
+    appreciation_globale = models.CharField(max_length=20, blank=True)
+    mesure = models.TextField(blank=True)
+    computed_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Appréciation globale"
+        verbose_name_plural = "Appréciations globales"
+        unique_together = ("filiale", "expl")
+        ordering = ["filiale", "expl"]
+
+    def __str__(self):
+        return f"{self.filiale} - {self.expl} : {self.appreciation_globale or '—'}"
+
+
+class TermTranslation(models.Model):
+    """Glossaire de traduction éditable en admin : équivalence FR -> EN d'un terme.
+    Prioritaire sur le catalogue gettext lors du rendu en anglais."""
+    terme_fr = models.CharField(max_length=300, unique=True, verbose_name="Terme (français)",
+                                help_text="Texte français exact tel qu'affiché (ex. « Taux de complétude »).")
+    terme_en = models.CharField(max_length=300, verbose_name="Équivalence (anglais)")
+    note = models.CharField(max_length=300, blank=True, default='', verbose_name="Note / contexte")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Traduction de terme (glossaire)"
+        verbose_name_plural = "Glossaire des traductions FR → EN"
+        ordering = ['terme_fr']
+
+    def __str__(self):
+        return f"{self.terme_fr} → {self.terme_en}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('term_glossary_en')
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('term_glossary_en')
 

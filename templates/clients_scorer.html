@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% load crispy_forms_tags %}
 {% load tailwind_filters %}
 
@@ -69,7 +70,7 @@
     }
 
     .kyc-wide-table {
-        min-width: 1200px;
+        min-width: 0;
         table-layout: auto;
     }
 
@@ -130,11 +131,11 @@
                 </div>
                 <div>
                     <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                        Revue <span class="text-emerald-500 font-light">Scoring</span>
+                        {{ "Scoring"|t }} <span class="text-emerald-500 font-light">{{ "Clients"|t }}</span>
                     </h1>
                     <div class="flex items-center gap-2 mt-1.5">
                         <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span class="page-header-subtitle">{{ donnees.paginator.count }} dossiers {% if client_type == "pm" %}entreprises{% else %}particuliers{% endif %} a traiter</span>
+                        <span class="page-header-subtitle">{{ donnees.paginator.count }} {% if client_type == "pm" %}{{ "dossiers entreprises à traiter"|t }}{% else %}{{ "dossiers particuliers à traiter"|t }}{% endif %}</span>
                     </div>
                 </div>
             </div>
@@ -143,11 +144,11 @@
                 <div class="p-1 rounded-xl bg-slate-100 flex items-center gap-1 border border-slate-200">
                     <a href="{{ request.path }}?{{ pp_nav_params }}"
                         class="px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all nav-link {% if client_type == 'pp' %}nav-link-active{% else %}text-slate-500 hover:bg-slate-200 hover:text-slate-900{% endif %}">
-                        Particuliers (PP)
+                        {{ "Particuliers (PP)"|t }}
                     </a>
                     <a href="{{ request.path }}?{{ pm_nav_params }}"
                         class="px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all nav-link {% if client_type == 'pm' %}nav-link-active{% else %}text-slate-500 hover:bg-slate-200 hover:text-slate-900{% endif %}">
-                        Entreprises (PM)
+                        {{ "Entreprises (PM)"|t }}
                     </a>
                 </div>
 
@@ -156,7 +157,7 @@
                     <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    Exporter
+                    {{ "Exporter"|t }}
                 </a>
             </div>
         </div>
@@ -172,17 +173,17 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    Echeance
+                    {{ "Echeance"|t }}
                 </label>
                 <div class="relative">
                     <select name="periode" onchange="this.form.submit()"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Toutes periodes</option>
-                        <option value="today" {% if periode == "today" %}selected{% endif %}>Echues</option>
-                        <option value="3m" {% if periode == "3m" %}selected{% endif %}>Dans 3 mois</option>
-                        <option value="6m" {% if periode == "6m" %}selected{% endif %}>Dans 6 mois</option>
-                        <option value="1y" {% if periode == "1y" %}selected{% endif %}>Dans 1 an</option>
-                        <option value="no_date" {% if periode == "no_date" %}selected{% endif %}>Non planifiees</option>
+                        <option value="">{{ "Toutes periodes"|t }}</option>
+                        <option value="today" {% if periode == "today" %}selected{% endif %}>{{ "Echues"|t }}</option>
+                        <option value="3m" {% if periode == "3m" %}selected{% endif %}>{{ "Dans 3 mois"|t }}</option>
+                        <option value="6m" {% if periode == "6m" %}selected{% endif %}>{{ "Dans 6 mois"|t }}</option>
+                        <option value="1y" {% if periode == "1y" %}selected{% endif %}>{{ "Dans 1 an"|t }}</option>
+                        <option value="no_date" {% if periode == "no_date" %}selected{% endif %}>{{ "Non planifiees"|t }}</option>
                     </select>
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -193,13 +194,13 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                    Filiale
+                    {{ "Filiale"|t }}
                 </label>
                 {% if can_pick_filiale %}
                 <div class="relative">
                     <select name="filiale" onchange="this.form.submit()"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Toutes filiales</option>
+                        <option value="">{{ "Toutes filiales"|t }}</option>
                         {% for f in filiales %}<option value="{{ f }}" {% if filiale_param == f %}selected{% endif %}>{{ f }}</option>{% endfor %}
                     </select>
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
@@ -217,13 +218,13 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path></svg>
-                    Agence
+                    {{ "Agence"|t }}
                 </label>
                 {% if can_pick_agence %}
                 <div class="relative">
                     <select name="agence" onchange="this.form.submit()"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Toutes agences</option>
+                        <option value="">{{ "Toutes agences"|t }}</option>
                         {% for a in agences %}<option value="{{ a }}" {% if agence_param == a %}selected{% endif %}>{{ a }}</option>{% endfor %}
                     </select>
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
@@ -241,13 +242,13 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                    Exploitant
+                    {{ "Exploitant"|t }}
                 </label>
                 {% if can_pick_expl %}
                 <div class="relative">
                     <select name="expl" onchange="this.form.submit()"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Tous exploitants</option>
+                        <option value="">{{ "Tous exploitants"|t }}</option>
                         {% for e in exploitants %}<option value="{{ e }}" {% if expl_param == e %}selected{% endif %}>{{ e }}</option>{% endfor %}
                     </select>
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
@@ -265,13 +266,13 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                    Niveau Risque
+                    {{ "Niveau Risque"|t }}
                 </label>
                 <div class="relative">
                     <select name="risque" onchange="this.form.submit()"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Tous les risques</option>
-                        <option value="sans_classe" {% if risque_param == "sans_classe" %}selected{% endif %}>Sans classe</option>
+                        <option value="">{{ "Tous les risques"|t }}</option>
+                        <option value="sans_classe" {% if risque_param == "sans_classe" %}selected{% endif %}>{{ "Sans classe"|t }}</option>
                         {% for risque in risk_options %}
                         <option value="{{ risque }}" {% if risque_param == risque %}selected{% endif %}>{{ risque }}</option>
                         {% endfor %}
@@ -286,12 +287,12 @@
                 <button type="submit" class="group relative flex-1 lg:w-32 h-10 overflow-hidden rounded-xl nav-link-active text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2">
                     <div class="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300 ease-out"></div>
                     <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    <span class="relative z-10">Filtrer</span>
+                    <span class="relative z-10">{{ "Filtrer"|t }}</span>
                 </button>
 
                 <a href="{{ request.path }}" class="group relative flex-1 lg:w-32 h-10 overflow-hidden rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2 text-center">
                    <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                   <span class="relative z-10">Reset</span>
+                   <span class="relative z-10">{{ "Reset"|t }}</span>
                 </a>
             </div>
 
@@ -305,7 +306,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-emerald-600">
-                        Clients Scorés
+                        {{ "Clients Scorés"|t }}
                     </p>
                     <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
                         {{ scorer_scored_count }}
@@ -318,7 +319,7 @@
                 </div>
             </div>
             <div class="mt-1.5 flex items-center justify-between gap-3">
-                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">Total Scorés</p>
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400"></p>
             </div>
         </div>
 
@@ -327,7 +328,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-blue-600">
-                        Taux de Scoring
+                        {{ "Taux de Scoring"|t }}
                     </p>
                     <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
                         {{ scoring_rate|floatformat:1 }}<span class="ml-1 text-sm text-slate-400">%</span>
@@ -340,7 +341,7 @@
                 </div>
             </div>
             <div class="mt-1.5 flex items-center justify-between gap-3">
-                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">Couverture</p>
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400"></p>
             </div>
         </div>
 
@@ -349,7 +350,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-amber-600">
-                        Non Scorés
+                        {{ "Non Scorés"|t }}
                     </p>
                     <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
                         {{ scorer_unscored_count }}
@@ -362,11 +363,11 @@
                 </div>
             </div>
             <div class="mt-1.5 flex items-center justify-between gap-3">
-                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">À traiter</p>
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">{{ "À traiter"|t }}</p>
                 <div class="flex gap-1.5 shrink-0">
                     {% if scorer_unscored_count > 0 %}
                     <a href="?{{ non_scored_modal_params }}" class="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-white shadow-sm transition-all hover:bg-green-700">
-                        Voir
+                        {{ "Voir"|t }}
                     </a>
                     {% endif %}
                 </div>
@@ -378,7 +379,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-red-600">
-                        Non Scorés (Échus)
+                        {{ "Non Scorés (Échus)"|t }}
                     </p>
                     <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
                         {{ overdue_unscored_count }}
@@ -391,11 +392,11 @@
                 </div>
             </div>
             <div class="mt-1.5 flex items-center justify-between gap-3">
-                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">Urgents</p>
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400"></p>
                 <div class="flex gap-1.5 shrink-0">
                     {% if overdue_unscored_count > 0 %}
                     <a href="?{{ overdue_non_scored_modal_params }}" class="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-white shadow-sm transition-all hover:bg-green-700">
-                        Voir
+                        {{ "Voir"|t }}
                     </a>
                     {% endif %}
                 </div>
@@ -407,16 +408,16 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div
             class="px-6 py-3 bg-slate-50/50 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Page <span
+            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ "Page"|t }} <span
                     class="text-slate-900">{{ donnees.number }}</span> sur {{ donnees.paginator.num_pages }}</span>
             <div class="flex items-center gap-2">
                 {% if donnees.has_previous %}
                 <a href="?page={{ donnees.previous_page_number }}{% if get_params %}&{{ get_params }}{% endif %}"
-                    class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black text-slate-600 hover:bg-green-700 hover:text-white transition-all shadow-sm">PRECEDENT</a>
+                    class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black text-slate-600 hover:bg-green-700 hover:text-white transition-all shadow-sm">{{ "PRECEDENT"|t }}</a>
                 {% endif %}
                 {% if donnees.has_next %}
                 <a href="?page={{ donnees.next_page_number }}{% if get_params %}&{{ get_params }}{% endif %}"
-                    class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black text-slate-600 hover:bg-green-700 hover:text-white transition-all shadow-sm">SUIVANT</a>
+                    class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black text-slate-600 hover:bg-green-700 hover:text-white transition-all shadow-sm">{{ "SUIVANT"|t }}</a>
                 {% endif %}
             </div>
         </div>
@@ -428,61 +429,61 @@
                     <tr class="sticky top-0 z-50">
                         <th
                             class="px-1 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">
-                            Agence</th>
+                            {{ "Agence"|t }}</th>
                         <th
                             class="px-1 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">
-                            Lib. agence</th>
+                            {{ "Lib. agence"|t }}</th>
                         <th
                             class="px-1 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">
-                            Exploitant</th>
+                            {{ "Exploitant"|t }}</th>
                         <th
-                            class="px-1 py-2 text-center font-black text-white uppercase tracking-widest sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[130px] border-b border-green-900">
-                            Client</th>
-                        <th
-                            class="px-1 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">
-                            Prochaine date revue (DATEREV)</th>
+                            class="px-1 py-2 text-center font-black text-white uppercase tracking-widest sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[92px] border-b border-green-900">
+                            {{ "Client"|t }}</th>
                         <th
                             class="px-1 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">
-                            PPE</th>
+                            {{ "Prochaine date revue (DATEREV)"|t }}</th>
                         <th
                             class="px-1 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">
-                            Risque</th>
+                            {{ "PPE"|t }}</th>
+                        <th
+                            class="px-1 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">
+                            {{ "Risque"|t }}</th>
                     </tr>
                     <tr class="bg-slate-900/90">
                         <th class="px-1 py-2 bg-slate-900">
                             <input form="filterForm" name="col_agence" value="{{ request.GET.col_agence|default:'' }}"
-                                placeholder="Filtre"
-                                class="w-full min-w-[90px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+                                placeholder="{{ 'Filtre'|t }}"
+                                class="w-full min-w-[56px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
                         </th>
                         <th class="px-1 py-2 bg-slate-900">
                             <input form="filterForm" name="col_lib_agence"
-                                value="{{ request.GET.col_lib_agence|default:'' }}" placeholder="Filtre"
-                                class="w-full min-w-[90px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+                                value="{{ request.GET.col_lib_agence|default:'' }}" placeholder="{{ 'Filtre'|t }}"
+                                class="w-full min-w-[56px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
                         </th>
                         <th class="px-1 py-2 bg-slate-900">
                             <input form="filterForm" name="col_expl" value="{{ request.GET.col_expl|default:'' }}"
-                                placeholder="Filtre"
-                                class="w-full min-w-[90px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+                                placeholder="{{ 'Filtre'|t }}"
+                                class="w-full min-w-[56px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
                         </th>
                         <th class="px-1 py-2 bg-green-900/80 sticky left-0 z-[60]">
                             <input form="filterForm" name="col_client" value="{{ request.GET.col_client|default:'' }}"
-                                placeholder="Filtre"
-                                class="w-full min-w-[90px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+                                placeholder="{{ 'Filtre'|t }}"
+                                class="w-full min-w-[56px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
                         </th>
                         <th class="px-1 py-2 bg-slate-900">
                             <input form="filterForm" name="col_daterev" value="{{ request.GET.col_daterev|default:'' }}"
-                                placeholder="Filtre"
-                                class="w-full min-w-[90px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+                                placeholder="{{ 'Filtre'|t }}"
+                                class="w-full min-w-[56px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
                         </th>
                         <th class="px-1 py-2 bg-slate-900">
                             <input form="filterForm" name="col_ppe" value="{{ request.GET.col_ppe|default:'' }}"
-                                placeholder="Filtre"
-                                class="w-full min-w-[90px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+                                placeholder="{{ 'Filtre'|t }}"
+                                class="w-full min-w-[56px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
                         </th>
                         <th class="px-1 py-2 bg-slate-900">
                             <input form="filterForm" name="col_risque" value="{{ request.GET.col_risque|default:'' }}"
-                                placeholder="Filtre"
-                                class="w-full min-w-[90px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+                                placeholder="{{ 'Filtre'|t }}"
+                                class="w-full min-w-[56px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
                         </th>
                     </tr>
                 </thead>
@@ -505,7 +506,7 @@
                             {% if item.RISQUE %}
                             <span class="rounded-xl bg-emerald-50 px-2.5 py-1 text-[9px] font-black uppercase text-emerald-700">{{ item.RISQUE }}</span>
                             {% else %}
-                            <span class="rounded-xl bg-orange-50 px-2.5 py-1 text-[9px] font-black uppercase text-orange-700">Sans classe</span>
+                            <span class="rounded-xl bg-orange-50 px-2.5 py-1 text-[9px] font-black uppercase text-orange-700">{{ "Sans classe"|t }}</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -515,7 +516,7 @@
         </div>
 
         <div class="px-4 py-2 bg-slate-50 border-t border-gray-100 text-[8px] font-bold text-slate-400 uppercase">
-            (*) Date de la prochaine revue de conformite.
+            {{ "(*) Date de la prochaine revue de conformite."|t }}
         </div>
     </div>
     {% else %}
@@ -527,7 +528,7 @@
                     d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
         </div>
-        <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Aucun resultat pour ces criteres</h3>
+        <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">{{ "Aucun resultat pour ces criteres"|t }}</h3>
     </div>
     {% endif %}
 </div>
@@ -540,22 +541,21 @@
             class="flex flex-col gap-3 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <p class="text-[10px] font-black uppercase tracking-[0.25em] text-red-300">
-                    Clients non scores {% if is_overdue_modal %}(Échus){% endif %}
+                    {{ "Clients non scores"|t }} {% if is_overdue_modal %}({{ "Échus"|t }}){% endif %}
                 </p>
                 <h3 class="mt-1 text-lg font-black text-white">
-                    {{ non_scored_page.paginator.count }} client{{ non_scored_page.paginator.count|pluralize }} sans
-                    classe de risque
+                    {{ non_scored_page.paginator.count }} {{ "client"|t }}{{ non_scored_page.paginator.count|pluralize }} {{ "sans classe de risque"|t }}
                 </h3>
 
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <a href="{% url 'export_csv_scoring_clients' %}?{{ non_scored_export_params }}"
                     class="inline-flex h-9 items-center rounded-xl bg-emerald-600 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700">
-                    Exporter
+                    {{ "Exporter"|t }}
                 </a>
                 <a href="{{ request.path }}{% if non_scored_close_params %}?{{ non_scored_close_params }}{% endif %}"
                     class="inline-flex h-9 items-center rounded-xl border border-white/15 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 hover:bg-slate-100">
-                    Fermer
+                    {{ "Fermer"|t }}
                 </a>
             </div>
         </div>
@@ -566,21 +566,21 @@
                     <thead>
                         <tr class="bg-slate-900 text-white">
                             <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
-                                Filiale</th>
+                                {{ "Filiale"|t }}</th>
                             <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
-                                Agence</th>
+                                {{ "Agence"|t }}</th>
                             <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
-                                Lib. agence</th>
+                                {{ "Lib. agence"|t }}</th>
                             <th class="sticky top-0 z-30 bg-green-800 px-4 py-3 font-black uppercase tracking-widest">
-                                Client</th>
+                                {{ "Client"|t }}</th>
                             <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
-                                Exploitant</th>
+                                {{ "Exploitant"|t }}</th>
                             <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
-                                Prochaine date revue</th>
+                                {{ "Prochaine date revue"|t }}</th>
                             <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
-                                PPE</th>
+                                {{ "PPE"|t }}</th>
                             <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
-                                Risque</th>
+                                {{ "Risque"|t }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -599,15 +599,14 @@
                             <td class="border-b border-slate-100 px-4 py-3 text-center font-bold text-slate-500">{{ item.PPE|default:"-" }}</td>
                             <td class="border-b border-slate-100 px-4 py-3 text-center">
                                 <span
-                                    class="rounded-xl bg-orange-50 px-2.5 py-1 text-[9px] font-black uppercase text-orange-700">Sans
-                                    classe</span>
+                                    class="rounded-xl bg-orange-50 px-2.5 py-1 text-[9px] font-black uppercase text-orange-700">{{ "Sans classe"|t }}</span>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
                             <td colspan="8"
                                 class="px-4 py-12 text-center text-[11px] font-black uppercase tracking-widest text-slate-300">
-                                Aucun client non score pour ce perimetre.
+                                {{ "Aucun client non score pour ce perimetre."|t }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -624,17 +623,17 @@
             <div class="flex items-center gap-2">
                 {% if non_scored_page.has_previous %}
                 <a href="?{% if non_scored_pagination_params %}{{ non_scored_pagination_params }}&{% endif %}non_scored_page={{ non_scored_page.previous_page_number }}"
-                    class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 hover:bg-emerald-50">Precedent</a>
+                    class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 hover:bg-emerald-50">{{ "Precedent"|t }}</a>
                 {% else %}
                 <span
-                    class="rounded-xl border border-slate-100 bg-slate-100 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-300">Precedent</span>
+                    class="rounded-xl border border-slate-100 bg-slate-100 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-300">{{ "Precedent"|t }}</span>
                 {% endif %}
                 {% if non_scored_page.has_next %}
                 <a href="?{% if non_scored_pagination_params %}{{ non_scored_pagination_params }}&{% endif %}non_scored_page={{ non_scored_page.next_page_number }}"
-                    class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 hover:bg-emerald-50">Suivant</a>
+                    class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 hover:bg-emerald-50">{{ "Suivant"|t }}</a>
                 {% else %}
                 <span
-                    class="rounded-xl border border-slate-100 bg-slate-100 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-300">Suivant</span>
+                    class="rounded-xl border border-slate-100 bg-slate-100 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-300">{{ "Suivant"|t }}</span>
                 {% endif %}
             </div>
         </div>

@@ -20,12 +20,14 @@ except Exception:
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Fiabilisation_kyc.settings")
 django.setup()
 
-from kyc.models import Kyc_pm, Kyc_pp
+from kyc.models import Kyc_pm, Kyc_pp, Filiales as FILIALES_CHOICES
 
 
 # --- 1. CONFIGURATION ---
 BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_DATA_DIR = r"C:/Users/mamsylla/OneDrive - BANK OF AFRICA/Documents/Projets/2025/Plateforme notatio kyc v2/data"
+DEFAULT_DATA_DIR = r"C:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2025\Plateforme notatio kyc v2\data"
+
+
 
 STRICT_FIELD_LIMIT = int(os.environ.get("KYC_FIELD_LIMIT", "131072"))
 csv.field_size_limit(STRICT_FIELD_LIMIT)
@@ -38,8 +40,17 @@ IMPORT_METHOD = os.environ.get("KYC_IMPORT_METHOD", "auto").strip().lower()
 
 
 def build_filiales_codes():
-    raw = os.environ.get("KYC_FILIALES", "SN")
-    return [part.strip() for part in raw.replace(";", ",").split(",") if part.strip()]
+    # priorité à la variable d'environnement
+    override = os.environ.get("KYC_FILIALES")
+    if override:
+        return [part.strip() for part in override.replace(";", ",").split(",") if part.strip()]
+
+    # sinon, dérive les codes depuis les choix Filiales de kyc.models
+    codes = []
+    for val, _ in FILIALES_CHOICES:
+        if val.startswith("BOA "):
+            codes.append(val.replace("BOA ", "").strip())
+    return codes
 
 
 FILIALES = build_filiales_codes()

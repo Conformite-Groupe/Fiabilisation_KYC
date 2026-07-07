@@ -15,10 +15,10 @@
             </div>
             <div>
                 <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                    Pilotage <span class="text-emerald-500 font-light">KYC</span>
+                    {{ "Pilotage"|t }} <span class="text-emerald-500 font-light">KYC</span>
                 </h1>
                 <p class="mt-2 text-[10px] font-bold uppercase tracking-[0.35em] text-slate-400">
-                    Rapports de Complétude &amp; Qualité — PDF &amp; PPTX
+                    {{ "Rapports de Complétude &amp; Qualité — PDF &amp; PPTX"|t }}
                 </p>
             </div>
         </div>
@@ -27,7 +27,7 @@
             <button type="button" onclick="applyReportConfig('excel')"
                 class="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-700 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800 transition-all shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                Excel
+                {{ "Excel"|t }}
             </button>
             <button type="button" onclick="applyReportConfig('pdf')"
                 class="inline-flex h-10 items-center gap-2 rounded-xl bg-red-600 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-700 transition-all shadow-sm">
@@ -37,7 +37,7 @@
             <button type="button" onclick="applyReportConfig('pptx')"
                 class="inline-flex h-10 items-center gap-2 rounded-xl bg-red-500 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-amber-600 transition-all shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                PPTX
+                {{ "PPTX"|t }}
             </button>
         </div>
     </header>
@@ -49,15 +49,15 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    Type de rapport
+                    {{ "Type de rapport"|t }}
                 </label>
                 <div class="relative">
                     <select name="scope" id="scopeSelect"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer"
                         onchange="handleScopeChange(this.value)">
-                        <option value="filiale" {% if scope == "filiale" %}selected{% endif %}>Rapport Filiale</option>
+                        <option value="filiale" {% if scope == "filiale" %}selected{% endif %}>Rapport {{ "Filiale"|t }}</option>
                         {% if can_group %}
-                        <option value="groupe" {% if scope == "groupe" %}selected{% endif %}>Rapport Groupe</option>
+                        <option value="groupe" {% if scope == "groupe" %}selected{% endif %}>{{ "Rapport Groupe"|t }}</option>
                         {% endif %}
                     </select>
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
@@ -69,7 +69,7 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600" id="filialeLabel">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                    Filiale
+                    {{ "Filiale"|t }}
                 </label>
                 <div class="relative">
                     <select name="filiale" id="filialeSelect"
@@ -88,7 +88,7 @@
             <div class="w-full md:w-32 lg:w-40 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                    Seuil (%)
+                    {{ "Seuil (%)"|t }}
                 </label>
                 <input type="number" min="0" max="100" step="0.1" name="threshold" id="thresholdInput" value="{{ threshold|floatformat:1 }}"
                     class="block w-full pl-4 pr-3 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300">
@@ -98,7 +98,7 @@
                 <button type="submit" class="group relative w-32 h-10 overflow-hidden rounded-xl nav-link-active text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2">
                     <div class="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300 ease-out"></div>
                     <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                    <span class="relative z-10">Actualiser</span>
+                    <span class="relative z-10">{{ "Actualiser"|t }}</span>
                 </button>
             </div>
         </div>
@@ -106,7 +106,7 @@
         {% if scope == "groupe" %}
         <div class="mt-3 flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
             <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <p class="text-[10px] font-bold text-emerald-700">Mode Groupe actif — Les indicateurs agrègent toutes les filiales autorisées</p>
+            <p class="text-[10px] font-bold text-emerald-700">{{ "Mode Groupe actif — Les indicateurs agrègent toutes les filiales autorisées"|t }}</p>
         </div>
         {% endif %}
     </form>
@@ -120,17 +120,17 @@
                 <button type="button" @click="activeTab = 'completeness'"
                     :class="activeTab === 'completeness' ? 'bg-gradient-to-r from-emerald-700 to-emerald-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'"
                     class="px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider flex items-center gap-2">
-                    Complétude
+                    {{ "Complétude"|t }}
                 </button>
                 <button type="button" @click="activeTab = 'quality'"
                     :class="activeTab === 'quality' ? 'bg-gradient-to-r from-emerald-700 to-emerald-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'"
                     class="px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider flex items-center gap-2">
-                    Qualité
+                    {{ "Qualité"|t }}
                 </button>
                 <button type="button" @click="activeTab = 'notation'"
                     :class="activeTab === 'notation' ? 'bg-gradient-to-r from-emerald-700 to-emerald-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'"
                     class="px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider flex items-center gap-2">
-                    Notation
+                    {{ "Notation"|t }}
                 </button>
             </div>
         </div>
@@ -147,12 +147,12 @@
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-3 bg-slate-950 flex items-center gap-3">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-300">Complétude des Données</p>
+                    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-300">{{ "Complétude des Données"|t }}</p>
                 </div>
                 <div class="grid grid-cols-3 divide-x divide-slate-100 p-0">
                     <!-- Global -->
                     <div class="p-5 text-center">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Global</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Global"|t }}</p>
                         <p class="text-4xl font-black {% if summary.completeness_rate is not None and summary.completeness_rate < threshold %}text-red-600{% else %}text-slate-900{% endif %}">
                             {% if summary.completeness_rate or summary.completeness_rate == 0 %}{{ summary.completeness_rate|floatformat:1 }}<span class="text-base text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
@@ -162,7 +162,7 @@
                     </div>
                     <!-- PP -->
                     <div class="p-5 text-center {% if summary.completeness_rate_pp is not None and summary.completeness_rate_pp < threshold %}bg-red-50{% endif %}">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">PP — Particuliers</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PP — Particuliers"|t }}</p>
                         <p class="text-3xl font-black {% if summary.completeness_rate_pp is not None and summary.completeness_rate_pp < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
                             {% if summary.completeness_rate_pp or summary.completeness_rate_pp == 0 %}{{ summary.completeness_rate_pp|floatformat:1 }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
@@ -172,7 +172,7 @@
                     </div>
                     <!-- PM -->
                     <div class="p-5 text-center {% if summary.completeness_rate_pm is not None and summary.completeness_rate_pm < threshold %}bg-red-50{% endif %}">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">PM — Entreprises</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PM — Entreprises"|t }}</p>
                         <p class="text-3xl font-black {% if summary.completeness_rate_pm is not None and summary.completeness_rate_pm < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
                             {% if summary.completeness_rate_pm or summary.completeness_rate_pm == 0 %}{{ summary.completeness_rate_pm|floatformat:1 }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
@@ -195,8 +195,8 @@
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
                         <div>
-                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300">Complétude PP</p>
-                            <h2 class="text-sm font-black text-white">Taux par champ — Particuliers</h2>
+                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300">{{ "Complétude PP"|t }}</p>
+                            <h2 class="text-sm font-black text-white">{{ "Taux par champ — Particuliers"|t }}</h2>
                         </div>
                         <span class="text-[9px] text-slate-400 font-black uppercase">Seuil {{ threshold|floatformat:1 }}%</span>
                     </div>
@@ -204,16 +204,16 @@
                         <canvas id="chartCompletenesspp"></canvas>
                     </div>
                     <div class="px-4 pb-3 flex items-center gap-4 text-[9px] font-bold uppercase tracking-widest">
-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-emerald-500 inline-block"></span> Conforme</span>
-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500 inline-block"></span> Sous seuil</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-emerald-500 inline-block"></span> {{ "Conforme"|t }}</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500 inline-block"></span> {{ "Sous seuil"|t }}</span>
                     </div>
                 </div>
                 <!-- Graphique Complétude PM -->
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
                         <div>
-                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-amber-300">Complétude PM</p>
-                            <h2 class="text-sm font-black text-white">Taux par champ — Entreprises</h2>
+                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-amber-300">{{ "Complétude PM"|t }}</p>
+                            <h2 class="text-sm font-black text-white">{{ "Taux par champ — Entreprises"|t }}</h2>
                         </div>
                         <span class="text-[9px] text-slate-400 font-black uppercase">Seuil {{ threshold|floatformat:1 }}%</span>
                     </div>
@@ -221,8 +221,8 @@
                         <canvas id="chartCompletenesspm"></canvas>
                     </div>
                     <div class="px-4 pb-3 flex items-center gap-4 text-[9px] font-bold uppercase tracking-widest">
-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500 inline-block"></span> Conforme</span>
-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500 inline-block"></span> Sous seuil</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500 inline-block"></span> {{ "Conforme"|t }}</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500 inline-block"></span> {{ "Sous seuil"|t }}</span>
                     </div>
                 </div>
             </section>
@@ -231,21 +231,21 @@
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" x-data="{ open: false }">
                 <div class="px-5 py-4 bg-gradient-to-r from-slate-900 to-emerald-900 flex items-center justify-between cursor-pointer" @click="open = !open">
                     <div>
-                        <p class="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300">Configuration</p>
-                        <h2 class="text-sm font-black text-white">⚙ Sélection des champs de complétude pour le rapport PDF / PPTX</h2>
+                        <p class="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300">{{ "Configuration"|t }}</p>
+                        <h2 class="text-sm font-black text-white">{{ "⚙ Sélection des champs de complétude pour le rapport PDF / PPTX"|t }}</h2>
                     </div>
                     <svg class="w-5 h-5 text-emerald-300 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
                 <div x-show="open" x-transition style="display:none;">
                     <div class="p-5 border-b border-slate-100">
                         <div class="flex items-center justify-between mb-3">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-600">Champs de Complétude à inclure <span class="ml-2 font-normal text-slate-400 normal-case">(tous si aucun sélectionné)</span></p>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-600">{{ "Champs de Complétude à inclure"|t }} <span class="ml-2 font-normal text-slate-400 normal-case">{{ "(tous si aucun sélectionné)"|t }}</span></p>
                             <div class="flex gap-3">
-                                <button type="button" onclick="selectAllFields()" class="text-[9px] font-black uppercase tracking-widest text-emerald-700 hover:underline">Tout ✓</button>
-                                <button type="button" onclick="deselectAllFields()" class="text-[9px] font-black uppercase tracking-widest text-red-600 hover:underline">Aucun ✗</button>
+                                <button type="button" onclick="selectAllFields()" class="text-[9px] font-black uppercase tracking-widest text-emerald-700 hover:underline">{{ "Tout ✓"|t }}</button>
+                                <button type="button" onclick="deselectAllFields()" class="text-[9px] font-black uppercase tracking-widest text-red-600 hover:underline">{{ "Aucun ✗"|t }}</button>
                             </div>
                         </div>
-                        <p class="text-[9px] font-black uppercase tracking-widest text-emerald-600 mb-2">Particuliers (PP)</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-emerald-600 mb-2">{{ "Particuliers (PP)"|t }}</p>
                         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-1.5 mb-4">
                             {% for field_name, field_label in pp_active_fields %}
                             <label class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-100 hover:bg-emerald-50 cursor-pointer transition-all group">
@@ -254,7 +254,7 @@
                             </label>
                             {% endfor %}
                         </div>
-                        <p class="text-[9px] font-black uppercase tracking-widest text-amber-600 mb-2">Entreprises (PM)</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-amber-600 mb-2">{{ "Entreprises (PM)"|t }}</p>
                         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-1.5">
                             {% for field_name, field_label in pm_active_fields %}
                             <label class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-100 hover:bg-amber-50 cursor-pointer transition-all group">
@@ -265,9 +265,9 @@
                         </div>
                     </div>
                     <div class="px-5 py-4 bg-slate-50 flex gap-3 flex-wrap">
-                        <button type="button" onclick="applyReportConfig('pdf')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-600 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-700 transition-all shadow">📊 Générer PDF</button>
-                        <button type="button" onclick="applyReportConfig('pptx')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-500 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-amber-600 transition-all shadow">💻 Générer PPTX</button>
-                        <button type="button" onclick="applyReportConfig('excel')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-emerald-700 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800 transition-all shadow">📈 Générer Excel</button>
+                        <button type="button" onclick="applyReportConfig('pdf')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-600 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-700 transition-all shadow">{{ "📊 Générer PDF"|t }}</button>
+                        <button type="button" onclick="applyReportConfig('pptx')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-500 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-amber-600 transition-all shadow">{{ "💻 Générer PPTX"|t }}</button>
+                        <button type="button" onclick="applyReportConfig('excel')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-emerald-700 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800 transition-all shadow">{{ "📈 Générer Excel"|t }}</button>
                     </div>
                 </div>
             </section>
@@ -276,7 +276,7 @@
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-4 bg-slate-950 text-white flex items-center justify-between">
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-300">Détails Complétude</p>
+                        <p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-300">{{ "Détails Complétude"|t }}</p>
                         <h2 class="text-base font-black">Champs avec taux &lt; {{ threshold|floatformat:1 }}%</h2>
                     </div>
                     <div class="flex gap-3 items-center">
@@ -288,13 +288,13 @@
                     <table class="w-full text-xs">
                         <thead>
                             <tr class="bg-slate-50">
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Type</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Périmètre</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Champ</th>
-                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">Total</th>
-                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">Incomplets</th>
-                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">Taux</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Progression</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Type"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Périmètre"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Champ"|t }}</th>
+                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Total"|t }}</th>
+                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Incomplets"|t }}</th>
+                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Taux"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Progression"|t }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -320,7 +320,7 @@
                             <tr><td colspan="7" class="px-4 py-10 text-center">
                                 <div class="flex flex-col items-center gap-2">
                                     <svg class="w-10 h-10 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Aucun champ sous le seuil</p>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ "Aucun champ sous le seuil"|t }}</p>
                                 </div>
                             </td></tr>
                             {% endfor %}
@@ -343,12 +343,12 @@
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-3 bg-slate-950 flex items-center gap-3">
                     <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-amber-300">Qualité des Données</p>
+                    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-amber-300">{{ "Qualité des Données"|t }}</p>
                 </div>
                 <div class="grid grid-cols-3 divide-x divide-slate-100 p-0">
                     <!-- Global -->
                     <div class="p-5 text-center">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Global</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Global"|t }}</p>
                         <p class="text-4xl font-black {% if summary.quality_rate is not None and summary.quality_rate < threshold %}text-red-600{% else %}text-slate-900{% endif %}">
                             {% if summary.quality_rate or summary.quality_rate == 0 %}{{ summary.quality_rate|floatformat:1 }}<span class="text-base text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
@@ -358,7 +358,7 @@
                     </div>
                     <!-- PP -->
                     <div class="p-5 text-center {% if summary.quality_rate_pp is not None and summary.quality_rate_pp < threshold %}bg-red-50{% endif %}">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">PP — Particuliers</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PP — Particuliers"|t }}</p>
                         <p class="text-3xl font-black {% if summary.quality_rate_pp is not None and summary.quality_rate_pp < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
                             {% if summary.quality_rate_pp or summary.quality_rate_pp == 0 %}{{ summary.quality_rate_pp|floatformat:1 }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
@@ -368,7 +368,7 @@
                     </div>
                     <!-- PM -->
                     <div class="p-5 text-center {% if summary.quality_rate_pm is not None and summary.quality_rate_pm < threshold %}bg-red-50{% endif %}">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">PM — Entreprises</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PM — Entreprises"|t }}</p>
                         <p class="text-3xl font-black {% if summary.quality_rate_pm is not None and summary.quality_rate_pm < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
                             {% if summary.quality_rate_pm or summary.quality_rate_pm == 0 %}{{ summary.quality_rate_pm|floatformat:1 }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
@@ -391,8 +391,8 @@
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
                         <div>
-                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300">Qualité PP</p>
-                            <h2 class="text-sm font-black text-white">Conformité par règle — Particuliers</h2>
+                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300">{{ "Qualité PP"|t }}</p>
+                            <h2 class="text-sm font-black text-white">{{ "Conformité par règle — Particuliers"|t }}</h2>
                         </div>
                     </div>
                     <div class="p-4" style="height: 300px; position: relative;">
@@ -403,8 +403,8 @@
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
                         <div>
-                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-amber-300">Qualité PM</p>
-                            <h2 class="text-sm font-black text-white">Conformité par règle — Entreprises</h2>
+                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-amber-300">{{ "Qualité PM"|t }}</p>
+                            <h2 class="text-sm font-black text-white">{{ "Conformité par règle — Entreprises"|t }}</h2>
                         </div>
                     </div>
                     <div class="p-4" style="height: 300px; position: relative;">
@@ -417,18 +417,18 @@
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" x-data="{ open: false }">
                 <div class="px-5 py-4 bg-gradient-to-r from-slate-900 to-amber-950 flex items-center justify-between cursor-pointer" @click="open = !open">
                     <div>
-                        <p class="text-[9px] font-black uppercase tracking-[0.25em] text-amber-300">Configuration</p>
-                        <h2 class="text-sm font-black text-white">⚙ Sélection des règles de qualité pour le rapport PDF / PPTX</h2>
+                        <p class="text-[9px] font-black uppercase tracking-[0.25em] text-amber-300">{{ "Configuration"|t }}</p>
+                        <h2 class="text-sm font-black text-white">{{ "⚙ Sélection des règles de qualité pour le rapport PDF / PPTX"|t }}</h2>
                     </div>
                     <svg class="w-5 h-5 text-amber-300 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
                 <div x-show="open" x-transition style="display:none;">
                     <div class="p-5 border-b border-slate-100">
                         <div class="flex items-center justify-between mb-3">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-600">Règles Qualité à inclure <span class="ml-2 font-normal text-slate-400 normal-case">(toutes si aucune sélectionnée)</span></p>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-600">{{ "Règles Qualité à inclure"|t }} <span class="ml-2 font-normal text-slate-400 normal-case">{{ "(toutes si aucune sélectionnée)"|t }}</span></p>
                             <div class="flex gap-3">
-                                <button type="button" onclick="selectAllRules()" class="text-[9px] font-black uppercase tracking-widest text-emerald-700 hover:underline">Tout ✓</button>
-                                <button type="button" onclick="deselectAllRules()" class="text-[9px] font-black uppercase tracking-widest text-red-600 hover:underline">Aucun ✗</button>
+                                <button type="button" onclick="selectAllRules()" class="text-[9px] font-black uppercase tracking-widest text-emerald-700 hover:underline">{{ "Tout ✓"|t }}</button>
+                                <button type="button" onclick="deselectAllRules()" class="text-[9px] font-black uppercase tracking-widest text-red-600 hover:underline">{{ "Aucun ✗"|t }}</button>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -439,14 +439,14 @@
                                 <span class="text-[10px] font-bold text-slate-600 group-hover:text-slate-900 truncate">{{ rule.name }}</span>
                             </label>
                             {% empty %}
-                            <p class="text-[10px] text-slate-400 col-span-3">Aucune règle qualité disponible.</p>
+                            <p class="text-[10px] text-slate-400 col-span-3">{{ "Aucune règle qualité disponible."|t }}</p>
                             {% endfor %}
                         </div>
                     </div>
                     <div class="px-5 py-4 bg-slate-50 flex gap-3 flex-wrap">
-                        <button type="button" onclick="applyReportConfig('pdf')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-600 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-700 transition-all shadow">📊 Générer PDF</button>
-                        <button type="button" onclick="applyReportConfig('pptx')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-500 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-amber-600 transition-all shadow">💻 Générer PPTX</button>
-                        <button type="button" onclick="applyReportConfig('excel')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-emerald-700 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800 transition-all shadow">📈 Générer Excel</button>
+                        <button type="button" onclick="applyReportConfig('pdf')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-600 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-700 transition-all shadow">{{ "📊 Générer PDF"|t }}</button>
+                        <button type="button" onclick="applyReportConfig('pptx')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-500 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-amber-600 transition-all shadow">{{ "💻 Générer PPTX"|t }}</button>
+                        <button type="button" onclick="applyReportConfig('excel')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-emerald-700 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800 transition-all shadow">{{ "📈 Générer Excel"|t }}</button>
                     </div>
                 </div>
             </section>
@@ -455,7 +455,7 @@
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-4 bg-slate-950 text-white flex items-center justify-between">
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-[0.25em] text-amber-300">Détails Qualité</p>
+                        <p class="text-[10px] font-black uppercase tracking-[0.25em] text-amber-300">{{ "Détails Qualité"|t }}</p>
                         <h2 class="text-base font-black">Règles avec taux &lt; {{ threshold|floatformat:1 }}%</h2>
                     </div>
                     <div class="flex gap-3 items-center">
@@ -467,15 +467,15 @@
                     <table class="w-full text-xs">
                         <thead>
                             <tr class="bg-slate-50">
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Type</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Périmètre</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Règle</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Champ</th>
-                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">Total</th>
-                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">Anomalies</th>
-                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">Taux</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Progression</th>
-                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">Export</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Type"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Périmètre"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Règle"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Champ"|t }}</th>
+                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Total"|t }}</th>
+                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Anomalies"|t }}</th>
+                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Taux"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Progression"|t }}</th>
+                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Export"|t }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -498,14 +498,14 @@
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    <a href="{{ row.export_url }}" class="inline-flex rounded-xl bg-slate-900 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-700 transition-all">Clients</a>
+                                    <a href="{{ row.export_url }}" class="inline-flex rounded-xl bg-slate-900 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-700 transition-all">{{ "Clients"|t }}</a>
                                 </td>
                             </tr>
                             {% empty %}
                             <tr><td colspan="9" class="px-4 py-10 text-center">
                                 <div class="flex flex-col items-center gap-2">
                                     <svg class="w-10 h-10 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Aucune règle sous le seuil</p>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ "Aucune règle sous le seuil"|t }}</p>
                                 </div>
                             </td></tr>
                             {% endfor %}
@@ -528,24 +528,24 @@
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-3 bg-slate-950 flex items-center gap-3">
                     <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-                    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">Performance des agents notés</p>
+                    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">{{ "Performance des agents notés"|t }}</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 p-0">
                     <!-- Agents Notés -->
                     <div class="p-5 text-center">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Agents évalués</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Agents évalués"|t }}</p>
                         <p class="text-4xl font-black text-slate-900">{{ notation_kpis.total_agents }}</p>
-                        <span class="text-[9px] font-bold text-slate-400">Portefeuille unique</span>
+                        <span class="text-[9px] font-bold text-slate-400">{{ "Portefeuille unique"|t }}</span>
                     </div>
                     <!-- Nombre d'évaluations -->
                     <div class="p-5 text-center">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Total évaluations</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Total évaluations"|t }}</p>
                         <p class="text-4xl font-black text-indigo-600">{{ notation_kpis.total_notations }}</p>
-                        <span class="text-[9px] font-bold text-slate-400">Historique complet</span>
+                        <span class="text-[9px] font-bold text-slate-400">{{ "Historique complet"|t }}</span>
                     </div>
                     <!-- Taux d'excellence -->
                     <div class="p-5 text-center">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Taux d'excellence</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Taux d'excellence"|t }}</p>
                         <p class="text-4xl font-black text-emerald-600">{{ notation_kpis.excellence_rate|floatformat:1 }}%</p>
                         <div class="mt-2 mx-auto max-w-[80px] h-2 rounded-full bg-slate-100 overflow-hidden">
                             <div class="h-full rounded-full bg-emerald-500" style="width: {{ notation_kpis.excellence_rate|floatformat:0 }}%"></div>
@@ -560,8 +560,8 @@
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
                         <div>
-                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-indigo-300">Distribution par filiale</p>
-                            <h2 class="text-sm font-black text-white">Nombre de notations par filiale</h2>
+                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-indigo-300">{{ "Distribution par filiale"|t }}</p>
+                            <h2 class="text-sm font-black text-white">{{ "Nombre de notations par filiale"|t }}</h2>
                         </div>
                     </div>
                     <div class="p-4" style="height: 300px; position: relative;">
@@ -572,8 +572,8 @@
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
                         <div>
-                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-indigo-300">Répartition Globale</p>
-                            <h2 class="text-sm font-black text-white">Pourcentage par type d'évaluation</h2>
+                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-indigo-300">{{ "Répartition Globale"|t }}</p>
+                            <h2 class="text-sm font-black text-white">{{ "Pourcentage par type d'évaluation"|t }}</h2>
                         </div>
                     </div>
                     <div class="p-4 flex items-center justify-center" style="height: 300px; position: relative;">
@@ -586,21 +586,21 @@
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-4 bg-slate-950 text-white flex items-center justify-between">
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-300 font-black">Historique des notations</p>
-                        <h2 class="text-base font-black">Évaluations des agents enregistrées</h2>
+                        <p class="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-300 font-black">{{ "Historique des notations"|t }}</p>
+                        <h2 class="text-base font-black">{{ "Évaluations des agents enregistrées"|t }}</h2>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs">
                         <thead>
                             <tr class="bg-slate-50">
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Agent</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Filiale</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Note</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Flux / Stock</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Recommandations</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Évalué par</th>
-                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">Date</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Agent"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Filiale"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Note"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Flux / Stock"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Recommandations"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Évalué par"|t }}</th>
+                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Date"|t }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -632,7 +632,7 @@
                                 <td colspan="7" class="px-4 py-10 text-center">
                                     <div class="flex flex-col items-center gap-2">
                                         <svg class="w-10 h-10 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Aucune notation trouvée dans ce périmètre</p>
+                                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ "Aucune notation trouvée dans ce périmètre"|t }}</p>
                                     </div>
                                 </td>
                             </tr>
@@ -675,7 +675,7 @@ function handleScopeChange(val) {
     if (val === 'groupe') {
         sel.disabled = true;
         sel.classList.add('opacity-40', 'cursor-not-allowed', 'bg-slate-50');
-        lbl.innerHTML = 'Filiale <span class="text-slate-300 normal-case font-normal">(non applicable en mode Groupe)</span>';
+        lbl.innerHTML = 'Filiale <span class="text-slate-300 normal-case font-normal">{{ "(non applicable en mode Groupe)"|t }}</span>';
     } else {
         sel.disabled = false;
         sel.classList.remove('opacity-40', 'cursor-not-allowed', 'bg-slate-50');
@@ -689,7 +689,7 @@ handleScopeChange(document.getElementById('scopeSelect').value);
 function makeHBar(canvasId, labels, values, colors, subtitle) {
     const el = document.getElementById(canvasId);
     if (!el || !values.length) {
-        if (el) el.parentElement.innerHTML = '<div class="flex items-center justify-center h-full text-[10px] text-slate-300 font-black uppercase">Aucune donnée disponible</div>';
+        if (el) el.parentElement.innerHTML = '<div class="flex items-center justify-center h-full text-[10px] text-slate-300 font-black uppercase">{{ "Aucune donnée disponible"|t }}</div>';
         return;
     }
     new Chart(el.getContext('2d'), {
@@ -767,7 +767,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     } else if (document.getElementById('chartNotationOverall')) {
-        document.getElementById('chartNotationOverall').parentElement.innerHTML = '<div class="flex items-center justify-center h-full text-[10px] text-slate-300 font-black uppercase">Aucune notation disponible</div>';
+        document.getElementById('chartNotationOverall').parentElement.innerHTML = '<div class="flex items-center justify-center h-full text-[10px] text-slate-300 font-black uppercase">{{ "Aucune notation disponible"|t }}</div>';
     }
 
     const byFilialeLabels = JSON.parse('{{ chart_notation_filiales|to_json|escapejs }}');
@@ -793,7 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     } else if (document.getElementById('chartNotationByFiliale')) {
-        document.getElementById('chartNotationByFiliale').parentElement.innerHTML = '<div class="flex items-center justify-center h-full text-[10px] text-slate-300 font-black uppercase">Aucune notation disponible</div>';
+        document.getElementById('chartNotationByFiliale').parentElement.innerHTML = '<div class="flex items-center justify-center h-full text-[10px] text-slate-300 font-black uppercase">{{ "Aucune notation disponible"|t }}</div>';
     }
 });
 

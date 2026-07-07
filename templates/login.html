@@ -1,19 +1,19 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% block content %}
 <section style="background-image: linear-gradient(135deg, rgb(66, 0, 0) 15%, rgb(5, 0, 66) 100%) !important;">
  <div class="flex flex-col justify-center items-center">
                <div class=" centrage py-16 sm:py-24 xl:max-w-7xl xl:mx-auto xl:px-8">
                    <div class="text-gray-200">
 {% if formTrader.errors %}
-<p>Your username and password didn't match. Please try again.</p>
+<p>{{ "Your username and password didn't match. Please try again."|t }}</p>
 {% endif %}
 
 {% if next %}
     {% if user.is_authenticated %}
-    <p>Your account doesn't have access to this page. To proceed,
-    please login with an account that has access.</p>
+    <p>{{ "Your account doesn't have access to this page. To proceed, please login with an account that has access."|t }}</p>
     {% else %}
-    <p>Please login to see this page.</p>
+    <p>{{ "Please login to see this page."|t }}</p>
     {% endif %}
 {% endif %}
 
@@ -36,7 +36,7 @@
 </form>
 
 {# Assumes you setup the password_reset view in your URLconf #}
-<p><a href="{% url 'password_reset' %}">Lost password?</a></p>
+<p><a href="{% url 'password_reset' %}">{{ "Lost password?"|t }}</a></p>
                    </div>
                </div>
  </div>

@@ -25,20 +25,49 @@ env = environ.Env()
 environ.Env.read_env(env_file=str(BASE_DIR / "Fiabilisation_kyc" / ".env"))
 
 # Cache partage entre le serveur web et les scripts cron.
-# Override possible dans .env avec DJANGO_CACHE_BACKEND / DJANGO_CACHE_LOCATION.
-CACHES = {
-    "default": {
-        "BACKEND": env(
-            "DJANGO_CACHE_BACKEND",
-            default="django.core.cache.backends.filebased.FileBasedCache",
-        ),
-        "LOCATION": env("DJANGO_CACHE_LOCATION", default=str(BASE_DIR / ".django_cache")),
-        "TIMEOUT": 60 * 60 * 24,
-        "OPTIONS": {
-            "MAX_ENTRIES": 20000,
-        },
+#
+# Bascule Redis SANS changement de code : il suffit de definir dans .env
+#   CACHE_URL=redis://127.0.0.1:6379/1      (ou rediss:// pour TLS)
+# -> lecture en memoire, cache partage entre tous les workers et le cron.
+# Si CACHE_URL est absent, on retombe automatiquement sur FileBasedCache
+# (comportement actuel, aucune infra supplementaire requise).
+#
+# Prerequis pour Redis : `pip install django-redis` + un serveur Redis accessible.
+_cache_url = env("CACHE_URL", default="")
+if _cache_url.startswith(("redis://", "rediss://", "unix://")):
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": _cache_url,
+            "TIMEOUT": 60 * 60 * 24,
+            # Namespace les cles dans la base Redis (evite les collisions si la
+            # meme instance Redis sert a autre chose). Sans impact sur le code
+            # applicatif : Django ajoute/retire le prefixe de maniere transparente.
+            "KEY_PREFIX": env("CACHE_KEY_PREFIX", default="kyc"),
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                # Si Redis devient injoignable, on sert la page sans cache au
+                # lieu de planter (get -> None, set -> no-op).
+                "IGNORE_EXCEPTIONS": True,
+            },
+        }
     }
-}
+    # N'affiche pas de stacktrace a chaque incident Redis quand IGNORE_EXCEPTIONS est actif.
+    DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = False
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": env(
+                "DJANGO_CACHE_BACKEND",
+                default="django.core.cache.backends.filebased.FileBasedCache",
+            ),
+            "LOCATION": env("DJANGO_CACHE_LOCATION", default=str(BASE_DIR / ".django_cache")),
+            "TIMEOUT": 60 * 60 * 24,
+            "OPTIONS": {
+                "MAX_ENTRIES": 20000,
+            },
+        }
+    }
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
@@ -111,6 +140,8 @@ MIDDLEWARE = [
     # doit être juste après SecurityMiddleware
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    # i18n : détermine la langue active (session / cookie / navigateur)
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -132,6 +163,7 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
+                'django.template.context_processors.i18n',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'kyc.context_processors.user_stat_processor',
@@ -202,6 +234,14 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
 LANGUAGE_CODE = 'fr-fr'
+
+# Langues disponibles (FR par défaut, EN via le sélecteur)
+LANGUAGES = [
+    ('fr', 'Français'),
+    ('en', 'English'),
+]
+# Emplacement des catalogues .po/.mo
+LOCALE_PATHS = [BASE_DIR / 'locale']
 
 TIME_ZONE = 'UTC'
 

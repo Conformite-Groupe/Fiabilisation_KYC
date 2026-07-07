@@ -3,6 +3,7 @@
 {% load tailwind_filters %}
 {% load country_flag %}
 {% load static %}
+{% load custom_filters %}
 
 {% block content %}
 <style>
@@ -36,12 +37,12 @@
                 </div>
                 <div>
                     <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                        Agents <span class="text-emerald-500 font-light">notés</span>
+                        {{ "Agents"|t }} <span class="text-emerald-500 font-light">{{ "notés"|t }}</span>
                     </h1>
                     <div class="flex items-center gap-2 mt-1.5">
                         <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         <p class="page-header-subtitle">
-                            Consultation des notations par exploitant</p>
+                            {{ "Consultation des notations par exploitant"|t }}</p>
                     </div>
                 </div>
             </div>
@@ -50,11 +51,11 @@
                 <div class="inline-flex p-1 bg-gray-100 rounded-xl border border-gray-200">
                     <a href="{% url 'agent' %}"
                         class="px-6 py-2 text-[10px] font-black rounded-lg transition-all {% if 'agent_stock' not in request.path %} nav-link-active text-white shadow-md {% else %} text-gray-500 hover:text-gray-700 {% endif %}">
-                        FLUX
+                        {{ "FLUX"|t }}
                     </a>
                     <a href="{% url 'agent_stock' %}"
                         class="px-6 py-2 text-[10px] font-black rounded-lg transition-all {% if 'agent_stock' in request.path %} nav-link-active text-white shadow-md {% else %} text-gray-500 hover:text-gray-700 {% endif %}">
-                        STOCK
+                        {{ "STOCK"|t }}
                     </a>
                 </div>
 
@@ -66,7 +67,7 @@
                     <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    Exporter
+                    {{ "Exporter"|t }}
                 </a>
             </div>
         </div>
@@ -85,12 +86,12 @@
                         <path stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
-                <input type="text" name="q" placeholder="Rechercher un code exploitant" value="{{ query }}"
+                <input type="text" name="q" placeholder="{{ 'Rechercher un code exploitant'|t }}" value="{{ query }}"
                     class="block w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-2xl text-sm font-bold bg-gray-50 focus:ring-2 focus:ring-green-700 focus:bg-white transition-all outline-none">
             </div>
             <button type="submit"
                 class="w-full md:w-56 nav-link-active hover:bg-green-800 text-white font-black py-4 rounded-2xl text-[11px] uppercase tracking-widest transition-all shadow-xl shadow-green-100">
-                Recherche
+                {{ "Recherche"|t }}
             </button>
         </form>
     </section>
@@ -105,28 +106,28 @@
                     <tr>
                         <th
                             class="px-4 py-4 text-center font-black text-white bg-slate-900 uppercase tracking-[0.15em] border-b border-slate-800">
-                            Filiale</th>
+                            {{ "Filiale"|t }}</th>
                         <th
                             class="px-4 py-4 text-center font-black text-white bg-slate-900 uppercase tracking-[0.15em] border-b border-slate-800">
-                            Code Expl.</th>
+                            {{ "Code Expl."|t }}</th>
 
                         <th
                             class="px-6 py-4 text-center font-black text-white bg-slate-900 uppercase tracking-[0.15em] sticky left-0 z-50 border-b border-slate-800 shadow-[4px_0_10px_-3px_rgba(0,0,0,0.3)] min-w-[220px]">
-                            Nom et Prénom
+                            {{ "Nom et Prénom"|t }}
                         </th>
 
                         <th
                             class="px-4 py-4 text-center font-black text-white bg-slate-900 uppercase tracking-[0.15em] border-b border-slate-800">
-                            Agence</th>
+                            {{ "Agence"|t }}</th>
                         <th
                             class="px-4 py-4 text-center font-black text-white bg-slate-900 uppercase tracking-[0.15em] border-b border-slate-800 font-mono">
-                            Email</th>
+                            {{ "Email"|t }}</th>
                         <th
                             class="px-4 py-4 text-center font-black text-green-400 bg-slate-900 uppercase tracking-[0.15em] border-b border-slate-800">
-                            Note Qualité</th>
+                            {{ "Appréciation globale"|t }}</th>
                         <th
                             class="px-4 py-4 text-center font-black text-white bg-slate-900 uppercase tracking-[0.15em] border-b border-slate-800">
-                            Date notation</th>
+                            {{ "Date notation"|t }}</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-slate-100">
@@ -162,28 +163,27 @@
 
                         <td class="px-4 py-4 text-center border-b border-slate-50">
                             <div class="flex justify-center">
-                                {% if note.note == 'Très Bien' %}
-                                <span
-                                    class="inline-flex items-center px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 font-black border border-emerald-200 uppercase tracking-widest shadow-sm">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span> {{
-                                    note.note }}
-                                </span>
-                                {% elif note.note == 'Bien' %}
-                                <span
-                                    class="inline-flex items-center px-4 py-1.5 rounded-full bg-blue-50 text-blue-700 font-black border border-blue-200 uppercase tracking-widest shadow-sm">
-                                    <span class="w-2 h-2 rounded-full bg-blue-500 mr-2"></span> {{ note.note }}
-                                </span>
-                                {% elif note.note == 'Passable' %}
-                                <span
-                                    class="inline-flex items-center px-4 py-1.5 rounded-full bg-amber-50 text-amber-700 font-black border border-amber-200 uppercase tracking-widest shadow-sm">
-                                    <span class="w-2 h-2 rounded-full bg-amber-500 mr-2"></span> {{ note.note }}
+                                {% with appr=note.agent|appreciation_for %}
+                                {% if appr and appr.appreciation_globale %}
+                                <span title="{{ appr.mesure }}"
+                                    class="inline-flex items-center px-4 py-1.5 rounded-full font-black border uppercase tracking-widest shadow-sm
+                                    {% if 'Bon' in appr.appreciation_globale %}bg-emerald-50 text-emerald-700 border-emerald-200
+                                    {% elif 'Moyen' in appr.appreciation_globale %}bg-amber-50 text-amber-700 border-amber-200
+                                    {% elif 'Faible' in appr.appreciation_globale %}bg-orange-50 text-orange-700 border-orange-200
+                                    {% else %}bg-slate-50 text-slate-600 border-slate-200{% endif %}">
+                                    <span class="w-2 h-2 rounded-full mr-2
+                                    {% if 'Bon' in appr.appreciation_globale %}bg-emerald-500 animate-pulse
+                                    {% elif 'Moyen' in appr.appreciation_globale %}bg-amber-500
+                                    {% elif 'Faible' in appr.appreciation_globale %}bg-orange-500
+                                    {% else %}bg-slate-400{% endif %}"></span>
+                                    {{ appr.appreciation_globale }}
                                 </span>
                                 {% else %}
-                                <span
-                                    class="inline-flex items-center px-4 py-1.5 rounded-full bg-red-50 text-red-700 font-black border border-red-200 uppercase tracking-widest shadow-sm">
-                                    <span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span> {{ note.note }}
+                                <span class="inline-flex items-center px-4 py-1.5 rounded-full bg-slate-50 text-slate-400 font-bold border border-slate-200 uppercase tracking-widest text-[10px]">
+                                    {{ "Non calculée"|t }}
                                 </span>
                                 {% endif %}
+                                {% endwith %}
                             </div>
                         </td>
                         <td
@@ -201,8 +201,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                         d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <p class="text-white font-bold uppercase tracking-widest text-[10px]">Aucune notation
-                                    trouvée</p>
+                                <p class="text-white font-bold uppercase tracking-widest text-[10px]">{{ "Aucune notation trouvée"|t }}</p>
                             </div>
                         </td>
                     </tr>
@@ -219,8 +218,7 @@
                         d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
             </div>
-            <p class="text-gray-400 font-black uppercase tracking-widest text-xs">Aucun exploitant trouvé pour cette
-                recherche.</p>
+            <p class="text-gray-400 font-black uppercase tracking-widest text-xs">{{ "Aucun exploitant trouvé pour cette recherche."|t }}</p>
         </div>
         {% endif %}
     </div>

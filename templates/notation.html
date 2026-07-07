@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% load crispy_forms_tags %}
 {% load tailwind_filters %}
 
@@ -15,11 +16,11 @@
             </div>
             <div>
                 <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                    Notation <span class="text-emerald-500 font-light">& RECOMMANDATIONS</span>
+                    {{ "Notation"|t }} <span class="text-emerald-500 font-light">{{ "& RECOMMANDATIONS"|t }}</span>
                 </h1>
                 <div class="flex items-center gap-2 mt-1.5">
                     <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <p class="page-header-subtitle">Attribution et mise à jour des notes agents</p>
+                    <p class="page-header-subtitle">{{ "Attribution et mise à jour des notes agents"|t }}</p>
                 </div>
             </div>
         </div>
@@ -28,7 +29,7 @@
             <div class="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200/50 shadow-inner">
                 <a href="{% url 'agent' %}"
                     class="px-6 py-2 text-[10px] font-black rounded-xl transition-all text-slate-500 hover:text-slate-700">
-                    RETOUR RÉPERTOIRE
+                    {{ "RETOUR RÉPERTOIRE"|t }}
                 </a>
             </div>
         </div>
@@ -39,9 +40,8 @@
 
             <div class="bg-gray-800 p-4 text-white relative overflow-hidden">
                 <div class="relative z-10">
-                    <h2 class="text-sm font-black uppercase tracking-widest">Évaluer un Collaborateur</h2>
-                    <p class="text-[9px] text-gray-400 mt-0.5 font-medium">Saisir le code expoloitant du collaborateur
-                        pour le noter ou modifier sa notation</p>
+                    <h2 class="text-sm font-black uppercase tracking-widest">{{ "Évaluer un Collaborateur"|t }}</h2>
+                    <p class="text-[9px] text-gray-400 mt-0.5 font-medium">{{ "Saisir le code expoloitant du collaborateur pour le noter ou modifier sa notation"|t }}</p>
                 </div>
                 <div class="absolute top-0 right-0 -mt-4 -mr-4 nav-link-active/10 w-20 h-20 rounded-full blur-2xl">
                 </div>
@@ -51,8 +51,7 @@
                 <form method="post" class="space-y-2">
                     {% csrf_token %}
                     <div class="space-y-1">
-                        <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Code
-                            Exploitant</label>
+                        <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{{ "Code Exploitant"|t }}</label>
                         <div class="flex items-center gap-2">
                             <div class="relative flex-1">
                                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
@@ -60,13 +59,13 @@
                                         <path stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                 </span>
-                                <input type="text" id="code_exploitant" name="code_exploitant" placeholder="Code..."
+                                <input type="text" id="code_exploitant" name="code_exploitant" placeholder="{{ 'Code...'|t }}"
                                     value="{{ request.POST.code_exploitant }}"
                                     class="w-full pl-9 pr-3 py-2.5 text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl outline-none">
                             </div>
                             <button type="submit" name="search_agent"
                                 class="nav-link-active text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-800 transition-all active:scale-95">
-                                Identifier
+                                {{ "Identifier"|t }}
                             </button>
                         </div>
                     </div>
@@ -106,7 +105,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="space-y-1.5">
                                 <label
-                                    class="block text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Note</label>
+                                    class="block text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{{ "Note"|t }}</label>
                                 <div class="scoring-field text-xs">
                                     {{ form.note|as_crispy_field }}
                                 </div>
@@ -114,8 +113,7 @@
 
                             <div class="space-y-1.5">
                                 <label
-                                    class="block text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Type
-                                    Dossier</label>
+                                    class="block text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{{ "Type Dossier"|t }}</label>
                                 <div class="scoring-field text-xs">
                                     {{ form.flux_stock|as_crispy_field }}
                                 </div>
@@ -124,8 +122,7 @@
 
                         <div class="space-y-1.5">
                             <label
-                                class="block text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Recommandation
-                                / Feedback</label>
+                                class="block text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{{ "Recommandation / Feedback"|t }}</label>
                             <div class="scoring-field text-xs">
                                 {{ form.recommandation|as_crispy_field }}
                             </div>
@@ -134,7 +131,7 @@
                         <div class="pt-2">
                             <button type="submit"
                                 class="w-full nav-link-active text-white py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-md hover:bg-green-800 transition-all">
-                                Enregistrer la notation
+                                {{ "Enregistrer la notation"|t }}
                             </button>
                         </div>
                     </form>

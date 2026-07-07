@@ -22,7 +22,7 @@
 ### `kyc/` — App principale
 | Fichier | Rôle |
 |---|---|
-| `kyc/models.py` | Modèles : `KYC_PP`, `KYC_PM`, `DateRev`, `DataQualityRule`, `DataQualityCondition`, `KYCDocumentExtraction`, `KYCDocumentMatchSettings`, `KYCCompletenessFieldConfig`, `KYCFieldVisibilityConfig`, `FilialeModuleConfig`, `KYCDocumentType`, `KYCExpiredDocumentScanMatch`, `KYCDocumentMatchJob`, **`EmailReminderConfig`** |
+| `kyc/models.py` | Modèles : `KYC_PP`, `KYC_PM`, `DateRev`, `DataQualityRule`, `DataQualityCondition`, `KYCDocumentExtraction`, `KYCDocumentMatchSettings`, `KYCCompletenessFieldConfig`, `KYCFieldVisibilityConfig`, `FilialeModuleConfig`, `KYCDocumentType`, `KYCExpiredDocumentScanMatch`, `KYCDocumentMatchJob`, `EmailReminderConfig`, **`KycDocumentOcrJob`** (file OCR), **`KycMatchValidatorRole`** (profils validateurs), **`KycMatchDecision`** (workflow validation), `TermTranslation` |
 | `kyc/views.py` | Toutes les vues métier (≈ fichier principal, très volumineux) |
 | `kyc/views_secours190925.py` | Vues de secours (backup 19/09/25, ne pas modifier) |
 | `kyc/urls.py` | URLs préfixées `/trade/` |
@@ -177,6 +177,15 @@ Extraction OCR de documents d'identité avec matching fuzzy contre les données 
 
 ### `FilialeModuleConfig`
 Activation/désactivation des modules par filiale.
+
+### Module Screening KYC ID (`/document-extraction/`)
+Pipeline OCR + rapprochement documents ↔ clients KYC, en 4 phases :
+- **Ingestion asynchrone** : upload rapide (hash SHA-256, dédup) → `KycDocumentOcrJob` traité par la commande `python manage.py process_document_ocr` (cron/loop). Statut par document : `pending/processing/done/failed`, relance OCR des échecs.
+- **Lots multi-types** : type « Automatique (lot mixte) » → chaque fichier classé via `KycDocumentType` (mots-clés + apprentissage). Répartition par type, correction manuelle inline.
+- **Rapprochement** : `_build_kyc_pp_document_matches` / `_build_kyc_pm_document_matches` dans `views.py`. Périmètre filiale, index par nom (`INTITULE_COMPTE`), poids configurables via `KycDocumentMatchSettings` (dates, lieu, nationalité, **nom & prénom**, seuils `combination_threshold` + `min_display_score`).
+- **Validation** : `KycMatchDecision` (validé/rejeté/à valider, traçabilité qui/quand) ; profils autorisés = `KycMatchValidatorRole` (par organe, éditable en admin). Filtre de statut, rejetées masquées par défaut.
+- Purge : `python manage.py purge_document_jobs --days 30`.
+- ⚠️ `KycDocumentMatchSettings` : le nom/prénom est un **poids unique** (`fullname_weight`) comparé au champ `INTITULE_COMPTE` (nom+prénom regroupés) ; `CLIENT` est un numéro, pas un nom.
 
 ### `EmailReminderConfig`
 Configuration SMTP + paramètres d'envoi pour les rappels DATEREV.

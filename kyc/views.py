@@ -30,7 +30,8 @@ from kyc.models import (
     DataQualityRule, DataQualityRuleAudit, KycDocumentExtraction, KycExpiredDocumentScanMatch,
     KycDocumentMatchJob, KycDocumentMatchSettings, DOCUMENT_EXTRACTION_TYPE_CHOICES,
     KycFieldVisibilityConfig, KycDocumentType, Filiales, CLIENT_TYPE_CHOICES,
-    DATA_QUALITY_FIELD_CHOICES, EmailReminderConfig,
+    DATA_QUALITY_FIELD_CHOICES, EmailReminderConfig, KycDocumentOcrJob,
+    KycMatchValidatorRole, KycMatchDecision,
 )
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -81,7 +82,7 @@ import math
 import threading
 import uuid
 import zipfile
-from .document_extraction import SUPPORTED_EXTENSIONS, extract_document_data, extract_pdf_grouped_documents
+from .document_extraction import SUPPORTED_EXTENSIONS, extract_document_data, extract_pdf_grouped_documents, learn_document_keywords
 
 class CachedPaginator(Paginator):
     @property
@@ -98,6 +99,24 @@ class CachedPaginator(Paginator):
 
 def floor_one_decimal(value):
     return math.floor(value * 10) / 10
+
+
+def completeness_rate_r(empty_cells, total_cells):
+    """Taux de complétude selon la méthodologie du script R `calcul_de_taux.r` :
+    floor(100 * (1 - cellules_vides / total_cellules)). Renvoie None si total nul.
+    (Identique à global_rate/champ_rate du script — troncature à l'entier.)"""
+    if not total_cells:
+        return None
+    return float(math.floor(100 * (1 - empty_cells / total_cells)))
+
+
+def empty_field_q(field_name):
+    """Q() identifiant une valeur « vide » au sens du script R : NULL, chaîne vide
+    ou composée uniquement d'espaces (équivalent de trimws(x) == "")."""
+    from django.db.models import Q
+    return (Q(**{f"{field_name}__isnull": True})
+            | Q(**{field_name: ""})
+            | Q(**{f"{field_name}__regex": r"^\s+$"}))
 
 def compliance_rate_floor(ok_count, total, fail_count=0):
     if not total:
@@ -274,6 +293,84 @@ def _rule_eval_filiale(rule, user_filiale):
         return parsed[0]
     return None
 
+DQ_LOGIC_AND = 'AND'
+DQ_LOGIC_OR = 'OR'
+
+
+def _dq_eval_condition(op, raw_val, raw_target, today, parse_date, calc_age):
+    """Évalue UNE condition. Retourne True si elle 'matche' (contribue à l'anomalie)."""
+    val = str(raw_val or '').strip()
+    target = str(raw_target or '').strip()
+    if op == '=': return val == target
+    if op == '!=': return val != target
+    if op == '>':
+        try: return float(val.replace(',', '.')) > float(target.replace(',', '.'))
+        except Exception: return False
+    if op == '<':
+        try: return float(val.replace(',', '.')) < float(target.replace(',', '.'))
+        except Exception: return False
+    if op == '>=':
+        try: return float(val.replace(',', '.')) >= float(target.replace(',', '.'))
+        except Exception: return False
+    if op == '<=':
+        try: return float(val.replace(',', '.')) <= float(target.replace(',', '.'))
+        except Exception: return False
+    if op == 'contains': return target.lower() in val.lower()
+    if op == 'not_contains': return target.lower() not in val.lower()
+    if op == 'contains_alpha': return any(c.isalpha() for c in val)
+    if op == 'contains_digit': return any(c.isdigit() for c in val)
+    if op == 'is_empty': return not val
+    if op == 'is_not_empty': return bool(val)
+    if op == 'expired':
+        p = parse_date(val)
+        return bool(p and p < today)
+    if op == 'age_gt':
+        age = calc_age(val)
+        try: return age is not None and age > int(target)
+        except Exception: return False
+    if op == 'age_lt':
+        age = calc_age(val)
+        try: return age is not None and age < int(target)
+        except Exception: return False
+    if op == 'min_length':
+        try: return len(val) < int(target)
+        except Exception: return False
+    if op == 'max_length':
+        try: return len(val) > int(target)
+        except Exception: return False
+    if op == 'regex':
+        try:
+            import re
+            return re.search(target, val) is not None
+        except re.error:
+            return False
+    return False
+
+
+def _dq_conditions_flag(conditions, get_value, today, parse_date, calc_age):
+    """Combine les conditions en forme normale disjonctive (DNF) :
+      - le connecteur 'OU' (logic=OR) démarre un nouveau groupe,
+      - au sein d'un groupe les conditions sont reliées en 'ET',
+      - anomalie détectée si AU MOINS un groupe est entièrement vrai.
+    Le connecteur porté par la 1re condition est ignoré."""
+    result = False
+    current = True
+    started = False
+    for cond in conditions:
+        m = _dq_eval_condition(cond.operator, get_value(cond.field_name),
+                               cond.value, today, parse_date, calc_age)
+        logic = (getattr(cond, 'logic', DQ_LOGIC_AND) or DQ_LOGIC_AND)
+        if not started:
+            current = m
+            started = True
+        elif logic == DQ_LOGIC_OR:
+            result = result or current
+            current = m
+        else:
+            current = current and m
+    return (result or current) if started else False
+
+
 def _evaluate_data_quality_rule_scoped(rule, filiale=None, agence=None, expl=None):
     return evaluate_data_quality_rule(rule, filiale=filiale, agence=agence, expl=expl)
 
@@ -433,53 +530,7 @@ def evaluate_data_quality_rule(rule, filiale=None, agence=None, expl=None):
         for c in conditions:
             needed_fields.add(c.field_name)
         for row in queryset.values(*needed_fields).iterator(chunk_size=2000):
-            all_match = True
-            for cond in conditions:
-                val = str(row.get(cond.field_name, '') or '').strip()
-                target = (cond.value or '').strip()
-                
-                match = False
-                op = cond.operator
-                if op == '=': match = val == target
-                elif op == '!=': match = val != target
-                elif op == '>':
-                    try: match = float(val.replace(',','.')) > float(target.replace(',','.'))
-                    except: match = False
-                elif op == '<':
-                    try: match = float(val.replace(',','.')) < float(target.replace(',','.'))
-                    except: match = False
-                elif op == '>=':
-                    try: match = float(val.replace(',','.')) >= float(target.replace(',','.'))
-                    except: match = False
-                elif op == '<=':
-                    try: match = float(val.replace(',','.')) <= float(target.replace(',','.'))
-                    except: match = False
-                elif op == 'contains': match = target.lower() in val.lower()
-                elif op == 'is_empty': match = not val
-                elif op == 'is_not_empty': match = bool(val)
-                elif op == 'expired':
-                    p = safe_parse_date(val)
-                    match = p and p < today
-                elif op == 'age_gt':
-                    age = calculate_age(val)
-                    try: match = age is not None and age > int(target)
-                    except: match = False
-                elif op == 'age_lt':
-                    age = calculate_age(val)
-                    try: match = age is not None and age < int(target)
-                    except: match = False
-                elif op == 'min_length':
-                    try: match = len(val) < int(target) # C'est un échec si la longueur est inférieure au min
-                    except: match = False
-                elif op == 'max_length':
-                    try: match = len(val) > int(target) # C'est un échec si la longueur est supérieure au max
-                    except: match = False
-                
-                if not match:
-                    all_match = False
-                    break
-            
-            if all_match:
+            if _dq_conditions_flag(conditions, lambda f: row.get(f, ''), today, safe_parse_date, calculate_age):
                 fail_count += 1
                 if len(clients) < 15:
                     clients.append({
@@ -511,17 +562,17 @@ def evaluate_data_quality_rule(rule, filiale=None, agence=None, expl=None):
 @login_required
 def quality_control_view(request):
     user = request.user
-    allowed_organs = ['Contrôle Permanent', 'Conformité', 'Qualité', 'DSI', 'Risques', 'DAI', 'PASS']
+    allowed_organs = ['PASS']
     user_organe = (getattr(user, 'organe', '') or '').strip()
     if user_organe not in allowed_organs:
-        messages.error(request, "AccÃ¨s non autorisé au contrôle qualité.")
+        messages.error(request, "Accès non autorisé au contrôle qualité.")
         return redirect('accueil')
 
     from kyc.forms import DataQualityRuleForm, DataQualityConditionFormSet
 
     # Vérification des droits de gestion
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    can_manage = user_organe in ['Conformité', 'Contrôle Permanent', 'PASS']
+    can_manage = user_organe == 'PASS'
     user_filiale = getattr(request.user, 'filiale', '')
     
     if user_organe == 'PASS':
@@ -558,7 +609,7 @@ def quality_control_view(request):
 
     rules = list(
         DataQualityRule.objects.all()
-        .order_by('-active', '-created_at')
+        .order_by('id')
         .prefetch_related('conditions')
     )
     cache_ttl_seconds = 86400  # Cache journalier: donnees mises a jour 1 fois/jour
@@ -582,8 +633,31 @@ def quality_control_view(request):
     for stat in stats:
         total = stat.get('total', 0)
         stat['compliance_rate'] = compliance_rate_floor(stat['ok_count'], total, stat.get('fail_count', 0))
+    from kyc.forms import DataQualityRuleForm
+
+    # ── Filtre Filiale (les organes Groupe peuvent choisir ; les autres sont limités à la leur) ──
+    can_pick_filiale = user_organe in group_organs
+    filiale_filter = (request.GET.get('filiale') or '').strip()
+
+    filiale_set = set()
+    for rule in rules:
+        for f in DataQualityRuleForm._parse_filiales(rule.filiale):
+            if f:
+                filiale_set.add(f)
+    if can_pick_filiale:
+        filiale_list = sorted(filiale_set)
+    else:
+        filiale_list = [user_filiale] if user_filiale else []
+        filiale_filter = ''  # non-groupe : pas de filtrage manuel
+
     rules_with_stats = []
     for rule, stat in zip(rules, stats):
+        parsed_filiales = DataQualityRuleForm._parse_filiales(rule.filiale)
+
+        # Filtrage par filiale : garde les règles de la filiale choisie + celles "toutes filiales"
+        if filiale_filter and parsed_filiales and filiale_filter not in parsed_filiales:
+            continue
+
         grouped_conditions = {}
         for cond in rule.conditions.all():
             group_key = (cond.field_name, cond.operator)
@@ -598,25 +672,35 @@ def quality_control_view(request):
             if value and value not in grouped_conditions[group_key]['values']:
                 grouped_conditions[group_key]['values'].append(value)
 
-        from kyc.forms import DataQualityRuleForm
-        parsed_filiales = DataQualityRuleForm._parse_filiales(rule.filiale)
         filiales_display = ", ".join(parsed_filiales) if parsed_filiales else "Toutes les filiales"
+
+        # Liste ordonnée (préserve l'ordre + le connecteur ET/OU entre conditions)
+        conditions_ordered = [{
+            'logic': cond.logic,
+            'logic_display': cond.get_logic_display(),
+            'field_name': cond.field_name,
+            'operator_display': cond.get_operator_display(),
+            'value': (cond.value or '').strip(),
+        } for cond in rule.conditions.all()]
 
         rules_with_stats.append({
             'rule': rule,
             'stat': stat,
             'condition_groups': list(grouped_conditions.values()),
+            'conditions_ordered': conditions_ordered,
             'filiales_display': filiales_display,
         })
 
     field_options = get_data_quality_field_options()
-    total_rules = len(rules)
-    active_rules = sum(1 for rule in rules if rule.active)
+    total_rules = len(rules_with_stats)
+    active_rules = sum(1 for item in rules_with_stats if item['rule'].active)
     inactive_rules = total_rules - active_rules
-    total_failures = sum(stat['fail_count'] for stat in stats)
-    total_ok = sum(stat['ok_count'] for stat in stats)
-    total_evaluated = sum(stat['total'] for stat in stats)
+    total_failures = sum(item['stat']['fail_count'] for item in rules_with_stats)
+    total_ok = sum(item['stat']['ok_count'] for item in rules_with_stats)
+    total_evaluated = sum(item['stat']['total'] for item in rules_with_stats)
     global_compliance_rate = compliance_rate_floor(total_ok, total_evaluated, total_failures)
+    pp_rules_count = sum(1 for item in rules_with_stats if item['rule'].applicability == 'PP')
+    pm_rules_count = sum(1 for item in rules_with_stats if item['rule'].applicability == 'PM')
 
     return render(request, 'quality_control.html', {
         'form': form,
@@ -631,12 +715,16 @@ def quality_control_view(request):
         'form_has_errors': bool(form.errors),
         'can_manage': can_manage,
         'user_organe': user_organe,
+        'filiale_list': filiale_list,
+        'can_pick_filiale': can_pick_filiale,
+        'pp_rules_count': pp_rules_count,
+        'pm_rules_count': pm_rules_count,
     })
 
 @login_required
 def delete_quality_rule(request, pk):
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    if user_organe not in ['Conformité', 'Contrôle Permanent', 'PASS']:
+    if user_organe not in ['PASS']:
         messages.error(request, "AccÃ¨s refusé.")
         return redirect('kyc:quality_control')
         
@@ -664,7 +752,7 @@ def delete_quality_rule(request, pk):
 @login_required
 def edit_quality_rule(request, pk):
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    if user_organe not in ['Conformité', 'Contrôle Permanent', 'PASS']:
+    if user_organe not in ['PASS']:
         messages.error(request, "AccÃ¨s refusé.")
         return redirect('kyc:quality_control')
         
@@ -706,7 +794,7 @@ def edit_quality_rule(request, pk):
             
             current_version = cache.get('quality_control_rules_version', 1)
             cache.set('quality_control_rules_version', current_version + 1, timeout=None)
-            messages.success(request, "RÃ¨gle mise Ã  jour.")
+            messages.success(request, "Règle mise à jour.")
             return redirect('kyc:quality_control')
     else:
         form = DataQualityRuleForm(instance=rule, filiale_choices=filiale_choices)
@@ -721,7 +809,7 @@ def edit_quality_rule(request, pk):
 @login_required
 def quality_control_audits(request):
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    if user_organe not in ['Conformité', 'Contrôle Permanent', 'PASS']:
+    if user_organe not in ['PASS']:
         messages.error(request, "AccÃ¨s refusé.")
         return redirect('kyc:quality_control')
         
@@ -743,7 +831,7 @@ def quality_control_audits(request):
 @login_required
 def export_audits_excel(request):
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    if user_organe not in ['Conformité', 'Contrôle Permanent', 'PASS']:
+    if user_organe not in ['PASS']:
         return HttpResponseForbidden()
         
     if user_organe == 'PASS':
@@ -767,7 +855,7 @@ def export_audits_excel(request):
 @login_required
 def export_audits_pdf(request):
     user_organe = (getattr(request.user, 'organe', '') or '').strip()
-    if user_organe not in ['Conformité', 'Contrôle Permanent', 'PASS']:
+    if user_organe not in ['PASS']:
         return HttpResponseForbidden()
         
     if user_organe == 'PASS':
@@ -862,53 +950,7 @@ def export_rule_failures(request, rule_id):
         today = datetime.today().date()
 
         for row in queryset.values(*set(fields_to_fetch)).iterator():
-            all_match = True
-            for cond in conditions:
-                val = str(row.get(cond.field_name, '') or '').strip()
-                target = str(cond.value or '').strip()
-                
-                match = False
-                op = cond.operator
-                if op == '=': match = val == target
-                elif op == '!=': match = val != target
-                elif op == '>': 
-                    try: match = float(val.replace(',','.')) > float(target.replace(',','.'))
-                    except: match = False
-                elif op == '<':
-                    try: match = float(val.replace(',','.')) < float(target.replace(',','.'))
-                    except: match = False
-                elif op == '>=':
-                    try: match = float(val.replace(',','.')) >= float(target.replace(',','.'))
-                    except: match = False
-                elif op == '<=':
-                    try: match = float(val.replace(',','.')) <= float(target.replace(',','.'))
-                    except: match = False
-                elif op == 'contains': match = target.lower() in val.lower()
-                elif op == 'is_empty': match = not val
-                elif op == 'is_not_empty': match = bool(val)
-                elif op == 'expired':
-                    p = safe_parse_date(val)
-                    match = p and p < today
-                elif op == 'age_gt':
-                    age = calculate_age(val)
-                    try: match = age is not None and age > int(target)
-                    except: match = False
-                elif op == 'age_lt':
-                    age = calculate_age(val)
-                    try: match = age is not None and age < int(target)
-                    except: match = False
-                elif op == 'min_length':
-                    try: match = len(val) < int(target)
-                    except: match = False
-                elif op == 'max_length':
-                    try: match = len(val) > int(target)
-                    except: match = False
-                
-                if not match:
-                    all_match = False
-                    break
-            
-            if all_match:
+            if _dq_conditions_flag(conditions, lambda f: row.get(f, ''), today, safe_parse_date, calculate_age):
                 line = [row['CLIENT'], row['EXPL'], row['FILIALE'], row['AGENCE']]
                 for f in unique_cond_fields:
                     line.append(str(row.get(f) or ''))
@@ -1005,14 +1047,8 @@ def accueil(request):
     user = request.user
 
     if user.is_authenticated:
-        if user.organe == "Chargé Client":
-            return redirect('non_rens')
-        else:
-            return redirect('agent')
-    if not user.is_authenticated:
-        return redirect('login_kyc')
-
-    return render(request, 'accueil.html')
+        return redirect('profil')
+    return redirect('login_kyc')
 
 
 @login_required
@@ -1281,45 +1317,118 @@ def _nationality_values_match(document_value, client_value):
 
 
 DEFAULT_KYC_DOCUMENT_MATCH_WEIGHTS = {
-    "birth_date_weight": 35,
-    "document_validity_weight": 35,
-    "birth_place_weight": 10,
-    "nationality_weight": 30,
+    # PP : NUMID = 100 %
+    "pp_fullname_weight": 35,
+    "pp_birth_date_weight": 35,
+    "pp_birth_place_weight": 15,
+    "pp_birth_country_weight": 15,
+    # PM : RCSNO = 100 %
+    "pm_fullname_weight": 35,
+    "pm_fiscal_weight": 35,
+    "pm_address_weight": 15,
+    "pm_country_weight": 15,
     "combination_threshold": 65,
+    "min_display_score": 30,
+    "pp_fullname_field": "INTITULE_COMPTE",
+    "pm_fullname_field": "INTITULE_COMPTE",
 }
+
+
+DOCUMENT_MATCH_GROUP_ORGANES = [
+    "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
+    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST",
+]
+
+
+def _user_filiale_scope(user):
+    """Filiale a laquelle restreindre les candidats KYC : vide (= toutes) pour un
+    utilisateur groupe, sinon la filiale de l'utilisateur."""
+    if not user or not getattr(user, "is_authenticated", False):
+        return ""
+    is_group_user = (
+        getattr(user, "filiale", "") in ["BOA Group", "BOA GROUP"]
+        or getattr(user, "organe", "") in DOCUMENT_MATCH_GROUP_ORGANES
+        or not getattr(user, "filiale", "")
+    )
+    return "" if is_group_user else (user.filiale or "").strip()
+
+
+def _name_tokens(value):
+    """Jeu de jetons normalises d'un nom (par mot), pour comparer un nom/prenom
+    du document au champ combine (ex. CLIENT = 'JEAN DUPONT') d'un client KYC."""
+    words = re.split(r"[^A-Za-zÀ-ÿ0-9]+", str(value or "").upper())
+    return {_normalize_match_value(word) for word in words if len(word) >= 2 and _normalize_match_value(word)}
+
+
+def _name_value_matches(document_value, client_value):
+    """Vrai si tous les jetons du nom/prenom extrait sont presents dans la valeur KYC."""
+    document_tokens = _name_tokens(document_value)
+    client_tokens = _name_tokens(client_value)
+    if not document_tokens or not client_tokens:
+        return False
+    return document_tokens.issubset(client_tokens)
 
 
 def _get_kyc_document_match_weights():
     try:
         settings_obj = KycDocumentMatchSettings.get_active()
         return {
-            "birth_date_weight": settings_obj.birth_date_weight,
-            "document_validity_weight": settings_obj.document_validity_weight,
-            "birth_place_weight": settings_obj.birth_place_weight,
-            "nationality_weight": settings_obj.nationality_weight,
+            "pp_fullname_weight": settings_obj.pp_fullname_weight,
+            "pp_birth_date_weight": settings_obj.pp_birth_date_weight,
+            "pp_birth_place_weight": settings_obj.pp_birth_place_weight,
+            "pp_birth_country_weight": settings_obj.pp_birth_country_weight,
+            "pm_fullname_weight": settings_obj.pm_fullname_weight,
+            "pm_fiscal_weight": settings_obj.pm_fiscal_weight,
+            "pm_address_weight": settings_obj.pm_address_weight,
+            "pm_country_weight": settings_obj.pm_country_weight,
             "combination_threshold": settings_obj.combination_threshold,
+            "min_display_score": settings_obj.min_display_score,
+            "pp_fullname_field": settings_obj.pp_fullname_field or "INTITULE_COMPTE",
+            "pm_fullname_field": settings_obj.pm_fullname_field or "INTITULE_COMPTE",
         }
     except Exception:
         return DEFAULT_KYC_DOCUMENT_MATCH_WEIGHTS.copy()
 
 
 def _document_client_identity_score(document, client, weights=None):
+    """Taux de correspondance document <-> client, calcul distinct PP / PM.
+    PP : NUMID (n° id national) = 100 % ; sinon nom&prenom + naissance + lieu + pays.
+    PM : RCSNO (registre commerce) = 100 % ; sinon raison sociale + fiscal + adresse + pays."""
     weights = weights or DEFAULT_KYC_DOCUMENT_MATCH_WEIGHTS
-    client_numid = getattr(client, "NUMID", "")
-    if _values_match(document.numero_identification_nationale, client_numid) or _values_match(document.numero_document, client_numid):
-        return 100
+    is_pm = isinstance(client, Kyc_pm)
+    doc_fullname = f"{document.nom or ''} {document.prenom or ''}"
+
+    if is_pm:
+        # Registre de commerce (RCSNO) : correspondance exacte -> 100 %
+        client_rcsno = getattr(client, "RCSNO", "")
+        if _values_match(document.numero_document, client_rcsno) or _values_match(document.numero_identification_nationale, client_rcsno):
+            return 100
+        fullname_field = weights.get("pm_fullname_field", "INTITULE_COMPTE")
+        doc_country = document.nationalite or document.pays_naissance or document.pays_delivrance
+        checks = [
+            (_name_value_matches(doc_fullname, getattr(client, fullname_field, "")), weights.get("pm_fullname_weight", 0)),
+            (_values_match(document.numero_identification_nationale, getattr(client, "NUMERO_FISCAL", "")), weights.get("pm_fiscal_weight", 0)),
+            (_name_value_matches(document.adresse, getattr(client, "ADRESSE_SOCIALE", "")), weights.get("pm_address_weight", 0)),
+            (_nationality_values_match(doc_country, getattr(client, "PAYS_JUR", "")), weights.get("pm_country_weight", 0)),
+        ]
+    else:
+        # Numero d'identification nationale (NUMID) : correspondance exacte -> 100 %
+        client_numid = getattr(client, "NUMID", "")
+        if _values_match(document.numero_identification_nationale, client_numid) or _values_match(document.numero_document, client_numid):
+            return 100
+        fullname_field = weights.get("pp_fullname_field", "INTITULE_COMPTE")
+        checks = [
+            (_name_value_matches(doc_fullname, getattr(client, fullname_field, "")), weights.get("pp_fullname_weight", 0)),
+            (_date_values_match(document.date_naissance, getattr(client, "DATNAIS", "")), weights.get("pp_birth_date_weight", 0)),
+            (_nationality_values_match(document.lieu_naissance, getattr(client, "PAYNAIS", "")), weights.get("pp_birth_place_weight", 0)),
+            (
+                _nationality_values_match(document.nationalite, getattr(client, "PAYNAIS", ""))
+                or _nationality_values_match(document.pays_naissance, getattr(client, "PAYNAIS", "")),
+                weights.get("pp_birth_country_weight", 0),
+            ),
+        ]
 
     score = 0
-    checks = [
-        (_date_values_match(document.date_naissance, getattr(client, "DATNAIS", "")), weights["birth_date_weight"]),
-        (_date_values_match(document.date_expiration, getattr(client, "DATVALID", "")), weights["document_validity_weight"]),
-        (_nationality_values_match(document.lieu_naissance, getattr(client, "PAYNAIS", "")), weights["birth_place_weight"]),
-        (
-            _nationality_values_match(document.nationalite, getattr(client, "PAYNAIS", ""))
-            or _nationality_values_match(document.pays_naissance, getattr(client, "PAYNAIS", "")),
-            weights["nationality_weight"],
-        ),
-    ]
     for matched, weight in checks:
         if matched:
             score += weight
@@ -1376,23 +1485,36 @@ def _client_dedup_key(client):
     return f"pk:{client.pk}"
 
 
-def _build_kyc_pp_document_matches(document_queryset, limit=3000, result_limit=200, progress_callback=None):
-    documents_for_match = list(document_queryset.order_by("-created_at")[:limit])
+def _build_kyc_pp_document_matches(document_queryset, limit=3000, result_limit=200, progress_callback=None, filiale_scope=None):
+    # seuls les documents dont l'OCR est termine participent au rapprochement
+    documents_all = document_queryset.filter(extraction_status="done").order_by("-created_at")
+    documents_total = documents_all.count()
+    documents_for_match = list(documents_all[:limit])
+    documents_truncated = documents_total > limit
     if not documents_for_match:
-        return [], {"documents_checked": 0, "documents_matched": 0, "clients_matched": 0, "suggestions_count": 0, "match_rate": 0}
+        return [], {"documents_checked": 0, "documents_matched": 0, "clients_matched": 0, "suggestions_count": 0,
+                    "match_rate": 0, "documents_total": documents_total, "documents_truncated": False,
+                    "results_truncated": False, "result_limit": result_limit}
     if progress_callback:
         progress_callback(0, len(documents_for_match), "Preparation du rapprochement")
     match_weights = _get_kyc_document_match_weights()
+    min_display_score = match_weights.get("min_display_score", 30)
+    fullname_field = match_weights.get("pp_fullname_field", "INTITULE_COMPTE")
 
     document_keys = set()
     for document in documents_for_match:
         document_keys.update(_document_identity_keys(document))
 
+    # perimetre filiale : on restreint les clients KYC candidats a la filiale ciblee
+    only_fields = ["id", "FILIALE", "AGENCE", "CLIENT", "IDP", "NUMID", "DATNAIS", "PAYNAIS",
+                   "DATVALID", "ADRESSE", "ORIGINE_REV", "INTITULE_COMPTE", "EMPLOYEUR"]
+    base_qs = Kyc_pp.objects.all()
+    if filiale_scope:
+        base_qs = base_qs.filter(FILIALE=filiale_scope)
+
     kyc_candidates = {}
     if document_keys:
-        for client in Kyc_pp.objects.exclude(NUMID="").only(
-            "id", "FILIALE", "AGENCE", "CLIENT", "IDP", "NUMID", "DATNAIS", "PAYNAIS", "DATVALID", "ADRESSE", "ORIGINE_REV"
-        ):
+        for client in base_qs.exclude(NUMID="").only(*only_fields):
             normalized_numid = _normalize_match_value(client.NUMID)
             if normalized_numid in document_keys:
                 kyc_candidates.setdefault(normalized_numid, []).append(client)
@@ -1402,9 +1524,8 @@ def _build_kyc_pp_document_matches(document_queryset, limit=3000, result_limit=2
     clients_by_validity_date = {}
     clients_by_nationality = {}
     clients_by_birth_place = {}
-    for client in Kyc_pp.objects.only(
-        "id", "FILIALE", "AGENCE", "CLIENT", "IDP", "NUMID", "DATNAIS", "PAYNAIS", "DATVALID", "ADRESSE", "ORIGINE_REV"
-    )[:50000]:
+    clients_by_name_token = {}
+    for client in base_qs.only(*only_fields)[:50000]:
         normalized_client = _normalize_match_value(client.CLIENT)
         if normalized_client:
             client_by_code.setdefault(normalized_client, []).append(client)
@@ -1418,6 +1539,9 @@ def _build_kyc_pp_document_matches(document_queryset, limit=3000, result_limit=2
         if nationality_key:
             clients_by_nationality.setdefault(nationality_key, []).append(client)
             clients_by_birth_place.setdefault(nationality_key, []).append(client)
+        # index par jeton de nom & prenom (champ configure, ex. INTITULE_COMPTE)
+        for token in _name_tokens(getattr(client, fullname_field, "")):
+            clients_by_name_token.setdefault(token, []).append(client)
 
     matches = []
     client_match_index = {}
@@ -1448,6 +1572,21 @@ def _build_kyc_pp_document_matches(document_queryset, limit=3000, result_limit=2
         if birth_key or validity_key:
             for client in clients_by_nationality.get(nationality_key, []):
                 combination_pool[client.pk] = client
+        # recuperation par nom : un client dont le champ nom contient TOUS les jetons
+        # du nom+prenom extraits est un candidat direct ; sinon il passe par le pool score
+        doc_name_tokens = _name_tokens(document.nom) | _name_tokens(document.prenom)
+        if doc_name_tokens and match_weights.get("pp_fullname_weight"):
+            token_hits = {}
+            token_objs = {}
+            for token in doc_name_tokens:
+                for client in clients_by_name_token.get(token, []):
+                    token_hits[client.pk] = token_hits.get(client.pk, 0) + 1
+                    token_objs[client.pk] = client
+            for pk, hits in token_hits.items():
+                if hits >= len(doc_name_tokens):
+                    candidate_clients.append(token_objs[pk])
+                else:
+                    combination_pool.setdefault(pk, token_objs[pk])
         for client in combination_pool.values():
             if _document_client_identity_score(document, client, match_weights) >= match_weights["combination_threshold"]:
                 candidate_clients.append(client)
@@ -1480,7 +1619,7 @@ def _build_kyc_pp_document_matches(document_queryset, limit=3000, result_limit=2
                 })
 
             match_rate = _document_client_identity_score(document, client, match_weights)
-            if match_rate < 30:
+            if match_rate < min_display_score:
                 continue
 
             candidate_match = {
@@ -1523,24 +1662,38 @@ def _build_kyc_pp_document_matches(document_queryset, limit=3000, result_limit=2
     suggestions_count = sum(len(match["suggestions"]) for match in matches)
     match_rate = round((len(matched_document_ids) / len(documents_for_match)) * 100, 1)
 
+    results_truncated = bool(result_limit and len(matches) > result_limit)
     summary = {
         "documents_checked": len(documents_for_match),
         "documents_matched": len(matched_document_ids),
         "clients_matched": len(client_match_index),
         "suggestions_count": suggestions_count,
         "match_rate": match_rate,
+        "documents_total": documents_total,
+        "documents_truncated": documents_truncated,
+        "results_truncated": results_truncated,
+        "result_limit": result_limit,
     }
     if result_limit:
         return matches[:result_limit], summary
     return matches, summary
 
 
-def _build_kyc_pm_document_matches(document_queryset, limit=3000, result_limit=200, progress_callback=None):
-    documents_for_match = list(document_queryset.order_by("-created_at")[:limit])
+def _build_kyc_pm_document_matches(document_queryset, limit=3000, result_limit=200, progress_callback=None, filiale_scope=None):
+    # seuls les documents dont l'OCR est termine participent au rapprochement
+    documents_all = document_queryset.filter(extraction_status="done").order_by("-created_at")
+    documents_total = documents_all.count()
+    documents_for_match = list(documents_all[:limit])
+    documents_truncated = documents_total > limit
     if not documents_for_match:
-        return [], {"documents_checked": 0, "documents_matched": 0, "clients_matched": 0, "suggestions_count": 0, "match_rate": 0}
+        return [], {"documents_checked": 0, "documents_matched": 0, "clients_matched": 0, "suggestions_count": 0,
+                    "match_rate": 0, "documents_total": documents_total, "documents_truncated": False,
+                    "results_truncated": False, "result_limit": result_limit}
     if progress_callback:
         progress_callback(0, len(documents_for_match), "Preparation du rapprochement")
+    match_weights = _get_kyc_document_match_weights()
+    min_display_score = match_weights.get("min_display_score", 30)
+    pm_fullname_field = match_weights.get("pm_fullname_field", "INTITULE_COMPTE")
 
     document_keys = set()
     for document in documents_for_match:
@@ -1549,31 +1702,34 @@ def _build_kyc_pm_document_matches(document_queryset, limit=3000, result_limit=2
         if document.numero_identification_nationale:
             document_keys.add(_normalize_match_value(document.numero_identification_nationale))
 
+    pm_only_fields = ["id", "FILIALE", "AGENCE", "CLIENT", "IDM", "RCSNO", "NUMERO_FISCAL", "ADRESSE_SOCIALE", "INTITULE_COMPTE", "PAYS_JUR"]
+    base_qs = Kyc_pm.objects.all()
+    if filiale_scope:
+        base_qs = base_qs.filter(FILIALE=filiale_scope)
+
     kyc_candidates = {}
     if document_keys:
-        for client in Kyc_pm.objects.exclude(RCSNO="").only(
-            "id", "FILIALE", "AGENCE", "CLIENT", "IDM", "RCSNO", "NUMERO_FISCAL", "ADRESSE_SOCIALE", "INTITULE_COMPTE"
-        ):
+        for client in base_qs.exclude(RCSNO="").only(*pm_only_fields):
             norm_rcs = _normalize_match_value(client.RCSNO)
             if norm_rcs in document_keys:
                 kyc_candidates.setdefault(norm_rcs, []).append(client)
-        for client in Kyc_pm.objects.exclude(NUMERO_FISCAL="").only(
-            "id", "FILIALE", "AGENCE", "CLIENT", "IDM", "RCSNO", "NUMERO_FISCAL", "ADRESSE_SOCIALE", "INTITULE_COMPTE"
-        ):
+        for client in base_qs.exclude(NUMERO_FISCAL="").only(*pm_only_fields):
             norm_nif = _normalize_match_value(client.NUMERO_FISCAL)
             if norm_nif in document_keys:
                 kyc_candidates.setdefault(norm_nif, []).append(client)
 
     client_by_name = {}
-    for client in Kyc_pm.objects.only(
-        "id", "FILIALE", "AGENCE", "CLIENT", "IDM", "RCSNO", "NUMERO_FISCAL", "ADRESSE_SOCIALE", "INTITULE_COMPTE"
-    )[:50000]:
+    clients_by_name_token = {}
+    for client in base_qs.only(*pm_only_fields)[:50000]:
         norm_name = _normalize_match_value(client.CLIENT)
         if norm_name:
             client_by_name.setdefault(norm_name, []).append(client)
         norm_intitule = _normalize_match_value(client.INTITULE_COMPTE)
         if norm_intitule and norm_intitule != norm_name:
             client_by_name.setdefault(norm_intitule, []).append(client)
+        # index par jeton de raison sociale (champ configure, ex. INTITULE_COMPTE)
+        for token in _name_tokens(getattr(client, pm_fullname_field, "")):
+            clients_by_name_token.setdefault(token, []).append(client)
 
     matches = []
     matched_client_ids = set()
@@ -1591,7 +1747,20 @@ def _build_kyc_pm_document_matches(document_queryset, limit=3000, result_limit=2
             
         for client_token in _document_client_tokens(document):
             candidate_clients.extend(client_by_name.get(client_token, []))
-            
+
+        # recuperation par jetons de raison sociale (nom+prenom extraits du document)
+        doc_name_tokens = _name_tokens(document.nom) | _name_tokens(document.prenom)
+        if doc_name_tokens and match_weights.get("pm_fullname_weight"):
+            token_hits = {}
+            token_objs = {}
+            for token in doc_name_tokens:
+                for client in clients_by_name_token.get(token, []):
+                    token_hits[client.pk] = token_hits.get(client.pk, 0) + 1
+                    token_objs[client.pk] = client
+            for pk, hits in token_hits.items():
+                if hits >= len(doc_name_tokens):
+                    candidate_clients.append(token_objs[pk])
+
         unique_clients = {}
         for client in candidate_clients:
             unique_clients[client.pk] = client
@@ -1617,23 +1786,11 @@ def _build_kyc_pm_document_matches(document_queryset, limit=3000, result_limit=2
                     "value": str(document_value),
                 })
                 
-            match_rate = 0
-            if (document.numero_document and _normalize_match_value(document.numero_document) == _normalize_match_value(client.RCSNO)) or \
-               (document.numero_identification_nationale and _normalize_match_value(document.numero_identification_nationale) == _normalize_match_value(client.NUMERO_FISCAL)):
-                match_rate = 100
-            else:
-                doc_name_norm = _normalize_match_value(document.nom or "")
-                cli_name_norm = _normalize_match_value(client.CLIENT or "")
-                if doc_name_norm and cli_name_norm:
-                    if doc_name_norm == cli_name_norm:
-                        match_rate = 90
-                    elif doc_name_norm in cli_name_norm or cli_name_norm in doc_name_norm:
-                        match_rate = 75
-                    else:
-                        match_rate = 50
-                else:
-                    match_rate = 40
-            
+            # taux pondere PM (RCSNO=100 %, sinon raison sociale/fiscal/adresse/pays)
+            match_rate = _document_client_identity_score(document, client, match_weights)
+            if match_rate < min_display_score:
+                continue
+
             extra_action_items = []
             for kyc_field, document_field, label in KYC_PM_DOCUMENT_FIELD_MAP:
                 allowed_source = field_sources.get(kyc_field)
@@ -1659,12 +1816,17 @@ def _build_kyc_pm_document_matches(document_queryset, limit=3000, result_limit=2
             matched_document_ids.add(document.pk)
 
     matches.sort(key=lambda m: m["match_rate"], reverse=True)
+    results_truncated = bool(result_limit and len(matches) > result_limit)
     summary = {
         "documents_checked": len(documents_for_match),
         "documents_matched": len(matched_document_ids),
         "clients_matched": len(matched_client_ids),
         "suggestions_count": sum(len(m["suggestions"]) for m in matches),
-        "match_rate": int(len(matched_document_ids) / len(documents_for_match) * 100) if documents_for_match else 0
+        "match_rate": int(len(matched_document_ids) / len(documents_for_match) * 100) if documents_for_match else 0,
+        "documents_total": documents_total,
+        "documents_truncated": documents_truncated,
+        "results_truncated": results_truncated,
+        "result_limit": result_limit,
     }
     if result_limit:
         return matches[:result_limit], summary
@@ -1689,14 +1851,15 @@ def _filtered_document_extractions_from_params(params, user=None):
 
     client_type = params.get("client_type", "pp")
     documents = documents.filter(client_type=client_type)
-    valid_document_types = dict(DOCUMENT_EXTRACTION_TYPE_CHOICES)
-    selected_document_type = params.get("document_type", "")
+    selected_document_type = (params.get("document_type", "") or "").strip()
     selected_import_batch = (params.get("import_batch") or "").strip()
     search_query = (params.get("q") or "").strip()
     search_field = params.get("field") or "all"
     allowed_search_fields = {field for field, _ in DOCUMENT_EXTRACTION_SEARCH_FIELDS}
 
-    if selected_document_type in valid_document_types:
+    # filtre par type : accepte les types fixes, les types configures en admin
+    # et la sentinelle 'non_reconnu' (equalite simple, sans risque d'injection)
+    if selected_document_type:
         documents = documents.filter(document_type=selected_document_type)
 
     if selected_import_batch:
@@ -1794,6 +1957,44 @@ def _hydrate_kyc_pp_match_result(result):
     return matches, result.get("summary"), params
 
 
+DOCUMENT_MATCH_STATUS_FILTERS = ("active", "pending", "validated", "rejected", "all")
+
+
+def _annotate_matches_with_decisions(matches, client_type, status_filter="active"):
+    """Superpose le statut de decision (a valider / valide / rejete) sur chaque
+    correspondance et applique le filtre. 'active' = tout sauf les rejetees."""
+    if not matches:
+        return matches
+    doc_ids = [m["document"].pk for m in matches if m.get("document")]
+    client_ids = [m["client"].pk for m in matches if m.get("client")]
+    decisions = {}
+    if doc_ids and client_ids:
+        for dec in KycMatchDecision.objects.filter(
+            client_type=client_type, document_id__in=doc_ids, client_id__in=client_ids
+        ).select_related("decided_by"):
+            decisions[(dec.document_id, dec.client_id)] = dec
+
+    annotated = []
+    for match in matches:
+        document = match.get("document")
+        client = match.get("client")
+        if not document or not client:
+            continue
+        decision = decisions.get((document.pk, client.pk))
+        status = decision.status if decision else "pending"
+        match["decision_status"] = status
+        match["decision"] = decision
+        if status_filter == "all":
+            annotated.append(match)
+        elif status_filter in ("pending", "validated", "rejected"):
+            if status == status_filter:
+                annotated.append(match)
+        else:  # 'active' : on masque les rejetees
+            if status != "rejected":
+                annotated.append(match)
+    return annotated
+
+
 def _merge_kyc_pp_match_lists(match_lists):
     merged = []
     index_by_key = {}
@@ -1869,15 +2070,18 @@ def _run_document_match_job(job_id):
 
         documents = _filtered_document_extractions_from_params(scope_params)
         client_type = scope_params.get("client_type", "pp")
+        filiale_scope = (scope_params.get("filiale_scope") or "").strip()
         if client_type == "pm":
             matches, summary = _build_kyc_pm_document_matches(
                 documents,
                 progress_callback=progress_callback,
+                filiale_scope=filiale_scope,
             )
         else:
             matches, summary = _build_kyc_pp_document_matches(
                 documents,
                 progress_callback=progress_callback,
+                filiale_scope=filiale_scope,
             )
         result = _serialize_kyc_pp_matches(matches, summary, scope_params)
         KycDocumentMatchJob.objects.filter(pk=job_id).update(
@@ -1904,6 +2108,10 @@ def _run_document_match_job(job_id):
 @login_required
 def start_document_extraction_match_job(request):
     scope_params = _document_match_scope_params(request.GET)
+    # perimetre filiale : fige la filiale du demandeur (vide = groupe, tout le perimetre)
+    filiale_scope = _user_filiale_scope(request.user)
+    if filiale_scope:
+        scope_params["filiale_scope"] = filiale_scope
     existing_job = (
         KycDocumentMatchJob.objects
         .filter(created_by=request.user, scope_params=scope_params, status="running")
@@ -1948,6 +2156,59 @@ def document_extraction_match_job_status(request, job_id):
         "percent": percent,
         "redirect_url": f"{reverse('document_extraction')}?{urlencode(redirect_params)}#suivi",
         "result_url": f"{reverse('document_extraction')}?{urlencode(result_params)}#suivi",
+    })
+
+
+@login_required
+def document_extraction_ocr_status(request):
+    """Statut OCR d'un lot : compteurs par etat + progression du job en cours."""
+    import_batch = (request.GET.get("batch") or "").strip()
+    if not import_batch:
+        return JsonResponse({"error": "Parametre batch manquant"}, status=400)
+
+    counts = {"pending": 0, "processing": 0, "done": 0, "failed": 0}
+    for row in (
+        KycDocumentExtraction.objects
+        .filter(import_batch=import_batch)
+        .values("extraction_status")
+        .annotate(n=Count("id"))
+    ):
+        counts[row["extraction_status"]] = row["n"]
+    total = sum(counts.values())
+
+    job = (
+        KycDocumentOcrJob.objects
+        .filter(import_batch=import_batch)
+        .order_by("-created_at")
+        .first()
+    )
+    job_payload = None
+    if job:
+        job_payload = {
+            "id": job.pk,
+            "status": job.status,
+            "mode": job.mode,
+            "message": job.message,
+            "error": job.error[:500],
+            "percent": job.progress_percent,
+            "current": job.progress_current,
+            "total": job.progress_total,
+        }
+
+    finished = counts["pending"] == 0 and counts["processing"] == 0 and (
+        job is None or job.status in ("completed", "failed")
+    )
+    percent = int(((counts["done"] + counts["failed"]) / total) * 100) if total else (
+        job_payload["percent"] if job_payload else 0
+    )
+
+    return JsonResponse({
+        "batch": import_batch,
+        "counts": counts,
+        "total": total,
+        "percent": percent,
+        "finished": finished,
+        "job": job_payload,
     })
 
 
@@ -2158,7 +2419,7 @@ def export_document_extraction_matches(request):
             client_id_val,
             client.FILIALE,
             client.AGENCE,
-            document.get_document_type_display(),
+            _document_type_label(document.document_type),
             match.get("match_rate", 0),
             " | ".join(action["text"] for action in action_items),
             document.numero_document,
@@ -2173,7 +2434,7 @@ def export_document_extraction_matches(request):
             getattr(client, "IDP", "") or expired_match.idp,
             getattr(client, "FILIALE", "") or expired_match.filiale,
             getattr(client, "AGENCE", "") or expired_match.agence,
-            document.get_document_type_display() if document else "",
+            _document_type_label(document.document_type) if document else "",
             expired_match.match_rate or 0,
             f"DATVALID: {expired_match.old_validity_date or '-'} -> {expired_match.document_validity_date or '-'}",
             getattr(document, "numero_document", "") if document else "",
@@ -2192,6 +2453,54 @@ def _build_import_batch_name(request, uploaded_files):
     return f"LOT-{timestamp}-{os.path.splitext(os.path.basename(first_file))[0]}"[:120]
 
 
+DOCUMENT_TYPE_UNRECOGNIZED = "non_reconnu"
+
+
+def _document_type_label_map():
+    """Libelles de tous les types : codes fixes + types configures en admin +
+    sentinelle 'non reconnu'. Sert a l'affichage et au mode lot mixte."""
+    labels = dict(DOCUMENT_EXTRACTION_TYPE_CHOICES)
+    for dt in KycDocumentType.objects.all():
+        labels.setdefault(dt.code, dt.label)
+    labels[DOCUMENT_TYPE_UNRECOGNIZED] = "Type non reconnu"
+    labels["auto"] = "Automatique (lot mixte)"
+    return labels
+
+
+def _document_type_label(code, label_map=None):
+    label_map = label_map or _document_type_label_map()
+    return label_map.get(code, code or "-")
+
+
+def _document_type_correction_options(client_type=None):
+    """Options du menu de correction manuelle : types configures (filtres par
+    type de client si fourni) + 'non reconnu'."""
+    options = []
+    seen = set()
+    for dt in KycDocumentType.objects.all().order_by("label"):
+        if client_type and dt.client_type and dt.client_type != client_type:
+            continue
+        if dt.code in seen:
+            continue
+        seen.add(dt.code)
+        options.append({"code": dt.code, "label": dt.label})
+    options.append({"code": DOCUMENT_TYPE_UNRECOGNIZED, "label": "Type non reconnu"})
+    return options
+
+
+def _document_type_filter_options():
+    """Options du filtre par type dans la recherche (types configures + non reconnu)."""
+    options = []
+    seen = set()
+    for dt in KycDocumentType.objects.all().order_by("label"):
+        if dt.code in seen:
+            continue
+        seen.add(dt.code)
+        options.append({"code": dt.code, "label": dt.label})
+    options.append({"code": DOCUMENT_TYPE_UNRECOGNIZED, "label": "Type non reconnu"})
+    return options
+
+
 def _format_document_extraction_record(record):
     fields = {
         field_name: getattr(record, field_name, "")
@@ -2202,7 +2511,8 @@ def _format_document_extraction_record(record):
         "filename": record.original_filename or os.path.basename(record.uploaded_file.name),
         "source_filename": record.source_filename,
         "file_url": record.uploaded_file.url if record.uploaded_file else "",
-        "document_type": record.get_document_type_display(),
+        "document_type": _document_type_label(record.document_type),
+        "document_type_code": record.document_type,
         "import_batch": record.import_batch,
         "page_number": record.page_number,
         "page_range": record.page_range,
@@ -2231,15 +2541,33 @@ DOCUMENT_EXTRACTION_TYPE_LABELS = dict(DOCUMENT_EXTRACTION_TYPE_CHOICES)
 
 
 def _apply_detected_document_type(record, extraction, requested_type):
+    """Affecte le type detecte. Deux modes :
+    - "auto" (lot mixte) : chaque document est classe individuellement ;
+      si rien n'est reconnu -> 'non_reconnu' + avertissement.
+    - type impose : on garde le choix, mais on signale un ecart de detection."""
+    label_map = _document_type_label_map()
     detected_type = extraction.get("detected_document_type") or ""
-    if detected_type not in DOCUMENT_EXTRACTION_TYPE_LABELS:
+
+    if requested_type == "auto":
+        if detected_type and detected_type in label_map:
+            record.document_type = detected_type
+        else:
+            record.document_type = DOCUMENT_TYPE_UNRECOGNIZED
+            warnings = extraction.setdefault("warnings", [])
+            warning = "Type non reconnu automatiquement : a corriger manuellement."
+            if warning not in warnings:
+                warnings.append(warning)
+            record.extraction_warnings = "\n".join(warnings)
+        return
+
+    if detected_type not in label_map:
         return
 
     if detected_type != requested_type:
         warning = (
             "Type ajuste automatiquement: le document semble etre "
-            f"{DOCUMENT_EXTRACTION_TYPE_LABELS[detected_type]} alors que "
-            f"{DOCUMENT_EXTRACTION_TYPE_LABELS.get(requested_type, requested_type)} avait ete selectionne."
+            f"{label_map.get(detected_type, detected_type)} alors que "
+            f"{label_map.get(requested_type, requested_type)} avait ete selectionne."
         )
         warnings = extraction.setdefault("warnings", [])
         if warning not in warnings:
@@ -2249,7 +2577,41 @@ def _apply_detected_document_type(record, extraction, requested_type):
     record.document_type = detected_type
 
 
-def _save_uploaded_document_record(uploaded_file, document_type, user, import_batch="", source_filename="", client_type="pp"):
+def _hash_django_file(django_file):
+    """SHA-256 du contenu d'un fichier uploade (lecture par blocs, curseur remis a zero)."""
+    hasher = hashlib.sha256()
+    try:
+        django_file.seek(0)
+    except Exception:
+        pass
+    for chunk in iter(lambda: django_file.read(1024 * 1024), b""):
+        hasher.update(chunk)
+    try:
+        django_file.seek(0)
+    except Exception:
+        pass
+    return hasher.hexdigest()
+
+
+def _hash_bytes(content_bytes):
+    return hashlib.sha256(content_bytes).hexdigest()
+
+
+def _find_duplicate_document(file_hash):
+    if not file_hash:
+        return None
+    return (
+        KycDocumentExtraction.objects
+        .filter(file_hash=file_hash)
+        .order_by("-created_at")
+        .first()
+    )
+
+
+def _save_uploaded_document_record(uploaded_file, document_type, user, import_batch="", source_filename="",
+                                   client_type="pp", file_hash=""):
+    """Sauvegarde rapide SANS OCR : le document est mis en file d'attente
+    (extraction_status=pending) et traite par `manage.py process_document_ocr`."""
     record = KycDocumentExtraction(
         document_type=document_type,
         original_filename=os.path.basename(uploaded_file.name),
@@ -2257,24 +2619,36 @@ def _save_uploaded_document_record(uploaded_file, document_type, user, import_ba
         import_batch=import_batch,
         uploaded_by=user,
         client_type=client_type,
+        extraction_status="pending",
+        file_hash=file_hash or _hash_django_file(uploaded_file),
     )
     record.uploaded_file.save(uploaded_file.name, uploaded_file, save=False)
-    extraction = extract_document_data(record.uploaded_file.path, uploaded_file.name)
-    _fill_document_extraction_fields(record, extraction)
-    _apply_detected_document_type(record, extraction, document_type)
     record.save()
-    return record, extraction
+    return record, None
 
 
-def _save_zip_document_record(zip_file, member_name, document_type, user, import_batch, archive_name, client_type="pp"):
+# Bornes de securite pour l'import d'archives ZIP (anti zip-bomb)
+ZIP_MAX_MEMBERS = 2000
+ZIP_MAX_TOTAL_BYTES = 500 * 1024 * 1024  # 500 Mo decompresses
+
+
+def _save_zip_document_record(zip_file, member_name, document_type, user, import_batch, archive_name,
+                              client_type="pp", skip_duplicates=True):
     safe_name = os.path.basename(member_name)
     _, extension = os.path.splitext(safe_name)
     if extension.lower() not in SUPPORTED_EXTENSIONS:
         return None, f"Format ignore dans le ZIP: {member_name}"
 
     with zip_file.open(member_name) as member:
-        content = ContentFile(member.read(), name=safe_name)
+        content_bytes = member.read()
 
+    file_hash = _hash_bytes(content_bytes)
+    if skip_duplicates:
+        duplicate = _find_duplicate_document(file_hash)
+        if duplicate:
+            return None, f"Doublon ignore ({safe_name} deja charge dans le lot {duplicate.import_batch or '?'})"
+
+    content = ContentFile(content_bytes, name=safe_name)
     record = KycDocumentExtraction(
         document_type=document_type,
         original_filename=safe_name,
@@ -2282,61 +2656,52 @@ def _save_zip_document_record(zip_file, member_name, document_type, user, import
         import_batch=import_batch,
         uploaded_by=user,
         client_type=client_type,
+        extraction_status="pending",
+        file_hash=file_hash,
     )
     record.uploaded_file.save(safe_name, content, save=False)
-    extraction = extract_document_data(record.uploaded_file.path, safe_name)
-    _fill_document_extraction_fields(record, extraction)
-    _apply_detected_document_type(record, extraction, document_type)
     record.save()
     return record, None
 
 
-def _save_grouped_pdf_records(uploaded_file, document_type, user, import_batch, pages_per_document, client_type="pp"):
+def _save_grouped_pdf_job(uploaded_file, document_type, user, import_batch, pages_per_document, client_type="pp"):
+    """Mode PDF groupe : on stocke le fichier et on cree un job OCR dedie.
+    Les enregistrements par piece sont crees par le worker lors du decoupage."""
     if os.path.splitext(uploaded_file.name)[1].lower() != ".pdf":
         raise ValueError("Le mode document groupe accepte uniquement un fichier PDF.")
 
     shared_file_name = f"grouped_{uuid.uuid4().hex}_{os.path.basename(uploaded_file.name)}"
-    base_record = KycDocumentExtraction(
+    container = KycDocumentExtraction(
         document_type=document_type,
         original_filename=os.path.basename(uploaded_file.name),
         source_filename=os.path.basename(uploaded_file.name),
         import_batch=import_batch,
         uploaded_by=user,
         client_type=client_type,
+        extraction_status="pending",
+        file_hash=_hash_django_file(uploaded_file),
     )
-    base_record.uploaded_file.save(shared_file_name, uploaded_file, save=False)
+    container.uploaded_file.save(shared_file_name, uploaded_file, save=False)
+    container.save()
 
-    grouped_extractions = extract_pdf_grouped_documents(
-        base_record.uploaded_file.path,
-        uploaded_file.name,
+    job = KycDocumentOcrJob.objects.create(
+        import_batch=import_batch,
+        mode="grouped_pdf",
+        client_type=client_type,
+        document_type=document_type,
         pages_per_document=pages_per_document,
+        grouped_source_file=container.uploaded_file.name,
+        grouped_original_name=os.path.basename(uploaded_file.name),
+        created_by=user,
+        message="PDF groupe en attente de decoupage OCR",
     )
-
-    records = []
-    for extraction in grouped_extractions:
-        record = KycDocumentExtraction(
-            document_type=document_type,
-            uploaded_file=base_record.uploaded_file.name,
-            original_filename=os.path.basename(uploaded_file.name),
-            source_filename=os.path.basename(uploaded_file.name),
-            import_batch=import_batch,
-            uploaded_by=user,
-            client_type=client_type,
-        )
-        _fill_document_extraction_fields(record, extraction)
-        _apply_detected_document_type(record, extraction, document_type)
-        record.save()
-        records.append(record)
-    return records
+    return container, job
 
 
 @login_required
 def document_extraction(request):
     extraction = None
-    # Ensure default types exist by calling detect_document_type with dummy input
-    from kyc.document_extraction import detect_document_type
-    detect_document_type("", "")
-    
+    # Les types par defaut sont seedes par migration (0053) — plus d'ecriture DB au GET.
     valid_document_types = {dt.code: dt.label for dt in KycDocumentType.objects.all()}
 
     user = request.user
@@ -2370,11 +2735,116 @@ def document_extraction(request):
     ]
 
     if request.method == "POST":
+        action = request.POST.get("action")
+        # La validation/rejet des correspondances est ouverte aux profils validateurs
+        # (KycMatchValidatorRole) et non aux seuls droits d'insertion de lots.
+        if action == "decide_match":
+            decision_value = (request.POST.get("decision") or "").strip()  # validated | rejected | pending
+            document_id = (request.POST.get("document_id") or "").strip()
+            client_pk = (request.POST.get("client_id") or "").strip()
+            decide_client_type = (request.POST.get("match_client_type") or "pp").strip()
+            return_url = request.POST.get("return_url") or f"{reverse('document_extraction')}#consulter"
+
+            can_validate = KycMatchValidatorRole.user_can_validate(request.user)
+            can_reject = KycMatchValidatorRole.user_can_reject(request.user)
+            if decision_value == "validated" and not can_validate:
+                messages.error(request, "Votre profil n'est pas autorise a valider les correspondances.")
+                return redirect(return_url)
+            if decision_value == "rejected" and not can_reject:
+                messages.error(request, "Votre profil n'est pas autorise a rejeter les correspondances.")
+                return redirect(return_url)
+            if decision_value not in ("validated", "rejected", "pending") or not document_id.isdigit() or not client_pk.isdigit():
+                messages.error(request, "Decision de correspondance invalide.")
+                return redirect(return_url)
+
+            document = get_object_or_404(KycDocumentExtraction, pk=int(document_id))
+            client_model = Kyc_pm if decide_client_type == "pm" else Kyc_pp
+            client = client_model.objects.filter(pk=int(client_pk)).first()
+            client_code = getattr(client, "CLIENT", "") if client else ""
+            client_filiale = getattr(client, "FILIALE", "") if client else ""
+            client_agence = getattr(client, "AGENCE", "") if client else ""
+            try:
+                match_rate_val = int(float(request.POST.get("match_rate") or 0))
+            except ValueError:
+                match_rate_val = 0
+
+            decision, _created = KycMatchDecision.objects.get_or_create(
+                document=document, client_type=decide_client_type, client_id=int(client_pk),
+                defaults={"client_code": client_code, "filiale": client_filiale, "agence": client_agence},
+            )
+            decision.client_code = client_code or decision.client_code
+            decision.filiale = client_filiale or decision.filiale
+            decision.agence = client_agence or decision.agence
+            decision.match_rate = match_rate_val or decision.match_rate
+            decision.status = decision_value
+            decision.decided_by = request.user
+            decision.decided_at = timezone.now()
+            decision.save()
+            labels = {"validated": "validee", "rejected": "rejetee", "pending": "remise a valider"}
+            messages.success(request, f"Correspondance {labels.get(decision_value, '')}.")
+            return redirect(return_url)
+
+        # Les actions ci-dessous (upload, config, correction type) requierent le droit d'insertion.
         if not can_insert_batches:
             messages.error(request, "Vous n'avez pas l'autorisation d'effectuer cette action.")
             return redirect("document_extraction")
 
-        action = request.POST.get("action")
+        if action == "retry_failed_ocr":
+            retry_batch = (request.POST.get("import_batch") or "").strip()
+            if not retry_batch:
+                messages.error(request, "Lot introuvable pour la relance OCR.")
+                return redirect("document_extraction")
+            requeued = KycDocumentExtraction.objects.filter(
+                import_batch=retry_batch, extraction_status="failed"
+            ).update(extraction_status="pending", extraction_warnings="")
+            has_active_job = KycDocumentOcrJob.objects.filter(
+                import_batch=retry_batch, mode="files", status__in=("pending", "running")
+            ).exists()
+            if requeued and not has_active_job:
+                KycDocumentOcrJob.objects.create(
+                    import_batch=retry_batch,
+                    mode="files",
+                    created_by=request.user,
+                    progress_total=requeued,
+                    message="Relance OCR des documents en echec",
+                )
+            if requeued:
+                messages.success(request, f"{requeued} document(s) remis en file d'attente OCR pour le lot {retry_batch}.")
+            else:
+                messages.info(request, "Aucun document en echec a relancer pour ce lot.")
+            return redirect(f"{reverse('document_extraction')}?{urlencode({'uploaded_batch': retry_batch})}#charger")
+        if action == "correct_document_type":
+            extraction_id = (request.POST.get("extraction_id") or "").strip()
+            new_type = (request.POST.get("new_document_type") or "").strip()
+            return_batch = (request.POST.get("import_batch") or "").strip()
+            label_map = _document_type_label_map()
+            if not extraction_id.isdigit() or new_type not in label_map:
+                messages.error(request, "Correction de type invalide.")
+            else:
+                record = get_object_or_404(KycDocumentExtraction, pk=int(extraction_id))
+                old_type = record.document_type
+                record.document_type = new_type
+                # on retire l'avertissement "type non reconnu / ajuste" devenu obsolete
+                kept_warnings = [
+                    w for w in record.extraction_warnings.splitlines()
+                    if w and "Type non reconnu" not in w and "Type ajuste" not in w
+                ]
+                record.extraction_warnings = "\n".join(kept_warnings)
+                record.save(update_fields=["document_type", "extraction_warnings"])
+                # apprentissage : le texte du document renforce les mots-cles du type choisi
+                if new_type not in ("auto", DOCUMENT_TYPE_UNRECOGNIZED) and record.extracted_text:
+                    try:
+                        client_filiale = getattr(request.user, "filiale", "") or ""
+                        learn_document_keywords(record.extracted_text, new_type, filiale=client_filiale.strip() or None)
+                    except Exception:
+                        pass
+                messages.success(
+                    request,
+                    f"Type corrige : {_document_type_label(old_type, label_map)} -> {_document_type_label(new_type, label_map)}.",
+                )
+            if return_batch:
+                return redirect(f"{reverse('document_extraction')}?{urlencode({'import_batch': return_batch})}#base")
+            return redirect(f"{reverse('document_extraction')}#base")
         if action == "save_document_field_sources":
             # Determine target filiale
             if is_group_user:
@@ -2492,9 +2962,11 @@ def document_extraction(request):
         except ValueError:
             pages_per_document = 1
 
-        if document_type not in valid_document_types:
+        if document_type != "auto" and document_type not in valid_document_types:
             messages.error(request, "Veuillez choisir un type de document valide.")
             return redirect("document_extraction")
+
+        skip_duplicates = request.POST.get("skip_duplicates", "1") == "1"
 
         if not uploaded_files:
             messages.error(request, "Veuillez selectionner au moins un document a analyser.")
@@ -2502,17 +2974,19 @@ def document_extraction(request):
             import_batch = _build_import_batch_name(request, uploaded_files)
             created_records = []
             errors = []
+            duplicates_skipped = 0
+            grouped_job = None
 
             if import_mode == "grouped_pdf":
                 try:
-                    created_records.extend(_save_grouped_pdf_records(
+                    _, grouped_job = _save_grouped_pdf_job(
                         uploaded_files[0],
                         document_type,
                         request.user,
                         import_batch,
                         pages_per_document,
                         client_type=client_type,
-                    ))
+                    )
                 except Exception as exc:
                     errors.append(str(exc))
             else:
@@ -2521,6 +2995,15 @@ def document_extraction(request):
                     if extension == ".zip":
                         try:
                             with zipfile.ZipFile(uploaded_file) as archive:
+                                # bornes de securite anti zip-bomb
+                                infos = [i for i in archive.infolist() if not i.is_dir()]
+                                total_uncompressed = sum(i.file_size for i in infos)
+                                if len(infos) > ZIP_MAX_MEMBERS:
+                                    errors.append(f"Archive ignoree ({uploaded_file.name}): plus de {ZIP_MAX_MEMBERS} fichiers.")
+                                    continue
+                                if total_uncompressed > ZIP_MAX_TOTAL_BYTES:
+                                    errors.append(f"Archive ignoree ({uploaded_file.name}): taille decompressee > {ZIP_MAX_TOTAL_BYTES // (1024*1024)} Mo.")
+                                    continue
                                 for member_name in archive.namelist():
                                     if member_name.endswith("/"):
                                         continue
@@ -2532,36 +3015,68 @@ def document_extraction(request):
                                         import_batch,
                                         uploaded_file.name,
                                         client_type=client_type,
+                                        skip_duplicates=skip_duplicates,
                                     )
                                     if record:
                                         created_records.append(record)
                                     if error:
-                                        errors.append(error)
+                                        if error.startswith("Doublon ignore"):
+                                            duplicates_skipped += 1
+                                        else:
+                                            errors.append(error)
                         except zipfile.BadZipFile:
                             errors.append(f"Archive ZIP invalide: {uploaded_file.name}")
                     else:
                         try:
+                            file_hash = _hash_django_file(uploaded_file)
+                            if skip_duplicates:
+                                duplicate = _find_duplicate_document(file_hash)
+                                if duplicate:
+                                    duplicates_skipped += 1
+                                    continue
                             record, _ = _save_uploaded_document_record(
                                 uploaded_file,
                                 document_type,
                                 request.user,
                                 import_batch=import_batch,
                                 client_type=client_type,
+                                file_hash=file_hash,
                             )
                             created_records.append(record)
                         except Exception as exc:
                             errors.append(f"{uploaded_file.name}: {exc}")
 
-            if created_records:
-                messages.success(
-                    request,
-                    f"{len(created_records)} document(s) charge(s), analyse(s) et enregistre(s) dans le lot {import_batch}.",
-                )
+                if created_records:
+                    KycDocumentOcrJob.objects.create(
+                        import_batch=import_batch,
+                        mode="files",
+                        client_type=client_type,
+                        document_type=document_type,
+                        created_by=request.user,
+                        progress_total=len(created_records),
+                        message="Lot en attente de traitement OCR",
+                    )
+
+            if created_records or grouped_job:
+                if grouped_job:
+                    messages.success(
+                        request,
+                        f"PDF groupe charge dans le lot {import_batch}. Le decoupage et l'OCR "
+                        "s'executent en arriere-plan : suivez la progression ci-dessous.",
+                    )
+                else:
+                    messages.success(
+                        request,
+                        f"{len(created_records)} document(s) charge(s) dans le lot {import_batch}. "
+                        "L'analyse OCR s'execute en arriere-plan : suivez la progression ci-dessous.",
+                    )
                 request.session[LAST_UPLOADED_DOCUMENT_BATCH_SESSION_KEY] = import_batch
                 request.session.modified = True
+            if duplicates_skipped:
+                messages.info(request, f"{duplicates_skipped} doublon(s) ignore(s) (fichier identique deja charge).")
             if errors:
                 messages.warning(request, f"{len(errors)} element(s) non importe(s): " + " | ".join(errors[:5]))
-            if created_records:
+            if created_records or grouped_job:
                 return redirect(f"{reverse('document_extraction')}?{urlencode({'uploaded_batch': import_batch, 'client_type': client_type})}#charger")
 
     documents = _filtered_document_extractions_from_request(request)
@@ -2572,7 +3087,8 @@ def document_extraction(request):
         uploaded_batch = (request.session.get(LAST_UPLOADED_DOCUMENT_BATCH_SESSION_KEY) or "").strip()
     search_query = (request.GET.get("q") or "").strip()
     search_field = request.GET.get("field") or "all"
-    if selected_document_type not in valid_document_types:
+    document_type_labels = _document_type_label_map()
+    if selected_document_type and selected_document_type not in document_type_labels:
         selected_document_type = ""
     if search_field not in {field for field, _ in DOCUMENT_EXTRACTION_SEARCH_FIELDS}:
         search_field = "all"
@@ -2586,17 +3102,31 @@ def document_extraction(request):
     uploaded_documents_count = 0
     uploaded_quality_alerts = []
     uploaded_quality_alerts_count = 0
+    uploaded_type_distribution = []
     if uploaded_batch:
         uploaded_documents_queryset = KycDocumentExtraction.objects.filter(import_batch=uploaded_batch)
         uploaded_documents_count = uploaded_documents_queryset.count()
         uploaded_quality_alerts_count = uploaded_documents_queryset.exclude(extraction_warnings="").count()
-        uploaded_documents = uploaded_documents_queryset.order_by("-created_at")[:50]
+        # repartition par type detecte (badges du lot)
+        for row in (
+            uploaded_documents_queryset.values("document_type").annotate(n=Count("id")).order_by("-n")
+        ):
+            code = row["document_type"]
+            uploaded_type_distribution.append({
+                "code": code,
+                "label": _document_type_label(code, document_type_labels),
+                "count": row["n"],
+                "is_unrecognized": code in ("", DOCUMENT_TYPE_UNRECOGNIZED, "auto"),
+            })
+        uploaded_documents = list(uploaded_documents_queryset.order_by("-created_at")[:50])
         for document in uploaded_documents:
+            document.type_label = _document_type_label(document.document_type, document_type_labels)
+            document.type_is_unrecognized = document.document_type in ("", DOCUMENT_TYPE_UNRECOGNIZED, "auto")
             warnings = [warning for warning in document.extraction_warnings.splitlines() if warning]
             if warnings:
                 uploaded_quality_alerts.append({
                     "filename": document.original_filename or os.path.basename(document.uploaded_file.name),
-                    "document_type": document.get_document_type_display(),
+                    "document_type": document.type_label,
                     "warnings": warnings[:3],
                 })
             if len(uploaded_quality_alerts) >= 5:
@@ -2651,10 +3181,11 @@ def document_extraction(request):
             }
     elif requested_kyc_pp_matching:
         match_documents = _filtered_document_extractions_from_params(active_match_params, user=request.user)
+        sync_filiale_scope = _user_filiale_scope(request.user)
         if client_type == "pm":
-            kyc_pp_matches, kyc_pp_match_summary = _build_kyc_pm_document_matches(match_documents)
+            kyc_pp_matches, kyc_pp_match_summary = _build_kyc_pm_document_matches(match_documents, filiale_scope=sync_filiale_scope)
         else:
-            kyc_pp_matches, kyc_pp_match_summary = _build_kyc_pp_document_matches(match_documents)
+            kyc_pp_matches, kyc_pp_match_summary = _build_kyc_pp_document_matches(match_documents, filiale_scope=sync_filiale_scope)
         request.session[LAST_KYC_PP_MATCH_RESULT_SESSION_KEY] = _serialize_kyc_pp_matches(
             kyc_pp_matches,
             kyc_pp_match_summary,
@@ -2733,9 +3264,16 @@ def document_extraction(request):
 
     kyc_pp_matches = _merge_kyc_pp_match_lists([kyc_pp_matches])
     run_kyc_pp_matching = active_match_params is not None
+    # workflow de validation : statut par correspondance + filtre (rejetees masquees par defaut)
+    match_status = (request.GET.get("match_status") or "active").strip()
+    if match_status not in DOCUMENT_MATCH_STATUS_FILTERS:
+        match_status = "active"
+    kyc_pp_matches = _annotate_matches_with_decisions(kyc_pp_matches, client_type, match_status)
     kyc_pp_match_total_count = len(kyc_pp_matches)
     kyc_pp_match_filters = _get_kyc_pp_match_filters(request.GET)
     kyc_pp_matches = _filter_kyc_pp_matches(kyc_pp_matches, request.GET)
+    can_validate_matches = KycMatchValidatorRole.user_can_validate(request.user)
+    can_reject_matches = KycMatchValidatorRole.user_can_reject(request.user)
     expired_document_matches = KycExpiredDocumentScanMatch.objects.select_related("client", "document").filter(
         status="a_valider"
     )
@@ -2849,6 +3387,9 @@ def document_extraction(request):
 
     paginator = Paginator(documents, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
+    for document in page_obj:
+        document.type_label = _document_type_label(document.document_type, document_type_labels)
+        document.type_is_unrecognized = document.document_type in ("", DOCUMENT_TYPE_UNRECOGNIZED, "auto")
 
     query_params = request.GET.copy()
     query_params.pop("page", None)
@@ -2992,6 +3533,16 @@ def document_extraction(request):
         "kyc_pp_match_summary": kyc_pp_match_summary,
         "kyc_pp_match_total_count": kyc_pp_match_total_count,
         "kyc_pp_match_filtered_count": len(kyc_pp_matches),
+        "can_validate_matches": can_validate_matches,
+        "can_reject_matches": can_reject_matches,
+        "match_status": match_status,
+        "match_status_options": [
+            ("active", "A traiter"),
+            ("validated", "Validees"),
+            ("rejected", "Rejetees"),
+            ("all", "Toutes"),
+        ],
+        "match_decision_return_url": request.get_full_path(),
         "expired_document_matches": expired_document_matches,
         "kyc_pp_match_filters": kyc_pp_match_filters,
         "match_filter_hidden_params": match_filter_hidden_params,
@@ -3013,6 +3564,9 @@ def document_extraction(request):
         "export_match_querystring": export_match_querystring,
         "document_type_choices": [(dt.code, dt.label) for dt in KycDocumentType.objects.all()],
         "all_document_types": KycDocumentType.objects.all(),
+        "uploaded_type_distribution": uploaded_type_distribution,
+        "document_type_correction_options": _document_type_correction_options(client_type),
+        "document_type_filter_options": _document_type_filter_options(),
         "client_type": client_type,
         "selected_document_type": selected_document_type,
         "selected_import_batch": selected_import_batch,
@@ -4886,7 +5440,9 @@ def clients_scorer(request):
     agence_param = request.GET.get("agence", "")
     expl_param = request.GET.get("expl", "")
     risque_param = request.GET.get("risque", "")
-    client_type = request.GET.get('type_client', 'pp')
+    client_type = request.GET.get('type_client', 'all')
+    if client_type not in ('pp', 'pm', 'all'):
+        client_type = 'all'
 
     col_agence = request.GET.get('col_agence', '')
     col_lib_agence = request.GET.get('col_lib_agence', '')
@@ -4896,120 +5452,152 @@ def clients_scorer(request):
     col_ppe = request.GET.get('col_ppe', '')
     col_risque = request.GET.get('col_risque', '')
 
+    today = date.today()
+    today_str = today.isoformat()
+    FIELDS = ("FILIALE", "AGENCE", "LIB_AGENCE", "EXPL", "CLIENT", "DATEREV", "PPE", "RISQUE")
+
+    # Base : clients réels des modèles Kyc_pp et/ou Kyc_pm (champs RISQUE + DATEREV)
     if client_type == 'pm':
-        base_qs = DATEREV.objects.filter(Exists(Kyc_pm.objects.filter(CLIENT=OuterRef('CLIENT'))))
-    else:
-        base_qs = DATEREV.objects.filter(Exists(Kyc_pp.objects.filter(CLIENT=OuterRef('CLIENT'))))
+        qsets = [Kyc_pm.objects.all()]
+    elif client_type == 'pp':
+        qsets = [Kyc_pp.objects.all()]
+    else:  # 'all'
+        qsets = [Kyc_pp.objects.all(), Kyc_pm.objects.all()]
+
+    def _f(qs_list, *args, **kw):
+        return [q.filter(*args, **kw) for q in qs_list]
+
+    def _distinct(qs_list, field):
+        vals = set()
+        for q in qs_list:
+            vals.update(q.values_list(field, flat=True).distinct())
+        return sorted(v for v in vals if v not in (None, ''))
 
     is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
     if not is_group_user:
         if getattr(user, "organe", "") == "Chargé Client":
-            base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
+            qsets = _f(qsets, FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
         elif user.organe == "Directeur Agence":
-            base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
+            qsets = _f(qsets, FILIALE=user.filiale, AGENCE=user.agence)
         elif user.organe in users_filiale:
-            base_qs = base_qs.filter(FILIALE=user.filiale)
+            qsets = _f(qsets, FILIALE=user.filiale)
 
-    today = date.today()
-    qs_period = base_qs
+    # Période — DATEREV est une chaîne ISO 'YYYY-MM-DD' (tri lexical = tri chronologique)
     if periode_param == "today":
-        qs_period = qs_period.filter(DATEREV__lte=today)
+        qsets = [q.exclude(DATEREV='').filter(DATEREV__lte=today_str) for q in qsets]
     elif periode_param == "3m":
-        qs_period = qs_period.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=90))
+        qsets = [q.exclude(DATEREV='').filter(DATEREV__gte=today_str, DATEREV__lte=(today + timedelta(days=90)).isoformat()) for q in qsets]
     elif periode_param == "6m":
-        qs_period = qs_period.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=180))
+        qsets = [q.exclude(DATEREV='').filter(DATEREV__gte=today_str, DATEREV__lte=(today + timedelta(days=180)).isoformat()) for q in qsets]
     elif periode_param == "1y":
-        qs_period = qs_period.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=365))
+        qsets = [q.exclude(DATEREV='').filter(DATEREV__gte=today_str, DATEREV__lte=(today + timedelta(days=365)).isoformat()) for q in qsets]
     elif periode_param == "no_date":
-        qs_period = qs_period.filter(DATEREV__isnull=True)
+        qsets = _f(qsets, DATEREV='')
 
     can_pick_filiale = is_group_user
     selected_filiale = filiale_param if can_pick_filiale else getattr(user, "filiale", "")
     _user_scope = "groupe" if is_group_user else getattr(user, 'filiale', 'filiale')
-    filiales_cache_key = f"filiales_opts_{client_type}_{periode_param}_{_user_scope}"
+    filiales_cache_key = "filiales_opts_kyc:" + hashlib.md5(
+        f"{client_type}_{periode_param}_{_user_scope}".encode("utf-8")).hexdigest()
     filiales_opts = cache.get(filiales_cache_key)
     if filiales_opts is None:
-        filiales_opts = list(qs_period.values_list("FILIALE", flat=True).distinct().order_by("FILIALE"))
+        filiales_opts = _distinct(qsets, "FILIALE")
         cache.set(filiales_cache_key, filiales_opts, 300)
 
-    qs_filiale = qs_period
     if selected_filiale:
-        qs_filiale = qs_filiale.filter(FILIALE=selected_filiale)
+        qsets = _f(qsets, FILIALE=selected_filiale)
 
     can_pick_agence = (user.organe in users_groupe) or (user.organe in users_filiale) or (user.organe == "Directeur Agence")
     selected_agence = getattr(user, "agence", "") if user.organe == "Directeur Agence" else agence_param
-    agences_cache_key = f"agences_opts_{client_type}_{periode_param}_{selected_filiale}_{_user_scope}"
+    agences_cache_key = "agences_opts_kyc:" + hashlib.md5(
+        f"{client_type}_{periode_param}_{selected_filiale}_{_user_scope}".encode("utf-8")).hexdigest()
     agences_opts = cache.get(agences_cache_key)
     if agences_opts is None:
-        agences_opts = list(qs_filiale.values_list("AGENCE", flat=True).distinct().order_by("AGENCE"))
+        agences_opts = _distinct(qsets, "AGENCE")
         cache.set(agences_cache_key, agences_opts, 300)
 
-    qs_agence = qs_filiale
     if selected_agence:
-        qs_agence = qs_agence.filter(AGENCE=selected_agence)
+        qsets = _f(qsets, AGENCE=selected_agence)
+
+    qsets_agence = qsets  # portée période + filiale + agence (réutilisée par le modal)
 
     can_pick_expl = getattr(user, "organe", "") != "Chargé Client"
     selected_expl = getattr(user, "code_expl", "") if getattr(user, "organe", "") == "Chargé Client" else expl_param
-    exploitants_cache_key = f"expl_opts_{client_type}_{periode_param}_{selected_filiale}_{selected_agence}_{_user_scope}"
+    exploitants_cache_key = "expl_opts_kyc:" + hashlib.md5(
+        f"{client_type}_{periode_param}_{selected_filiale}_{selected_agence}_{_user_scope}".encode("utf-8")).hexdigest()
     exploitants_opts = cache.get(exploitants_cache_key)
     if exploitants_opts is None:
-        exploitants_opts = list(qs_agence.values_list("EXPL", flat=True).distinct().order_by("EXPL"))
+        exploitants_opts = _distinct(qsets_agence, "EXPL")
         cache.set(exploitants_cache_key, exploitants_opts, 300)
 
-    donnees_queryset = qs_agence
+    dq = list(qsets_agence)
     if selected_expl:
-        donnees_queryset = donnees_queryset.filter(EXPL=selected_expl)
+        dq = _f(dq, EXPL=selected_expl)
+    if col_agence: dq = _f(dq, AGENCE__icontains=col_agence)
+    if col_lib_agence: dq = _f(dq, LIB_AGENCE__icontains=col_lib_agence)
+    if col_expl: dq = _f(dq, EXPL__icontains=col_expl)
+    if col_client: dq = _f(dq, CLIENT__icontains=col_client)
+    if col_daterev: dq = _f(dq, DATEREV__icontains=col_daterev)
+    if col_ppe: dq = _f(dq, PPE__icontains=col_ppe)
+    if col_risque: dq = _f(dq, RISQUE__icontains=col_risque)
 
-    if col_agence: donnees_queryset = donnees_queryset.filter(AGENCE__icontains=col_agence)
-    if col_lib_agence: donnees_queryset = donnees_queryset.filter(LIB_AGENCE__icontains=col_lib_agence)
-    if col_expl: donnees_queryset = donnees_queryset.filter(EXPL__icontains=col_expl)
-    if col_client: donnees_queryset = donnees_queryset.filter(CLIENT__icontains=col_client)
-    if col_daterev: donnees_queryset = donnees_queryset.filter(DATEREV__icontains=col_daterev)
-    if col_ppe: donnees_queryset = donnees_queryset.filter(PPE__icontains=col_ppe)
-    if col_risque: donnees_queryset = donnees_queryset.filter(RISQUE__icontains=col_risque)
+    # KPIs (scoré / non scoré / non scoré échu) — somme sur PP + PM
+    scorer_scored_count = scorer_unscored_count = overdue_unscored_count = 0
+    for q in dq:
+        a = q.aggregate(
+            scored=Count(Case(When(~Q(RISQUE="") & ~Q(RISQUE__isnull=True), then=1), output_field=IntegerField())),
+            unscored=Count(Case(When(Q(RISQUE="") | Q(RISQUE__isnull=True), then=1), output_field=IntegerField())),
+            overdue_unscored=Count(Case(When((Q(RISQUE="") | Q(RISQUE__isnull=True)) & ~Q(DATEREV="") & Q(DATEREV__lte=today_str), then=1), output_field=IntegerField())),
+        )
+        scorer_scored_count += a['scored'] or 0
+        scorer_unscored_count += a['unscored'] or 0
+        overdue_unscored_count += a['overdue_unscored'] or 0
 
-    agg = donnees_queryset.aggregate(
-        scored=Count(Case(When(~Q(RISQUE="") & ~Q(RISQUE__isnull=True), then=1), output_field=IntegerField())),
-        unscored=Count(Case(When(Q(RISQUE="") | Q(RISQUE__isnull=True), then=1), output_field=IntegerField())),
-        overdue_unscored=Count(Case(When((Q(RISQUE="") | Q(RISQUE__isnull=True)) & Q(DATEREV__lte=today), then=1), output_field=IntegerField()))
-    )
-    scorer_scored_count = agg['scored'] or 0
-    scorer_unscored_count = agg['unscored'] or 0
     total_scorer = scorer_scored_count + scorer_unscored_count
     scoring_rate = (scorer_scored_count / total_scorer * 100) if total_scorer > 0 else 0.0
     if scorer_unscored_count > 0 and scoring_rate >= 99.9:
         scoring_rate = 99.9
-    overdue_unscored_count = agg['overdue_unscored'] or 0
 
-    risk_options = cache.get("risk_options_opts")
+    risk_options = cache.get("risk_options_opts_kyc")
     if risk_options is None:
-        risk_options = sorted(list(set(DATEREV.objects.exclude(RISQUE="").exclude(RISQUE__isnull=True).values_list('RISQUE', flat=True).distinct())))
-        cache.set("risk_options_opts", risk_options, 300)
+        rv = set(Kyc_pp.objects.exclude(RISQUE="").exclude(RISQUE__isnull=True).values_list('RISQUE', flat=True).distinct())
+        rv.update(Kyc_pm.objects.exclude(RISQUE="").exclude(RISQUE__isnull=True).values_list('RISQUE', flat=True).distinct())
+        risk_options = sorted(v for v in rv if v)
+        cache.set("risk_options_opts_kyc", risk_options, 300)
 
     if risque_param:
         if risque_param == "sans_classe":
-            donnees_queryset = donnees_queryset.filter(Q(RISQUE="") | Q(RISQUE__isnull=True))
+            dq = _f(dq, Q(RISQUE="") | Q(RISQUE__isnull=True))
         else:
-            donnees_queryset = donnees_queryset.filter(RISQUE=risque_param)
+            dq = _f(dq, RISQUE=risque_param)
 
-    donnees_queryset = donnees_queryset.values("FILIALE", "AGENCE", "LIB_AGENCE", "EXPL", "CLIENT", "DATEREV", "PPE", "RISQUE").order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
+    # Jeu de données affiché (union PP + PM)
+    _vals = [q.values(*FIELDS) for q in dq]
+    if len(_vals) == 1:
+        donnees_queryset = _vals[0].order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
+    else:
+        donnees_queryset = _vals[0].union(_vals[1], all=True).order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
 
     show_non_scored_modal = request.GET.get('show_non_scored_modal') == '1'
     is_overdue = request.GET.get('overdue') == '1'
     non_scored_page = None
     if show_non_scored_modal:
-        non_scored_qs = qs_agence
-        if selected_expl: non_scored_qs = non_scored_qs.filter(EXPL=selected_expl)
-        if col_agence: non_scored_qs = non_scored_qs.filter(AGENCE__icontains=col_agence)
-        if col_lib_agence: non_scored_qs = non_scored_qs.filter(LIB_AGENCE__icontains=col_lib_agence)
-        if col_expl: non_scored_qs = non_scored_qs.filter(EXPL__icontains=col_expl)
-        if col_client: non_scored_qs = non_scored_qs.filter(CLIENT__icontains=col_client)
-        if col_daterev: non_scored_qs = non_scored_qs.filter(DATEREV__icontains=col_daterev)
-        if col_ppe: non_scored_qs = non_scored_qs.filter(PPE__icontains=col_ppe)
-        non_scored_qs = non_scored_qs.filter(Q(RISQUE="") | Q(RISQUE__isnull=True))
+        nsq = list(qsets_agence)
+        if selected_expl: nsq = _f(nsq, EXPL=selected_expl)
+        if col_agence: nsq = _f(nsq, AGENCE__icontains=col_agence)
+        if col_lib_agence: nsq = _f(nsq, LIB_AGENCE__icontains=col_lib_agence)
+        if col_expl: nsq = _f(nsq, EXPL__icontains=col_expl)
+        if col_client: nsq = _f(nsq, CLIENT__icontains=col_client)
+        if col_daterev: nsq = _f(nsq, DATEREV__icontains=col_daterev)
+        if col_ppe: nsq = _f(nsq, PPE__icontains=col_ppe)
+        nsq = _f(nsq, Q(RISQUE="") | Q(RISQUE__isnull=True))
         if is_overdue:
-            non_scored_qs = non_scored_qs.filter(DATEREV__lte=today)
-        non_scored_qs = non_scored_qs.order_by("CLIENT")
+            nsq = [q.exclude(DATEREV='').filter(DATEREV__lte=today_str) for q in nsq]
+        _nsvals = [q.values(*FIELDS) for q in nsq]
+        if len(_nsvals) == 1:
+            non_scored_qs = _nsvals[0].order_by("CLIENT")
+        else:
+            non_scored_qs = _nsvals[0].union(_nsvals[1], all=True).order_by("CLIENT")
         ns_paginator = CachedPaginator(non_scored_qs, 50)
         try: non_scored_page = ns_paginator.page(request.GET.get('non_scored_page', 1))
         except (PageNotAnInteger, EmptyPage): non_scored_page = ns_paginator.page(1)
@@ -5026,18 +5614,21 @@ def clients_scorer(request):
     close_get = current_get.copy()
     close_get.pop('show_non_scored_modal', None)
     close_get.pop('non_scored_page', None)
+    close_get.pop('overdue', None)   # la fermeture/le lien non-échu ne doit pas garder l'état "échus"
     non_scored_close_params = close_get.urlencode()
-    
+
     modal_get = close_get.copy()
     modal_get['show_non_scored_modal'] = '1'
     non_scored_modal_params = modal_get.urlencode()
-    
+
     overdue_modal_get = modal_get.copy()
     overdue_modal_get['overdue'] = '1'
     overdue_non_scored_modal_params = overdue_modal_get.urlencode()
-    
+
     export_get = close_get.copy()
     export_get['export_unscored'] = '1'
+    if is_overdue:   # l'export reflète le modal courant (échus ou non)
+        export_get['overdue'] = '1'
     non_scored_export_params = export_get.urlencode()
     
     pp_nav = current_get.copy()
@@ -5072,49 +5663,62 @@ def export_csv_scoring_clients(request):
     risque_param, client_type, export_unscored = request.GET.get("risque", ""), request.GET.get('type_client', 'pp'), request.GET.get('export_unscored') == '1'
     col_agence, col_lib_agence, col_expl, col_client, col_daterev, col_ppe, col_risque = request.GET.get('col_agence', ''), request.GET.get('col_lib_agence', ''), request.GET.get('col_expl', ''), request.GET.get('col_client', ''), request.GET.get('col_daterev', ''), request.GET.get('col_ppe', ''), request.GET.get('col_risque', '')
 
-    if client_type == 'pm': base_qs = DATEREV.objects.filter(Exists(Kyc_pm.objects.filter(CLIENT=OuterRef('CLIENT'))))
-    else: base_qs = DATEREV.objects.filter(Exists(Kyc_pp.objects.filter(CLIENT=OuterRef('CLIENT'))))
+    today = date.today()
+    today_str = today.isoformat()
+    if client_type == 'pm':
+        qsets = [Kyc_pm.objects.all()]
+    elif client_type == 'pp':
+        qsets = [Kyc_pp.objects.all()]
+    else:
+        qsets = [Kyc_pp.objects.all(), Kyc_pm.objects.all()]
+
+    def _f(qs_list, *args, **kw):
+        return [q.filter(*args, **kw) for q in qs_list]
 
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe",
                     "Contrôle Permanent Groupe", "PASS", "GUEST"]
     is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
     if not is_group_user:
-        if getattr(user, "organe", "") == "Chargé Client": base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
-        elif user.organe == "Directeur Agence": base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
-        elif user.organe in ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau", 'Risques', 'DAI', 'Qualité']: base_qs = base_qs.filter(FILIALE=user.filiale)
+        if getattr(user, "organe", "") == "Chargé Client": qsets = _f(qsets, FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
+        elif user.organe == "Directeur Agence": qsets = _f(qsets, FILIALE=user.filiale, AGENCE=user.agence)
+        elif user.organe in ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau", 'Risques', 'DAI', 'Qualité']: qsets = _f(qsets, FILIALE=user.filiale)
 
-    today = date.today()
-    if periode_param == "today": base_qs = base_qs.filter(DATEREV__lte=today)
-    elif periode_param == "3m": base_qs = base_qs.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=90))
-    elif periode_param == "6m": base_qs = base_qs.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=180))
-    elif periode_param == "1y": base_qs = base_qs.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=365))
-    elif periode_param == "no_date": base_qs = base_qs.filter(DATEREV__isnull=True)
+    if periode_param == "today": qsets = [q.exclude(DATEREV='').filter(DATEREV__lte=today_str) for q in qsets]
+    elif periode_param == "3m": qsets = [q.exclude(DATEREV='').filter(DATEREV__gte=today_str, DATEREV__lte=(today + timedelta(days=90)).isoformat()) for q in qsets]
+    elif periode_param == "6m": qsets = [q.exclude(DATEREV='').filter(DATEREV__gte=today_str, DATEREV__lte=(today + timedelta(days=180)).isoformat()) for q in qsets]
+    elif periode_param == "1y": qsets = [q.exclude(DATEREV='').filter(DATEREV__gte=today_str, DATEREV__lte=(today + timedelta(days=365)).isoformat()) for q in qsets]
+    elif periode_param == "no_date": qsets = _f(qsets, DATEREV='')
 
-    if filiale_param: base_qs = base_qs.filter(FILIALE=filiale_param)
-    if agence_param: base_qs = base_qs.filter(AGENCE=agence_param)
-    if expl_param: base_qs = base_qs.filter(EXPL=expl_param)
+    if filiale_param: qsets = _f(qsets, FILIALE=filiale_param)
+    if agence_param: qsets = _f(qsets, AGENCE=agence_param)
+    if expl_param: qsets = _f(qsets, EXPL=expl_param)
 
-    if export_unscored: base_qs = base_qs.filter(Q(RISQUE="") | Q(RISQUE__isnull=True))
+    if export_unscored: qsets = _f(qsets, Q(RISQUE="") | Q(RISQUE__isnull=True))
     elif risque_param:
-        if risque_param == "sans_classe": base_qs = base_qs.filter(Q(RISQUE="") | Q(RISQUE__isnull=True))
-        else: base_qs = base_qs.filter(RISQUE=risque_param)
+        if risque_param == "sans_classe": qsets = _f(qsets, Q(RISQUE="") | Q(RISQUE__isnull=True))
+        else: qsets = _f(qsets, RISQUE=risque_param)
 
-    if col_agence: base_qs = base_qs.filter(AGENCE__icontains=col_agence)
-    if col_lib_agence: base_qs = base_qs.filter(LIB_AGENCE__icontains=col_lib_agence)
-    if col_expl: base_qs = base_qs.filter(EXPL__icontains=col_expl)
-    if col_client: base_qs = base_qs.filter(CLIENT__icontains=col_client)
-    if col_daterev: base_qs = base_qs.filter(DATEREV__icontains=col_daterev)
-    if col_ppe: base_qs = base_qs.filter(PPE__icontains=col_ppe)
-    if col_risque: base_qs = base_qs.filter(RISQUE__icontains=col_risque)
+    if col_agence: qsets = _f(qsets, AGENCE__icontains=col_agence)
+    if col_lib_agence: qsets = _f(qsets, LIB_AGENCE__icontains=col_lib_agence)
+    if col_expl: qsets = _f(qsets, EXPL__icontains=col_expl)
+    if col_client: qsets = _f(qsets, CLIENT__icontains=col_client)
+    if col_daterev: qsets = _f(qsets, DATEREV__icontains=col_daterev)
+    if col_ppe: qsets = _f(qsets, PPE__icontains=col_ppe)
+    if col_risque: qsets = _f(qsets, RISQUE__icontains=col_risque)
 
-    donnees = base_qs.values("FILIALE", "AGENCE", "EXPL", "CLIENT", "DATEREV", "PPE", "RISQUE").distinct().order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
+    cols = ("FILIALE", "AGENCE", "EXPL", "CLIENT", "DATEREV", "PPE", "RISQUE")
+    _ev = [q.values(*cols) for q in qsets]
+    if len(_ev) == 1:
+        donnees = _ev[0].order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
+    else:
+        donnees = _ev[0].union(_ev[1], all=True).order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
+
     wb = openpyxl.Workbook()
     ws = wb.active
     headers = ['FILIALE', 'AGENCE', 'EXPL', 'CLIENT', 'DATEREV', 'PPE', 'RISQUE']
     ws.append(headers)
     for d in donnees:
-        daterev_val = d["DATEREV"].strftime("%Y-%m-%d") if isinstance(d["DATEREV"], date) else str(d["DATEREV"] or "")
-        ws.append([d["FILIALE"], d["AGENCE"], d["EXPL"], d["CLIENT"], daterev_val, d["PPE"], d["RISQUE"]])
+        ws.append([d["FILIALE"], d["AGENCE"], d["EXPL"], d["CLIENT"], str(d["DATEREV"] or ""), d["PPE"], d["RISQUE"]])
     output = BytesIO()
     wb.save(output)
     output.seek(0)
@@ -6771,6 +7375,32 @@ def non_anom(request):
     # ???????????????????????????????????????????????????????????????
     is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
 
+    # Agences / exploitants à proposer = ceux concernés par les clients présents
+    # dans les règles (données Kyc PP + PM), au format compatible avec l'évaluation.
+    def _kyc_distinct(field, filiale=None, agence=None):
+        import hashlib as _h
+        from django.core.cache import cache as _c
+        from django.utils import timezone as _tz
+        # Clé hachée : évite les espaces/car. de contrôle (ex. "BOA TG") qui
+        # déclenchent un CacheKeyWarning et casseraient un backend memcached.
+        _sig = f"{field}:{filiale or ''}:{agence or ''}:{_tz.localdate().isoformat()}"
+        ck = f"non_anom_dd:{_h.md5(_sig.encode('utf-8')).hexdigest()}"
+        cached = _c.get(ck)
+        if cached is not None:
+            return cached
+        vals = set()
+        for model in (Kyc_pp, Kyc_pm):
+            qs = model.objects.all()
+            if filiale:
+                qs = qs.filter(FILIALE=filiale)
+            if agence:
+                qs = qs.filter(AGENCE=agence)
+            vals.update(qs.exclude(**{field: ""}).exclude(**{f"{field}__isnull": True})
+                          .values_list(field, flat=True).distinct())
+        result = sorted(v for v in vals if v)
+        _c.set(ck, result, 3600)
+        return result
+
     if is_group_user:
         from kyc.models import DataQualityRule
         from kyc.forms import DataQualityRuleForm
@@ -6784,33 +7414,35 @@ def non_anom(request):
         filiale_list = sorted(list(anom_filiales | rule_filiales))
         if filiale_filter:
             queryset = queryset.filter(FILIALE=filiale_filter)
-            agence_list = Anomalie.objects.filter(FILIALE=filiale_filter).values_list("AGENCE", flat=True).distinct()
+            agence_list = _kyc_distinct("AGENCE", filiale=filiale_filter)
+            expl_list = _kyc_distinct("EXPL", filiale=filiale_filter, agence=agence_filter or None)
         if agence_filter:
             queryset = queryset.filter(AGENCE=agence_filter)
-            expl_list = Anomalie.objects.filter(AGENCE=agence_filter).values_list("EXPL", flat=True).distinct()
         if expl_filter:
             queryset = queryset.filter(EXPL=expl_filter)
 
     elif user.organe == "Chargé Client":
+        # Portefeuille du chargé de client (sa seule agence + son seul exploitant)
         queryset = queryset.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
+        agence_list = [user.agence] if user.agence else []
+        expl_list = [user.code_expl] if user.code_expl else []
 
     elif user.organe == "Directeur Agence":
+        # Son agence + les exploitants de son agence
         queryset = queryset.filter(FILIALE=user.filiale, AGENCE=user.agence)
-        agence_list = Anomalie.objects.filter(FILIALE=user.filiale).values_list("AGENCE", flat=True).distinct()
-        expl_list = Anomalie.objects.filter(AGENCE=user.agence).values_list("EXPL", flat=True).distinct()
+        agence_list = [user.agence] if user.agence else []
+        expl_list = _kyc_distinct("EXPL", filiale=user.filiale, agence=user.agence)
         if expl_filter:
             queryset = queryset.filter(EXPL=expl_filter)
 
     elif user.organe in users_filiale:
+        # Agences + exploitants de sa filiale
         queryset = queryset.filter(FILIALE=user.filiale)
         filiale_list = [user.filiale]
-        agence_list = Anomalie.objects.filter(FILIALE=user.filiale).values_list("AGENCE", flat=True).distinct()
+        agence_list = _kyc_distinct("AGENCE", filiale=user.filiale)
+        expl_list = _kyc_distinct("EXPL", filiale=user.filiale, agence=agence_filter or None)
         if agence_filter:
             queryset = queryset.filter(AGENCE=agence_filter)
-            expl_list = Anomalie.objects.filter(AGENCE=agence_filter).values_list("EXPL", flat=True).distinct()
-        if expl_filter:
-            queryset = queryset.filter(EXPL=expl_filter)
-            expl_list = Anomalie.objects.filter(AGENCE=agence_filter).values_list("EXPL", flat=True).distinct()
         if expl_filter:
             queryset = queryset.filter(EXPL=expl_filter)
 
@@ -6939,53 +7571,7 @@ def non_anom(request):
             rows = queryset_eval.values(*fields_to_fetch).iterator(chunk_size=2000)
             
             for row in rows:
-                all_match = True
-                for cond in conditions:
-                    val = str(row.get(cond.field_name, '') or '').strip()
-                    target = (cond.value or '').strip()
-                    
-                    match = False
-                    op = cond.operator
-                    if op == '=': match = val == target
-                    elif op == '!=': match = val != target
-                    elif op == '>':
-                        try: match = float(val.replace(',','.')) > float(target.replace(',','.'))
-                        except: match = False
-                    elif op == '<':
-                        try: match = float(val.replace(',','.')) < float(target.replace(',','.'))
-                        except: match = False
-                    elif op == '>=':
-                        try: match = float(val.replace(',','.')) >= float(target.replace(',','.'))
-                        except: match = False
-                    elif op == '<=':
-                        try: match = float(val.replace(',','.')) <= float(target.replace(',','.'))
-                        except: match = False
-                    elif op == 'contains': match = target.lower() in val.lower()
-                    elif op == 'is_empty': match = not val
-                    elif op == 'is_not_empty': match = bool(val)
-                    elif op == 'expired':
-                        p = safe_parse_date(val)
-                        match = p and p < today_date
-                    elif op == 'age_gt':
-                        age = calculate_age(val)
-                        try: match = age is not None and age > int(target)
-                        except: match = False
-                    elif op == 'age_lt':
-                        age = calculate_age(val)
-                        try: match = age is not None and age < int(target)
-                        except: match = False
-                    elif op == 'min_length':
-                        try: match = len(val) < int(target)
-                        except: match = False
-                    elif op == 'max_length':
-                        try: match = len(val) > int(target)
-                        except: match = False
-                    
-                    if not match:
-                        all_match = False
-                        break
-                
-                if all_match:
+                if _dq_conditions_flag(conditions, lambda f: row.get(f, ''), today_date, safe_parse_date, calculate_age):
                     failures.append({
                         'client': row.get('CLIENT', ''),
                         'filiale': row.get('FILIALE', ''),
@@ -7015,7 +7601,7 @@ def non_anom(request):
             Q(field_name__icontains=q) |
             Q(parameter__icontains=q)
         )
-    rules_qs = rules_qs.order_by('-created_at')
+    rules_qs = rules_qs.order_by('id')
 
     # 4. Evaluation Scope
     if is_group_user:
@@ -7093,6 +7679,7 @@ def non_anom(request):
     # 5. Modal Logic
     selected_rule_id = request.GET.get("rule")
     selected_rule = None
+    selected_rule_number = None
     show_rule_modal = False
     failures_page = None
     selected_rule_conditions = []
@@ -7108,6 +7695,7 @@ def non_anom(request):
     if selected_rule_id:
         try:
             selected_rule = DataQualityRule.objects.get(pk=selected_rule_id, active=True)
+            selected_rule_number = selected_rule.pk
             show_rule_modal = True
             selected_rule_conditions = selected_rule.conditions.all()
             
@@ -7208,6 +7796,8 @@ def non_anom(request):
         
         "rules": rules_with_stats,
         "total_rules": len(rules_with_stats),
+        "pp_rules_count": sum(1 for item in rules_with_stats if item['rule'].applicability == 'PP'),
+        "pm_rules_count": sum(1 for item in rules_with_stats if item['rule'].applicability == 'PM'),
         "total_failures": sum(item['stat'].get('fail_count', 0) for item in rules_with_stats),
         "rule_search": q,
         "can_pick_filiale": is_group_user,
@@ -7216,6 +7806,7 @@ def non_anom(request):
         "is_group_user": is_group_user,
         "show_rule_modal": show_rule_modal,
         "selected_rule": selected_rule,
+        "selected_rule_number": selected_rule_number,
         "selected_rule_conditions": selected_rule_conditions,
         "selected_rule_filiales_display": selected_rule_filiales_display,
         "failure_columns": failure_columns,
@@ -8563,8 +9154,8 @@ def pilotage_kyc(request):
     total_missing_pp = 0
     
     for f_name, f_label in pp_fields_to_analyze:
-        missing_count = pp_queryset.filter(Q(**{f"{f_name}__isnull": True}) | Q(**{f_name: ""})).count()
-        rate = compliance_rate_floor(total_pp - missing_count, total_pp)
+        missing_count = pp_queryset.filter(empty_field_q(f_name)).count()
+        rate = completeness_rate_r(missing_count, total_pp)
         if rate is None:
             rate = 100.0
         completeness_rows_pp.append({
@@ -8585,8 +9176,8 @@ def pilotage_kyc(request):
     total_missing_pm = 0
     
     for f_name, f_label in pm_fields_to_analyze:
-        missing_count = pm_queryset.filter(Q(**{f"{f_name}__isnull": True}) | Q(**{f_name: ""})).count()
-        rate = compliance_rate_floor(total_pm - missing_count, total_pm)
+        missing_count = pm_queryset.filter(empty_field_q(f_name)).count()
+        rate = completeness_rate_r(missing_count, total_pm)
         if rate is None:
             rate = 100.0
         completeness_rows_pm.append({
@@ -8606,16 +9197,20 @@ def pilotage_kyc(request):
     low_completeness_rows = [r for r in completeness_rows if r['is_below_threshold']]
     low_completeness_rows.sort(key=lambda r: r['rate'])
 
-    # Aggregate completeness KPIs
-    total_pp_compliant = max(total_evaluated_pp - total_missing_pp, 0)
-    completeness_rate_pp = round((total_pp_compliant / total_evaluated_pp) * 100, 1) if total_evaluated_pp > 0 else 100.0
-    
-    total_pm_compliant = max(total_evaluated_pm - total_missing_pm, 0)
-    completeness_rate_pm = round((total_pm_compliant / total_evaluated_pm) * 100, 1) if total_evaluated_pm > 0 else 100.0
-    
+    # Aggregate completeness KPIs — méthodologie R (global_rate : floor par cellules)
+    completeness_rate_pp = completeness_rate_r(total_missing_pp, total_evaluated_pp)
+    if completeness_rate_pp is None:
+        completeness_rate_pp = 100.0
+
+    completeness_rate_pm = completeness_rate_r(total_missing_pm, total_evaluated_pm)
+    if completeness_rate_pm is None:
+        completeness_rate_pm = 100.0
+
     total_evaluated_global = total_evaluated_pp + total_evaluated_pm
-    total_compliant_global = total_pp_compliant + total_pm_compliant
-    completeness_rate = round((total_compliant_global / total_evaluated_global) * 100, 1) if total_evaluated_global > 0 else 100.0
+    total_missing_global = total_missing_pp + total_missing_pm
+    completeness_rate = completeness_rate_r(total_missing_global, total_evaluated_global)
+    if completeness_rate is None:
+        completeness_rate = 100.0
 
     low_completeness_count_pp = sum(1 for r in completeness_rows_pp if r['is_below_threshold'])
     low_completeness_count_pm = sum(1 for r in completeness_rows_pm if r['is_below_threshold'])
@@ -8732,7 +9327,41 @@ def pilotage_kyc(request):
             return export_pilotage_pdf(scope_data, summary_dict, completeness_rows, quality_rows)
         elif export_format == 'pptx':
             from kyc.pilotage_exports import export_pilotage_pptx
-            return export_pilotage_pptx(scope_data, summary_dict, completeness_rows, quality_rows)
+            # Taux par filiale (uniquement pour le périmètre groupe)
+            filiale_rates = []
+            if scope == 'groupe':
+                for fil in allowed_filiales:
+                    fpp = Kyc_pp.objects.filter(FILIALE=fil)
+                    fpm = Kyc_pm.objects.filter(FILIALE=fil)
+                    tpp_f, tpm_f = fpp.count(), fpm.count()
+                    miss_pp = sum(fpp.filter(empty_field_q(fn)).count()
+                                  for fn, _ in pp_fields_to_analyze)
+                    miss_pm = sum(fpm.filter(empty_field_q(fn)).count()
+                                  for fn, _ in pm_fields_to_analyze)
+                    ev_pp = tpp_f * len(pp_fields_to_analyze)
+                    ev_pm = tpm_f * len(pm_fields_to_analyze)
+                    c_pp = completeness_rate_r(miss_pp, ev_pp)
+                    c_pm = completeness_rate_r(miss_pm, ev_pm)
+                    c_g = completeness_rate_r(miss_pp + miss_pm, ev_pp + ev_pm)
+                    ok_pp = ev_q_pp = ok_pm = ev_q_pm = 0
+                    for rule in rules_to_evaluate:
+                        st = evaluate_data_quality_rule(rule, filiale=fil)
+                        if rule.applicability == 'PP':
+                            ok_pp += st.get('ok_count', 0); ev_q_pp += st.get('total', 0)
+                        else:
+                            ok_pm += st.get('ok_count', 0); ev_q_pm += st.get('total', 0)
+                    q_pp = round(ok_pp / ev_q_pp * 100, 1) if ev_q_pp else None
+                    q_pm = round(ok_pm / ev_q_pm * 100, 1) if ev_q_pm else None
+                    q_g = round((ok_pp + ok_pm) / (ev_q_pp + ev_q_pm) * 100, 1) if (ev_q_pp + ev_q_pm) else None
+                    if tpp_f or tpm_f:
+                        filiale_rates.append({
+                            'filiale': fil,
+                            'comp_global': c_g, 'comp_pp': c_pp, 'comp_pm': c_pm,
+                            'qual_global': q_g, 'qual_pp': q_pp, 'qual_pm': q_pm,
+                        })
+            return export_pilotage_pptx(scope_data, summary_dict, completeness_rows, quality_rows,
+                                        notations_list=notations_list, notation_kpis=notation_kpis,
+                                        filiale_rates=filiale_rates)
         elif export_format == 'excel':
             return export_pilotage_excel(scope_data, summary_dict, completeness_rows, quality_rows, notations_list, notation_kpis)
 
@@ -8851,17 +9480,30 @@ def _parse_daterev(value):
     return None
 
 
-def _get_exploitants_daterev_expired(filiale_filter=None, days_before=30):
+def _paid_daterev_filiales():
+    """Filiales dont le module Rappels DATEREV est payé/actif."""
+    from kyc.models import FilialeModuleConfig
+    return set(FilialeModuleConfig.objects
+               .filter(daterev_reminder_paye_active=True)
+               .values_list('filiale', flat=True))
+
+
+def _get_exploitants_daterev_expired(filiale_filter=None, days_before=30, only_paid=False):
     """
     Retourne un dict {filiale: {expl: {clients_pp, clients_pm}}}
     pour les exploitants ayant des clients avec DATEREV dépassée ou dans `days_before` jours.
     Optimisé : seuls les champs utiles sont récupérés, le parsing date se fait en Python
     uniquement sur les lignes ayant une DATEREV non vide.
+    Si `only_paid=True`, restreint aux filiales dont le module Rappels DATEREV est payé.
     """
     from datetime import date, timedelta
     today = date.today()
     limit_date = today + timedelta(days=days_before)
     today_str = today.isoformat()  # pour comparaison rapide format YYYY-MM-DD
+
+    paid_filiales = _paid_daterev_filiales() if only_paid else None
+    if only_paid and not paid_filiales:
+        return {}   # aucune filiale payée -> aucun rappel
 
     result = {}
 
@@ -8872,6 +9514,8 @@ def _get_exploitants_daterev_expired(filiale_filter=None, days_before=30):
               .only('FILIALE', 'EXPL', 'CLIENT', 'AGENCE', 'LIB_AGENCE', 'DATEREV'))
         if filiale_filter:
             qs = qs.filter(FILIALE=filiale_filter)
+        if paid_filiales is not None:
+            qs = qs.filter(FILIALE__in=paid_filiales)
 
         key_label = f'clients_{label.lower()}'
         for obj in qs.values('FILIALE', 'EXPL', 'CLIENT', 'AGENCE', 'LIB_AGENCE', 'DATEREV'):
@@ -8912,10 +9556,10 @@ def daterev_reminder(request):
     from django.utils import timezone
     import hashlib
     _fil_slug = hashlib.md5((filiale_filter or 'all').encode()).hexdigest()[:12]
-    _cache_key = f"drev:{_fil_slug}:{timezone.localdate().isoformat()}:{days_before}"
+    _cache_key = f"drevpaid:{_fil_slug}:{timezone.localdate().isoformat()}:{days_before}"
     raw = cache.get(_cache_key)
     if raw is None:
-        raw = _get_exploitants_daterev_expired(filiale_filter or None, days_before)
+        raw = _get_exploitants_daterev_expired(filiale_filter or None, days_before, only_paid=True)
         cache.set(_cache_key, raw, timeout=3600)
 
     # Pré-charger tous les ProfileV indexés par (filiale_upper, code_expl_upper)
@@ -8957,10 +9601,12 @@ def daterev_reminder(request):
         if exploitants_list:
             data.append({'filiale': filiale, 'exploitants': exploitants_list})
 
+    # Seules les filiales dont le module Rappels DATEREV est payé sont accessibles
+    paid_filiales = _paid_daterev_filiales()
     filiales_list = sorted(filter(None, set(
         list(Kyc_pp.objects.values_list('FILIALE', flat=True).distinct()) +
         list(Kyc_pm.objects.values_list('FILIALE', flat=True).distinct())
-    )))
+    ) & paid_filiales))
 
     return render(request, 'daterev_reminder.html', {
         'data': data,
@@ -8975,11 +9621,7 @@ def daterev_reminder(request):
 
 @login_required
 def send_daterev_reminders(request):
-    import smtplib
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.text import MIMEText
-    from django.template.loader import render_to_string
-    from accounts.models import ProfileV
+    from kyc.daterev_mailer import send_daterev_reminders_core
 
     if request.method != 'POST':
         return redirect('daterev_reminder')
@@ -8994,113 +9636,15 @@ def send_daterev_reminders(request):
 
     filiale_filter = request.POST.get('filiale', '')
     expl_filter = request.POST.get('expl', '')
-    data = _get_exploitants_daterev_expired(filiale_filter or None, config.days_before)
-
-    sent, skipped, errors = 0, 0, 0
-
-    def _open_smtp(cfg):
-        if cfg.smtp_use_ssl:
-            srv = smtplib.SMTP_SSL(cfg.smtp_host, cfg.smtp_port, timeout=15)
-        else:
-            srv = smtplib.SMTP(cfg.smtp_host, cfg.smtp_port, timeout=15)
-            if cfg.smtp_use_tls:
-                srv.ehlo()
-                srv.starttls()
-                srv.ehlo()
-        if cfg.smtp_user and cfg.smtp_password:
-            try:
-                srv.login(cfg.smtp_user, cfg.smtp_password)
-            except smtplib.SMTPAuthenticationError:
-                srv.quit()
-                # Relais interne sans auth
-                if cfg.smtp_use_ssl:
-                    srv = smtplib.SMTP_SSL(cfg.smtp_host, cfg.smtp_port, timeout=15)
-                else:
-                    srv = smtplib.SMTP(cfg.smtp_host, cfg.smtp_port, timeout=15)
-                    if cfg.smtp_use_tls:
-                        srv.ehlo()
-                        srv.starttls()
-                        srv.ehlo()
-        return srv
+    # N'envoyer qu'aux filiales dont le module Rappels DATEREV est payé
+    data = _get_exploitants_daterev_expired(filiale_filter or None, config.days_before, only_paid=True)
+    if not data:
+        messages.warning(request, "Aucun envoi : aucune filiale payée concernée (vérifiez le statut « Rappels DATEREV PAYE » dans l'admin).")
+        return redirect('daterev_reminder')
 
     try:
-        server = _open_smtp(config)
-
-        # Pré-charger ProfileV indexé par (filiale, code_expl)
-        profiles_index = {}
-        for p in ProfileV.objects.exclude(code_expl='').exclude(code_expl__isnull=True):
-            profiles_index[(p.filiale.strip().upper(), p.code_expl.strip().upper())] = p
-
-        for filiale, expls in data.items():
-            for expl, clients in expls.items():
-                if expl_filter and expl.strip().upper() != expl_filter.strip().upper():
-                    continue
-
-                user_obj = profiles_index.get((filiale.strip().upper(), expl.strip().upper()))
-
-                recipient_email = user_obj.email if user_obj else None
-                if not recipient_email:
-                    skipped += 1
-                    continue
-
-                nom = f"{user_obj.first_name} {user_obj.last_name}".strip() if user_obj else expl
-                all_clients = clients['clients_pp'] + clients['clients_pm']
-                all_clients_sorted = sorted(all_clients, key=lambda x: x['daterev'])
-
-                html_body = render_to_string('email_daterev_reminder.html', {
-                    'nom': nom,
-                    'expl': expl,
-                    'filiale': filiale,
-                    'clients': all_clients_sorted,
-                    'days_before': config.days_before,
-                })
-
-                # Si liste volumineuse (>30 clients) : résumé HTML + pièce jointe Excel
-                ATTACH_THRESHOLD = 30
-                if len(all_clients_sorted) > ATTACH_THRESHOLD:
-                    import io, openpyxl
-                    from email.mime.base import MIMEBase
-                    from email import encoders
-
-                    # Corps allégé
-                    html_body = render_to_string('email_daterev_reminder.html', {
-                        'nom': nom, 'expl': expl, 'filiale': filiale,
-                        'clients': all_clients_sorted[:10],
-                        'days_before': config.days_before,
-                        'truncated': True, 'total': len(all_clients_sorted),
-                    })
-
-                    # Génération Excel en mémoire
-                    wb = openpyxl.Workbook()
-                    ws = wb.active
-                    ws.title = "Clients DATEREV"
-                    ws.append(['Client', 'Agence', 'Lib. Agence', 'DATEREV', 'Statut'])
-                    for c in all_clients_sorted:
-                        ws.append([c['client'], c['agence'], c.get('lib_agence', ''), str(c['daterev']), c['statut']])
-                    buf = io.BytesIO()
-                    wb.save(buf)
-                    buf.seek(0)
-
-                    msg = MIMEMultipart('mixed')
-                    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
-                    part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-                    part.set_payload(buf.read())
-                    encoders.encode_base64(part)
-                    part.add_header('Content-Disposition', f'attachment; filename="daterev_{expl}_{filiale}.xlsx"')
-                    msg.attach(part)
-                else:
-                    msg = MIMEMultipart('alternative')
-                    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
-
-                msg['Subject'] = f"[KYC BOA] Rappel — Revue de portefeuille client à effectuer ({filiale})"
-                msg['From'] = f"{config.from_name} <{config.from_email}>"
-                msg['To'] = recipient_email
-
-                server.sendmail(config.from_email, recipient_email, msg.as_string())
-                sent += 1
-
-        server.quit()
-
+        sent, skipped = send_daterev_reminders_core(config, filiale=filiale_filter or None,
+                                                    expl=expl_filter or None, only_paid=True)
     except Exception as e:
         messages.error(request, f"Erreur SMTP : {e}")
         return redirect('daterev_reminder')
@@ -9109,6 +9653,8 @@ def send_daterev_reminders(request):
         messages.success(request, f"{sent} mail(s) envoyé(s) avec succès.")
     if skipped:
         messages.warning(request, f"{skipped} exploitant(s) ignoré(s) — email non trouvé.")
+    if not sent and not skipped:
+        messages.info(request, "Aucun rappel à envoyer pour ce périmètre.")
 
     return redirect('daterev_reminder')
 

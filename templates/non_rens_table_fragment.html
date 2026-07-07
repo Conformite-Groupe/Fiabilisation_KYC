@@ -1,3 +1,4 @@
+{% load custom_filters %}
 <div class="p-6">
 
     <!-- NOUVEAU CONTENEUR POUR LA PARTIE DYNAMIQUE (Remplacé par AJAX) -->
@@ -14,21 +15,21 @@
             <table class="min-w-[1200px] text-xs text-center">
                 <thead class="sticky top-0 nav-link-active text-white z-10 shadow-md">
                     <tr class="text-center">
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Filiale</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Agence</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap sticky left-0 nav-link-active z-20">Client</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Exploitant</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Codape</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Idp</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Pays Nais</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Profession</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Adresse</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Pays Resid</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Num Cin</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Salaire</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Origine Revenu</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Validité Cin</th>
-                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">Téléphone</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Filiale"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Agence"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap sticky left-0 nav-link-active z-20">{{ "Client"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Exploitant"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Codape"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Idp"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Pays Nais"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Profession"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Adresse"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Pays Resid"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Num Cin"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Salaire"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Origine Revenu"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Validité Cin"|t }}</th>
+                        <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Téléphone"|t }}</th>
                     </tr>
                 </thead>
                 <!-- Le contexte 'donnees' est maintenant l'objet Page -->
@@ -60,9 +61,9 @@
         <div id="paginationControls" class="flex justify-center items-center py-4 space-x-2">
             {% if donnees.has_previous %}
                 <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                   data-page="1" class="page-link px-3 py-1 text-sm rounded-md bg-gray-200 hover:bg-gray-300 transition duration-150">&laquo; Première</a>
+                   data-page="1" class="page-link px-3 py-1 text-sm rounded-md bg-gray-200 hover:bg-gray-300 transition duration-150">{{ "&laquo; Première"|t }}</a>
                 <a href="?page={{ donnees.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                   data-page="{{ donnees.previous_page_number }}" class="page-link px-3 py-1 text-sm rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition duration-150">Précédente</a>
+                   data-page="{{ donnees.previous_page_number }}" class="page-link px-3 py-1 text-sm rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition duration-150">{{ "Précédente"|t }}</a>
             {% endif %}
 
             <span class="text-sm font-semibold text-gray-700 px-4 py-1 border border-gray-300 rounded-md bg-white shadow-sm">
@@ -71,21 +72,21 @@
 
             {% if donnees.has_next %}
                 <a href="?page={{ donnees.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                   data-page="{{ donnees.next_page_number }}" class="page-link px-3 py-1 text-sm rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition duration-150">Suivante</a>
+                   data-page="{{ donnees.next_page_number }}" class="page-link px-3 py-1 text-sm rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition duration-150">{{ "Suivante"|t }}</a>
                 <a href="?page={{ donnees.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                   data-page="{{ donnees.paginator.num_pages }}" class="page-link px-3 py-1 text-sm rounded-md bg-gray-200 hover:bg-gray-300 transition duration-150">Dernière &raquo;</a>
+                   data-page="{{ donnees.paginator.num_pages }}" class="page-link px-3 py-1 text-sm rounded-md bg-gray-200 hover:bg-gray-300 transition duration-150">{{ "Dernière &raquo;"|t }}</a>
             {% endif %}
         </div>
 
         {% else %}
-        <p class="text-gray-600">Aucune donnée disponible pour les critères sélectionnés.</p>
+        <p class="text-gray-600">{{ "Aucune donnée disponible pour les critères sélectionnés."|t }}</p>
         {% endif %}
     </div> <!-- Fin de #tableContainer -->
 
     <!-- Indicateur de chargement pour l'AJAX -->
     <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-70 flex items-center justify-center z-50 hidden">
         <div class="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-green-700 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
-            <span class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Chargement...</span>
+            <span class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">{{ "Chargement..."|t }}</span>
         </div>
     </div>
 

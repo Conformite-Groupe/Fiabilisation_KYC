@@ -43,10 +43,7 @@ def login_kyc(request):
                 return redirect('force_password_change')
             else:
                 login(request, user)
-                if user.organe == "Chargé Client":
-                    return redirect('non_rens')
-                else:
-                    return redirect('agent')
+                return redirect('profil')
         else:
             error = 'Adresse courriel ou mot de passe invalide.'
             return render(request, 'accounts/login_kyc.html', {'error': error})
@@ -77,7 +74,7 @@ def force_password_change(request):
             auth_login(request, user)
             # (optionnel) mettre à jour le hash de session
             update_session_auth_hash(request, user)
-            return redirect('agent' if user.organe != 'Chargé Client' else 'non_rens')
+            return redirect('profil')
     else:
         form = SetPasswordForm(user)
 

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-8 animate-fadeIn">
@@ -6,19 +7,19 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 gap-6">
         <div>
             <h1 class="text-3xl font-black text-slate-800 tracking-tight uppercase">
-                Import <span class="text-green-700">Massif</span>
+                {{ "Import"|t }} <span class="text-green-700">{{ "Massif"|t }}</span>
             </h1>
             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
                 <span class="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span>
-                Gestion des comptes utilisateurs
+                {{ "Gestion des comptes utilisateurs"|t }}
             </p>
         </div>
 
         <a href="{% url 'download_csv_template' %}"
            class="flex items-center gap-3 px-6 py-4 bg-slate-900 text-white rounded-2xl hover:nav-link-active transition-all transform hover:-translate-y-1 group">
             <div class="flex flex-col items-start">
-                <span class="text-[9px] font-black uppercase tracking-widest opacity-60">Modèle requis</span>
-                <span class="text-[11px] font-bold uppercase tracking-tight">Télécharger le CSV</span>
+                <span class="text-[9px] font-black uppercase tracking-widest opacity-60">{{ "Modèle requis"|t }}</span>
+                <span class="text-[11px] font-bold uppercase tracking-tight">{{ "Télécharger le CSV"|t }}</span>
             </div>
             <svg class="w-5 h-5 group-hover:animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -33,7 +34,7 @@
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 <div class="text-[11px] text-blue-700 leading-relaxed font-bold uppercase">
-                    Utilisez exclusivement le fichier modèle téléchargé ci-dessus pour garantir l'importation.
+                    {{ "Utilisez exclusivement le fichier modèle téléchargé ci-dessus pour garantir l'importation."|t }}
                     <span class="text-blue-900 block mt-1 underline">Le champ "password" sera haché automatiquement par le système.</span>
                 </div>
             </div>
@@ -51,12 +52,12 @@
                         <div class="h-16 w-16 bg-white rounded-2xl shadow-lg flex items-center justify-center text-green-600 mb-4">
                             <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                         </div>
-                        <p class="text-slate-800 font-black uppercase tracking-tight text-sm">Déposer le CSV ici</p>
+                        <p class="text-slate-800 font-black uppercase tracking-tight text-sm">{{ "Déposer le CSV ici"|t }}</p>
                     </div>
                 </div>
 
                 <button type="submit" class="w-full bg-gradient-to-r from-green-800 to-green-700 hover:from-slate-900 hover:to-slate-800 text-white font-black uppercase tracking-[0.3em] text-xs py-6 rounded-2xl shadow-xl transition-all transform hover:-translate-y-1">
-                    Exécuter l'importation
+                    {{ "Exécuter l'importation"|t }}
                 </button>
             </form>
         </div>

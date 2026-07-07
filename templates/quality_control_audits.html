@@ -1,4 +1,5 @@
 ﻿{% extends "base.html" %}
+{% load custom_filters %}
 
 {% block content %}
 <style>
@@ -57,10 +58,9 @@
                 </svg>
             </div>
             <div>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase">Historique d'<span
-                        class="text-emerald-500 font-light">Audit</span></h1>
-                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-2">Logs de tracabilite
-                    complete du systeme</p>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase">{{ "Historique d'"|t }}<span
+                        class="text-emerald-500 font-light">{{ "Audit"|t }}</span></h1>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-2">{{ "Logs de tracabilite complete du systeme"|t }}</p>
             </div>
         </div>
 
@@ -72,7 +72,7 @@
                         d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                     </path>
                 </svg>
-                <span class="text-[10px] font-black uppercase tracking-widest">Exporter Excel</span>
+                <span class="text-[10px] font-black uppercase tracking-widest">{{ "Exporter Excel"|t }}</span>
             </a>
             <a href="{% url 'kyc:export_audits_pdf' %}"
                 class="btn-premium flex items-center gap-2 px-5 py-3 bg-red-500 text-white rounded-xl shadow-lg shadow-red-200">
@@ -81,11 +81,11 @@
                         d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
                     </path>
                 </svg>
-                <span class="text-[10px] font-black uppercase tracking-widest">Exporter PDF</span>
+                <span class="text-[10px] font-black uppercase tracking-widest">{{ "Exporter PDF"|t }}</span>
             </a>
             <a href="{% url 'kyc:quality_control' %}"
                 class="btn-premium px-6 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl hover:bg-slate-50 shadow-sm">
-                <span class="text-[10px] font-black uppercase tracking-widest">Retour</span>
+                <span class="text-[10px] font-black uppercase tracking-widest">{{ "Retour"|t }}</span>
             </a>
         </div>
     </header>
@@ -95,11 +95,11 @@
         <table class="w-full text-left border-collapse audit-table">
             <thead>
                 <tr>
-                    <th class="rounded-tl-[3.5rem]">Chronologie</th>
-                    <th>Operateur</th>
-                    <th>Cible</th>
-                    <th>Action</th>
-                    <th class="rounded-tr-[3.5rem]">Details des Modifications</th>
+                    <th class="rounded-tl-[3.5rem]">{{ "Chronologie"|t }}</th>
+                    <th>{{ "Operateur"|t }}</th>
+                    <th>{{ "Cible"|t }}</th>
+                    <th>{{ "Action"|t }}</th>
+                    <th class="rounded-tr-[3.5rem]">{{ "Details des Modifications"|t }}</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 bg-white/50">
@@ -156,17 +156,17 @@
                         {% if audit.action == 'CREATION' %}
                         <span
                             class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-xl border border-emerald-100 uppercase tracking-widest">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Creation
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> {{ "Creation"|t }}
                         </span>
                         {% elif audit.action == 'MODIFICATION' %}
                         <span
                             class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-black rounded-xl border border-blue-100 uppercase tracking-widest">
-                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span> Modification
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span> {{ "Modification"|t }}
                         </span>
                         {% else %}
                         <span
                             class="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-[10px] font-black rounded-xl border border-red-100 uppercase tracking-widest">
-                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> Suppression
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> {{ "Suppression"|t }}
                         </span>
                         {% endif %}
                     </td>
@@ -186,7 +186,7 @@
                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                                 </path>
                             </svg>
-                            <div class="text-sm font-black uppercase tracking-[0.3em]">Aucune donnee d'audit disponible
+                            <div class="text-sm font-black uppercase tracking-[0.3em]">{{ "Aucune donnee d'audit disponible"|t }}
                             </div>
                         </div>
                     </td>

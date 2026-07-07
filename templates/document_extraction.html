@@ -122,12 +122,12 @@
             </div>
             <div>
                 <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                    SCREENING <span class="text-emerald-500 font-light">KYC ID</span>
+                    {{ "SCREENING"|t }} <span class="text-emerald-500 font-light">{{ "KYC ID"|t }}</span>
                 </h1>
                 <div class="flex items-center gap-2 mt-1.5">
                     <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <p class="page-header-subtitle">
-                        Extraction documentaire et rapprochement KYC PP
+                        {{ "Extraction documentaire et rapprochement KYC PP"|t }}
                     </p>
                 </div>
             </div>
@@ -135,7 +135,7 @@
         <div class="flex flex-wrap items-center justify-center lg:justify-end gap-3">
 
             <div class="bg-slate-900 text-white rounded-2xl px-5 py-3 text-right shadow-xl">
-                <p class="text-[9px] font-black text-emerald-300 uppercase tracking-widest">Base documentaire</p>
+                <p class="text-[9px] font-black text-emerald-300 uppercase tracking-widest">{{ "Base documentaire"|t }}</p>
                 <span class="text-sm font-black">{{ documents_count }} document{{ documents_count|pluralize }}</span>
             </div>
         </div>
@@ -146,27 +146,27 @@
             {% if can_insert_batches %}
             <button type="button" data-tab="charger"
                 class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
-                Charger
+                {{ "Charger"|t }}
             </button>
             <button type="button" data-tab="suivi"
                 class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
-                Suivi
+                {{ "Suivi"|t }}
             </button>
             {% endif %}
             <button type="button" data-tab="consulter"
                 data-tab-url="{% url 'document_extraction' %}?tab=results#consulter"
                 class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
-                Resultats
+                {{ "Resultats"|t }}
             </button>
             {% if can_insert_batches %}
             <button type="button" data-tab="sources"
                 class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
-                Sources par champ
+                {{ "Sources par champ"|t }}
             </button>
             {% endif %}
             <button type="button" data-tab="base"
                 class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
-                Documents extraits
+                {{ "Documents extraits"|t }}
             </button>
         </div>
     </nav>
@@ -177,13 +177,11 @@
         <div
             class="px-5 py-3 bg-gray-800 border-b border-green-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-                <h2 class="text-[10px] font-black uppercase tracking-widest text-white">Charger des documents</h2>
-                <p class="text-[9px] font-bold text-gray-200 mt-0.5">Fichier simple, import multiple, archive ZIP ou PDF
-                    groupe</p>
+                <h2 class="text-[10px] font-black uppercase tracking-widest text-white">{{ "Charger des documents"|t }}</h2>
+                <p class="text-[9px] font-bold text-gray-200 mt-0.5">{{ "Fichier simple, import multiple, archive ZIP ou PDF groupe"|t }}</p>
             </div>
             <span
-                class="inline-flex items-center justify-center rounded-xl bg-white/10 border border-white/10 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-green-100">PDF,
-                JPG, PNG, TIFF, TXT, ZIP</span>
+                class="inline-flex items-center justify-center rounded-xl bg-white/10 border border-white/10 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-green-100">{{ "PDF, JPG, PNG, TIFF, TXT, ZIP"|t }}</span>
         </div>
 
         <form method="post" enctype="multipart/form-data" class="p-5 lg:p-6 space-y-6">
@@ -191,18 +189,16 @@
             <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
                 <div class="xl:col-span-7 space-y-5">
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Mode d'import</p>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">{{ "Mode d'import"|t }}</p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <label
                                 class="relative block cursor-pointer rounded-2xl border border-green-200 bg-green-50/80 p-4 import-mode-card shadow-sm">
                                 <input type="radio" name="import_mode" value="single" checked
                                     class="absolute right-4 top-4 h-4 w-4 accent-green-700">
                                 <span
-                                    class="block text-[11px] font-black uppercase tracking-widest text-green-800 pr-8">Fichiers
-                                    ou ZIP</span>
+                                    class="block text-[11px] font-black uppercase tracking-widest text-green-800 pr-8">{{ "Fichiers ou ZIP"|t }}</span>
                                 <span class="block mt-2 text-[11px] font-bold leading-5 text-green-700">
-                                    Pour charger un document, plusieurs fichiers separes ou une archive de plusieuers
-                                    pieces.
+                                    {{ "Pour charger un document, plusieurs fichiers separes ou une archive de plusieuers pieces."|t }}
                                 </span>
                             </label>
                             <label
@@ -210,10 +206,9 @@
                                 <input type="radio" name="import_mode" value="grouped_pdf"
                                     class="absolute right-4 top-4 h-4 w-4 accent-green-700">
                                 <span
-                                    class="block text-[11px] font-black uppercase tracking-widest text-gray-800 pr-8">PDF
-                                    groupe</span>
+                                    class="block text-[11px] font-black uppercase tracking-widest text-gray-800 pr-8">{{ "PDF groupe"|t }}</span>
                                 <span class="block mt-2 text-[11px] font-bold leading-5 text-gray-500">
-                                    Pour un seul PDF contenant plusieurs documents d'identite.
+                                    {{ "Pour un seul PDF contenant plusieurs documents d'identite."|t }}
                                 </span>
                             </label>
                         </div>
@@ -222,10 +217,9 @@
                     <div class="rounded-2xl border-2 border-dashed border-green-200 bg-gray-50 p-6 shadow-inner">
                         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                             <div>
-                                <p class="text-[10px] font-black uppercase tracking-widest text-gray-800">Fichier(s) a
-                                    charger</p>
+                                <p class="text-[10px] font-black uppercase tracking-widest text-gray-800">{{ "Fichier(s) a charger"|t }}</p>
                                 <p class="text-[11px] font-bold text-gray-500 mt-2">
-                                    PDF, JPG, PNG, TIFF, TXT ou ZIP. Selection multiple autorisee.
+                                    {{ "PDF, JPG, PNG, TIFF, TXT ou ZIP. Selection multiple autorisee."|t }}
                                 </p>
                             </div>
                             <input type="file" name="documents" multiple
@@ -238,54 +232,60 @@
                 <div class="xl:col-span-5 space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
                         <div class="block">
-                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Type
-                                de client</span>
+                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{{ "Type de client"|t }}</span>
                             <div class="flex gap-4 py-2">
                                 <label
                                     class="inline-flex items-center gap-2 cursor-pointer font-bold text-xs text-gray-700">
                                     <input type="radio" name="client_type" value="pp" {% if client_type  ==  'pp' or not client_type %}checked{% endif %} class="h-4 w-4 accent-green-700" onchange="filterDocumentTypes(this.value)">
-                                    Particuliers (PP)
+                                    {{ "Particuliers (PP)"|t }}
                                 </label>
                                 <label
                                     class="inline-flex items-center gap-2 cursor-pointer font-bold text-xs text-gray-700">
                                     <input type="radio" name="client_type" value="pm" {% if client_type  ==  'pm' %}checked{% endif %} class="h-4 w-4 accent-green-700" onchange="filterDocumentTypes(this.value)">
-                                    Entreprises (PM)
+                                    {{ "Entreprises (PM)"|t }}
                                 </label>
                             </div>
                         </div>
 
                         <label class="block">
-                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Type
-                                de document</span>
+                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{{ "Type de document"|t }}</span>
                             <select name="document_type" id="upload_document_type"
                                 class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[11px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
+                                <option value="auto" selected>{{ "Automatique (lot mixte)"|t }}</option>
                                 {% for dt in all_document_types %}
                                 <option value="{{ dt.code }}" data-client-type="{{ dt.client_type }}">{{ dt.label }}
                                 </option>
                                 {% endfor %}
                             </select>
+                            <span class="block text-[10px] font-bold text-gray-400 mt-2">{{ "En mode automatique, chaque fichier du lot est classe individuellement (CNI, passeport...) selon les types configures."|t }}</span>
                         </label>
 
                         <label class="block">
-                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Nom
-                                du lot</span>
-                            <input type="text" name="batch_name" placeholder="Ex: Stock CNI agence Dakar"
+                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{{ "Nom du lot"|t }}</span>
+                            <input type="text" name="batch_name" placeholder="{{ 'Ex: Stock CNI agence Dakar'|t }}"
                                 class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[11px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
                         </label>
                     </div>
 
                     <label class="block rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                        <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Pages
-                            par document</span>
+                        <span class="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{{ "Pages par document"|t }}</span>
                         <input type="number" name="pages_per_document" min="1" value="1"
                             class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[11px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
-                        <span class="block text-[10px] font-bold text-gray-400 mt-2">Utile uniquement pour un PDF groupe
-                            : 1 page par piece, ou 2 en recto-verso.</span>
+                        <span class="block text-[10px] font-bold text-gray-400 mt-2">{{ "Utile uniquement pour un PDF groupe : 1 page par piece, ou 2 en recto-verso."|t }}</span>
+                    </label>
+
+                    <label class="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm cursor-pointer">
+                        <input type="checkbox" name="skip_duplicates" value="1" checked
+                            class="h-4 w-4 rounded border-gray-300 text-green-700 focus:ring-green-700">
+                        <span>
+                            <span class="block text-[10px] font-black uppercase tracking-widest text-gray-600">{{ "Ignorer les doublons"|t }}</span>
+                            <span class="block text-[10px] font-bold text-gray-400 mt-0.5">{{ "Les fichiers strictement identiques a un document deja charge seront ignores."|t }}</span>
+                        </span>
                     </label>
 
                     <button
                         class="w-full flex items-center justify-center px-4 py-3.5 nav-link-active text-white text-[10px] font-black rounded-xl tracking-[0.15em] hover:bg-green-800 transition-all shadow-lg shadow-green-100 uppercase">
-                        Charger le lot
+                        {{ "Charger le lot"|t }}
                     </button>
                 </div>
             </div>
@@ -295,8 +295,7 @@
         <div class="border-t border-gray-200 bg-gray-50 px-6 py-6">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                 <div>
-                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">Fichiers charges avec
-                        succes</h3>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">{{ "Fichiers charges avec succes"|t }}</h3>
                     <p class="text-[11px] font-bold text-gray-400 mt-1">
                         Lot : {{ uploaded_batch }} | {{ uploaded_documents_count }} document{{ uploaded_documents_count|pluralize }}
                     </p>
@@ -304,35 +303,81 @@
                 <div class="flex flex-wrap items-center gap-2">
                     <a href="?import_batch={{ uploaded_batch|urlencode }}#base"
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-gray-800 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-700">
-                        Documents du lot
+                        {{ "Documents du lot"|t }}
                     </a>
                     {% if uploaded_batch_running_job %}
                     <a href="{{ uploaded_batch_running_job.follow_url }}"
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-700">
-                        Suivre le rapprochement
+                        {{ "Suivre le rapprochement"|t }}
                     </a>
                     {% elif not uploaded_batch_matching_done %}
                     <a href="{% url 'start_document_extraction_match_job' %}?import_batch={{ uploaded_batch|urlencode }}"
-                        data-processing-link data-processing-title="Rapprochement KYC PP en cours"
+                        data-processing-link data-processing-title="{{ 'Rapprochement KYC PP en cours'|t }}"
                         data-processing-detail="Analyse du lot charge et recherche des champs vides dans KYC PP."
                         data-processing-count="{{ uploaded_documents_count }}"
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-800">
-                        Lancer le rapprochement
+                        {{ "Lancer le rapprochement"|t }}
                     </a>
                     {% else %}
                     <a href="{{ uploaded_batch_result_url|default:'#consulter' }}"
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-green-800 text-[10px] font-black uppercase tracking-widest hover:bg-green-100">
-                        Voir resultats
+                        {{ "Voir resultats"|t }}
                     </a>
                     {% endif %}
                 </div>
             </div>
+
+            {% if uploaded_type_distribution %}
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+                <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">{{ "Repartition par type"|t }} :</span>
+                {% for td in uploaded_type_distribution %}
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border
+                    {% if td.is_unrecognized %}bg-amber-50 text-amber-700 border-amber-200{% else %}bg-slate-100 text-slate-700 border-slate-200{% endif %}">
+                    {{ td.label|t }}
+                    <span class="px-1.5 py-0.5 rounded {% if td.is_unrecognized %}bg-amber-200 text-amber-900{% else %}bg-slate-800 text-white{% endif %}">{{ td.count }}</span>
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {# ---- Progression OCR du lot (worker manage.py process_document_ocr) ---- #}
+            <div id="ocr-progress-panel" data-batch="{{ uploaded_batch }}"
+                data-status-url="{% url 'document_extraction_ocr_status' %}"
+                class="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-4 hidden">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-700 flex items-center gap-2">
+                            <span id="ocr-progress-spinner" class="inline-block h-3 w-3 rounded-full border-2 border-green-700 border-t-transparent animate-spin"></span>
+                            <span id="ocr-progress-title">{{ "Analyse OCR en arriere-plan"|t }}</span>
+                        </p>
+                        <p id="ocr-progress-message" class="text-[11px] font-bold text-slate-400 mt-1">{{ "En attente du worker OCR..."|t }}</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-widest">
+                        <span class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-600" id="ocr-count-pending">0 {{ "en attente"|t }}</span>
+                        <span class="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700" id="ocr-count-done">0 {{ "traites"|t }}</span>
+                        <span class="px-2.5 py-1.5 rounded-lg bg-red-50 text-red-700 hidden" id="ocr-count-failed">0 {{ "echecs"|t }}</span>
+                    </div>
+                </div>
+                <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div id="ocr-progress-bar" class="h-full rounded-full bg-green-700 transition-all duration-700" style="width: 0%"></div>
+                </div>
+                <form method="post" id="ocr-retry-form" class="mt-3 hidden">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="retry_failed_ocr">
+                    <input type="hidden" name="import_batch" value="{{ uploaded_batch }}">
+                    <button type="submit"
+                        class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700">
+                        {{ "Relancer OCR des echecs"|t }}
+                    </button>
+                </form>
+            </div>
+
             {% if uploaded_quality_alerts %}
             <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
                 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
                     <div>
                         <p class="text-[10px] font-black uppercase tracking-widest text-amber-800">
-                            Alerte qualite et detection automatique
+                            {{ "Alerte qualite et detection automatique"|t }}
                         </p>
                         <p class="text-[11px] font-bold text-amber-700 mt-1">
                             {{ uploaded_quality_alerts_count }} document{{ uploaded_quality_alerts_count|pluralize }}
@@ -341,7 +386,7 @@
                     </div>
                     <a href="?import_batch={{ uploaded_batch|urlencode }}#base"
                         class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-white border border-amber-200 text-amber-800 text-[10px] font-black uppercase tracking-widest hover:bg-amber-100">
-                        Voir les details
+                        {{ "Voir les details"|t }}
                     </a>
                 </div>
                 <div class="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
@@ -363,9 +408,9 @@
         <div class="border-t border-gray-200 bg-white px-6 py-6">
             <div class="mb-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">Lots en attente</h3>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">{{ "Lots en attente"|t }}</h3>
                     <p class="mt-1 text-[11px] font-bold text-gray-400">
-                        Lots charges mais pas encore lances en rapprochement.
+                        {{ "Lots charges mais pas encore lances en rapprochement."|t }}
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -375,16 +420,16 @@
                     </span>
                     {% if upload_batch_queue %}
                     <a href="{% url 'start_document_extraction_match_job' %}" data-processing-link
-                        data-processing-title="Rapprochement global KYC PP"
+                        data-processing-title="{{ 'Rapprochement global KYC PP'|t }}"
                         data-processing-detail="Analyse de tous les lots et recherche des champs vides dans KYC PP."
                         data-processing-count="{{ documents_count }}"
                         class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
-                        Tout lancer
+                        {{ "Tout lancer"|t }}
                     </a>
                     {% else %}
                     <button type="button" disabled
                         class="inline-flex cursor-not-allowed items-center justify-center rounded-xl bg-slate-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        Tout lancer
+                        {{ "Tout lancer"|t }}
                     </button>
                     {% endif %}
                 </div>
@@ -393,10 +438,10 @@
                 <table class="w-full min-w-[760px] border-separate border-spacing-0 text-[10px]">
                     <thead>
                         <tr class="bg-slate-900 text-[9px] font-black uppercase tracking-widest text-white">
-                            <th class="px-4 py-3 text-left">Lot</th>
-                            <th class="w-28 px-4 py-3 text-center">Documents</th>
-                            <th class="w-32 px-4 py-3 text-center">Etat</th>
-                            <th class="w-56 px-4 py-3 text-right">Actions</th>
+                            <th class="px-4 py-3 text-left">{{ "Lot"|t }}</th>
+                            <th class="w-28 px-4 py-3 text-center">{{ "Documents"|t }}</th>
+                            <th class="w-32 px-4 py-3 text-center">{{ "Etat"|t }}</th>
+                            <th class="w-56 px-4 py-3 text-right">{{ "Actions"|t }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -421,14 +466,14 @@
                                 <div class="inline-flex items-center gap-2">
                                     <a href="{{ batch.documents_url }}"
                                         class="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-[9px] font-black uppercase tracking-widest text-slate-700 hover:bg-white">
-                                        Documents
+                                        {{ "Documents"|t }}
                                     </a>
                                     <a href="{{ batch.start_url }}" data-processing-link
-                                        data-processing-title="Rapprochement KYC PP en cours"
+                                        data-processing-title="{{ 'Rapprochement KYC PP en cours'|t }}"
                                         data-processing-detail="Analyse du lot et recherche des champs vides dans KYC PP."
                                         data-processing-count="{{ batch.documents_count }}"
                                         class="inline-flex h-8 items-center rounded-lg bg-emerald-700 px-3 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
-                                        Lancer
+                                        {{ "Lancer"|t }}
                                     </a>
                                 </div>
                             </td>
@@ -436,7 +481,7 @@
                         {% empty %}
                         <tr>
                             <td colspan="4" class="px-4 py-8 text-center text-[11px] font-bold text-slate-400">
-                                Aucun lot en attente. Les lots en cours ou termines sont visibles dans l'onglet Suivi.
+                                {{ "Aucun lot en attente. Les lots en cours ou termines sont visibles dans l'onglet Suivi."|t }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -457,9 +502,8 @@
         <div
             class="px-5 py-3 bg-gray-800 border-b border-emerald-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
             <div>
-                <h2 class="text-[10px] font-black uppercase tracking-widest text-white">Suivi des rapprochements</h2>
-                <p class="text-[9px] font-bold text-gray-200 mt-0.5">Traitements en arriere-plan, progression et acces
-                    aux resultats</p>
+                <h2 class="text-[10px] font-black uppercase tracking-widest text-white">{{ "Suivi des rapprochements"|t }}</h2>
+                <p class="text-[9px] font-bold text-gray-200 mt-0.5">{{ "Traitements en arriere-plan, progression et acces aux resultats"|t }}</p>
             </div>
         </div>
 
@@ -471,8 +515,7 @@
                 class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4">
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-800">Traitement
-                            selectionne</p>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-800">{{ "Traitement selectionne"|t }}</p>
                         <p class="mt-1 text-[12px] font-black text-slate-800">
                             {{ selected_match_job.scope_params.import_batch|default:"Tous les lots" }}
                         </p>
@@ -496,18 +539,18 @@
                     class="{% if selected_match_job.status  !=  'completed' %}hidden{% endif %} mt-4 flex flex-wrap items-center gap-2">
                     <a id="matchJobResultLink" href="{{ selected_match_job_result_url }}"
                         class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
-                        Voir les resultats du lot
+                        {{ "Voir les resultats du lot"|t }}
                     </a>
                 </div>
                 {% if selected_match_job.status  ==  'failed' %}
                 <div
                     class="mt-4 rounded-xl border border-red-100 bg-white px-4 py-3 text-[10px] font-bold text-red-700">
-                    Ce rapprochement est en echec. Vous pouvez relancer le lot depuis l'onglet Charger.
+                    {{ "Ce rapprochement est en echec. Vous pouvez relancer le lot depuis l'onglet Charger."|t }}
                 </div>
                 {% elif selected_match_job.status  !=  'completed' %}
                 <div
                     class="mt-4 rounded-xl border border-emerald-100 bg-white px-4 py-3 text-[10px] font-bold text-emerald-700">
-                    La progression se met a jour automatiquement toutes les deux secondes.
+                    {{ "La progression se met a jour automatiquement toutes les deux secondes."|t }}
                 </div>
                 {% endif %}
             </div>
@@ -517,10 +560,10 @@
                 <table class="w-full min-w-[820px] border-separate border-spacing-0 text-[10px]">
                     <thead>
                         <tr class="bg-slate-900 text-[9px] font-black uppercase tracking-widest text-white">
-                            <th class="px-4 py-3 text-left">Lot / Perimetre</th>
-                            <th class="w-32 px-4 py-3 text-center">Statut</th>
-                            <th class="w-64 px-4 py-3 text-center">Progression</th>
-                            <th class="w-40 px-4 py-3 text-right">Action</th>
+                            <th class="px-4 py-3 text-left">{{ "Lot / Perimetre"|t }}</th>
+                            <th class="w-32 px-4 py-3 text-center">{{ "Statut"|t }}</th>
+                            <th class="w-64 px-4 py-3 text-center">{{ "Progression"|t }}</th>
+                            <th class="w-40 px-4 py-3 text-right">{{ "Action"|t }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -550,20 +593,19 @@
                                 {% if job.status  ==  'completed' %}
                                 <a href="{{ job.result_url }}"
                                     class="inline-flex h-8 items-center rounded-lg bg-emerald-700 px-3 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
-                                    Voir resultats
+                                    {{ "Voir resultats"|t }}
                                 </a>
                                 {% elif job.status  ==  'failed' %}
-                                <span class="text-[9px] font-black uppercase tracking-widest text-red-600">Echec</span>
+                                <span class="text-[9px] font-black uppercase tracking-widest text-red-600">{{ "Echec"|t }}</span>
                                 {% else %}
-                                <span class="text-[9px] font-black uppercase tracking-widest text-amber-700">En
-                                    cours</span>
+                                <span class="text-[9px] font-black uppercase tracking-widest text-amber-700">{{ "En cours"|t }}</span>
                                 {% endif %}
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
                             <td colspan="4" class="px-4 py-8 text-center text-[11px] font-bold text-slate-400">
-                                Aucun rapprochement lance pour le moment.
+                                {{ "Aucun rapprochement lance pour le moment."|t }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -604,22 +646,22 @@
                 {% if extraction and selected_import_batch %}
                 <a href="?import_batch={{ selected_import_batch|urlencode }}#consulter"
                     class="inline-flex items-center justify-center rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50">
-                    Retour au lot
+                    {{ "Retour au lot"|t }}
                 </a>
                 {% elif extraction %}
                 <a href="{{ all_match_results_url }}"
                     class="inline-flex items-center justify-center rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50">
-                    Retour
+                    {{ "Retour"|t }}
                 </a>
                 {% else %}
                 <a href="{% url 'document_extraction' %}#charger"
                     class="inline-flex items-center justify-center rounded-xl bg-white border border-gray-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50">
-                    Retour
+                    {{ "Retour"|t }}
                 </a>
                 {% endif %}
                 <a href="{{ all_match_results_url }}"
                     class="inline-flex items-center justify-center rounded-xl bg-slate-800 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-black">
-                    Tous les lots
+                    {{ "Tous les lots"|t }}
                 </a>
             </div>
         </div>
@@ -630,7 +672,7 @@
                 <div
                     class="px-5 py-3 bg-gray-800 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div>
-                        <h2 class="text-[10px] font-black uppercase tracking-widest">Resultat d'analyse</h2>
+                        <h2 class="text-[10px] font-black uppercase tracking-widest">{{ "Resultat d'analyse"|t }}</h2>
                         <p class="text-[9px] font-bold text-gray-300 mt-0.5">
                             {{ extraction.document_type }} - {{ extraction.filename }}
                             {% if extraction.page_range %} |page(s) {{ extraction.page_range }}{% endif %}
@@ -640,7 +682,7 @@
                     {% if extraction.file_url %}
                     <a href="{{ extraction.file_url }}" target="_blank"
                         class="text-[10px] font-black uppercase tracking-widest text-green-200 hover:text-white">
-                        Voir le fichier
+                        {{ "Voir le fichier"|t }}
                     </a>
                     {% endif %}
                 </div>
@@ -658,7 +700,7 @@
                     {% endif %}
 
                     <div>
-                        <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Champs detectes
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">{{ "Champs detectes"|t }}
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                             {% if extraction.field_rows %}
@@ -671,8 +713,7 @@
                             {% else %}
                             <div class="md:col-span-2 xl:col-span-3 rounded-2xl bg-gray-50 border border-gray-100 p-4">
                                 <p class="text-[11px] font-bold text-gray-500">
-                                    Aucun champ standard n'a ete reconnu automatiquement. Consultez le texte brut
-                                    ci-dessous.
+                                    {{ "Aucun champ standard n'a ete reconnu automatiquement. Consultez le texte brut ci-dessous."|t }}
                                 </p>
                             </div>
                             {% endif %}
@@ -680,7 +721,7 @@
                     </div>
 
                     <div>
-                        <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Texte extrait
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">{{ "Texte extrait"|t }}
                         </h3>
                         <pre
                             class="min-h-[180px] max-h-[360px] overflow-auto whitespace-pre-wrap bg-gray-50 border border-gray-200 rounded-2xl p-4 text-[11px] text-gray-700 font-mono">{% if extraction.text %}{{ extraction.text }}{% else %}Aucun texte extrait.{% endif %}</pre>
@@ -694,10 +735,9 @@
                 <div
                     class="px-5 py-3 bg-gray-800 border-b border-green-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
                     <div>
-                        <h2 class="text-[10px] font-black uppercase tracking-widest text-white">Resultats de
-                            rapprochement KYC PP</h2>
+                        <h2 class="text-[10px] font-black uppercase tracking-widest text-white">{{ "Resultats de rapprochement KYC PP"|t }}</h2>
                         <p class="text-[9px] font-bold text-gray-200 mt-0.5">
-                            Champs vides dans KYC PP mais presents dans les documents charges
+                            {{ "Champs vides dans KYC PP mais presents dans les documents charges"|t }}
                         </p>
                     </div>
                     {% if show_match_actions %}
@@ -707,27 +747,51 @@
                             class="inline-flex h-8 items-center justify-center rounded-xl px-3 text-[9px] font-black uppercase tracking-widest text-white shadow-sm">
                             client{{ kyc_pp_match_total_count|pluralize }} trouve{{ kyc_pp_match_total_count|pluralize }} {{ kyc_pp_match_filtered_count }} / {{ kyc_pp_match_total_count }}
                         </span>
+                        <div class="inline-flex items-center rounded-xl border border-white/20 bg-white/10 p-0.5">
+                            {% for st_code, st_label in match_status_options %}
+                            <a href="?{% if match_querystring %}{{ match_querystring }}&{% endif %}match_status={{ st_code }}#consulter"
+                                class="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-[8px] font-black uppercase tracking-widest transition {% if match_status == st_code %}bg-white text-slate-800 shadow-sm{% else %}text-white hover:bg-white/15{% endif %}">
+                                {{ st_label|t }}
+                            </a>
+                            {% endfor %}
+                        </div>
                         <a href="{% url 'export_document_extraction_matches' %}{% if export_match_querystring %}?{{ export_match_querystring }}{% endif %}"
                             class="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-600 px-3.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-emerald-900/10 transition hover:bg-emerald-700">
-                            Exporter CSV
+                            {{ "Exporter CSV"|t }}
                         </a>
                         <button type="submit" form="kyc-match-filter-form"
-                            class="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-600 px-3.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-emerald-900/10 transition hover:bg-emerald-700">Filtrer</button>
+                            class="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-600 px-3.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-emerald-900/10 transition hover:bg-emerald-700">{{ "Filtrer"|t }}</button>
                         <a href="{% url 'document_extraction' %}{% if match_reset_querystring %}?{{ match_reset_querystring }}{% endif %}#consulter"
-                            class="inline-flex h-8 items-center justify-center rounded-xl border border-white/15 bg-white px-3.5 text-[9px] font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-100">Reset</a>
+                            class="inline-flex h-8 items-center justify-center rounded-xl border border-white/15 bg-white px-3.5 text-[9px] font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-100">{{ "Reset"|t }}</a>
                     </div>
                     {% elif not selected_match_job and not wants_results_tab %}
                     <a href="{% url 'start_document_extraction_match_job' %}{% if match_querystring %}?{{ match_querystring }}{% endif %}"
-                        data-processing-link data-processing-title="Rapprochement KYC PP en cours"
+                        data-processing-link data-processing-title="{{ 'Rapprochement KYC PP en cours'|t }}"
                         data-processing-detail="Analyse des documents et recherche des champs vides dans KYC PP."
                         data-processing-count="{{ documents_count }}"
                         class="inline-flex items-center justify-center px-5 py-3 rounded-2xl nav-link-active text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-800 shadow-sm">
-                        Lancer le rapprochement
+                        {{ "Lancer le rapprochement"|t }}
                     </a>
                     {% endif %}
                 </div>
 
                 <div class="p-6">
+                    {% if kyc_pp_match_summary.documents_truncated or kyc_pp_match_summary.results_truncated %}
+                    <div class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+                        <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <div>
+                            <p class="text-[11px] font-black uppercase tracking-widest text-amber-800">{{ "Resultats partiels"|t }}</p>
+                            <p class="text-[11px] font-bold text-amber-700 mt-0.5">
+                                {% if kyc_pp_match_summary.documents_truncated %}
+                                    {{ "Seuls les"|t }} {{ kyc_pp_match_summary.documents_checked }} {{ "documents les plus recents ont ete analyses sur"|t }} {{ kyc_pp_match_summary.documents_total }}. {{ "Affinez le filtre (lot, type) pour tout couvrir."|t }}
+                                {% endif %}
+                                {% if kyc_pp_match_summary.results_truncated %}
+                                    {{ "L'affichage est limite aux"|t }} {{ kyc_pp_match_summary.result_limit }} {{ "meilleures correspondances ; exportez le CSV pour la liste complete."|t }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
                     {% if selected_import_batch %}
                     <div
                         class="mb-5 rounded-2xl border border-green-200 bg-green-50 px-3 py-2 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
@@ -735,24 +799,24 @@
 
                             <p class="text-sm font-black text-gray-800 mt-1">{{ selected_import_batch }}</p>
                             <p class="text-[11px] font-bold text-green-700 mt-1">
-                                Les documents et les correspondances affiches sont limites a ce lot.
+                                {{ "Les documents et les correspondances affiches sont limites a ce lot."|t }}
                             </p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <a href="{{ all_match_results_url }}"
                                 class="inline-flex items-center justify-center rounded-xl border border-green-200 bg-white px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-green-800 hover:bg-green-100">
-                                Voir tous les lots
+                                {{ "Voir tous les lots"|t }}
                             </a>
                             {% if run_kyc_pp_matching and match_scope_import_batch  ==  selected_import_batch %}
                             <span class="">
                             </span>
                             {% else %}
                             <a href="{% url 'start_document_extraction_match_job' %}?import_batch={{ selected_import_batch|urlencode }}"
-                                data-processing-link data-processing-title="Rapprochement KYC PP en cours"
+                                data-processing-link data-processing-title="{{ 'Rapprochement KYC PP en cours'|t }}"
                                 data-processing-detail="Analyse du lot selectionne et recherche des champs vides dans KYC PP."
                                 data-processing-count="{{ documents_count }}"
                                 class="inline-flex items-center justify-center rounded-xl bg-green-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-green-800">
-                                Lancer les correspondances du lot
+                                {{ "Lancer les correspondances du lot"|t }}
                             </a>
                             {% endif %}
                         </div>
@@ -761,17 +825,16 @@
                     {% if selected_match_job and not show_match_job_results %}
                     {% elif wants_results_tab and not run_kyc_pp_matching and not expired_document_matches %}
                     <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
-                        <p class="text-sm font-black text-gray-700">Aucun resultat global disponible.</p>
+                        <p class="text-sm font-black text-gray-700">{{ "Aucun resultat global disponible."|t }}</p>
                         <p class="text-[11px] font-bold text-gray-400 mt-2">
 
                         </p>
                     </div>
                     {% elif not run_kyc_pp_matching and not expired_document_matches %}
                     <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
-                        <p class="text-sm font-black text-gray-700">Rapprochement non lance.</p>
+                        <p class="text-sm font-black text-gray-700">{{ "Rapprochement non lance."|t }}</p>
                         <p class="text-[11px] font-bold text-gray-400 mt-2">
-                            Le calcul peut parcourir plusieurs milliers de documents et clients. Lancez-le uniquement
-                            apres avoir filtre un lot ou une recherche.
+                            {{ "Le calcul peut parcourir plusieurs milliers de documents et clients. Lancez-le uniquement apres avoir filtre un lot ou une recherche."|t }}
                         </p>
                     </div>
                     {% elif kyc_pp_match_total_count or expired_document_matches %}
@@ -781,8 +844,7 @@
                         {% endfor %}
                         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
                             <div class="min-w-fit">
-                                <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">Clients
-                                    trouves</h3>
+                                <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">{{ "Clients trouves"|t }}</h3>
 
                             </div>
                             <div
@@ -790,12 +852,12 @@
                                 <span
                                     class="inline-flex items-center gap-1.5 rounded border border-green-100 bg-green-50 px-2.5 py-1 text-green-800">
                                     <span class="h-2 w-2 rounded-full bg-green-600"></span>
-                                    A completer
+                                    {{ "A completer"|t }}
                                 </span>
                                 <span
                                     class="inline-flex items-center gap-1.5 rounded border border-amber-100 bg-amber-50 px-2.5 py-1 text-amber-800">
                                     <span class="h-2 w-2 rounded-full bg-amber-500"></span>
-                                    A modifier
+                                    {{ "A modifier"|t }}
                                 </span>
                             </div>
 
@@ -808,38 +870,41 @@
                                     <tr class="sticky top-0 z-50">
                                         <th
                                             class="px-1.5 py-2.5 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[96px] border-b border-green-900">
-                                            Client</th>
+                                            {{ "Client"|t }}</th>
                                         {% if client_type  ==  'pm' %}
                                         <th
                                             class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                            IDM</th>
+                                            {{ "IDM"|t }}</th>
                                         {% else %}
                                         <th
                                             class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                            IDP</th>
+                                            {{ "IDP"|t }}</th>
                                         {% endif %}
                                         {% if user.organe not in user_filiale %}
                                         <th
                                             class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                            Filiale</th>
+                                            {{ "Filiale"|t }}</th>
                                         {% endif %}
                                         <th
                                             class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                            Agence</th>
+                                            {{ "Agence"|t }}</th>
                                         <th
                                             class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                            Taux correspondance</th>
+                                            {{ "Taux correspondance"|t }}</th>
                                         <th
                                             class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                            A completer / A modifier</th>
+                                            {{ "A completer / A modifier"|t }}</th>
                                         <th
                                             class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                            Document</th>
+                                            {{ "Document"|t }}</th>
+                                        <th
+                                            class="px-1.5 py-2.5 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
+                                            {{ "Statut"|t }}</th>
                                     </tr>
                                     <tr class="sticky top-[29px] z-40 bg-slate-900/95">
                                         <th class="px-1 py-1.5 bg-slate-900 sticky left-0 z-[60]">
                                             <input name="match_client" value="{{ kyc_pp_match_filters.match_client }}"
-                                                placeholder="Filtre"
+                                                placeholder="{{ 'Filtre'|t }}"
                                                 class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300">
                                         </th>
                                         <th class="px-1 py-1.5 bg-slate-900">
@@ -850,15 +915,16 @@
                                         {% if user.organe not in user_filiale %}
                                         <th class="px-1 py-1.5 bg-slate-900">
                                             <input name="match_filiale" value="{{ kyc_pp_match_filters.match_filiale }}"
-                                                placeholder="Filtre"
+                                                placeholder="{{ 'Filtre'|t }}"
                                                 class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300">
                                         </th>
                                         {% endif %}
                                         <th class="px-1 py-1.5 bg-slate-900">
                                             <input name="match_agence" value="{{ kyc_pp_match_filters.match_agence }}"
-                                                placeholder="Filtre"
+                                                placeholder="{{ 'Filtre'|t }}"
                                                 class="w-full px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300">
                                         </th>
+                                        <th class="px-1 py-1.5 bg-slate-900"></th>
                                         <th class="px-1 py-1.5 bg-slate-900"></th>
                                         <th class="px-1 py-1.5 bg-slate-900"></th>
                                         <th class="px-1 py-1.5 bg-slate-900"></th>
@@ -920,8 +986,47 @@
                                         <td class="px-1.5 py-1.5 text-center border-b border-slate-100">
                                             <a href="?extraction_id={{ match.document.id }}{% if selected_import_batch %}&import_batch={{ selected_import_batch|urlencode }}{% endif %}#consulter"
                                                 class="inline-flex px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[8px] font-black uppercase tracking-widest hover:bg-green-700">
-                                                Details
+                                                {{ "Details"|t }}
                                             </a>
+                                        </td>
+                                        <td class="px-1.5 py-1.5 text-center border-b border-slate-100 whitespace-nowrap">
+                                            {% if match.decision_status == 'validated' %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase tracking-widest">✓ {{ "Valide"|t }}</span>
+                                            {% elif match.decision_status == 'rejected' %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-[8px] font-black uppercase tracking-widest">✕ {{ "Rejete"|t }}</span>
+                                            {% else %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 text-[8px] font-black uppercase tracking-widest">{{ "A valider"|t }}</span>
+                                            {% endif %}
+                                            {% if can_validate_matches or can_reject_matches %}
+                                            <div class="mt-1 flex items-center justify-center gap-1">
+                                                {% if can_validate_matches and match.decision_status != 'validated' %}
+                                                <form method="post" class="inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="decide_match">
+                                                    <input type="hidden" name="decision" value="validated">
+                                                    <input type="hidden" name="document_id" value="{{ match.document.id }}">
+                                                    <input type="hidden" name="client_id" value="{{ match.client.id }}">
+                                                    <input type="hidden" name="match_client_type" value="{{ client_type }}">
+                                                    <input type="hidden" name="match_rate" value="{{ match.match_rate }}">
+                                                    <input type="hidden" name="return_url" value="{{ match_decision_return_url }}">
+                                                    <button type="submit" class="px-2 py-1 rounded bg-emerald-600 text-white text-[8px] font-black uppercase hover:bg-emerald-700" title="{{ 'Valider'|t }}">✓</button>
+                                                </form>
+                                                {% endif %}
+                                                {% if can_reject_matches and match.decision_status != 'rejected' %}
+                                                <form method="post" class="inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="decide_match">
+                                                    <input type="hidden" name="decision" value="rejected">
+                                                    <input type="hidden" name="document_id" value="{{ match.document.id }}">
+                                                    <input type="hidden" name="client_id" value="{{ match.client.id }}">
+                                                    <input type="hidden" name="match_client_type" value="{{ client_type }}">
+                                                    <input type="hidden" name="match_rate" value="{{ match.match_rate }}">
+                                                    <input type="hidden" name="return_url" value="{{ match_decision_return_url }}">
+                                                    <button type="submit" class="px-2 py-1 rounded bg-rose-600 text-white text-[8px] font-black uppercase hover:bg-rose-700" title="{{ 'Rejeter'|t }}">✕</button>
+                                                </form>
+                                                {% endif %}
+                                            </div>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -955,8 +1060,11 @@
                                         <td class="px-1.5 py-1.5 text-center border-b border-slate-100">
                                             <a href="?extraction_id={{ expired_match.document.id }}{% if selected_import_batch %}&import_batch={{ selected_import_batch|urlencode }}{% endif %}#consulter"
                                                 class="inline-flex px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[8px] font-black uppercase tracking-widest hover:bg-green-700">
-                                                Details
+                                                {{ "Details"|t }}
                                             </a>
+                                        </td>
+                                        <td class="px-1.5 py-1.5 text-center border-b border-slate-100 whitespace-nowrap">
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-[8px] font-black uppercase tracking-widest">{{ "A valider"|t }}</span>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -966,15 +1074,13 @@
                         </div>
                     </form>
                     <p class="text-[10px] font-bold text-gray-400 mt-3">
-                        Correspondance par numero d'identite, date de naissance, date de validité du document d'identité
-                        et la nationalité.
+                        {{ "Correspondance par numero d'identite, date de naissance, date de validité du document d'identité et la nationalité."|t }}
                     </p>
                     {% else %}
                     <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
-                        <p class="text-sm font-black text-gray-700">Aucune correspondance exploitable detectee.</p>
+                        <p class="text-sm font-black text-gray-700">{{ "Aucune correspondance exploitable detectee."|t }}</p>
                         <p class="text-[11px] font-bold text-gray-400 mt-2">
-                            Les documents doivent contenir un numero d'identite deja present dans KYC PP, ou le code
-                            client dans le nom du fichier/lot.
+                            {{ "Les documents doivent contenir un numero d'identite deja present dans KYC PP, ou le code client dans le nom du fichier/lot."|t }}
                         </p>
                     </div>
                     {% endif %}
@@ -993,10 +1099,9 @@
         <div
             class="px-5 py-3 bg-gray-800 border-b border-green-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-                <h2 class="text-[10px] font-black uppercase tracking-widest text-white">Sources documentaires par champ
+                <h2 class="text-[10px] font-black uppercase tracking-widest text-white">{{ "Sources documentaires par champ"|t }}
                 </h2>
-                <p class="text-[9px] font-bold text-gray-200 mt-0.5">Choisir quel type de document utiliser pour
-                    completer ou modifier chaque champ KYC.</p>
+                <p class="text-[9px] font-bold text-gray-200 mt-0.5">{{ "Choisir quel type de document utiliser pour completer ou modifier chaque champ KYC."|t }}</p>
             </div>
         </div>
         <div class="p-6 space-y-6">
@@ -1011,23 +1116,22 @@
                     {% endif %}
                     {% endfor %}
                     <label for="filiale_select"
-                        class="text-[10px] font-black uppercase tracking-widest text-slate-700">Filiale cible :</label>
+                        class="text-[10px] font-black uppercase tracking-widest text-slate-700">{{ "Filiale cible :"|t }}</label>
                     <select id="filiale_select" name="filiale" onchange="this.form.submit()"
                         class="h-9 rounded-xl border border-slate-200 bg-white px-3 text-[10px] font-black uppercase tracking-wider text-slate-700 focus:border-emerald-500 focus:ring-emerald-500 min-w-[200px]">
-                        <option value="" {% if not selected_filiale %}selected{% endif %}>-- Globale (Groupe) --
+                        <option value="" {% if not selected_filiale %}selected{% endif %}>{{ "-- Globale (Groupe) --"|t }}
                         </option>
                         {% for fil in liste_filiales %}
                         <option value="{{ fil }}" {% if selected_filiale == fil %}selected{% endif %}>{{ fil }}</option>
                         {% endfor %}
                     </select>
                     <span class="text-[9px] font-bold uppercase tracking-widest text-slate-400 sm:ml-auto">
-                        Les variables ci-dessous s'adaptent selon les parametres de la filiale choisie.
+                        {{ "Les variables ci-dessous s'adaptent selon les parametres de la filiale choisie."|t }}
                     </span>
                 </form>
                 {% else %}
                 <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-700">Affichage des champs
-                        configurés :</span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-700">{{ "Affichage des champs configurés :"|t }}</span>
                     <span
                         class="inline-flex h-9 items-center rounded-xl bg-emerald-50 border border-emerald-100 px-4 text-[10px] font-black uppercase tracking-widest text-emerald-800">
                         {{ user.filiale|default:"Globale" }}
@@ -1045,10 +1149,9 @@
                 <div
                     class="flex flex-col gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-900">Sources documentaires
-                            par champ</p>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-900">{{ "Sources documentaires par champ"|t }}</p>
                         <p class="mt-1 text-[10px] font-bold text-slate-400">
-                            Choisir quel type de document utiliser pour completer ou modifier chaque champ KYC.
+                            {{ "Choisir quel type de document utiliser pour completer ou modifier chaque champ KYC."|t }}
                         </p>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -1058,13 +1161,12 @@
                             <input type="checkbox" name="apply_to_all_filiales" value="1"
                                 class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
                             <span
-                                class="text-[9px] font-black uppercase tracking-widest text-slate-700 select-none">Appliquer
-                                à toutes les filiales</span>
+                                class="text-[9px] font-black uppercase tracking-widest text-slate-700 select-none">{{ "Appliquer à toutes les filiales"|t }}</span>
                         </label>
                         {% endif %}
                         <button type="submit"
                             class="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700 transition-colors">
-                            Enregistrer les choix
+                            {{ "Enregistrer les choix"|t }}
                         </button>
                     </div>
                 </div>
@@ -1081,7 +1183,7 @@
                                 <span class="uppercase tracking-wider">{{ label }}</span>
                                 <select name="source_{{ section.client_type }}_{{ field }}"
                                     class="w-full py-1.5 px-2 rounded-lg border border-slate-200 bg-white text-[10px] font-black uppercase tracking-normal text-slate-700 focus:border-emerald-500 focus:ring-emerald-500 leading-normal">
-                                    <option value="" {% if not selected_source %}selected{% endif %}>Tous documents
+                                    <option value="" {% if not selected_source %}selected{% endif %}>{{ "Tous documents"|t }}
                                     </option>
                                     {% for value, doc_label in document_type_choices %}
                                     <option value="{{ value }}" {% if selected_source == value %}selected{% endif %}>{{ doc_label }}</option>
@@ -1104,13 +1206,13 @@
         <div
             class="px-5 py-3 bg-gray-800 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-                <h2 class="text-[10px] font-black uppercase tracking-widest">Documents extraits</h2>
-                <p class="text-[9px] font-bold text-gray-300 mt-0.5">Recherche par lot, type et champs extraits</p>
+                <h2 class="text-[10px] font-black uppercase tracking-widest">{{ "Documents extraits"|t }}</h2>
+                <p class="text-[9px] font-bold text-gray-300 mt-0.5">{{ "Recherche par lot, type et champs extraits"|t }}</p>
             </div>
             {% if selected_import_batch %}
             <a href="{% url 'document_extraction' %}#base"
                 class="text-[10px] font-black uppercase tracking-widest text-green-200 hover:text-white">
-                Tous les lots
+                {{ "Tous les lots"|t }}
             </a>
             {% endif %}
         </div>
@@ -1123,18 +1225,18 @@
             <div class="mx-auto grid max-w-4xl grid-cols-1 md:grid-cols-12 gap-2.5 items-end">
                 <label class="md:col-span-3 block">
                     <span
-                        class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">Type</span>
+                        class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">{{ "Type"|t }}</span>
                     <select name="document_type"
                         class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[10px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
-                        <option value="">Tous</option>
-                        {% for value, label in document_type_choices %}
-                        <option value="{{ value }}" {% if selected_document_type == value %}selected{% endif %}>{{ label }}</option>
+                        <option value="">{{ "Tous"|t }}</option>
+                        {% for opt in document_type_filter_options %}
+                        <option value="{{ opt.code }}" {% if selected_document_type == opt.code %}selected{% endif %}>{{ opt.label|t }}</option>
                         {% endfor %}
                     </select>
                 </label>
                 <label class="md:col-span-3 block">
                     <span
-                        class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">Champ</span>
+                        class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">{{ "Champ"|t }}</span>
                     <select name="field"
                         class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[10px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
                         {% for value, label in search_fields %}
@@ -1144,13 +1246,13 @@
                 </label>
                 <label class="md:col-span-4 block">
                     <span
-                        class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">Recherche</span>
-                    <input type="search" name="q" value="{{ search_query }}" placeholder="Nom, numero, nationalite..."
+                        class="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5 text-center md:text-left">{{ "Recherche"|t }}</span>
+                    <input type="search" name="q" value="{{ search_query }}" placeholder="{{ 'Nom, numero, nationalite...'|t }}"
                         class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[10px] font-bold text-gray-700 focus:border-green-700 focus:ring-green-700">
                 </label>
                 <button
                     class="md:col-span-2 h-9 px-3 nav-link-active text-white text-[9px] font-black rounded-lg tracking-widest uppercase">
-                    Rechercher
+                    {{ "Rechercher"|t }}
                 </button>
             </div>
         </form>
@@ -1163,46 +1265,46 @@
                         <tr class="sticky top-0 z-50">
                             <th
                                 class="px-2 py-3 text-center font-black text-white uppercase tracking-tighter sticky left-0 top-0 z-[60] bg-slate-900 min-w-[180px] border-b border-slate-800">
-                                Fichier</th>
+                                {{ "Fichier"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Type</th>
+                                {{ "Type"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Lot</th>
+                                {{ "Lot"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Page(s)</th>
+                                {{ "Page(s)"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Prenom</th>
+                                {{ "Prenom"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Nom</th>
+                                {{ "Nom"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Naissance</th>
+                                {{ "Naissance"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Lieu naissance</th>
+                                {{ "Lieu naissance"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Expiration</th>
+                                {{ "Expiration"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                NIN</th>
+                                {{ "NIN"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Numero doc.</th>
+                                {{ "Numero doc."|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Nationalite</th>
+                                {{ "Nationalite"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Adresse</th>
+                                {{ "Adresse"|t }}</th>
                             <th
                                 class="px-2 py-3 text-center font-black text-white bg-slate-900 uppercase tracking-tighter border-b border-slate-800">
-                                Action</th>
+                                {{ "Action"|t }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -1212,7 +1314,27 @@
                                 title="{{ document.original_filename }}">{{ document.original_filename }}</td>
                             <td
                                 class="px-2 py-2 text-center border-b border-slate-100 font-black text-gray-700 whitespace-nowrap">
-                                {{ document.get_document_type_display }}</td>
+                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest
+                                    {% if document.type_is_unrecognized %}bg-amber-50 text-amber-700 border border-amber-200{% else %}bg-slate-100 text-slate-700{% endif %}">
+                                    {{ document.type_label|t }}
+                                </span>
+                                <button type="button" data-type-edit="{{ document.id }}"
+                                    class="ml-1 text-slate-400 hover:text-green-700" title="{{ 'Corriger le type'|t }}">
+                                    <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </button>
+                                <form method="post" data-type-form="{{ document.id }}" class="hidden mt-1.5 flex items-center gap-1 justify-center">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="correct_document_type">
+                                    <input type="hidden" name="extraction_id" value="{{ document.id }}">
+                                    {% if selected_import_batch %}<input type="hidden" name="import_batch" value="{{ selected_import_batch }}">{% endif %}
+                                    <select name="new_document_type" class="rounded-lg border border-gray-200 px-1.5 py-1 text-[9px] font-bold text-gray-700">
+                                        {% for opt in document_type_correction_options %}
+                                        <option value="{{ opt.code }}" {% if opt.code == document.document_type %}selected{% endif %}>{{ opt.label|t }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="px-2 py-1 rounded-lg bg-green-700 text-white text-[8px] font-black uppercase">{{ "OK"|t }}</button>
+                                </form>
+                            </td>
                             <td class="px-2 py-2 text-center border-b border-slate-100 text-gray-600 max-w-[180px] truncate"
                                 title="{{ document.import_batch|default:'-' }}">{{ document.import_batch|default:"-" }}
                             </td>
@@ -1230,14 +1352,14 @@
                             <td class="px-2 py-2 text-center border-b border-slate-100 whitespace-nowrap">
                                 <a href="?extraction_id={{ document.id }}{% if selected_import_batch %}&import_batch={{ selected_import_batch|urlencode }}{% endif %}{% if selected_document_type %}&document_type={{ selected_document_type }}{% endif %}{% if search_field %}&field={{ search_field }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}#consulter"
                                     class="inline-flex px-3 py-1.5 rounded-lg bg-slate-800 text-white text-[8px] font-black uppercase tracking-widest hover:bg-green-700">
-                                    Details
+                                    {{ "Details"|t }}
                                 </a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
                             <td colspan="16" class="px-4 py-8 text-center text-[11px] font-bold text-gray-400">
-                                Aucun document trouve.
+                                {{ "Aucun document trouve."|t }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -1253,11 +1375,11 @@
                 <div class="flex items-center gap-2">
                     {% if documents.has_previous %}
                     <a class="px-3 py-2 rounded-xl border border-gray-200 text-[10px] font-black text-gray-600 hover:bg-gray-50"
-                        href="?page={{ documents.previous_page_number }}{% if page_querystring %}&{{ page_querystring }}{% endif %}#base">Precedent</a>
+                        href="?page={{ documents.previous_page_number }}{% if page_querystring %}&{{ page_querystring }}{% endif %}#base">{{ "Precedent"|t }}</a>
                     {% endif %}
                     {% if documents.has_next %}
                     <a class="px-3 py-2 rounded-xl border border-gray-200 text-[10px] font-black text-gray-600 hover:bg-gray-50"
-                        href="?page={{ documents.next_page_number }}{% if page_querystring %}&{{ page_querystring }}{% endif %}#base">Suivant</a>
+                        href="?page={{ documents.next_page_number }}{% if page_querystring %}&{{ page_querystring }}{% endif %}#base">{{ "Suivant"|t }}</a>
                     {% endif %}
                 </div>
             </div>
@@ -1273,7 +1395,7 @@
         <div
             class="flex flex-col gap-3 border-b border-slate-200 bg-slate-900 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <p class="text-[10px] font-black uppercase tracking-widest text-emerald-300">Resultats de rapprochement
+                <p class="text-[10px] font-black uppercase tracking-widest text-emerald-300">{{ "Resultats de rapprochement"|t }}
                 </p>
                 <h3 class="mt-1 text-sm font-black text-white">
                     {{ selected_match_job.scope_params.import_batch|default:"Tous les lots" }}
@@ -1285,11 +1407,11 @@
             <div class="flex flex-wrap items-center gap-2">
                 <a href="{% url 'export_document_extraction_matches' %}{% if export_match_querystring %}?{{ export_match_querystring }}{% endif %}"
                     class="inline-flex h-9 items-center justify-center rounded-xl bg-emerald-600 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700">
-                    Exporter CSV
+                    {{ "Exporter CSV"|t }}
                 </a>
                 <a href="{{ selected_match_job_follow_url }}"
                     class="inline-flex h-9 items-center justify-center rounded-xl border border-white/15 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 hover:bg-slate-100">
-                    Fermer
+                    {{ "Fermer"|t }}
                 </a>
             </div>
         </div>
@@ -1299,32 +1421,31 @@
                 <span
                     class="inline-flex items-center gap-1.5 rounded border border-green-100 bg-green-50 px-2.5 py-1 text-green-800">
                     <span class="h-2 w-2 rounded-full bg-green-600"></span>
-                    A completer
+                    {{ "A completer"|t }}
                 </span>
                 <span
                     class="inline-flex items-center gap-1.5 rounded border border-amber-100 bg-amber-50 px-2.5 py-1 text-amber-800">
                     <span class="h-2 w-2 rounded-full bg-amber-500"></span>
-                    A modifier
+                    {{ "A modifier"|t }}
                 </span>
             </div>
             <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                 <table class="min-w-[980px] w-full border-separate border-spacing-0 text-[8.5px]">
                     <thead>
                         <tr class="bg-slate-900 text-white">
-                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">Client</th>
+                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">{{ "Client"|t }}</th>
                             {% if client_type  ==  'pm' %}
-                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">IDM</th>
+                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">{{ "IDM"|t }}</th>
                             {% else %}
-                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">IDP</th>
+                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">{{ "IDP"|t }}</th>
                             {% endif %}
                             {% if user.organe not in user_filiale %}
-                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">Filiale</th>
+                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">{{ "Filiale"|t }}</th>
                             {% endif %}
-                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">Agence</th>
-                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">Taux</th>
-                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">A completer / A
-                                modifier</th>
-                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">Document</th>
+                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">{{ "Agence"|t }}</th>
+                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">{{ "Taux"|t }}</th>
+                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">{{ "A completer / A modifier"|t }}</th>
+                            <th class="px-2 py-3 text-center font-black uppercase tracking-tighter">{{ "Document"|t }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1354,14 +1475,14 @@
                             <td class="border-b border-slate-100 px-2 py-2 text-center">
                                 <a href="{{ match.child_detail_url }}"
                                     class="inline-flex rounded-lg bg-slate-800 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-white hover:bg-emerald-700">
-                                    Details
+                                    {{ "Details"|t }}
                                 </a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
                             <td colspan="7" class="px-4 py-10 text-center text-[11px] font-bold text-slate-400">
-                                Aucun resultat exploitable pour ce rapprochement.
+                                {{ "Aucun resultat exploitable pour ce rapprochement."|t }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -1380,7 +1501,7 @@
         <div
             class="flex flex-col gap-3 border-b border-slate-200 bg-slate-900 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <p class="text-[10px] font-black uppercase tracking-widest text-emerald-300">Detail document</p>
+                <p class="text-[10px] font-black uppercase tracking-widest text-emerald-300">{{ "Detail document"|t }}</p>
                 <h3 class="mt-1 text-sm font-black text-white">{{ extraction.filename }}</h3>
                 <p class="mt-1 text-[10px] font-bold text-slate-300">
                     {{ extraction.document_type }}{% if extraction.import_batch %} | {{ extraction.import_batch }}{% endif %}
@@ -1388,7 +1509,7 @@
             </div>
             <a href="{{ selected_match_job_parent_modal_url }}"
                 class="inline-flex h-9 items-center justify-center rounded-xl border border-white/15 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 hover:bg-slate-100">
-                Retour aux resultats du lot
+                {{ "Retour aux resultats du lot"|t }}
             </a>
         </div>
         <div class="flex-1 overflow-auto bg-slate-50 p-5">
@@ -1413,13 +1534,13 @@
                 {% endfor %}
                 {% else %}
                 <div class="md:col-span-2 xl:col-span-3 rounded-xl bg-white border border-slate-100 p-4">
-                    <p class="text-[11px] font-bold text-slate-500">Aucun champ standard reconnu automatiquement.</p>
+                    <p class="text-[11px] font-bold text-slate-500">{{ "Aucun champ standard reconnu automatiquement."|t }}</p>
                 </div>
                 {% endif %}
             </div>
 
             <div class="mt-5">
-                <p class="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Texte extrait</p>
+                <p class="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{{ "Texte extrait"|t }}</p>
                 <pre
                     class="min-h-[180px] max-h-[320px] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-4 text-[11px] text-slate-700 font-mono">{% if extraction.text %}{{ extraction.text }}{% else %}Aucun texte extrait.{% endif %}</pre>
             </div>
@@ -1433,28 +1554,27 @@
     <div class="min-h-full flex items-center justify-center">
         <div class="w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
             <div class="px-6 py-5 bg-gray-800 text-white">
-                <p class="text-[11px] font-black uppercase tracking-widest">Lot charge avec succes</p>
+                <p class="text-[11px] font-black uppercase tracking-widest">{{ "Lot charge avec succes"|t }}</p>
                 <p class="text-[11px] font-bold text-gray-300 mt-2">
                     {{ uploaded_documents_count }} document{{ uploaded_documents_count|pluralize }} enregistre{{ uploaded_documents_count|pluralize }} dans le lot {{ uploaded_batch }}.
                 </p>
             </div>
             <div class="p-6 space-y-5">
                 <div>
-                    <h3 class="text-sm font-black text-gray-800">Voulez-vous lancer le rapprochement maintenant ?</h3>
+                    <h3 class="text-sm font-black text-gray-800">{{ "Voulez-vous lancer le rapprochement maintenant ?"|t }}</h3>
                     <p class="text-[11px] font-bold text-gray-500 leading-5 mt-2">
-                        Attention, ce processus peut prendre du temps selon le nombre de documents charges et le volume
-                        de clients KYC PP a analyser.
+                        {{ "Attention, ce processus peut prendre du temps selon le nombre de documents charges et le volume de clients KYC PP a analyser."|t }}
                     </p>
                 </div>
                 <div class="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
                     <p class="text-[10px] font-bold text-amber-700 leading-5">
-                        Vous pouvez lancer le rapprochement maintenant ou le retrouver plus tard depuis l'onglet Suivi.
+                        {{ "Vous pouvez lancer le rapprochement maintenant ou le retrouver plus tard depuis l'onglet Suivi."|t }}
                     </p>
                 </div>
                 {% if uploaded_quality_alerts %}
                 <div class="rounded-xl bg-red-50 border border-red-100 px-4 py-3">
                     <p class="text-[10px] font-black uppercase tracking-widest text-red-700">
-                        Documents a verifier
+                        {{ "Documents a verifier"|t }}
                     </p>
                     <p class="text-[10px] font-bold text-red-700 leading-5 mt-1">
                         {{ uploaded_quality_alerts_count }} document{{ uploaded_quality_alerts_count|pluralize }}
@@ -1466,14 +1586,14 @@
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
                     <button type="button" data-close-post-upload
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
-                        Plus tard
+                        {{ "Plus tard"|t }}
                     </button>
                     <a href="{% url 'start_document_extraction_match_job' %}?import_batch={{ uploaded_batch|urlencode }}"
-                        data-processing-link data-processing-title="Rapprochement KYC PP en cours"
+                        data-processing-link data-processing-title="{{ 'Rapprochement KYC PP en cours'|t }}"
                         data-processing-detail="Analyse du lot charge et recherche des champs vides dans KYC PP."
                         data-processing-count="{{ uploaded_documents_count }}"
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-800">
-                        Lancer le rapprochement
+                        {{ "Lancer le rapprochement"|t }}
                     </a>
                 </div>
             </div>
@@ -1542,14 +1662,12 @@
     <div class="min-h-full flex items-center justify-center">
         <div class="w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
             <div class="px-6 py-5 bg-gray-800 text-white">
-                <p id="processingTitle" class="text-[11px] font-black uppercase tracking-widest">Traitement en cours</p>
-                <p id="processingDetail" class="text-[11px] font-bold text-gray-300 mt-2">Merci de patienter pendant
-                    l'analyse.</p>
+                <p id="processingTitle" class="text-[11px] font-black uppercase tracking-widest">{{ "Traitement en cours"|t }}</p>
+                <p id="processingDetail" class="text-[11px] font-bold text-gray-300 mt-2">{{ "Merci de patienter pendant l'analyse."|t }}</p>
             </div>
             <div class="p-6 space-y-5">
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Progression
-                        estimee</span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">{{ "Progression estimee"|t }}</span>
                     <span id="processingPercent" class="text-sm font-black text-green-700">0%</span>
                 </div>
                 <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
@@ -1558,17 +1676,16 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="rounded-2xl bg-gray-50 border border-gray-100 p-4">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-gray-400">Temps restant</p>
-                        <p id="processingEta" class="text-lg font-black text-gray-800 mt-1">Calcul...</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-gray-400">{{ "Temps restant"|t }}</p>
+                        <p id="processingEta" class="text-lg font-black text-gray-800 mt-1">{{ "Calcul..."|t }}</p>
                     </div>
                     <div class="rounded-2xl bg-gray-50 border border-gray-100 p-4">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-gray-400">Etat</p>
-                        <p id="processingStatus" class="text-sm font-black text-gray-800 mt-1">Preparation</p>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-gray-400">{{ "Etat"|t }}</p>
+                        <p id="processingStatus" class="text-sm font-black text-gray-800 mt-1">{{ "Preparation"|t }}</p>
                     </div>
                 </div>
                 <p class="text-[11px] font-bold text-gray-400 leading-5">
-                    Cette jauge est une estimation. Le resultat s'affichera automatiquement des que le serveur aura
-                    termine.
+                    {{ "Cette jauge est une estimation. Le resultat s'affichera automatiquement des que le serveur aura termine."|t }}
                 </p>
             </div>
         </div>
@@ -1603,6 +1720,14 @@
         if (activeClientTypeInput) {
             filterDocumentTypes(activeClientTypeInput.value);
         }
+        // correction inline du type de document
+        document.querySelectorAll("[data-type-edit]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const id = button.getAttribute("data-type-edit");
+                const form = document.querySelector(`[data-type-form="${id}"]`);
+                if (form) form.classList.toggle("hidden");
+            });
+        });
     });
 
     const startProcessingOverlay = ({ title, detail, count, baseSeconds }) => {
@@ -1802,6 +1927,71 @@
         };
 
         pollMatchJob();
+    }
+
+    // ---- Suivi OCR du lot charge (worker process_document_ocr) ----
+    const ocrPanel = document.getElementById("ocr-progress-panel");
+    if (ocrPanel && ocrPanel.dataset.batch) {
+        const statusUrl = `${ocrPanel.dataset.statusUrl}?batch=${encodeURIComponent(ocrPanel.dataset.batch)}`;
+        const bar = document.getElementById("ocr-progress-bar");
+        const title = document.getElementById("ocr-progress-title");
+        const message = document.getElementById("ocr-progress-message");
+        const spinner = document.getElementById("ocr-progress-spinner");
+        const countPending = document.getElementById("ocr-count-pending");
+        const countDone = document.getElementById("ocr-count-done");
+        const countFailed = document.getElementById("ocr-count-failed");
+        const retryForm = document.getElementById("ocr-retry-form");
+        const matchButton = document.querySelector("a[data-processing-link]");
+
+        const setMatchButtonEnabled = (enabled) => {
+            if (!matchButton) return;
+            matchButton.classList.toggle("pointer-events-none", !enabled);
+            matchButton.classList.toggle("opacity-40", !enabled);
+        };
+
+        const pollOcr = async () => {
+            try {
+                const response = await fetch(statusUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+                if (!response.ok) throw new Error("http");
+                const data = await response.json();
+                const counts = data.counts || {};
+                const waiting = (counts.pending || 0) + (counts.processing || 0);
+
+                ocrPanel.classList.remove("hidden");
+                if (bar) bar.style.width = `${data.percent || 0}%`;
+                if (countPending) countPending.textContent = `${waiting} en attente`;
+                if (countDone) countDone.textContent = `${counts.done || 0} traites`;
+                if (countFailed) {
+                    countFailed.textContent = `${counts.failed || 0} echecs`;
+                    countFailed.classList.toggle("hidden", !(counts.failed || 0));
+                }
+                if (message) {
+                    message.textContent = (data.job && data.job.message) ||
+                        (waiting ? "Documents en file d'attente OCR..." : "Analyse terminee.");
+                }
+
+                if (data.finished) {
+                    if (spinner) spinner.classList.add("hidden");
+                    if (title) title.textContent = (counts.failed || 0)
+                        ? "Analyse OCR terminee avec des echecs"
+                        : "Analyse OCR terminee";
+                    if (bar) {
+                        bar.style.width = "100%";
+                        bar.classList.toggle("bg-red-500", !!(counts.failed || 0) && !(counts.done || 0));
+                    }
+                    if (retryForm) retryForm.classList.toggle("hidden", !(counts.failed || 0));
+                    setMatchButtonEnabled(true);
+                    return;
+                }
+                setMatchButtonEnabled(false);
+            } catch (error) {
+                if (message) message.textContent = "Lecture de la progression interrompue temporairement.";
+            }
+            window.setTimeout(pollOcr, 2500);
+        };
+
+        setMatchButtonEnabled(false);
+        pollOcr();
     }
 </script>
 {% endblock %}

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% load crispy_forms_tags %}
 {% load l10n %}
 
@@ -141,6 +142,28 @@
         height: 1rem;
         accent-color: #10b981;
     }
+
+    /* ── Mini navbar segmentée (onglets PP / PM / Toutes) ── */
+    .rule-tab {
+        color: #64748b;
+        cursor: pointer;
+    }
+    .rule-tab:hover { color: #0f172a; }
+    .rule-tab .rule-tab-count {
+        background: #f1f5f9;
+        color: #64748b;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .rule-tab.is-active {
+        color: #ffffff;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        box-shadow: 0 8px 20px -6px rgba(15, 23, 42, 0.45);
+    }
+    .rule-tab.is-active .rule-tab-count {
+        background: var(--premium-accent);
+        color: #ffffff;
+    }
+    .rule-card.is-hidden { display: none !important; }
 </style>
 
 <div class="min-h-screen px-4 pb-4 pt-0 lg:px-8 lg:pb-8 lg:pt-0 space-y-4 max-w-[1600px] mx-auto">
@@ -158,12 +181,11 @@
             </div>
             <div>
                 <h1 class="uppercase text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                    Régles de  <span class="uppercase text-emerald-500 font-light"> Qualité</span> 
+                    {{ "Régles de"|t }}  <span class="uppercase text-emerald-500 font-light"> {{ "Qualité"|t }}</span> 
                 </h1>
                 <div class="flex items-center gap-2 mt-1.5">
                     <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Gestion des
-                        règles de contrôle qualité KYC</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">{{ "Gestion des règles de contrôle qualité KYC"|t }}</p>
                 </div>
         
             </div>
@@ -176,7 +198,7 @@
                 <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-width="2.5" d="M12 4v16m8-8H4"></path>
                 </svg>
-                <span class="text-[10px] font-black uppercase tracking-widest">Nouvelle règle</span>
+                <span class="text-[10px] font-black uppercase tracking-widest">{{ "Nouvelle règle"|t }}</span>
             </button>
             <a href="{% url 'kyc:export_rules_pdf' %}"
                 class="btn-premium flex items-center gap-2 px-4 py-2.5 bg-blue-400 text-white rounded-xl hover:bg-blue-600 shadow-lg shadow-red-200">
@@ -185,7 +207,7 @@
                         d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
                     </path>
                 </svg>
-                <span class="text-[10px] font-black uppercase tracking-widest">LISTE DES règles</span>
+                <span class="text-[10px] font-black uppercase tracking-widest">{{ "LISTE DES règles"|t }}</span>
             </a>
             <a href="{% url 'kyc:quality_control_audits' %}"
                 class="btn-premium flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 shadow-sm">
@@ -194,7 +216,7 @@
                         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
                     </path>
                 </svg>
-                <span class="text-[10px] font-black uppercase tracking-widest">Logs d'Audit</span>
+                <span class="text-[10px] font-black uppercase tracking-widest">{{ "Logs d'Audit"|t }}</span>
             </a>
         </div>
         {% endif %}
@@ -207,7 +229,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-slate-900">
-                        Total Règles
+                        {{ "Total Règles"|t }}
                     </p>
                     <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
                         {{ total_rules }}
@@ -220,7 +242,7 @@
                 </div>
             </div>
             <div class="mt-1.5 flex items-center justify-between gap-3">
-                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">Toutes les règles</p>
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">{{ "Toutes les règles"|t }}</p>
             </div>
         </div>
 
@@ -229,7 +251,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-emerald-600">
-                        Opérationnelles
+                        {{ "Opérationnelles"|t }}
                     </p>
                     <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
                         {{ active_rules }}
@@ -242,7 +264,7 @@
                 </div>
             </div>
             <div class="mt-1.5 flex items-center justify-between gap-3">
-                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">Règles actives</p>
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">{{ "Règles actives"|t }}</p>
             </div>
         </div>
 
@@ -251,7 +273,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-blue-600">
-                        Score Global
+                        {{ "Score Global"|t }}
                     </p>
                     <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
                         {% if global_compliance_rate is not None %}{{ global_compliance_rate|floatformat:1 }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
@@ -264,7 +286,7 @@
                 </div>
             </div>
             <div class="mt-1.5 flex items-center justify-between gap-3">
-                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">Conformité moyenne</p>
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">{{ "Conformité moyenne"|t }}</p>
             </div>
         </div>
 
@@ -273,7 +295,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <p class="truncate text-[9px] font-black uppercase tracking-[0.18em] text-red-600">
-                        Non Conformes
+                        {{ "Non Conformes"|t }}
                     </p>
                     <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
                         {{ total_failures }}
@@ -286,24 +308,107 @@
                 </div>
             </div>
             <div class="mt-1.5 flex items-center justify-between gap-3">
-                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">Clients non conformes</p>
+                <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">{{ "Clients non conformes"|t }}</p>
             </div>
         </div>
     </div>
 
+    <!-- FILTRES -->
+    <section class="relative z-10 px-4 pb-2 pt-4 lg:px-6 bg-transparent">
+        <form method="get" class="flex flex-wrap items-end justify-center gap-3 lg:justify-start">
+            {% if can_pick_filiale %}
+            <div class="w-full md:w-36 lg:w-40 relative group order-2">
+                <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    {{ "Filiale"|t }}
+                </label>
+                <div class="relative">
+                    <select name="filiale" onchange="this.form.submit()" class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
+                        <option value="">{{ "Toutes filiales"|t }}</option>
+                        {% for f in filiale_list %}
+                        <option value="{{ f }}" {% if request.GET.filiale == f %}selected{% endif %}>{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            {% elif user.filiale %}
+            <div class="w-full md:w-36 lg:w-40 relative group order-2">
+                <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    {{ "Filiale"|t }}
+                </label>
+                <div class="relative">
+                    <input value="{{ user.filiale }}" disabled class="appearance-none block w-full pl-4 pr-3 py-3 text-xs font-bold text-slate-500 bg-slate-50 backdrop-blur-md border border-slate-200/50 rounded-2xl truncate h-[42px] cursor-not-allowed opacity-60">
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="flex gap-3 w-full lg:w-auto h-full items-end mt-4 lg:mt-0 order-5">
+                <button type="submit" class="group relative flex-1 lg:w-32 h-10 overflow-hidden rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                    <div class="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300 ease-out"></div>
+                    <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <span class="relative z-10">{{ "Filtrer"|t }}</span>
+                </button>
+
+                <a href="{{ request.path }}" class="group relative flex-1 lg:w-32 h-10 overflow-hidden rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2 text-center">
+                    <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span class="relative z-10">{{ "Reset"|t }}</span>
+                </a>
+            </div>
+        </form>
+    </section>
+
     <!-- RULES LISTING -->
     <div class="space-y-6">
         <div class="flex items-center gap-4 px-4">
-            <h2 class="text-sm font-black text-slate-400 uppercase tracking-[0.4em]">Bibliothèque des Règles</h2>
+            <h2 class="text-sm font-black text-slate-400 uppercase tracking-[0.4em]">{{ "Bibliothèque des Règles"|t }}</h2>
             <div class="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent"></div>
         </div>
 
-        <div class="grid grid-cols-1 gap-6">
+        {# ── Mini navbar segmentée : Toutes / Particuliers (PP) / Entreprises (PM) ── #}
+        <div class="flex justify-center sm:justify-start px-4">
+            <div id="ruleTabs" class="glass-panel inline-flex items-center gap-1 rounded-2xl bg-white/70 p-1.5 shadow-lg ring-1 ring-slate-100">
+                <button type="button" data-filter="all" aria-pressed="true"
+                        class="rule-tab group relative flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    <span>{{ "Toutes"|t }}</span>
+                    <span class="rule-tab-count inline-flex min-w-[20px] items-center justify-center rounded-lg px-1.5 py-0.5 text-[9px] font-black tabular-nums">{{ total_rules }}</span>
+                </button>
+                <button type="button" data-filter="PP" aria-pressed="false"
+                        class="rule-tab group relative flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span>{{ "Particuliers (PP)"|t }}</span>
+                    <span class="rule-tab-count inline-flex min-w-[20px] items-center justify-center rounded-lg px-1.5 py-0.5 text-[9px] font-black tabular-nums">{{ pp_rules_count }}</span>
+                </button>
+                <button type="button" data-filter="PM" aria-pressed="false"
+                        class="rule-tab group relative flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    <span>{{ "Entreprises (PM)"|t }}</span>
+                    <span class="rule-tab-count inline-flex min-w-[20px] items-center justify-center rounded-lg px-1.5 py-0.5 text-[9px] font-black tabular-nums">{{ pm_rules_count }}</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="rulesGrid" class="grid grid-cols-1 gap-6">
             {% if rules %}
             {% for item in rules %}
             {% with rule=item.rule stat=item.stat %}
             <article
-                class="glass-panel premium-card rounded-[2.5rem] overflow-hidden {% if not rule.active %}opacity-60 saturate-50{% endif %}">
+                data-app="{{ rule.applicability }}"
+                class="rule-card glass-panel premium-card rounded-[2.5rem] overflow-hidden {% if not rule.active %}opacity-60 saturate-50{% endif %}">
                 <div class="p-6 lg:p-8 flex flex-col lg:flex-row gap-8">
 
                     <!-- RULE CORE INFO -->
@@ -321,7 +426,7 @@
                                     </div>
                                     <span
                                         class="rule-number absolute -top-3 -left-3 w-8 h-8 bg-white border-4 border-slate-900 rounded-2xl flex items-center justify-center text-xs font-black text-slate-900 shadow-xl">
-                                        {{ forloop.counter }}
+                                        {{ rule.id }}
                                     </span>
                                 </div>
                                 <div>
@@ -333,12 +438,12 @@
                                         <span
                                             class="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[8px] font-black uppercase tracking-widest border border-emerald-100">
                                             <span class="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            Active
+                                            {{ "Active"|t }}
                                         </span>
                                         {% else %}
                                         <span
                                             class="flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[8px] font-black uppercase tracking-widest border border-slate-200">
-                                            <span class="w-1 h-1 rounded-full bg-slate-400"></span> Inactive
+                                            <span class="w-1 h-1 rounded-full bg-slate-400"></span> {{ "Inactive"|t }}
                                         </span>
                                         {% endif %}
                                         <span
@@ -361,7 +466,7 @@
                             <div class="flex items-center gap-2">
                                 <a href="{% url 'kyc:edit_quality_rule' rule.id %}"
                                     class="w-12 h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-2xl hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm"
-                                    title="Modifier">
+                                    title="{{ 'Modifier'|t }}">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-width="2"
                                             d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
@@ -370,7 +475,7 @@
                                 </a>
                                 <a href="{% url 'kyc:delete_quality_rule' rule.id %}"
                                     class="w-12 h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-2xl hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-sm"
-                                    title="Supprimer" onclick="return confirm('Supprimer cette règle ?')">
+                                    title="{{ 'Supprimer'|t }}" onclick="return confirm('Supprimer cette règle ?')">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-width="2"
                                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
@@ -392,38 +497,38 @@
                             {% endif %}
                         </p>
 
-                        {% if item.condition_groups %}
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {% for cond in item.condition_groups %}
+                        {% if item.conditions_ordered %}
+                        <div class="flex flex-wrap items-center gap-2">
+                            {% for cond in item.conditions_ordered %}
+                            {% if not forloop.first %}
+                            <span class="text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full {% if cond.logic == 'OR' %}bg-amber-100 text-amber-700{% else %}bg-slate-200 text-slate-500{% endif %}">
+                                {{ cond.logic_display }}
+                            </span>
+                            {% endif %}
                             <div
-                                class="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-emerald-200 transition-colors">
-                                <div class="flex items-center gap-3">
-                                    <div
-                                        class="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                        </svg>
-                                    </div>
-                                    <span class="text-[9px] font-black text-slate-900 uppercase">
-                                        {{ cond.field_name }}
-                                    </span>
+                                class="flex items-center gap-2 p-2.5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-emerald-200 transition-colors">
+                                <div
+                                    class="w-7 h-7 shrink-0 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <span
-                                        class="text-[8px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded uppercase">
-                                        {{ cond.operator_display }}
-                                    </span>
-
-                                    {% if cond.values %}
-                                    <span class="text-[9px] font-black text-slate-700">
-                                        {{ cond.values|join:", " }}
-                                    </span>
-                                    {% else %}
-                                    <span class="text-[9px] font-black text-slate-400">
-                                        Sans paramètre
-                                    </span>
-                                    {% endif %}
-                                </div>
+                                <span class="text-[9px] font-black text-slate-900 uppercase whitespace-nowrap">
+                                    {{ cond.field_name }}
+                                </span>
+                                <span
+                                    class="text-[8px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded uppercase whitespace-nowrap">
+                                    {{ cond.operator_display }}
+                                </span>
+                                {% if cond.value %}
+                                <span class="text-[9px] font-black text-slate-700 whitespace-nowrap">
+                                    {{ cond.value }}
+                                </span>
+                                {% else %}
+                                <span class="text-[9px] font-black text-slate-400 whitespace-nowrap">
+                                    {{ "Sans paramètre"|t }}
+                                </span>
+                                {% endif %}
                             </div>
                             {% endfor %}
                         </div>
@@ -454,7 +559,7 @@
                                         </span>
                                     </div>
                                     <p class="text-[7px] font-black text-emerald-500 uppercase tracking-widest">
-                                        Conformité</p>
+                                        {{ "Conformité"|t }}</p>
                                 </div>
                             </div>
 
@@ -463,13 +568,13 @@
                                 <div
                                     class="flex-1 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
                                     <p class="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                                        Volume</p>
+                                        {{ "Volume"|t }}</p>
                                     <p class="text-base font-black text-slate-900 leading-none">{{ stat.total }}</p>
                                 </div>
                                 <div
                                     class="flex-1 bg-red-50 p-3 rounded-2xl border border-red-100 shadow-sm flex flex-col items-center justify-center text-center">
                                     <p class="text-[6px] font-black text-red-400 uppercase tracking-widest mb-0.5">
-                                        Alertes</p>
+                                        {{ "Alertes"|t }}</p>
                                     <p class="text-base font-black text-red-600 leading-none">{{ stat.fail_count }}</p>
                                 </div>
                             </div>
@@ -492,7 +597,7 @@
                                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                                 </path>
                             </svg>
-                            <span class="export-text">Exporter Anomalies</span>
+                            <span class="export-text">{{ "Exporter Anomalies"|t }}</span>
                         </a>
                         {% else %}
                         <div
@@ -500,7 +605,7 @@
                             <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-width="3" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            <span>Conforme</span>
+                            <span>{{ "Conforme"|t }}</span>
                         </div>
                         {% endif %}
                     </div>
@@ -518,10 +623,9 @@
                         </path>
                     </svg>
                 </div>
-                <h3 class="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">Aucune Règle Configurée
+                <h3 class="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">{{ "Aucune Règle Configurée"|t }}
                 </h3>
-                <p class="text-slate-400 font-medium text-lg">Votre espace de conformité attend ses premières
-                    instructions.</p>
+                <p class="text-slate-400 font-medium text-lg">{{ "Votre espace de conformité attend ses premières instructions."|t }}</p>
             </div>
             {% endif %}
         </div>
@@ -544,10 +648,9 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-2xl font-black text-white uppercase tracking-widest">Création de règle
+                        <h2 class="text-2xl font-black text-white uppercase tracking-widest">{{ "Création de règle"|t }}
                         </h2>
-                        <p class="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">Paramètrage des
-                            règles de Contrôle</p>
+                        <p class="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">{{ "Paramètrage des règles de Contrôle"|t }}</p>
                     </div>
                 </div>
                 <button id="closeRuleModal"
@@ -566,8 +669,7 @@
                         <div class="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-6">
                             <div class="flex items-center gap-4 mb-2">
                                 <div class="w-1.5 h-6 bg-slate-900 rounded-full"></div>
-                                <h3 class="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">Paramètres de
-                                    Base</h3>
+                                <h3 class="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">{{ "Paramètres de Base"|t }}</h3>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="md:col-span-2">{{ form.name|as_crispy_field }}</div>
@@ -583,8 +685,7 @@
                         <div class="p-6 bg-slate-900 rounded-3xl flex items-center justify-between">
 
                             <div class="flex items-center gap-4">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase">Activer en
-                                    Production</span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">{{ "Activer en Production"|t }}</span>
                                 {{ form.active }}
                             </div>
                         </div>
@@ -596,16 +697,14 @@
                             <div class="flex items-center justify-between mb-2">
                                 <div class="flex items-center gap-4">
                                     <div class="w-1.5 h-6 bg-blue-600 rounded-full"></div>
-                                    <h3 class="text-xs font-black text-blue-600 uppercase tracking-[0.3em]">Conditions
-                                        Logiques</h3>
+                                    <h3 class="text-xs font-black text-blue-600 uppercase tracking-[0.3em]">{{ "Conditions Logiques"|t }}</h3>
                                 </div>
                                 <button type="button" id="addCondition"
                                     class="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-width="3" d="M12 4v16m8-8H4"></path>
                                     </svg>
-                                    <span class="text-[10px] font-black uppercase tracking-widest">Ajouter
-                                        Logique</span>
+                                    <span class="text-[10px] font-black uppercase tracking-widest">{{ "Ajouter Logique"|t }}</span>
                                 </button>
                             </div>
 
@@ -619,7 +718,11 @@
                                         <span
                                             class="w-10 h-10 flex items-center justify-center rounded-2xl bg-blue-50 text-blue-600 text-sm font-black shadow-inner">#</span>
                                         <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            Noeud Logique</h4>
+                                            {{ "Noeud Logique"|t }}</h4>
+                                    </div>
+                                    <div class="condition-logic-block flex items-center gap-3 -mt-1 mb-1">
+                                        <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">{{ "Relié à la condition précédente par"|t }}</span>
+                                        <div class="w-24 shrink-0">{{ f.logic }}</div>
                                     </div>
                                     <div class="grid grid-cols-2 gap-6">
                                         <div class="condition-field-container">{{ f.field_name|as_crispy_field }}</div>
@@ -634,7 +737,7 @@
                                         <div
                                             class="flex items-center gap-2 text-red-400 hover:text-red-600 cursor-pointer transition-colors">
                                             {{ f.DELETE }}
-                                            <span class="text-[10px] font-black uppercase">Supprimer Noeud</span>
+                                            <span class="text-[10px] font-black uppercase">{{ "Supprimer Noeud"|t }}</span>
                                         </div>
                                     </div>
                                     {% endif %}
@@ -648,10 +751,10 @@
                 <!-- Modal Footer -->
                 <div class="flex gap-4 justify-end mt-10 pt-8 border-t border-slate-100">
                     <button id="closeRuleModalFooter" type="button"
-                        class="px-10 py-4 text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">Annuler</button>
+                        class="px-10 py-4 text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">{{ "Annuler"|t }}</button>
                     <button type="submit" id="submitRuleBtn"
                         class="px-16 py-5 bg-slate-900 text-white text-xs font-black uppercase tracking-[0.3em] rounded-3xl hover:bg-emerald-600 shadow-2xl hover:shadow-emerald-900/40 transition-all active:scale-95 flex items-center gap-3">
-                        <span class="btn-text">Créer règle</span>
+                        <span class="btn-text">{{ "Créer règle"|t }}</span>
                         <div class="hidden btn-loader">
                             <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                                 viewBox="0 0 24 24">
@@ -671,6 +774,38 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // ── Mini navbar : filtrage PP / PM / Toutes ──
+        const tabsBox = document.getElementById('ruleTabs');
+        if (tabsBox) {
+            const tabs = Array.from(tabsBox.querySelectorAll('.rule-tab'));
+            const cards = Array.from(document.querySelectorAll('#rulesGrid .rule-card'));
+            const STORAGE_KEY = 'qualityControlRuleFilter';
+
+            function applyFilter(filter) {
+                let shown = 0;
+                cards.forEach(card => {
+                    const match = (filter === 'all') || (card.dataset.app === filter);
+                    card.classList.toggle('is-hidden', !match);
+                    if (match) {
+                        shown += 1;   // le numéro affiché reste l'ID de la règle (stable entre les pages)
+                    }
+                });
+                tabs.forEach(t => {
+                    const active = t.dataset.filter === filter;
+                    t.classList.toggle('is-active', active);
+                    t.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+                try { localStorage.setItem(STORAGE_KEY, filter); } catch (e) {}
+            }
+            tabs.forEach(t => t.addEventListener('click', () => applyFilter(t.dataset.filter)));
+            let initial = 'all';
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved && tabs.some(t => t.dataset.filter === saved)) initial = saved;
+            } catch (e) {}
+            applyFilter(initial);
+        }
+
         // Circle progress animation
         document.querySelectorAll('circle.progress-glow-circle').forEach(circle => {
             const rate = parseFloat(circle.getAttribute('data-rate') || 0);
@@ -708,7 +843,7 @@
         const fieldLabels = {
             id_name: 'Nom de la règle',
             id_applicability: 'Segment Cible',
-            id_filiale: 'Filiale(s) concernee(s)',
+            id_filiale: 'Filiale concernée',
             id_field_name: 'Champ de Contrôle Principal',
             id_control_type: 'Algorithme d\'Audit',
             id_parameter: 'Valeur de Base',
@@ -757,11 +892,21 @@
             }
         }
 
+        // Le connecteur ET/OU n'a de sens qu'à partir du 2e noeud : on masque celui du 1er.
+        function updateLogicVisibility() {
+            const rows = document.querySelectorAll('#conditionContainer .condition-row');
+            rows.forEach((row, idx) => {
+                const block = row.querySelector('.condition-logic-block');
+                if (block) block.style.display = (idx === 0) ? 'none' : 'flex';
+            });
+        }
+
         function refreshAllNodes() {
             document.querySelectorAll('.condition-row').forEach(row => {
                 updateFieldsInRow(row);
                 handleOperatorChange(row);
             });
+            updateLogicVisibility();
         }
 
         applicabilitySelect?.addEventListener('change', refreshAllNodes);
@@ -793,12 +938,16 @@
 
                 newRow.querySelectorAll('input:not([type="checkbox"]), select, textarea').forEach(i => i.value = '');
                 newRow.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked = false);
+                // Connecteur du nouveau noeud : ET par défaut (blanking l'avait mis à -1)
+                const logicSel = newRow.querySelector('.js-cond-logic');
+                if (logicSel) logicSel.value = 'AND';
 
                 container.appendChild(newRow);
                 totalFormsInput.value = formIdx + 1;
 
                 updateFieldsInRow(newRow);
                 handleOperatorChange(newRow);
+                updateLogicVisibility();
 
                 container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
             });

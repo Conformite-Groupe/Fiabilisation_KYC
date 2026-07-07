@@ -518,3 +518,90 @@
 2026-03-25 12:45:33,875 - INFO - done TG: 11723 rows
 2026-03-25 12:45:33,875 - INFO - DATEREV total: 11723 rows
 2026-03-25 12:45:33,879 - INFO - IMPORT DONE
+2026-06-29 18:02:13,579 - INFO - Filiales utilisées: ['NE', 'CI', 'TG', 'SN', 'ML', 'BF', 'BJ', 'RDC', 'MR', 'MG', 'UG', 'TZ', 'RW', 'KE', 'FR', 'KM', 'GH', 'Group']
+2026-06-29 18:02:13,589 - INFO - CHEMIN_BASE: C:\Fiabilisation KYC\Python\data
+2026-06-29 18:02:13,589 - INFO - START ANOMALIES
+2026-06-29 18:02:13,590 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_NE.csv
+2026-06-29 18:02:13,590 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_CI.csv
+2026-06-29 18:02:13,590 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_TG.csv
+2026-06-29 18:02:13,590 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_SN.csv
+2026-06-29 18:02:13,591 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_ML.csv
+2026-06-29 18:02:13,591 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_BF.csv
+2026-06-29 18:02:13,591 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_BJ.csv
+2026-06-29 18:02:13,591 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_RDC.csv
+2026-06-29 18:02:13,592 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_MR.csv
+2026-06-29 18:02:13,592 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_MG.csv
+2026-06-29 18:02:13,593 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_UG.csv
+2026-06-29 18:02:13,593 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_TZ.csv
+2026-06-29 18:02:13,593 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_RW.csv
+2026-06-29 18:02:13,594 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_KE.csv
+2026-06-29 18:02:13,594 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_FR.csv
+2026-06-29 18:02:13,595 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_KM.csv
+2026-06-29 18:02:13,595 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_GH.csv
+2026-06-29 18:02:13,596 - WARNING - missing anomalies file: C:\Fiabilisation KYC\Python\data\anomalies_Group.csv
+2026-06-29 18:02:13,596 - INFO - END ANOMALIES
+2026-06-29 18:02:13,596 - INFO - START DATEREV
+2026-06-29 18:02:13,597 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_NE.csv
+2026-06-29 18:02:13,597 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_CI.csv
+2026-06-29 18:02:13,597 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_TG.csv
+2026-06-29 18:02:13,598 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_SN.csv
+2026-06-29 18:02:13,598 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_ML.csv
+2026-06-29 18:02:13,598 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_BF.csv
+2026-06-29 18:02:13,599 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_BJ.csv
+2026-06-29 18:02:13,599 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_RDC.csv
+2026-06-29 18:02:13,599 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_MR.csv
+2026-06-29 18:02:13,600 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_MG.csv
+2026-06-29 18:02:13,600 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_UG.csv
+2026-06-29 18:02:13,600 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_TZ.csv
+2026-06-29 18:02:13,600 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_RW.csv
+2026-06-29 18:02:13,601 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_KE.csv
+2026-06-29 18:02:13,601 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_FR.csv
+2026-06-29 18:02:13,601 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_KM.csv
+2026-06-29 18:02:13,601 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_GH.csv
+2026-06-29 18:02:13,602 - WARNING - missing file: C:\Fiabilisation KYC\Python\data\scoring_Group.csv
+2026-06-29 18:02:13,602 - INFO - DATEREV total: 0 rows
+2026-06-29 18:02:13,603 - INFO - START TAUX_FILIALES
+2026-06-29 18:02:13,604 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_NE.csv
+2026-06-29 18:02:13,604 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_CI.csv
+2026-06-29 18:02:13,605 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_TG.csv
+2026-06-29 18:02:13,605 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_SN.csv
+2026-06-29 18:02:13,605 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_ML.csv
+2026-06-29 18:02:13,606 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_BF.csv
+2026-06-29 18:02:13,606 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_BJ.csv
+2026-06-29 18:02:13,607 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_RDC.csv
+2026-06-29 18:02:13,607 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_MR.csv
+2026-06-29 18:02:13,608 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_MG.csv
+2026-06-29 18:02:13,608 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_UG.csv
+2026-06-29 18:02:13,609 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_TZ.csv
+2026-06-29 18:02:13,609 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_RW.csv
+2026-06-29 18:02:13,609 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_KE.csv
+2026-06-29 18:02:13,610 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_FR.csv
+2026-06-29 18:02:13,610 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_KM.csv
+2026-06-29 18:02:13,610 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_GH.csv
+2026-06-29 18:02:13,610 - WARNING - missing taux file: C:\Fiabilisation KYC\Python\data\suivi_fiabilisation_Group.csv
+2026-06-29 18:02:13,611 - INFO - END TAUX_FILIALES
+2026-06-29 18:02:13,611 - INFO - IMPORT DONE
+2026-07-05 14:56:10,150 - INFO - Filiales utilisées: ['RDC']
+2026-07-05 14:56:10,150 - INFO - CHEMIN_BASE: C:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2025\Plateforme notatio kyc v2\data
+2026-07-05 14:56:10,150 - INFO - START ANOMALIES
+2026-07-05 14:56:10,293 - INFO - cleaned 0 rows for BOA RDC
+2026-07-05 14:56:10,352 - DEBUG - [RDC] anomalies encoding=utf-8 headers=['AGENCE', 'EXPL', 'CLIENT', 'CODAPE', 'IDP', 'ANOMALIE_AGE', 'ANOMALIE_DATE_EER', 'ANOMALIE_CIN', 'PPE', 'AGENCELIB']
+2026-07-05 14:56:14,518 - INFO - done RDC: 83185 rows
+2026-07-05 14:56:14,519 - INFO - END ANOMALIES
+2026-07-05 14:56:14,519 - INFO - START TAUX_FILIALES
+2026-07-05 14:56:14,525 - DEBUG - [RDC] taux_filiales encoding=ascii headers=['FLUX PM', 'FLUX PP', 'STOCK PM', 'STOCK PP', 'DATE']
+2026-07-05 14:56:14,526 - INFO - RDC: 9 rows imported
+2026-07-05 14:56:14,527 - INFO - END TAUX_FILIALES
+2026-07-05 14:56:14,531 - INFO - IMPORT DONE
+2026-07-05 14:57:41,918 - INFO - Filiales utilisées: ['RDC']
+2026-07-05 14:57:41,918 - INFO - CHEMIN_BASE: C:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2025\Plateforme notatio kyc v2\data
+2026-07-05 14:57:41,918 - INFO - START ANOMALIES
+2026-07-05 14:57:42,073 - INFO - cleaned 83185 rows for BOA RDC
+2026-07-05 14:57:42,136 - DEBUG - [RDC] anomalies encoding=utf-8 headers=['AGENCE', 'EXPL', 'CLIENT', 'CODAPE', 'IDP', 'ANOMALIE_AGE', 'ANOMALIE_DATE_EER', 'ANOMALIE_CIN', 'PPE', 'AGENCELIB']
+2026-07-05 14:57:46,712 - INFO - done RDC: 83185 rows
+2026-07-05 14:57:46,713 - INFO - END ANOMALIES
+2026-07-05 14:57:46,715 - INFO - START TAUX_FILIALES
+2026-07-05 14:57:46,720 - DEBUG - [RDC] taux_filiales encoding=ascii headers=['FLUX PM', 'FLUX PP', 'STOCK PM', 'STOCK PP', 'DATE']
+2026-07-05 14:57:46,723 - INFO - RDC: 9 rows imported
+2026-07-05 14:57:46,723 - INFO - END TAUX_FILIALES
+2026-07-05 14:57:46,728 - INFO - IMPORT DONE

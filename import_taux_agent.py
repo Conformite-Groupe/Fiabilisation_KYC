@@ -14,8 +14,9 @@ from django.db import transaction
 # Chemin du dossier contenant tes fichiers CSV
 DEFAULT_DATA_DIR = r"C:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2025\Plateforme notatio kyc v2\data"
 # Liste des filiales par défaut (ex: ["SN", "CI", "BF"])
-# Mettre une liste vide [] pour charger toutes les filiales de Django
-DEFAULT_FILIALES = ["SN", "CI", "BF", "TG"]
+# Laisser vide [] pour charger automatiquement toutes les filiales définies
+# dans kyc.models (source unique de vérité).
+DEFAULT_FILIALES = []
 
 # Modèle de nom de fichier (le {code} sera remplacé par SN, CI, etc.)
 DEFAULT_TAUX_FILENAME = "taux_{code}.csv"
@@ -108,8 +109,12 @@ def build_filiales_list(args_filiales):
     if DEFAULT_FILIALES:
         return [f.upper() for f in DEFAULT_FILIALES]
 
-    # 3. Fallback : Toutes les filiales définies dans les models Django
-    return [val.replace("BOA ", "") for val, _ in FILIALES_CHOICES]
+    # 3. Fallback : dérive les codes depuis les choix Filiales de kyc.models
+    return [
+        val.replace("BOA ", "").strip()
+        for val, _ in FILIALES_CHOICES
+        if val.startswith("BOA ")
+    ]
 
 # =====================================================
 # 5. IMPORTATION DES TAUX

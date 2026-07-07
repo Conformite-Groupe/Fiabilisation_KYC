@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 {% load crispy_forms_tags %}
 
 {% block content %}
@@ -97,16 +98,15 @@
                 </svg>
             </div>
             <div>
-                <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none uppercase">Modification de la
-                    <span class="text-blue-600 font-light">Règle</span>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none uppercase">{{ "Modification de la"|t }}
+                    <span class="text-blue-600 font-light">{{ "Règle"|t }}</span>
                 </h1>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-2">Ajustement de
-                    l'algorithme de contrôle qualité</p>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-2">{{ "Ajustement de l'algorithme de contrôle qualité"|t }}</p>
             </div>
         </div>
         <a href="{% url 'kyc:quality_control' %}"
             class="px-8 py-4 bg-white border border-slate-200 rounded-2xl text-slate-900 text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
-            Retour
+            {{ "Retour"|t }}
         </a>
     </div>
 
@@ -121,7 +121,7 @@
                     <div class="bg-slate-50/50 p-10 rounded-[3rem] border border-slate-100 space-y-8">
                         <div class="flex items-center gap-4 mb-2">
                             <div class="w-1.5 h-6 bg-slate-900 rounded-full"></div>
-                            <h3 class="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">Configuration</h3>
+                            <h3 class="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">{{ "Configuration"|t }}</h3>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -137,18 +137,17 @@
                         <div
                             class="p-6 bg-white rounded-3xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div class="flex items-center gap-4">
-                                <span class="text-xs font-black text-slate-900 uppercase tracking-widest">Activer la
-                                    Règle</span>
+                                <span class="text-xs font-black text-slate-900 uppercase tracking-widest">{{ "Activer la Règle"|t }}</span>
                                 {{ form.active }}
                             </div>
                             <div class="flex items-center gap-3 px-4 py-2 bg-slate-900 rounded-2xl shadow-lg">
                                 <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
                                 <span class="text-[9px] font-black text-white uppercase tracking-widest">
-                                    {{ rule.created_by.get_full_name|default:rule.created_by.username|default:"Utilisateur inconnu" }}
+                                    {% if rule.created_by %}{{ rule.created_by.get_full_name|default:rule.created_by.username }}{% else %}Utilisateur inconnu{% endif %}
                                 </span>
                                 <span
                                     class="px-2 py-0.5 bg-white/10 text-white text-[8px] font-black rounded uppercase">
-                                    {{ rule.created_by.filiale|default:"Filiale non renseignée" }}
+                                    {% if rule.created_by.filiale %}{{ rule.created_by.filiale }}{% else %}Filiale non renseignée{% endif %}
                                 </span>
                             </div>
                         </div>
@@ -161,15 +160,14 @@
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center gap-4">
                                 <div class="w-1.5 h-6 bg-blue-600 rounded-full"></div>
-                                <h3 class="text-xs font-black text-blue-600 uppercase tracking-[0.3em]">Conditions
-                                    logiques</h3>
+                                <h3 class="text-xs font-black text-blue-600 uppercase tracking-[0.3em]">{{ "Conditions logiques"|t }}</h3>
                             </div>
                             <button type="button" id="addCondition"
                                 class="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-width="3" d="M12 4v16m8-8H4"></path>
                                 </svg>
-                                <span class="text-[10px] font-black uppercase tracking-widest">Ajouter conditions</span>
+                                <span class="text-[10px] font-black uppercase tracking-widest">{{ "Ajouter conditions"|t }}</span>
                             </button>
                         </div>
 
@@ -184,8 +182,12 @@
                                         class="w-10 h-10 flex items-center justify-center rounded-2xl bg-blue-50 text-blue-600 text-sm font-black shadow-inner">
                                         #{{ forloop.counter0|add:1 }}
                                     </span>
-                                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Noeud
+                                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ "Noeud"|t }}
                                     </h4>
+                                </div>
+                                <div class="condition-logic-block flex items-center gap-3">
+                                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">{{ "Relié à la condition précédente par"|t }}</span>
+                                    <div class="w-24 shrink-0">{{ f.logic }}</div>
                                 </div>
                                 <div class="grid grid-cols-2 gap-6">
                                     {{ f.field_name|as_crispy_field }}
@@ -200,7 +202,7 @@
                                     <div
                                         class="flex items-center gap-2 text-red-400 hover:text-red-600 cursor-pointer transition-colors">
                                         {{ f.DELETE }}
-                                        <span class="text-[10px] font-black uppercase">Terminer le Noeud</span>
+                                        <span class="text-[10px] font-black uppercase">{{ "Terminer le Noeud"|t }}</span>
                                     </div>
                                 </div>
                                 {% endif %}
@@ -215,10 +217,10 @@
             <!-- Footer -->
             <div class="flex gap-6 justify-end mt-16 pt-12 border-t border-slate-100">
                 <a href="{% url 'kyc:quality_control' %}"
-                    class="px-10 py-5 text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">Annuler</a>
+                    class="px-10 py-5 text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">{{ "Annuler"|t }}</a>
                 <button type="submit" id="submitEditBtn"
                     class="px-20 py-6 bg-slate-900 text-white text-xs font-black uppercase tracking-[0.4em] rounded-3xl hover:bg-blue-600 shadow-2xl hover:shadow-blue-900/40 transition-all active:scale-95 btn-glow-blue flex items-center gap-3">
-                    <span class="btn-text">Mettre à  jour</span>
+                    <span class="btn-text">{{ "Mettre à jour"|t }}</span>
                     <div class="hidden btn-loader">
                         <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24">
@@ -241,7 +243,7 @@
         const fieldLabels = {
             id_name: 'Nom de la règle',
             id_applicability: 'Segment Cible',
-            id_filiale: 'Filiale(s) concernee(s)',
+            id_filiale: 'Filiale concernée',
             id_field_name: 'Champ de Contrôle Principal',
             id_control_type: 'Algorithme d\'Audit',
             id_parameter: 'Valeur de Base',
@@ -291,11 +293,21 @@
             }
         }
 
+        // Le connecteur ET/OU n'a de sens qu'à partir du 2e noeud : on masque celui du 1er.
+        function updateLogicVisibility() {
+            const rows = document.querySelectorAll('#conditionContainer .condition-row');
+            rows.forEach((row, idx) => {
+                const block = row.querySelector('.condition-logic-block');
+                if (block) block.style.display = (idx === 0) ? 'none' : 'flex';
+            });
+        }
+
         function refreshAllNodes() {
             document.querySelectorAll('.condition-row').forEach(row => {
                 updateFieldsInRow(row);
                 handleOperatorChange(row);
             });
+            updateLogicVisibility();
         }
 
         applicabilitySelect?.addEventListener('change', refreshAllNodes);
@@ -342,12 +354,16 @@
                 newRow.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked = false);
                 const idInput = newRow.querySelector('input[type="hidden"][name$="-id"]');
                 if (idInput) idInput.remove();
+                // Connecteur du nouveau noeud : ET par défaut (blanking l'avait mis à -1)
+                const logicSel = newRow.querySelector('.js-cond-logic');
+                if (logicSel) logicSel.value = 'AND';
 
                 container.appendChild(newRow);
                 totalFormsInput.value = formIdx + 1;
 
                 updateFieldsInRow(newRow);
                 handleOperatorChange(newRow);
+                updateLogicVisibility();
             });
         }
 

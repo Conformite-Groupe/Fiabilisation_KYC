@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% load crispy_forms_tags %}
 {% load tailwind_filters %}
 
@@ -31,11 +32,11 @@
                 </div>
 
                 <div>
-                    <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">Revue <span class="text-emerald-500 font-light">Scoring PPE</span></h1>
+                    <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">{{ "Revue"|t }} <span class="text-emerald-500 font-light">{{ "Scoring PPE"|t }}</span></h1>
 
          <div class="flex items-center gap-2 mt-1.5">
              <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-             <p class="page-header-subtitle">Suivi des dates d'anniversaire de scoring</p>
+             <p class="page-header-subtitle">{{ "Suivi des dates d'anniversaire de scoring"|t }}</p>
          </div>
                 </div>
             </div>
@@ -44,17 +45,17 @@
         <div class="flex items-center gap-3">
             <a href="{% url 'export_csv_scoring_ppe' %}?{{ request.GET.urlencode }}"  class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
                      <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Exporter
+                    {{ "Exporter"|t }}
                 </a>
         </div>
     </div>
 
     <div class="flex flex-wrap justify-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-200 max-w-3xl mx-auto">
         <a href="{% url 'ppe' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all bg-gray-50 text-gray-400 hover:bg-gray-100 uppercase tracking-widest">
-            Champs manquants
+            {{ "Champs manquants"|t }}
         </a>
         <a href="{% url 'anom_ppe' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all bg-gray-50 text-gray-400 hover:bg-gray-100 uppercase tracking-widest border-x border-gray-100">
-            Champs en anomalie
+            {{ "Champs en anomalie"|t }}
                 </div>
             </div>
         </div>
@@ -62,20 +63,20 @@
         <div class="flex items-center gap-3">
             <a href="{% url 'export_csv_scoring_ppe' %}?{{ request.GET.urlencode }}"  class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
                      <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Exporter
+                    {{ "Exporter"|t }}
                 </a>
         </div>
     </div>
 
     <div class="flex flex-wrap justify-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-200 max-w-3xl mx-auto">
         <a href="{% url 'ppe' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all bg-gray-50 text-gray-400 hover:bg-gray-100 uppercase tracking-widest">
-            Champs manquants
+            {{ "Champs manquants"|t }}
         </a>
         <a href="{% url 'anom_ppe' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all bg-gray-50 text-gray-400 hover:bg-gray-100 uppercase tracking-widest border-x border-gray-100">
-            Champs en anomalie
+            {{ "Champs en anomalie"|t }}
         </a>
         <a href="{% url 'daterev_ppe' %}" class="flex-1 text-center px-4 py-3 text-[10px] font-black rounded-xl transition-all nav-link-active text-white shadow-lg uppercase tracking-widest">
-            Revue scoring
+            {{ "Revue scoring"|t }}
         </a>
     </div>
 
@@ -85,16 +86,16 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Période
+                    {{ "Période"|t }}
                 </label>
                 <div class="relative">
                     <select name="periode" onchange="this.form.submit()"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Toute échéance</option>
-                        <option value="today" {% if periode == "today" %}selected{% endif %}>Échues (Auj.)</option>
-                        <option value="3m" {% if periode == "3m" %}selected{% endif %}>Dans 3 mois</option>
-                        <option value="6m" {% if periode == "6m" %}selected{% endif %}>Dans 6 mois</option>
-                        <option value="1y" {% if periode == "1y" %}selected{% endif %}>Dans 1 an</option>
+                        <option value="">{{ "Toute échéance"|t }}</option>
+                        <option value="today" {% if periode == "today" %}selected{% endif %}>{{ "Échues (Auj.)"|t }}</option>
+                        <option value="3m" {% if periode == "3m" %}selected{% endif %}>{{ "Dans 3 mois"|t }}</option>
+                        <option value="6m" {% if periode == "6m" %}selected{% endif %}>{{ "Dans 6 mois"|t }}</option>
+                        <option value="1y" {% if periode == "1y" %}selected{% endif %}>{{ "Dans 1 an"|t }}</option>
                     </select>
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -105,13 +106,13 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                    Filiale
+                    {{ "Filiale"|t }}
                 </label>
                 {% if can_pick_filiale %}
                 <div class="relative">
                     <select name="filiale" onchange="this.form.submit()"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Toutes filiales</option>
+                        <option value="">{{ "Toutes filiales"|t }}</option>
                         {% for f in filiales %}
                             <option value="{{ f }}" {% if filiale_param == f %}selected{% endif %}>{{ f }}</option>
                         {% endfor %}
@@ -131,13 +132,13 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                    Agence
+                    {{ "Agence"|t }}
                 </label>
                 {% if can_pick_agence %}
                 <div class="relative">
                     <select name="agence" onchange="this.form.submit()"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Toutes agences</option>
+                        <option value="">{{ "Toutes agences"|t }}</option>
                         {% for a in agences %}
                             <option value="{{ a }}" {% if agence_param == a %}selected{% endif %}>{{ a }}</option>
                         {% endfor %}
@@ -157,13 +158,13 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                    Exploitant
+                    {{ "Exploitant"|t }}
                 </label>
                 {% if can_pick_expl %}
                 <div class="relative">
                     <select name="expl" onchange="this.form.submit()"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Tous exploitants</option>
+                        <option value="">{{ "Tous exploitants"|t }}</option>
                         {% for e in exploitants %}
                             <option value="{{ e }}" {% if expl_param == e %}selected{% endif %}>{{ e }}</option>
                         {% endfor %}
@@ -183,7 +184,7 @@
             <div class="flex gap-3 w-full lg:w-auto mt-4 lg:mt-0 items-end">
                 <a href="{% url 'daterev_ppe' %}" class="group relative w-full lg:w-32 h-[42px] overflow-hidden rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2 text-center">
                    <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                   <span class="relative z-10">Reset</span>
+                   <span class="relative z-10">{{ "Reset"|t }}</span>
                 </a>
             </div>
         </form>
@@ -200,14 +201,14 @@
             {% if count_risque_non_eleve > 0 %}
                 <span class="inline-flex items-center px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-[10px] font-black uppercase tracking-normal border border-orange-200 whitespace-nowrap">
                     <span class="mr-2 w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
-                    PPE non classée à risque élevé : <strong class="ml-1">{{ count_risque_non_eleve }}</strong>
+                    {{ "PPE non classée à risque élevé :"|t }} <strong class="ml-1">{{ count_risque_non_eleve }}</strong>
                 </span>
             {% else %}
                 <span class="inline-flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-full text-[10px] font-black uppercase tracking-normal shadow-sm whitespace-nowrap">
                     <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    Toutes les PPE sont à risque élevé
+                    {{ "Toutes les PPE sont à risque élevé"|t }}
                 </span>
             {% endif %}
         </div>
@@ -219,19 +220,19 @@
             <tr class="sticky top-0 z-50">
 
                  {% if user.organe not in user_filiale %}
-                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Filiale</th>
+                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Filiale"|t }}</th>
                           {% endif %}
-                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Agence</th>
+                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Agence"|t }}</th>
                 
-                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Agencelib</th>
+                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Agencelib"|t }}</th>
                 
-                   <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Exploitant</th>
+                   <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Exploitant"|t }}</th>
                 <th class="px-4 py-3 text-center font-black text-white uppercase tracking-widest sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[130px] border-b border-green-900">
-                    Client
+                    {{ "Client"|t }}
                 </th>
-                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Classe de risque</th>
+                <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Classe de risque"|t }}</th>
 
-                   <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Prochaine Date Revue (*)</th>
+                   <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Prochaine Date Revue (*)"|t }}</th>
                   
                     </tr>
                 </thead>
@@ -271,14 +272,14 @@
             </table>
         </div>
         <div class="p-4 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-500  font-medium">
-            (*) Date limite recommandée pour effectuer le renouvellement du scoring de conformité.
+            {{ "(*) Date limite recommandée pour effectuer le renouvellement du scoring de conformité."|t }}
         </div>
         {% else %}
         <div class="p-20 text-center">
             <div class="h-20 w-20 bg-gray-50 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-gray-200">
                 <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
-            <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Aucune revue planifiée pour cette période.</p>
+            <p class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ "Aucune revue planifiée pour cette période."|t }}</p>
         </div>
         {% endif %}
     </div>

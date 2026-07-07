@@ -32,10 +32,10 @@
                 </div>
 
                 <div>
-                    <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">Comptes <span class="text-emerald-500 font-light">Devise (PP)</span></h1>
+                    <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">{{ "Comptes"|t }} <span class="text-emerald-500 font-light">{{ "Devise (PP)"|t }}</span></h1>
                     <div class="flex items-center gap-2 mt-1.5">
                         <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <p class="page-header-subtitle">Comptes en devise à  fiabiliser</p>
+                        <p class="page-header-subtitle">{{ "Comptes en devise à fiabiliser"|t }}</p>
                     </div>
                 </div>
             </div>
@@ -45,17 +45,17 @@
             <div class="flex items-center space-x-3">
                  <div class="inline-flex p-1.5 bg-gray-100 rounded-2xl border border-gray-100 shadow-inner">
                     <a href="/devise" class="px-6 py-2 uppercase text-[10px] font-black rounded-lg transition-all {% if 'devise' in request.path %} nav-link-active text-white shadow-inner {% else %} text-gray-500 hover:text-gray-700 {% endif %}">
-                        Comptes en devise
+                        {{ "Comptes en devise"|t }}
                     </a>
                     <a href="/non_resid" class="px-6 py-2 uppercase text-[10px] font-black rounded-lg transition-all {% if 'non_resid' in request.path %} nav-link-active text-white shadow-inner {% else %} text-gray-500 hover:text-gray-700 {% endif %}">
-                        Comptes Non-Résidents
+                        {{ "Comptes Non-Résidents"|t }}
                     </a>
                 </div>
 
             </div>
             <a href="{% url 'export_devise_pp' %}?{{ request.GET.urlencode }}"          class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
                      <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Exporter
+                    {{ "Exporter"|t }}
                 </a>
         </div>
     </div>
@@ -75,12 +75,12 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                    Filiale
+                    {{ "Filiale"|t }}
                 </label>
                 <div class="relative">
                     <select name="filiale"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Toutes filiales</option>
+                        <option value="">{{ "Toutes filiales"|t }}</option>
                         {% for f in filiales %}
                             <option value="{{ f }}" {% if request.GET.filiale == f %}selected{% endif %}>{{ f }}</option>
                         {% endfor %}
@@ -95,12 +95,12 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                    Agence
+                    {{ "Agence"|t }}
                 </label>
                 <div class="relative">
                     <select name="agence"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Toutes agences</option>
+                        <option value="">{{ "Toutes agences"|t }}</option>
                         {% for a in agences %}
                             <option value="{{ a }}" {% if request.GET.agence == a %}selected{% endif %}>{{ a }}</option>
                         {% endfor %}
@@ -114,12 +114,12 @@
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                    Exploitant
+                    {{ "Exploitant"|t }}
                 </label>
                 <div class="relative">
                     <select name="expl"
                         class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
-                        <option value="">Tous les exploitants</option>
+                        <option value="">{{ "Tous les exploitants"|t }}</option>
                         {% for e in exploitants %}
                             <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
                         {% endfor %}
@@ -134,12 +134,12 @@
                 <button type="submit" class="group relative flex-1 lg:w-32 h-10 overflow-hidden rounded-xl nav-link-active text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2">
                     <div class="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300 ease-out"></div>
                     <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    <span class="relative z-10">Filtrer</span>
+                    <span class="relative z-10">{{ "Filtrer"|t }}</span>
                 </button>
 
                 <a href="{{ request.path }}" class="group relative flex-1 lg:w-32 h-10 overflow-hidden rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2 text-center">
                    <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                   <span class="relative z-10">Reset</span>
+                   <span class="relative z-10">{{ "Reset"|t }}</span>
                 </a>
             </div>
         </form>
@@ -159,15 +159,15 @@
 
         <div class="flex items-center bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {% if donnees.has_previous %}
-                <a href="?page={{ donnees.previous_page_number }}&{{ get_params }}" class="px-2 py-2 text-[8px] font-black text-gray-600 hover:bg-gray-50 border-r border-gray-100 transition-colors uppercase tracking-widest">Précédent</a>
+                <a href="?page={{ donnees.previous_page_number }}&{{ get_params }}" class="px-2 py-2 text-[8px] font-black text-gray-600 hover:bg-gray-50 border-r border-gray-100 transition-colors uppercase tracking-widest">{{ "Précédent"|t }}</a>
             {% else %}
-                <span class="px-2 py-2 text-[8px] font-black text-gray-300 bg-gray-50 cursor-not-allowed border-r border-gray-100 uppercase tracking-widest">Précédent</span>
+                <span class="px-2 py-2 text-[8px] font-black text-gray-300 bg-gray-50 cursor-not-allowed border-r border-gray-100 uppercase tracking-widest">{{ "Précédent"|t }}</span>
             {% endif %}
 
             {% if donnees.has_next %}
-                <a href="?page={{ donnees.next_page_number }}&{{ get_params }}" class="px-2 py-2 text-[8px] font-black text-gray-600 hover:bg-gray-50 transition-colors uppercase tracking-widest">Suivant</a>
+                <a href="?page={{ donnees.next_page_number }}&{{ get_params }}" class="px-2 py-2 text-[8px] font-black text-gray-600 hover:bg-gray-50 transition-colors uppercase tracking-widest">{{ "Suivant"|t }}</a>
             {% else %}
-                <span class="px-2 py-2 text-[8px] font-black text-gray-300 bg-gray-50 cursor-not-allowed uppercase tracking-widest">Suivant</span>
+                <span class="px-2 py-2 text-[8px] font-black text-gray-300 bg-gray-50 cursor-not-allowed uppercase tracking-widest">{{ "Suivant"|t }}</span>
             {% endif %}
         </div>
     </div>
@@ -180,7 +180,7 @@
             {% for field, label in kyc_pp_display_fields %}
                 {% if field != "FILIALE" or user.organe in user_groupe %}
                 <th class="px-1 py-2 text-center font-black text-white {% if field == 'CLIENT' %}bg-green-800 sticky left-0 z-[60] shadow-xl{% else %}bg-slate-900{% endif %} uppercase tracking-tighter border-b border-slate-800 whitespace-nowrap">
-                    {{ label }}
+                    {{ label|t }}
                 </th>
                 {% endif %}
             {% endfor %}
@@ -189,7 +189,7 @@
             {% for field, label in kyc_pp_display_fields %}
                 {% if field != "FILIALE" or user.organe in user_groupe %}
                 <th class="px-1 py-2 {% if field == 'CLIENT' %}bg-green-900/80 sticky left-0 z-[60]{% else %}bg-slate-900{% endif %}">
-                    <input form="filterForm" name="col_{{ field|lower }}" value="{{ request.GET|get_item:field|default:'' }}" placeholder="Filtre" class="w-full min-w-[90px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+                    <input form="filterForm" name="col_{{ field|lower }}" value="{{ request.GET|get_item:field|default:'' }}" placeholder="{{ 'Filtre'|t }}" class="w-full min-w-[90px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
                 </th>
                 {% endif %}
             {% endfor %}
@@ -209,7 +209,7 @@
             {% endfor %}
         </tr>
         {% empty %}
-        <tr><td colspan="{{ kyc_pp_display_fields|length }}" class="px-6 py-10 text-center text-xs font-black text-slate-400 uppercase tracking-widest">Aucune donnee trouvee.</td></tr>
+        <tr><td colspan="{{ kyc_pp_display_fields|length }}" class="px-6 py-10 text-center text-xs font-black text-slate-400 uppercase tracking-widest">{{ "Aucune donnee trouvee."|t }}</td></tr>
         {% endfor %}
     </tbody>
 </table>

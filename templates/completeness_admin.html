@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block content %}
 <div class="min-h-screen px-4 pb-8 pt-2 lg:px-8 space-y-6 max-w-[1500px] mx-auto">
@@ -11,11 +12,11 @@
             </div>
             <div>
                 <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                    Parametrage <span class="text-emerald-500 font-light">completude KYC</span>
+                    {{ "Parametrage"|t }} <span class="text-emerald-500 font-light">{{ "completude KYC"|t }}</span>
                 </h1>
                 <div class="flex items-center gap-2 mt-1.5">
                     <span class="flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                    <span class="page-header-subtitle">Champs critiques, exclusions et calcul PASS</span>
+                    <span class="page-header-subtitle">{{ "Champs critiques, exclusions et calcul PASS"|t }}</span>
                 </div>
             </div>
         </div>
@@ -23,14 +24,14 @@
 
     <form method="get" class="glass-panel rounded-2xl p-4 flex flex-wrap items-end gap-3">
         <div class="w-full md:w-72">
-            <label class="block text-[9px] font-black text-slate-400 uppercase mb-1.5">Filiale</label>
+            <label class="block text-[9px] font-black text-slate-400 uppercase mb-1.5">{{ "Filiale"|t }}</label>
             <select name="filiale" class="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700">
                 {% for filiale in filiales %}
                 <option value="{{ filiale }}" {% if selected_filiale == filiale %}selected{% endif %}>{{ filiale }}</option>
                 {% endfor %}
             </select>
         </div>
-        <button type="submit" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest">Afficher</button>
+        <button type="submit" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest">{{ "Afficher"|t }}</button>
     </form>
 
     <div id="calculationProgressPanel" class="{% if not active_progress %}hidden{% endif %} glass-panel rounded-2xl p-5 border border-emerald-100">
@@ -38,15 +39,15 @@
             <div>
                 <div class="flex items-center gap-2">
                     <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <p class="text-xs font-black text-slate-900 uppercase tracking-widest">Calcul en cours</p>
+                    <p class="text-xs font-black text-slate-900 uppercase tracking-widest">{{ "Calcul en cours"|t }}</p>
                 </div>
                 <p id="calculationProgressMessage" class="text-[11px] font-bold text-slate-500 mt-1">
                     {{ active_progress.message|default:"Preparation..." }}
                 </p>
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                    Demarre le <span id="calculationStartedAt">{{ active_progress.started_at|default:"-" }}</span>
+                    {{ "Demarre le"|t }} <span id="calculationStartedAt">{{ active_progress.started_at|default:"-" }}</span>
                     <span class="mx-2 text-slate-300">|</span>
-                    Derniere mise a jour <span id="calculationUpdatedAt">{{ active_progress.updated_at|default:"-" }}</span>
+                    {{ "Derniere mise a jour"|t }} <span id="calculationUpdatedAt">{{ active_progress.updated_at|default:"-" }}</span>
                 </p>
             </div>
             <div id="calculationProgressPercent" class="text-3xl font-black text-emerald-600">
@@ -80,11 +81,11 @@
                 <table class="w-full text-xs border-separate border-spacing-0">
                     <thead>
                         <tr>
-                            <th class="px-4 py-3 text-left bg-slate-50 text-[10px] font-black uppercase text-slate-500">Champ</th>
-                            <th class="px-4 py-3 text-center bg-slate-50 text-[10px] font-black uppercase text-slate-500">Critique</th>
-                            <th class="px-4 py-3 text-center bg-slate-50 text-[10px] font-black uppercase text-slate-500">Afficher non renseignes</th>
-                            <th class="px-4 py-3 text-left bg-slate-50 text-[10px] font-black uppercase text-slate-500">Champ d'exclusion</th>
-                            <th class="px-4 py-3 text-left bg-slate-50 text-[10px] font-black uppercase text-slate-500">Expression a exclure</th>
+                            <th class="px-4 py-3 text-left bg-slate-50 text-[10px] font-black uppercase text-slate-500">{{ "Champ"|t }}</th>
+                            <th class="px-4 py-3 text-center bg-slate-50 text-[10px] font-black uppercase text-slate-500">{{ "Critique"|t }}</th>
+                            <th class="px-4 py-3 text-center bg-slate-50 text-[10px] font-black uppercase text-slate-500">{{ "Afficher non renseignes"|t }}</th>
+                            <th class="px-4 py-3 text-left bg-slate-50 text-[10px] font-black uppercase text-slate-500">{{ "Champ d'exclusion"|t }}</th>
+                            <th class="px-4 py-3 text-left bg-slate-50 text-[10px] font-black uppercase text-slate-500">{{ "Expression a exclure"|t }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -99,14 +100,14 @@
                             </td>
                             <td class="px-4 py-2 border-t border-slate-100">
                                 <select name="exclusion_field_{{ group.app }}_{{ row.field }}" class="w-52 rounded-lg border border-slate-200 px-2 py-1.5 text-[11px]">
-                                    <option value="">Aucune</option>
+                                    <option value="">{{ "Aucune"|t }}</option>
                                     {% for field_option in group.fields %}
                                     <option value="{{ field_option }}" {% if row.exclusion_field_name == field_option %}selected{% endif %}>{{ field_option }}</option>
                                     {% endfor %}
                                 </select>
                             </td>
                             <td class="px-4 py-2 border-t border-slate-100">
-                                <input type="text" name="exclusion_expression_{{ group.app }}_{{ row.field }}" value="{{ row.exclusion_expression }}" placeholder="Ex: MINEUR, ETUDIANT..." class="w-64 rounded-lg border border-slate-200 px-2 py-1.5 text-[11px]">
+                                <input type="text" name="exclusion_expression_{{ group.app }}_{{ row.field }}" value="{{ row.exclusion_expression }}" placeholder="{{ 'Ex: MINEUR, ETUDIANT...'|t }}" class="w-64 rounded-lg border border-slate-200 px-2 py-1.5 text-[11px]">
                             </td>
                         </tr>
                         {% endfor %}
@@ -118,18 +119,18 @@
 
         <div class="glass-panel rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-                <p class="text-xs font-black text-slate-900 uppercase tracking-widest">Derniers resultats filiale</p>
+                <p class="text-xs font-black text-slate-900 uppercase tracking-widest">{{ "Derniers resultats filiale"|t }}</p>
                 <div class="flex flex-wrap gap-2 mt-2">
                     {% for result in latest_results %}
                     <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black">{{ result.applicability }}: {{ result.completeness_rate|floatformat:1 }}%</span>
                     {% empty %}
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">Aucun calcul lance</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">{{ "Aucun calcul lance"|t }}</span>
                     {% endfor %}
                 </div>
             </div>
             <div class="flex gap-3">
-                <button type="submit" name="action" value="save" class="px-5 py-3 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest">Enregistrer</button>
-                <button type="button" id="startCompletenessCalculation" class="px-5 py-3 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest">Lancer calcul</button>
+                <button type="submit" name="action" value="save" class="px-5 py-3 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest">{{ "Enregistrer"|t }}</button>
+                <button type="button" id="startCompletenessCalculation" class="px-5 py-3 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest">{{ "Lancer calcul"|t }}</button>
             </div>
         </div>
 

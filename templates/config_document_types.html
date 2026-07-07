@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block content %}
 <div class="min-h-screen px-4 pb-8 pt-1 lg:px-8 lg:pt-2 max-w-[1700px] mx-auto space-y-6">
@@ -13,10 +14,10 @@
             </div>
             <div>
                 <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                    Types de <span class="text-emerald-500 font-light">documents</span>
+                    {{ "Types de"|t }} <span class="text-emerald-500 font-light">{{ "documents"|t }}</span>
                 </h1>
                 <p class="mt-2 text-[10px] font-bold uppercase tracking-[0.35em] text-slate-400">
-                    Types de documents &amp; Règles d'apprentissage OCR
+                    {{ "Types de documents &amp; Règles d'apprentissage OCR"|t }}
                 </p>
             </div>
         </div>
@@ -26,11 +27,11 @@
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
                 </svg>
-                Créer type de documents
+                {{ "Créer type de documents"|t }}
             </button>
             <a href="{% url 'document_extraction' %}"
                 class="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700 transition-all shadow shadow-emerald-900/10">
-                Voir Extractions
+                {{ "Voir Extractions"|t }}
             </a>
         </div>
     </header>
@@ -42,8 +43,8 @@
         <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div class="px-5 py-4 bg-slate-950 text-white flex items-center justify-between">
                 <div>
-                    <p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-300">Base documentaire</p>
-                    <h2 class="text-base font-black">Catégories configurées</h2>
+                    <p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-300">{{ "Base documentaire"|t }}</p>
+                    <h2 class="text-base font-black">{{ "Catégories configurées"|t }}</h2>
                 </div>
                 <span class="bg-emerald-900/50 text-emerald-300 text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
                     {{ document_types|length }} Type{{ document_types|pluralize }}
@@ -54,13 +55,13 @@
                 <table class="w-full text-xs">
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-100">
-                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Libellé</th>
-                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Code technique</th>
-                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Filiale / Pays</th>
-                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Type de client</th>
-                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Seuil de score</th>
-                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">Mots-clés de reconnaissance</th>
-                            <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">Actions</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Libellé"|t }}</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Code technique"|t }}</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Filiale / Pays"|t }}</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Type de client"|t }}</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Seuil de score"|t }}</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Mots-clés de reconnaissance"|t }}</th>
+                            <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Actions"|t }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -75,7 +76,7 @@
                                     </span>
                                 {% else %}
                                     <span class="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 border border-emerald-100">
-                                        Global
+                                        {{ "Global"|t }}
                                     </span>
                                 {% endif %}
                             </td>
@@ -96,7 +97,7 @@
                                         {{ keyword }}
                                     </span>
                                     {% empty %}
-                                    <span class="text-[10px] italic text-slate-400">Aucun mot-clé</span>
+                                    <span class="text-[10px] italic text-slate-400">{{ "Aucun mot-clé"|t }}</span>
                                     {% endfor %}
                                 </div>
                             </td>
@@ -105,7 +106,7 @@
                                     <button type="button" 
                                              onclick="editDocumentType('{{ doc_type.id }}', '{{ doc_type.code }}', '{{ doc_type.label|escapejs }}', '{{ doc_type.min_score }}', '{{ doc_type.keywords|escapejs }}', '{{ doc_type.filiale }}', '{{ doc_type.client_type }}')"
                                              class="inline-flex h-8 items-center rounded-lg bg-emerald-50 border border-emerald-100 px-3 text-[9px] font-black uppercase tracking-widest text-emerald-800 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all">
-                                        Éditer
+                                        {{ "Éditer"|t }}
                                     </button>
                                     {% if doc_type.code != 'piece_identite' and doc_type.code != 'passeport' %}
                                     <form method="post" class="inline" onsubmit="return confirm('Confirmer la suppression de ce type de document ?');">
@@ -114,7 +115,7 @@
                                         <input type="hidden" name="type_id" value="{{ doc_type.id }}">
                                         <button type="submit" 
                                                 class="inline-flex h-8 items-center rounded-lg bg-red-50 border border-red-100 px-3 text-[9px] font-black uppercase tracking-widest text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all">
-                                            Supprimer
+                                            {{ "Supprimer"|t }}
                                         </button>
                                     </form>
                                     {% endif %}
@@ -124,7 +125,7 @@
                         {% empty %}
                         <tr>
                             <td colspan="7" class="px-4 py-8 text-center text-slate-400 font-bold">
-                                Aucun type de document configuré. Utilisez le formulaire pour en ajouter.
+                                {{ "Aucun type de document configuré. Utilisez le formulaire pour en ajouter."|t }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -149,8 +150,8 @@
                         </svg>
                     </div>
                     <div>
-                        <p class="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300" id="formSubtitle">Créer une catégorie</p>
-                        <h2 class="text-base font-black" id="formTitle">Ajouter un type de document</h2>
+                        <p class="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300" id="formSubtitle">{{ "Créer une catégorie"|t }}</p>
+                        <h2 class="text-base font-black" id="formTitle">{{ "Ajouter un type de document"|t }}</h2>
                     </div>
                 </div>
                 <button type="button" onclick="toggleModal(false)"
@@ -168,24 +169,24 @@
                 <input type="hidden" name="type_id" value="" id="formTypeId">
                 
                 <div>
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Code technique</label>
-                    <input type="text" name="code" id="inputCode" required placeholder="Ex: permis_conduire"
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{{ "Code technique"|t }}</label>
+                    <input type="text" name="code" id="inputCode" required placeholder="{{ 'Ex: permis_conduire'|t }}"
                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 uppercase">
-                    <p class="text-[9px] font-bold text-slate-400 mt-1">Identifiant unique. Caractères alphanumériques et underscores uniquement.</p>
+                    <p class="text-[9px] font-bold text-slate-400 mt-1">{{ "Identifiant unique. Caractères alphanumériques et underscores uniquement."|t }}</p>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Libellé affiché</label>
-                    <input type="text" name="label" id="inputLabel" required placeholder="Ex: Permis de conduire"
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{{ "Libellé affiché"|t }}</label>
+                    <input type="text" name="label" id="inputLabel" required placeholder="{{ 'Ex: Permis de conduire'|t }}"
                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500">
-                    <p class="text-[9px] font-bold text-slate-400 mt-1">Nom lisible par l'utilisateur.</p>
+                    <p class="text-[9px] font-bold text-slate-400 mt-1">{{ "Nom lisible par l'utilisateur."|t }}</p>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Filiale / Pays</label>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{{ "Filiale / Pays"|t }}</label>
                     <select name="filiale" id="inputFiliale"
                             class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500">
-                        <option value="">Global / Par défaut</option>
+                        <option value="">{{ "Global / Par défaut"|t }}</option>
                         {% for val, display in filiale_choices %}
                         <option value="{{ val }}">{{ display }}</option>
                         {% endfor %}
@@ -194,37 +195,37 @@
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Type de client</label>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{{ "Type de client"|t }}</label>
                     <select name="client_type" id="inputClientType" required
                             class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500">
                         {% for val, display in client_type_choices %}
                         <option value="{{ val }}">{{ display }}</option>
                         {% endfor %}
                     </select>
-                    <p class="text-[9px] font-bold text-slate-400 mt-1">S'applique aux particuliers (PP) ou aux entreprises (PM).</p>
+                    <p class="text-[9px] font-bold text-slate-400 mt-1">{{ "S'applique aux particuliers (PP) ou aux entreprises (PM)."|t }}</p>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Score de détection minimum</label>
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{{ "Score de détection minimum"|t }}</label>
                     <input type="number" name="min_score" id="inputMinScore" required step="0.5" min="0.5" value="2.0"
                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500">
-                    <p class="text-[9px] font-bold text-slate-400 mt-1">Nombre d'occurrences de mots-clés nécessaires pour classer le document.</p>
+                    <p class="text-[9px] font-bold text-slate-400 mt-1">{{ "Nombre d'occurrences de mots-clés nécessaires pour classer le document."|t }}</p>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Mots-clés de reconnaissance</label>
-                    <textarea name="keywords" id="inputKeywords" rows="4" placeholder="Ex: PERMIS, CONDUITE, LICENCE, CATEGORIE"
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{{ "Mots-clés de reconnaissance"|t }}</label>
+                    <textarea name="keywords" id="inputKeywords" rows="4" placeholder="{{ 'Ex: PERMIS, CONDUITE, LICENCE, CATEGORIE'|t }}"
                               class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 uppercase"></textarea>
-                    <p class="text-[9px] font-bold text-slate-400 mt-1">Mots ou phrases séparés par des virgules.</p>
+                    <p class="text-[9px] font-bold text-slate-400 mt-1">{{ "Mots ou phrases séparés par des virgules."|t }}</p>
                 </div>
 
                 <div class="pt-4 flex gap-3 justify-end border-t border-slate-100">
                     <button type="button" onclick="toggleModal(false)"
                         class="h-10 rounded-xl bg-slate-100 border border-slate-200 px-5 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-200 transition-all">
-                        Annuler
+                        {{ "Annuler"|t }}
                     </button>
                     <button type="submit" class="h-10 rounded-xl bg-emerald-600 px-6 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20">
-                        Enregistrer
+                        {{ "Enregistrer"|t }}
                     </button>
                 </div>
             </form>

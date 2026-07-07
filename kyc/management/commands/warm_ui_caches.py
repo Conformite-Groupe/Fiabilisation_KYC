@@ -112,25 +112,31 @@ class Command(BaseCommand):
         data_refresh_bucket = timezone.localdate().isoformat()
         warmed = 0
 
-        for user in users:
-            filiale, agence, expl = self._scope_for_user(user)
+        # 1. Stat globale par regle : la signature n'utilise que les attributs de la
+        #    regle -> independante du scope utilisateur, calcul une seule fois.
+        for rule in rules:
+            quality_signature = (
+                f"{rule.id}|{rule.name}|{rule.applicability}|{rule.filiale}|"
+                f"{rule.field_name}|{rule.control_type}|{rule.parameter}|{rule.active}"
+            )
+            quality_key = f"quality_control:stat:v{rules_version}:d{data_refresh_bucket}:{hashlib.md5(quality_signature.encode('utf-8')).hexdigest()}"
+            if cache.get(quality_key) is None:
+                cache.set(quality_key, _evaluate_data_quality_rule_scoped(rule), timeout=86400)
+                warmed += 1
+
+        # 2. Stat non_anom : depend uniquement du scope effectif (filiale, agence, expl).
+        #    De nombreux utilisateurs partagent le meme scope -> on deduplique pour
+        #    ne pas recalculer / relire le cache (disque) plusieurs fois par scope.
+        distinct_scopes = {self._scope_for_user(user) for user in users}
+        for filiale, agence, expl in distinct_scopes:
             for rule in rules:
-                quality_signature = (
-                    f"{rule.id}|{rule.name}|{rule.applicability}|{rule.filiale}|"
-                    f"{rule.field_name}|{rule.control_type}|{rule.parameter}|{rule.active}"
-                )
                 rule_eval_filiale = _rule_eval_filiale(rule, filiale)
                 non_anom_signature = (
                     f"{rule.id}|{rule.name}|{rule.applicability}|{rule.field_name}|"
                     f"{rule.control_type}|{rule.parameter}|{rule.filiale}|"
                     f"{rule_eval_filiale}|{agence}|{expl}"
                 )
-                quality_key = f"quality_control:stat:v{rules_version}:d{data_refresh_bucket}:{hashlib.md5(quality_signature.encode('utf-8')).hexdigest()}"
                 non_anom_key = f"quality_control:non_anom:v{rules_version}:d{data_refresh_bucket}:{hashlib.md5(non_anom_signature.encode('utf-8')).hexdigest()}"
-
-                if cache.get(quality_key) is None:
-                    cache.set(quality_key, _evaluate_data_quality_rule_scoped(rule), timeout=86400)
-                    warmed += 1
                 if cache.get(non_anom_key) is None:
                     stat = _evaluate_data_quality_rule_scoped(rule, filiale=rule_eval_filiale, agence=agence, expl=expl)
                     cache.set(non_anom_key, stat, timeout=86400)
@@ -196,21 +202,20 @@ class Command(BaseCommand):
 
         def _drev_key(fil):
             slug = hashlib.md5((fil or 'all').encode()).hexdigest()[:12]
-            return f"drev:{slug}:{today}:{days_before}"
+            return f"drevpaid:{slug}:{today}:{days_before}"
 
         global_key = _drev_key(None)
         if cache.get(global_key) is None:
-            cache.set(global_key, _get_exploitants_daterev_expired(None, days_before), timeout=3600)
+            cache.set(global_key, _get_exploitants_daterev_expired(None, days_before, only_paid=True), timeout=3600)
 
-        filiales = sorted(filter(None, set(
-            list(Kyc_pp.objects.values_list('FILIALE', flat=True).distinct()) +
-            list(Kyc_pm.objects.values_list('FILIALE', flat=True).distinct())
-        )))
+        # Uniquement les filiales dont le module Rappels DATEREV est payé
+        from kyc.views import _paid_daterev_filiales
+        filiales = sorted(_paid_daterev_filiales())
         warmed = 1
         for filiale in filiales:
             fkey = _drev_key(filiale)
             if cache.get(fkey) is None:
-                cache.set(fkey, _get_exploitants_daterev_expired(filiale, days_before), timeout=3600)
+                cache.set(fkey, _get_exploitants_daterev_expired(filiale, days_before, only_paid=True), timeout=3600)
                 warmed += 1
 
         return warmed

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% load crispy_forms_tags %}
 
@@ -29,12 +30,12 @@
                      <br>
                     <br>
 
-                    <h1 class="text-2xl text-center tracking-tight text-green-600">FIABILISATION KYC </h1>
+                    <h1 class="text-2xl text-center tracking-tight text-green-600">{{ "FIABILISATION KYC"|t }} </h1>
 
-                    <h1 class="text-2xl  text-center tracking-tight text-green-600"> PLATEFORME DE NOTATION <br> </h1>
+                    <h1 class="text-2xl  text-center tracking-tight text-green-600"> {{ "PLATEFORME DE NOTATION"|t }} <br> </h1>
 
                     {% if user.organe == "PASS" %}
-                    <h1 class="text-2xl  text-center tracking-tight text-green-600"> INSCRIRE UN UTILISATEUR <br> </h1>
+                    <h1 class="text-2xl  text-center tracking-tight text-green-600"> {{ "INSCRIRE UN UTILISATEUR"|t }} <br> </h1>
 
 <br>
             
@@ -58,14 +59,14 @@
                               <button type="submit" class=" mt-4 bg-cyan-900 tracking-normal py-3 px-3 text-gray-200
                               text-center hover:bg-cyan-600 border border-sky-900 rounded-md shadow-lg font-bold  w-full
                                 focus:outline focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-700 focus:ring-green-700" >
-                                  Connexion
+                                  {{ "Connexion"|t }}
                               </button>
                           </div>
 
                     {% else %}
    <div class="mt-5">
                              <a href="{% url 'agent' %}" class="text-green-700 hover:text-green-500 mt-8
-                           ">Vous n'êtes pas autorisé à consulter cette page.<span aria-hidden="true"> <br> Revenir à l'accueil &rarr;</span></h1>
+                           ">{{ "Vous n'êtes pas autorisé à consulter cette page."|t }}<span aria-hidden="true"> <br> {{ "Revenir à l'accueil &rarr;"|t }}</span></h1>
                          </div>
                     {% endif %}
 

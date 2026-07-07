@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% load crispy_forms_tags %}
 {% load tailwind_filters %}
 
@@ -30,11 +31,11 @@
         </div>
     <div>
           <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                  Scoring <span class="text-emerald-500 font-light">Analyse Risque</span>
+                  {{ "Scoring"|t }} <span class="text-emerald-500 font-light">{{ "Analyse Risque"|t }}</span>
         </h1>
         <div class="flex items-center gap-2 mt-1.5">
             <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <p class="page-header-subtitle">Surveillance des dates de revue scoring & classe de risque</p>
+            <p class="page-header-subtitle">{{ "Surveillance des dates de revue scoring & classe de risque"|t }}</p>
         </div>
     </div>
     </div>
@@ -42,17 +43,17 @@
     <div class="flex items-center space-x-4 no-print">
         <div class="inline-flex p-1 bg-gray-100 rounded-xl border border-gray-200">
             <a href="{% url 'scoring' %}" class="px-5 py-2 text-[10px] font-black rounded-lg transition-all {% if 'sans_classe' not in request.path %} nav-link-active text-white shadow-md {% else %} text-gray-400 hover:text-green-700 {% endif %}">
-                REVUE SCORING
+                {{ "REVUE SCORING"|t }}
             </a>
             <a href="{% url 'sans_classe' %}" class="px-5 py-2 text-[10px] font-black rounded-lg transition-all {% if 'sans_classe' in request.path %} nav-link-active text-white shadow-md {% else %} text-gray-500 hover:text-green-700 {% endif %}">
-                SANS CLASSE
+                {{ "SANS CLASSE"|t }}
             </a>
         </div>
 
         <a href="{% url 'export_scoring' %}?{{ request.GET.urlencode }}"
            class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
                      <svg class="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Exporter
+                    {{ "Exporter"|t }}
                 </a>
     </div>
 </div>
@@ -62,20 +63,20 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
 
             <div class="space-y-1.5">
-                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Échéance</label>
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{{ "Échéance"|t }}</label>
                 <select name="periode" onchange="this.form.submit()" class="w-full bg-slate-50 border-slate-200 rounded-xl text-[11px] font-bold text-green-700 focus:ring-2 focus:ring-green-500 py-2.5 px-3 appearance-none transition-all">
-                    <option value="">Toutes les périodes</option>
-                    <option value="today" {% if periode == "today" %}selected{% endif %}>Échues (à ce jour)</option>
-                    <option value="3m" {% if periode == "3m" %}selected{% endif %}>Dans 3 mois</option>
-                    <option value="6m" {% if periode == "6m" %}selected{% endif %}>Dans 6 mois</option>
-                    <option value="1y" {% if periode == "1y" %}selected{% endif %}>Dans 1 an</option>
+                    <option value="">{{ "Toutes les périodes"|t }}</option>
+                    <option value="today" {% if periode == "today" %}selected{% endif %}>{{ "Échues (à ce jour)"|t }}</option>
+                    <option value="3m" {% if periode == "3m" %}selected{% endif %}>{{ "Dans 3 mois"|t }}</option>
+                    <option value="6m" {% if periode == "6m" %}selected{% endif %}>{{ "Dans 6 mois"|t }}</option>
+                    <option value="1y" {% if periode == "1y" %}selected{% endif %}>{{ "Dans 1 an"|t }}</option>
                 </select>
             </div>
 
             <div class="space-y-1.5">
-                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Filiale</label>
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{{ "Filiale"|t }}</label>
                 <select name="filiale" {% if not can_pick_filiale %}disabled{% endif %} onchange="this.form.submit()" class="w-full bg-slate-50 border-slate-200 rounded-xl text-[11px] font-bold text-green-700 focus:ring-2 focus:ring-green-500 py-2.5 px-3 appearance-none transition-all disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed">
-                    <option value="">Toutes les filiales</option>
+                    <option value="">{{ "Toutes les filiales"|t }}</option>
                     {% for f in filiales %}
                         <option value="{{ f }}" {% if filiale_param == f %}selected{% endif %}>{{ f }}</option>
                     {% endfor %}
@@ -83,9 +84,9 @@
             </div>
 
             <div class="space-y-1.5">
-                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Agence</label>
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{{ "Agence"|t }}</label>
                 <select name="agence" {% if not can_pick_agence %}disabled{% endif %} onchange="this.form.submit()" class="w-full bg-slate-50 border-slate-200 rounded-xl text-[11px] font-bold text-green-700 focus:ring-2 focus:ring-green-500 py-2.5 px-3 appearance-none transition-all disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed">
-                    <option value="">Toutes les agences</option>
+                    <option value="">{{ "Toutes les agences"|t }}</option>
                     {% for a in agences %}
                         <option value="{{ a }}" {% if agence_param == a %}selected{% endif %}>{{ a }}</option>
                     {% endfor %}
@@ -93,9 +94,9 @@
             </div>
 
             <div class="space-y-1.5">
-                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Exploitant</label>
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{{ "Exploitant"|t }}</label>
                 <select name="expl" {% if not can_pick_expl %}disabled{% endif %} onchange="this.form.submit()" class="w-full bg-slate-50 border-slate-200 rounded-xl text-[11px] font-bold text-green-700 focus:ring-2 focus:ring-green-500 py-2.5 px-3 appearance-none transition-all disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed">
-                    <option value="">Tous les exploitants</option>
+                    <option value="">{{ "Tous les exploitants"|t }}</option>
                     {% for e in exploitants %}
                         <option value="{{ e }}" {% if expl_param == e %}selected{% endif %}>{{ e }}</option>
                     {% endfor %}
@@ -115,7 +116,7 @@
                 <svg class="h-3 w-3 transition-transform group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
-                Réinitialiser les filtres
+                {{ "Réinitialiser les filtres"|t }}
             </a>
         </div>
     </form>
@@ -132,7 +133,7 @@
                 </a>
                 {% endif %}
 
-                <div class="px-4 text-[10px] font-black text-green-700 uppercase tracking-tighter">Navigation</div>
+                <div class="px-4 text-[10px] font-black text-green-700 uppercase tracking-tighter">{{ "Navigation"|t }}</div>
 
                 {% if donnees.has_next %}
                 <a href="?page={{ donnees.next_page_number }}&{{ get_params }}" class="p-2 text-gray-500 hover:nav-link-active hover:text-white rounded-lg transition-all border border-gray-200">
@@ -148,17 +149,17 @@
                 <thead>
                 <tr class="sticky top-0 z-50">
                             {% if user.organe not in user_filiale %}
-                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Filiale</th>
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Filiale"|t }}</th>
                                     {% endif %}
-                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Agence</th>
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Agence"|t }}</th>
                             
-                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Agencelib</th>
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Agencelib"|t }}</th>
                             
-                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Exploitant</th>
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Exploitant"|t }}</th>
                             <th class="px-4 py-3 text-center font-black text-white uppercase tracking-widest sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[130px] border-b border-green-900">
-                                Client
+                                {{ "Client"|t }}
                             </th>
-                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">Prochaine Date Revue (*)</th>
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Prochaine Date Revue (*)"|t }}</th>
 
                         </tr>
                     </thead>
@@ -191,12 +192,12 @@
             </table>
         </div>
         <div class="p-4 bg-gray-50 border-t border-gray-100 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">
-            (*) Date prévisionnelle à laquelle le scoring du client doit être obligatoirement réévalué.
+            {{ "(*) Date prévisionnelle à laquelle le scoring du client doit être obligatoirement réévalué."|t }}
         </div>
         {% else %}
         <div class="flex flex-col items-center justify-center py-24">
             <svg class="w-12 h-12 text-gray-200 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <p class="text-gray-400 font-bold uppercase tracking-widest text-xs">Aucun dossier trouvé pour ces critères.</p>
+            <p class="text-gray-400 font-bold uppercase tracking-widest text-xs">{{ "Aucun dossier trouvé pour ces critères."|t }}</p>
         </div>
         {% endif %}
     </div>

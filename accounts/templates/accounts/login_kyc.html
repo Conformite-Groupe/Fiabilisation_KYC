@@ -1,6 +1,8 @@
 {% load tailwind_tags %}
 {% load country_flag %}
 {% load static %}
+{% load custom_filters %}
+{% load i18n %}
 
 <!DOCTYPE html>
 <html lang="fr" class="h-full">
@@ -8,7 +10,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion | KYC Portal v3.0</title>
+    <title>{{ "Connexion | KYC Portal v3.0"|t }}</title>
     {% tailwind_css %}
     <link rel="stylesheet" href="{% static 'css/dist/styles.css' %}">
     <link rel="stylesheet" href="/static/vendor/css/outfit_plus_jakarta.css">
@@ -347,6 +349,46 @@
             flex-shrink: 0;
         }
 
+        /* Sélecteur de langue FR / EN */
+        .lang-switch {
+            position: fixed;
+            top: 22px;
+            right: 22px;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(8px);
+            border-radius: 100px;
+            padding: 4px;
+        }
+
+        .lang-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 6px 14px;
+            border-radius: 100px;
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .lang-btn:hover {
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .lang-btn.active {
+            background: #fff;
+            color: #059669;
+        }
+
         /* Footer */
         .footer {
             margin-top: 20px;
@@ -380,6 +422,16 @@
 
 <body>
 
+    <!-- Sélecteur de langue FR / EN -->
+    <form action="{% url 'set_language' %}" method="post" class="lang-switch">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" name="language" value="fr"
+            class="lang-btn {% if LANGUAGE_CODE|slice:':2' == 'fr' %}active{% endif %}">{{ "FR"|t }}</button>
+        <button type="submit" name="language" value="en"
+            class="lang-btn {% if LANGUAGE_CODE|slice:':2' == 'en' %}active{% endif %}">{{ "EN"|t }}</button>
+    </form>
+
     <!-- Cercles décoratifs -->
     <div class="deco-circle dc1"></div>
     <div class="deco-circle dc2"></div>
@@ -403,11 +455,11 @@
 
                 <div class="version-chip">
                     <span class="chip-dot"></span>
-                    Plateforme v3.0
+                    {{ "Plateforme v3.0"|t }}
                 </div>
 
-                <h2 class="login-title">Fiabilisation <span>KYC</span></h2>
-                <p class="login-sub">Connectez-vous à votre espace</p>
+                <h2 class="login-title">{{ "Fiabilisation"|t }} <span>KYC</span></h2>
+                <p class="login-sub">{{ "Connectez-vous à votre espace"|t }}</p>
 
                 <form method="POST">
                     {% csrf_token %}
@@ -425,7 +477,7 @@
 
                     <!-- Identifiant -->
                     <div class="f-group">
-                        <label class="f-label" for="email">Identifiant</label>
+                        <label class="f-label" for="email">{{ "Identifiant"|t }}</label>
                         <div class="f-wrap">
                             <span class="f-icon">
                                 <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -435,14 +487,14 @@
                                     <path d="M22 6l-10 7L2 6" />
                                 </svg>
                             </span>
-                            <input id="email" required type="text" name="email" placeholder="votre@email.com"
+                            <input id="email" required type="text" name="email" placeholder="{{ 'votre@email.com'|t }}"
                                 autocomplete="username" class="f-input">
                         </div>
                     </div>
 
                     <!-- Mot de passe -->
                     <div class="f-group">
-                        <label class="f-label" for="password">Mot de passe</label>
+                        <label class="f-label" for="password">{{ "Mot de passe"|t }}</label>
                         <div class="f-wrap">
                             <span class="f-icon">
                                 <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -471,7 +523,7 @@
 
                     <!-- Bouton -->
                     <button type="submit" class="btn-login">
-                        Se connecter
+                        {{ "Se connecter"|t }}
                         <span class="btn-arr">
                             <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                 stroke-width="3">
@@ -487,8 +539,8 @@
 
         <!-- Footer -->
         <div class="footer">
-            <p>© <span id="year"></span> Compliance Group · BOA Holding</p>
-            <a href="mailto:safkyc@boaholding.com">Assistance technique</a>
+            <p>© <span id="year"></span> {{ "Compliance Group · BOA Holding"|t }}</p>
+            <a href="mailto:safkyc@boaholding.com">{{ "Assistance technique"|t }}</a>
         </div>
 
     </div>

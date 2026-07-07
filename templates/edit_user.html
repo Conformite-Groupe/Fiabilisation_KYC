@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% load crispy_forms_tags %}
 {% load tailwind_filters %}
 
@@ -31,18 +32,18 @@
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">Paramètres <span
-                            class="text-emerald-500 font-light">Utilisateur</span></h1>
+                    <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">{{ "Paramètres"|t }} <span
+                            class="text-emerald-500 font-light">{{ "Utilisateur"|t }}</span></h1>
                     <div class="flex items-center gap-2 mt-1.5">
                         <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Modification des habilitations et informations</p>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">{{ "Modification des habilitations et informations"|t }}</p>
                     </div>
                 </div>
             </div>
         </div>
         <div class="flex items-center gap-4">
             <a href="/user_list" class="flex items-center justify-center gap-2 px-6 py-3 bg-white/70 border border-slate-200 hover:bg-white text-slate-700 text-[10px] font-black uppercase rounded-xl tracking-[0.15em] transition-all shadow-sm">
-                ← Retour à la liste
+                {{ "← Retour à la liste"|t }}
             </a>
         </div>
     </div>
@@ -80,7 +81,7 @@
                     <div class="pt-8">
                         <button type="submit"
                                 class="w-full nav-link-active text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-green-100 hover:bg-green-800 hover:-translate-y-1 transition-all active:scale-95">
-                            Enregistrer les modifications
+                            {{ "Enregistrer les modifications"|t }}
                         </button>
                     </div>
                 </form>

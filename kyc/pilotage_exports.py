@@ -1025,7 +1025,7 @@ def _build_quality_table(rows, threshold, styles, full=False):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
-                         notations_list=None, notation_kpis=None):
+                         notations_list=None, notation_kpis=None, filiale_rates=None):
     """
     Génère une présentation PowerPoint reproduisant fidèlement le thème
     "Conformité BOA Group" (Calibri, vert #009A56, marine #1B2A4A) :
@@ -1048,21 +1048,21 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
     prs.slide_width  = Inches(10)
     prs.slide_height = Inches(5.625)
 
-    # ── Plan dynamique (sommaire) ─────────────────────────────────────────────
-    below_comp = sorted([r for r in completeness_rows if r.get("is_below_threshold")],
-                        key=lambda r: r.get("rate", 0))
-    below_qual = sorted([r for r in quality_rows if r.get("is_below_threshold")],
-                        key=lambda r: r.get("rate", 0))
+    # ── Découpage PP / PM ─────────────────────────────────────────────────────
+    comp_pp = [r for r in completeness_rows if r.get("type") == "PP"]
+    comp_pm = [r for r in completeness_rows if r.get("type") == "PM"]
+    qual_pp = [r for r in quality_rows if r.get("type") == "PP"]
+    qual_pm = [r for r in quality_rows if r.get("type") == "PM"]
 
+    has_notation = bool(notation_kpis and notation_kpis.get("total_notations"))
+
+    # ── Sommaire ──────────────────────────────────────────────────────────────
     toc = [
-        ("I",   "Synthèse des indicateurs clés"),
-        ("II",  "Complétude des données - Taux par champs"),
+        ("I",   "Complétude des données"),
+        ("II",  "Qualité des données"),
     ]
-    if below_comp:
-        toc.append(("III", "Complétude des données - Champs sous seuil"))
-    toc.append((_roman(len(toc) + 1), "Qualité des données - Taux par règles"))
-    if below_qual:
-        toc.append((_roman(len(toc) + 1), "Qualité des données - Règle sous seuil"))
+    if has_notation:
+        toc.append(("III", "Notation des agents"))
 
     # ── Slide 1 : Couverture ──────────────────────────────────────────────────
     _bx_cover(prs, scope_label, mois_str)
@@ -1070,51 +1070,60 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
     # ── Slide 2 : Sommaire ────────────────────────────────────────────────────
     _bx_sommaire(prs, toc)
 
-    sec = 0
-    # ── Slide 3 : Synthèse des indicateurs ────────────────────────────────────
-    sec += 1
-    s = _bx_section(prs, _roman(sec), "SYNTHÈSE DES INDICATEURS CLÉS")
-    _bx_synthese(s, summary, threshold)
+    # ═══════════════════ I — COMPLÉTUDE ═══════════════════
+    s = _bx_section(prs, "I", "COMPLÉTUDE DES DONNÉES")
+    _bx_kpi_triple(
+        s, "COMPLÉTUDE DES DONNÉES",
+        ("Global", summary.get("completeness_rate"), True),
+        ("PP — Particuliers", summary.get("completeness_rate_pp"), True),
+        ("PM — Entreprises", summary.get("completeness_rate_pm"), True),
+        threshold,
+        footer_left=f"{summary.get('low_completeness_count', 0)} champ(s) sous {threshold:.0f}%",
+        footer_right=f"{_fmt_int(summary.get('completeness_total', 0))} clients analysés",
+    )
+    _bx_dual_charts(
+        s, threshold,
+        comp_pp, comp_pm, "rate", "field_label",
+        "Taux par champ — Particuliers (PP)", "Taux par champ — Entreprises (PM)",
+        label_max=22,
+    )
 
-    # ── Slide 4 : Complétude par champ (graphique) ────────────────────────────
-    sec += 1
-    s = _bx_section(prs, _roman(sec), "COMPLÉTUDE DES DONNÉES — TAUX PAR CHAMPS")
-    _bx_sublabel(s, "TAUX DE COMPLÉTUDE PAR CHAMP")
-    _bx_hbar_chart(s, completeness_rows, threshold, "rate", "field_label", "type",
-                   top=1.55, max_items=11)
+    # I.b — Complétude globale par filiale (périmètre groupe)
+    if scope == "groupe" and filiale_rates:
+        s = _bx_section(prs, "I", "COMPLÉTUDE — TAUX GLOBAL PAR FILIALE")
+        _bx_sublabel(s, "TAUX DE COMPLÉTUDE PAR FILIALE (GLOBAL · PP · PM)")
+        _bx_filiale_rates_chart(s, filiale_rates, "comp_global", "comp_pp", "comp_pm", threshold)
 
-    # ── Slide 5 : Champs sous seuil (tableau) ─────────────────────────────────
-    if below_comp:
-        sec += 1
-        s = _bx_section(prs, _roman(sec), f"COMPLÉTUDE DES DONNÉES — CHAMPS SOUS SEUIL ({threshold:.0f}%)")
-        _bx_sublabel(s, "CHAMPS À FIABILISER EN PRIORITÉ")
-        hdrs = ["Type", "Champ", "Total", "Incomplets", "Taux"]
-        rows = [[r.get("type", ""), _trunc(r.get("field_label", ""), 40),
-                 _fmt_int(r.get("total_clients", 0)), _fmt_int(r.get("missing_count", 0)),
-                 f"{r.get('rate', 0):.1f}%"] for r in below_comp[:9]]
-        _bx_table(s, hdrs, rows, [0.10, 0.45, 0.15, 0.16, 0.14],
-                  below_comp, threshold, "rate")
+    # ═══════════════════ II — QUALITÉ ═══════════════════
+    s = _bx_section(prs, "II", "QUALITÉ DES DONNÉES")
+    _bx_kpi_triple(
+        s, "QUALITÉ DES DONNÉES",
+        ("Global", summary.get("quality_rate"), True),
+        ("PP — Particuliers", summary.get("quality_rate_pp"), True),
+        ("PM — Entreprises", summary.get("quality_rate_pm"), True),
+        threshold,
+        footer_left=f"{summary.get('low_quality_count', 0)} règle(s) sous {threshold:.0f}%",
+        footer_right="",
+    )
+    _bx_dual_charts(
+        s, threshold,
+        qual_pp, qual_pm, "rate", "rule_name",
+        "Conformité par règle — Particuliers (PP)", "Conformité par règle — Entreprises (PM)",
+        label_max=200,
+    )
 
-    # ── Slide 6 : Qualité par règle (graphique) ───────────────────────────────
-    sec += 1
-    s = _bx_section(prs, _roman(sec), "QUALITÉ DES DONNÉES — TAUX PAR RÈGLES")
-    _bx_sublabel(s, "TAUX DE CONFORMITÉ PAR RÈGLE QUALITÉ")
-    _bx_hbar_chart(s, quality_rows, threshold, "rate", "rule_name", "type",
-                   top=1.55, max_items=11)
+    # II.b — Qualité globale par filiale (périmètre groupe)
+    if scope == "groupe" and filiale_rates:
+        s = _bx_section(prs, "II", "QUALITÉ — TAUX GLOBAL PAR FILIALE")
+        _bx_sublabel(s, "TAUX DE QUALITÉ PAR FILIALE (GLOBAL · PP · PM)")
+        _bx_filiale_rates_chart(s, filiale_rates, "qual_global", "qual_pp", "qual_pm", threshold)
 
-    # ── Slide 7 : Règles sous seuil (tableau) ─────────────────────────────────
-    if below_qual:
-        sec += 1
-        s = _bx_section(prs, _roman(sec), f"QUALITÉ DES DONNÉES — RÈGLES SOUS SEUIL ({threshold:.0f}%)")
-        _bx_sublabel(s, "RÈGLES NÉCESSITANT UNE ACTION")
-        hdrs = ["Type", "Règle", "Champ", "Anomalies", "Taux"]
-        rows = [[r.get("type", ""), _trunc(r.get("rule_name", ""), 34),
-                 _trunc(r.get("field_label", ""), 24), _fmt_int(r.get("fail_count", 0)),
-                 f"{r.get('rate', 0):.1f}%"] for r in below_qual[:9]]
-        _bx_table(s, hdrs, rows, [0.10, 0.36, 0.28, 0.14, 0.12],
-                  below_qual, threshold, "rate")
+    # ═══════════════════ III — NOTATION ═══════════════════
+    if has_notation:
+        s = _bx_section(prs, "III", "NOTATION DES AGENTS")
+        _bx_notation(s, notation_kpis, notations_list or [], scope=scope)
 
-    # ── Slide final : Merci ───────────────────────────────────────────────────
+    # ── Slide final ───────────────────────────────────────────────────────────
     _bx_end(prs, scope_label, mois_str)
 
     # ── Build ─────────────────────────────────────────────────────────────────
@@ -1407,45 +1416,11 @@ def _bx_donut(slide, l, t, sz, rate, threshold, title):
              bold=True, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
 
 
-def _bx_synthese(slide, summary, threshold):
-    """Slide synthèse : 2 jauges (complétude/qualité) + 2 cartes alertes + mini PP/PM."""
-    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-    _bx_sublabel(slide, "VUE D'ENSEMBLE DU PÉRIMÈTRE")
-
-    comp = summary.get("completeness_rate")
-    qual = summary.get("quality_rate")
-    comp_pp = summary.get("completeness_rate_pp")
-    comp_pm = summary.get("completeness_rate_pm")
-    qual_pp = summary.get("quality_rate_pp")
-    qual_pm = summary.get("quality_rate_pm")
-    low_c = summary.get("low_completeness_count", 0)
-    low_q = summary.get("low_quality_count", 0)
-
-    # Deux jauges
-    _bx_donut(slide, 0.7, 1.65, 2.1, comp, threshold, "COMPLÉTUDE GLOBALE")
-    _bx_donut(slide, 3.3, 1.65, 2.1, qual, threshold, "QUALITÉ GLOBALE")
-
-    # Mini PP/PM sous chaque jauge
-    _bx_text(slide, 0.3, 4.45, 2.9, 0.3,
-             f"PP {comp_pp:.0f}%    ·    PM {comp_pm:.0f}%" if comp_pp is not None else "",
-             10, BX_MUTED, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    _bx_text(slide, 2.9, 4.45, 2.9, 0.3,
-             f"PP {qual_pp:.0f}%    ·    PM {qual_pm:.0f}%" if qual_pp is not None else "",
-             10, BX_MUTED, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-
-    # Deux cartes alertes à droite
-    cx = 6.05
-    cw = 3.55
-    _bx_kpi_card(slide, cx, 1.65, cw, 1.35, "CHAMPS SOUS LE SEUIL",
-                 str(low_c), BX_AMBER if low_c else BX_GREEN,
-                 sub="champs de complétude à fiabiliser")
-    _bx_kpi_card(slide, cx, 3.2, cw, 1.35, "RÈGLES SOUS LE SEUIL",
-                 str(low_q), BX_AMBER if low_q else BX_GREEN,
-                 sub="règles qualité nécessitant une action")
 
 
-def _bx_hbar_chart(slide, rows, threshold, value_key, label_key, type_key,
-                   top=1.55, max_items=11):
+def _bx_hbar_chart(slide, rows, threshold, value_key, label_key, type_key=None,
+                   top=1.55, left=0.4, width=9.2, max_items=11, label_max=34,
+                   font_sz=8.5, max_h=3.55, vmax=100, return_bottom=False):
     """Graphique à barres horizontales natif, points colorés selon le seuil."""
     from pptx.util import Inches, Pt
     from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
@@ -1453,16 +1428,17 @@ def _bx_hbar_chart(slide, rows, threshold, value_key, label_key, type_key,
     from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION
 
     items = list(rows)[:max_items]
+    chart_h = min(max_h, 0.30 * max(len(items), 1) + 0.5)
     if not items:
-        _bx_text(slide, 0.4, 2.6, 9.2, 0.5, "Aucune donnée disponible pour ce périmètre.",
-                 12, BX_MUTED, align=PP_ALIGN.CENTER)
-        return
+        _bx_text(slide, left, top + chart_h / 2 - 0.2, width, 0.4,
+                 "Aucune donnée disponible.", 11, BX_MUTED, align=PP_ALIGN.CENTER)
+        return top + chart_h if return_bottom else None
 
     cats, vals, colors = [], [], []
     for it in items:
         rate = it.get(value_key) or 0
-        typ = str(it.get(type_key, "")).strip()
-        lab = _trunc(it.get(label_key, ""), 34)
+        typ = str(it.get(type_key, "")).strip() if type_key else ""
+        lab = _trunc(it.get(label_key, ""), label_max)
         cats.append(f"{typ}  {lab}" if typ else lab)
         vals.append(round(float(rate), 1))
         colors.append(_bx_rate_color(rate, threshold))
@@ -1472,22 +1448,21 @@ def _bx_hbar_chart(slide, rows, threshold, value_key, label_key, type_key,
     cd = CategoryChartData()
     cd.categories = cats
     cd.add_series("Taux", vals)
-    chart_h = min(3.55, 0.31 * len(items) + 0.6)
     gf = slide.shapes.add_chart(XL_CHART_TYPE.BAR_CLUSTERED,
-                                Inches(0.4), Inches(top + 0.05),
-                                Inches(9.2), Inches(chart_h), cd)
+                                Inches(left), Inches(top),
+                                Inches(width), Inches(chart_h), cd)
     chart = gf.chart
     chart.has_legend = False
     chart.has_title = False
 
     plot = chart.plots[0]
-    plot.gap_width = 60
+    plot.gap_width = 55
     plot.has_data_labels = True
     dl = plot.data_labels
     dl.number_format = '0.0"%"'
     dl.number_format_is_linked = False
     dl.position = XL_LABEL_POSITION.OUTSIDE_END
-    dl.font.size = Pt(8.5)
+    dl.font.size = Pt(font_sz)
     dl.font.bold = True
     dl.font.name = _FONT
     dl.font.color.rgb = BX_BODY
@@ -1500,30 +1475,37 @@ def _bx_hbar_chart(slide, rows, threshold, value_key, label_key, type_key,
 
     va = chart.value_axis
     va.minimum_scale = 0
-    va.maximum_scale = 100
+    va.maximum_scale = vmax
     va.has_major_gridlines = False
     va.visible = False
     ca = chart.category_axis
-    ca.tick_labels.font.size = Pt(8.5)
+    ca.tick_labels.font.size = Pt(font_sz)
     ca.tick_labels.font.name = _FONT
     ca.tick_labels.font.color.rgb = BX_BODY
     ca.format.line.color.rgb = BX_DIVIDER
 
-    # Légende seuil
-    ly = top + chart_h + 0.12
-    _bx_legend(slide, ly, threshold)
+    return top + chart_h if return_bottom else None
 
 
-def _bx_legend(slide, y, threshold):
+def _bx_legend(slide, y, threshold, x=0.4):
     from pptx.enum.text import MSO_ANCHOR
     items = [(BX_GREEN, f"Conforme (≥ {threshold:.0f}%)"),
              (BX_AMBER, f"Sous le seuil (< {threshold:.0f}%)")]
-    x = 0.4
     for col, lab in items:
-        _bx_rect(slide, x, y + 0.04, 0.22, 0.22, col)
-        _bx_text(slide, x + 0.3, y, 2.6, 0.3, lab, 9, BX_MUTED,
+        _bx_rect(slide, x, y + 0.04, 0.2, 0.2, col)
+        _bx_text(slide, x + 0.28, y, 2.4, 0.3, lab, 9, BX_MUTED,
                  anchor=MSO_ANCHOR.MIDDLE)
-        x += 0.32 + 0.022 * len(lab) * 8 / 8 + 1.7
+        x += 2.7
+
+
+def _bx_legend_items(slide, y, entries, x=0.4, font_sz=9, step=1.7):
+    """Légende générique : entries = [(color, label), ...]."""
+    from pptx.enum.text import MSO_ANCHOR
+    for col, lab in entries:
+        _bx_rect(slide, x, y + 0.04, 0.2, 0.2, col)
+        _bx_text(slide, x + 0.28, y, step - 0.3, 0.3, lab, font_sz, BX_MUTED,
+                 anchor=MSO_ANCHOR.MIDDLE)
+        x += step
 
 
 def _bx_table(slide, headers, rows_data, col_fracs, source_rows, threshold, rate_key,
@@ -1577,7 +1559,7 @@ def _bx_table(slide, headers, rows_data, col_fracs, source_rows, threshold, rate
             c.fill.solid(); c.fill.fore_color.rgb = bg
             p = c.text_frame.paragraphs[0]
             p.font.size = Pt(8.5); p.font.name = _FONT
-            if j == n_cols - 1:
+            if j == n_cols - 1 and rate_key is not None:
                 p.font.bold = True
                 p.font.color.rgb = _bx_rate_color(src.get(rate_key), threshold)
                 p.alignment = PP_ALIGN.RIGHT
@@ -1600,3 +1582,312 @@ def _bx_end(prs, scope_label, mois_str):
              f"RAPPORT DE PILOTAGE KYC — {_FOOTER_TXT}", 13, BX_WHITE, bold=True)
     _bx_text(s, 0.5, 3.85, 7.0, 0.35, mois_str, 11,
              RGBColor(0xD4, 0xF5, 0xE4), italic=True)
+
+
+def _bx_kpi_triple(slide, header, c1, c2, c3, threshold, footer_left="", footer_right=""):
+    """Carte KPI 3 colonnes (Global / PP / PM) calquée sur la page pilotage.
+    Chaque colonne ci = (label, valeur_float_ou_None, est_pourcentage)."""
+    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+
+    L, T, W = 0.4, 1.1, 9.2
+    HEAD, BODY, FOOT = 0.32, 0.82, 0.24
+    H = HEAD + BODY + FOOT
+
+    _bx_rect(slide, L, T, W, H, BX_WHITE, line=BX_DIVIDER, line_w=0.75)
+    _bx_rect(slide, L, T, W, HEAD, BX_NAVY)
+    _bx_oval(slide, L + 0.16, T + HEAD / 2 - 0.06, 0.12, 0.12, BX_GREEN)
+    _bx_text(slide, L + 0.4, T, W - 0.5, HEAD, header.upper(), 9.5, BX_GREEN_SUB,
+             bold=True, anchor=MSO_ANCHOR.MIDDLE)
+
+    cols = [c1, c2, c3]
+    cw = W / 3.0
+    for i, (label, val, is_pct) in enumerate(cols):
+        cx = L + i * cw
+        if i > 0:
+            _bx_rect(slide, cx, T + HEAD + 0.08, 0.008, BODY - 0.16, BX_DIVIDER)
+        _bx_text(slide, cx, T + HEAD + 0.06, cw, 0.2,
+                 label.upper(), 8, BX_MUTED, bold=True, align=PP_ALIGN.CENTER,
+                 anchor=MSO_ANCHOR.MIDDLE)
+        if val is None:
+            valtxt, color = "—", BX_MUTED
+        elif is_pct:
+            valtxt = f"{val:.1f}%"
+            color = _bx_rate_color(val, threshold)
+        else:
+            valtxt, color = _fmt_int(val), BX_NAVY
+        big = 30 if i == 0 else 26
+        _bx_text(slide, cx, T + HEAD + 0.24, cw, 0.4, valtxt, big, color,
+                 bold=True, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+        if is_pct and val is not None:
+            bw = 1.2
+            bx0 = cx + (cw - bw) / 2
+            by0 = T + HEAD + 0.66
+            _bx_rect(slide, bx0, by0, bw, 0.08, BX_TRACK)
+            _bx_rect(slide, bx0, by0, bw * max(0, min(val, 100)) / 100.0, 0.08, color)
+
+    fy = T + HEAD + BODY + 0.02
+    if footer_left:
+        _bx_text(slide, L + 0.15, fy, W / 2, FOOT, footer_left, 8.5, BX_MUTED,
+                 bold=True, anchor=MSO_ANCHOR.MIDDLE)
+    if footer_right:
+        _bx_text(slide, L + W / 2 - 0.15, fy, W / 2, FOOT, footer_right, 8.5, BX_MUTED,
+                 align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE)
+
+
+def _bx_dual_charts(slide, threshold, rows_l, rows_r, value_key, label_key,
+                    title_l, title_r, label_max=22, max_items=None):
+    """Deux graphiques à barres côte à côte (PP / PM) + légende de seuil partagée.
+    max_items=None affiche tous les champs (dimensionnement dynamique)."""
+    from pptx.enum.text import MSO_ANCHOR
+
+    def _worst_first(rows):
+        return sorted(rows, key=lambda r: (r.get(value_key) is None, r.get(value_key) or 0))
+
+    n = max(len(rows_l), len(rows_r), 1)
+    cap = n if max_items is None else min(n, max_items)
+    fs = 7.0 if cap <= 8 else (6.5 if cap <= 12 else 6.0)
+    ctop, bottom = 2.82, 4.92
+    max_h = bottom - ctop
+
+    for left, rows, title in ((0.4, rows_l, title_l), (5.15, rows_r, title_r)):
+        _bx_text(slide, left, 2.52, 4.45, 0.26, title, 9.5, BX_NAVY, bold=True,
+                 anchor=MSO_ANCHOR.MIDDLE)
+        _bx_hbar_chart(slide, _worst_first(rows), threshold, value_key, label_key,
+                       type_key=None, top=ctop, left=left, width=4.45,
+                       max_items=cap, label_max=label_max, font_sz=fs, max_h=max_h, vmax=120)
+
+    _bx_legend(slide, 4.98, threshold, x=2.6)
+
+
+def _bx_notation(slide, kpis, notations_list, scope="groupe"):
+    """Slide notation : 3 KPI + (groupe) barres par filiale + anneau de répartition,
+    (filiale) uniquement l'anneau de répartition par type d'évaluation."""
+    from pptx.enum.text import MSO_ANCHOR
+
+    _bx_sublabel(slide, "PERFORMANCE DES AGENTS NOTÉS")
+
+    total_agents = kpis.get("total_agents", 0)
+    total_notes  = kpis.get("total_notations", 0)
+    excellence   = kpis.get("excellence_rate", 0.0)
+
+    cw, gap = 2.97, 0.145
+    _bx_kpi_card(slide, 0.4, 1.2, cw, 1.15, "AGENTS ÉVALUÉS", _fmt_int(total_agents),
+                 BX_NAVY, sub="portefeuille unique")
+    _bx_kpi_card(slide, 0.4 + (cw + gap), 1.2, cw, 1.15, "TOTAL ÉVALUATIONS",
+                 _fmt_int(total_notes), BX_GREEN, sub="historique complet")
+    _bx_kpi_card(slide, 0.4 + 2 * (cw + gap), 1.2, cw, 1.15, "TAUX D'EXCELLENCE",
+                 f"{excellence:.1f}%", BX_GREEN, sub="notes « Bien » & « Très Bien »")
+
+    grades = ["Très Bien", "Bien", "Passable", "Insuffisant"]
+    gcolor = {"Très Bien": RGBColor(0x10, 0xB9, 0x81),
+              "Bien": RGBColor(0x3B, 0x82, 0xF6),
+              "Passable": RGBColor(0xF5, 0x9E, 0x0B),
+              "Insuffisant": RGBColor(0xEF, 0x44, 0x44)}
+    overall = {g: 0 for g in grades}
+    by_fil = {}
+    for n in notations_list:
+        note = getattr(n, "note", None)
+        fil = getattr(getattr(n, "agent", None), "filiale", None) or "—"
+        if note in overall:
+            overall[note] += 1
+        d = by_fil.setdefault(fil, {g: 0 for g in grades})
+        if note in d:
+            d[note] += 1
+
+    labels = [g for g in grades if overall[g] > 0]
+    values = [overall[g] for g in labels]
+    colors = [gcolor[g] for g in labels]
+
+    if scope == "filiale":
+        # Périmètre filiale : seulement la répartition par type (anneau centré)
+        _bx_text(slide, 0.4, 2.6, 9.2, 0.3, "RÉPARTITION PAR TYPE D'ÉVALUATION",
+                 11, BX_GREEN, bold=True, anchor=MSO_ANCHOR.MIDDLE)
+        if values:
+            _bx_donut_multi(slide, 3.0, 3.05, 1.95, labels, values, colors)
+            ly = 3.2
+            for g in grades:
+                if overall[g] == 0:
+                    continue
+                pct = 100.0 * overall[g] / max(sum(values), 1)
+                _bx_rect(slide, 5.6, ly + 0.03, 0.2, 0.2, gcolor[g])
+                _bx_text(slide, 5.9, ly, 3.0, 0.28,
+                         f"{g}  ·  {overall[g]}  ({pct:.0f}%)", 11, BX_BODY,
+                         anchor=MSO_ANCHOR.MIDDLE)
+                ly += 0.42
+        else:
+            _bx_text(slide, 0.4, 3.6, 9.2, 0.4, "Aucune notation.", 12, BX_MUTED)
+        return
+
+    # Périmètre groupe : barres par filiale (avec chiffres) + anneau
+    _bx_text(slide, 0.4, 2.55, 4.45, 0.28, "Notations par filiale", 10, BX_NAVY,
+             bold=True, anchor=MSO_ANCHOR.MIDDLE)
+    _bx_text(slide, 5.15, 2.55, 4.45, 0.28, "Répartition par type d'évaluation",
+             10, BX_NAVY, bold=True, anchor=MSO_ANCHOR.MIDDLE)
+
+    fils = sorted(by_fil.keys())[:6]
+    series = [(g, gcolor[g], [by_fil[f][g] for f in fils]) for g in grades]
+    _bx_stacked_col(slide, 0.4, 2.9, 4.45, 1.95, [_trunc(f, 10) for f in fils],
+                    series, data_labels=True)
+
+    if values:
+        _bx_donut_multi(slide, 5.35, 2.85, 1.8, labels, values, colors)
+        ly = 2.95
+        for g in grades:
+            if overall[g] == 0:
+                continue
+            _bx_rect(slide, 7.45, ly + 0.03, 0.18, 0.18, gcolor[g])
+            _bx_text(slide, 7.7, ly, 2.0, 0.26, f"{g}  ·  {overall[g]}", 9, BX_BODY,
+                     anchor=MSO_ANCHOR.MIDDLE)
+            ly += 0.34
+    else:
+        _bx_text(slide, 5.15, 3.6, 4.45, 0.4, "Aucune notation.", 11, BX_MUTED)
+
+
+def _bx_stacked_col(slide, l, t, w, h, categories, series, data_labels=False):
+    """Histogramme à colonnes empilées natif. series = [(nom, couleur, [valeurs]), ...]."""
+    from pptx.util import Inches, Pt
+    from pptx.enum.text import PP_ALIGN
+    from pptx.chart.data import CategoryChartData
+    from pptx.enum.chart import XL_CHART_TYPE
+
+    if not categories:
+        _bx_text(slide, l, t + h / 2 - 0.2, w, 0.4, "Aucune notation.", 11, BX_MUTED,
+                 align=PP_ALIGN.CENTER)
+        return
+
+    cd = CategoryChartData()
+    cd.categories = categories
+    for name, _color, vals in series:
+        cd.add_series(name, vals)
+    gf = slide.shapes.add_chart(XL_CHART_TYPE.COLUMN_STACKED,
+                                Inches(l), Inches(t), Inches(w), Inches(h), cd)
+    chart = gf.chart
+    chart.has_title = False
+    chart.has_legend = False
+    plot = chart.plots[0]
+    plot.gap_width = 60
+    for idx, (_name, color, _vals) in enumerate(series):
+        sr = plot.series[idx]
+        sr.format.fill.solid()
+        sr.format.fill.fore_color.rgb = color
+        sr.format.line.fill.background()
+    if data_labels:
+        plot.has_data_labels = True
+        dl = plot.data_labels
+        dl.number_format = '0;-0;'   # masque les valeurs nulles
+        dl.number_format_is_linked = False
+        dl.font.size = Pt(8)
+        dl.font.bold = True
+        dl.font.name = _FONT
+        dl.font.color.rgb = BX_WHITE
+    va = chart.value_axis
+    va.has_major_gridlines = False
+    va.visible = False
+    ca = chart.category_axis
+    ca.tick_labels.font.size = Pt(8)
+    ca.tick_labels.font.name = _FONT
+    ca.tick_labels.font.color.rgb = BX_BODY
+    ca.format.line.color.rgb = BX_DIVIDER
+
+
+def _bx_donut_multi(slide, l, t, sz, labels, values, colors):
+    """Anneau multi-catégories natif (sans étiquettes, légende externe)."""
+    from pptx.util import Inches
+    from pptx.chart.data import CategoryChartData
+    from pptx.enum.chart import XL_CHART_TYPE
+
+    cd = CategoryChartData()
+    cd.categories = labels
+    cd.add_series("Répartition", values)
+    gf = slide.shapes.add_chart(XL_CHART_TYPE.DOUGHNUT, Inches(l), Inches(t),
+                                Inches(sz), Inches(sz), cd)
+    chart = gf.chart
+    chart.has_title = False
+    chart.has_legend = False
+    plot = chart.plots[0]
+    plot.has_data_labels = False
+    try:
+        from pptx.oxml.ns import qn
+        hole = plot._element.find(qn("c:holeSize"))
+        if hole is not None:
+            hole.set("val", "62")
+    except Exception:
+        pass
+    pts = plot.series[0].points
+    for i, pt in enumerate(pts):
+        pt.format.fill.solid()
+        pt.format.fill.fore_color.rgb = colors[i % len(colors)]
+        pt.format.line.fill.background()
+
+
+def _bx_grouped_col(slide, l, t, w, h, categories, series, vmax=105, font_sz=8):
+    """Histogramme à colonnes groupées natif (clustered). series = [(nom, couleur, [valeurs]), ...].
+    Étiquettes de données en pourcentage, axe masqué."""
+    from pptx.util import Inches, Pt
+    from pptx.enum.text import PP_ALIGN
+    from pptx.chart.data import CategoryChartData
+    from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION
+
+    if not categories:
+        _bx_text(slide, l, t + h / 2 - 0.2, w, 0.4, "Aucune donnée par filiale.", 11, BX_MUTED,
+                 align=PP_ALIGN.CENTER)
+        return
+
+    cd = CategoryChartData()
+    cd.categories = categories
+    for name, _color, vals in series:
+        cd.add_series(name, vals)
+    gf = slide.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED,
+                                Inches(l), Inches(t), Inches(w), Inches(h), cd)
+    chart = gf.chart
+    chart.has_title = False
+    chart.has_legend = False
+    plot = chart.plots[0]
+    plot.gap_width = 60
+    plot.overlap = -10
+    for idx, (_name, color, _vals) in enumerate(series):
+        sr = plot.series[idx]
+        sr.format.fill.solid()
+        sr.format.fill.fore_color.rgb = color
+        sr.format.line.fill.background()
+    plot.has_data_labels = True
+    dl = plot.data_labels
+    dl.number_format = '0"%";;'   # entier + %, masque les nuls
+    dl.number_format_is_linked = False
+    dl.position = XL_LABEL_POSITION.OUTSIDE_END
+    dl.font.size = Pt(font_sz)
+    dl.font.bold = True
+    dl.font.name = _FONT
+    dl.font.color.rgb = BX_BODY
+    va = chart.value_axis
+    va.minimum_scale = 0
+    va.maximum_scale = vmax
+    va.has_major_gridlines = False
+    va.visible = False
+    ca = chart.category_axis
+    ca.tick_labels.font.size = Pt(font_sz + 0.5)
+    ca.tick_labels.font.name = _FONT
+    ca.tick_labels.font.color.rgb = BX_BODY
+    ca.format.line.color.rgb = BX_DIVIDER
+
+
+def _bx_filiale_rates_chart(slide, rates, gkey, ppkey, pmkey, threshold):
+    """Colonnes groupées Global / PP / PM par filiale + légende."""
+    fils = [r.get("filiale", "—") for r in rates][:12]
+    n = len(fils)
+
+    def col(key):
+        return [(r.get(key) if r.get(key) is not None else 0) for r in rates[:12]]
+
+    series = [
+        ("Global", BX_NAVY, col(gkey)),
+        ("PP", BX_GREEN, col(ppkey)),
+        ("PM", BX_CYAN, col(pmkey)),
+    ]
+    fs = 8.0 if n <= 7 else (7.0 if n <= 10 else 6.0)
+    _bx_grouped_col(slide, 0.4, 1.6, 9.2, 3.25,
+                    [_trunc(f, 12) for f in fils], series, vmax=108, font_sz=fs)
+    _bx_legend_items(slide, 5.0,
+                     [(BX_NAVY, "Global"), (BX_GREEN, "PP — Particuliers"),
+                      (BX_CYAN, "PM — Entreprises")],
+                     x=2.0, font_sz=9, step=2.3)

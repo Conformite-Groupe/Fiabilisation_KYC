@@ -1,0 +1,2 @@
+=== Jobs rapprochement ===
+id=34 status=completed prog=0/0 scope={'filiale_scope': 'BOA SN'} msg='Rapprochement termine' err=''

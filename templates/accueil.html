@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block content %}
 
@@ -14,12 +15,12 @@
               <div class="relative items-center justify-center">
                        <br>
                        <div class="flex items-center justify-center">
-                          <span class="text-4xl sm:text-5xl text-green-600 font-extrabold tracking-tight text-center ">NOTATION DES AGENTS.</span>
+                          <span class="text-4xl sm:text-5xl text-green-600 font-extrabold tracking-tight text-center ">{{ "NOTATION DES AGENTS."|t }}</span>
                        </div>
                        <br>
 
                    <div class="flex items-center justify-center">
-                      <span class="text-green-600 text-2xl text-center font-extrabold tracking-normal ">Veuillez rentrer le code exploitant EXPL d'un agent.</span>
+                      <span class="text-green-600 text-2xl text-center font-extrabold tracking-normal ">{{ "Veuillez rentrer le code exploitant EXPL d'un agent."|t }}</span>
                    </div>
                   <br>
 
@@ -29,12 +30,12 @@
    </div>
 
 
-    <h2>Rechercher un agent</h2>
+    <h2>{{ "Rechercher un agent"|t }}</h2>
 <form method="POST">
   {% csrf_token %}
-  <label for="expl">Code Exploitant :</label>
+  <label for="expl">{{ "Code Exploitant :"|t }}</label>
   <input type="text" id="expl" name="expl" value="{% if agent %}{{ agent.expl }}{% endif %}">
-  <button type="submit">Rechercher</button>
+  <button type="submit">{{ "Rechercher"|t }}</button>
 </form>
 
 {% if message %}
@@ -42,16 +43,16 @@
 {% endif %}
 
 {% if agent %}
-  <h3>Informations de l'agent :</h3>
+  <h3>{{ "Informations de l'agent :"|t }}</h3>
   <p>Exploitant : {{ agent.expl }}</p>
   <p>Agence : {{ agent.agence_lib }}</p>
 
   {% if form %}
-    <h3>Noter l'agent</h3>
+    <h3>{{ "Noter l'agent"|t }}</h3>
     <form method="POST">
       {% csrf_token %}
       {{ form.as_p }}
-      <button type="submit">Noter</button>
+      <button type="submit">{{ "Noter"|t }}</button>
     </form>
   {% endif %}
 {% endif %}

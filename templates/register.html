@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% load crispy_forms_tags %}
 {% load tailwind_filters %}
 
@@ -31,18 +32,18 @@
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">Création <span
-                            class="text-emerald-500 font-light">Utilisateur</span></h1>
+                    <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">{{ "Création"|t }} <span
+                            class="text-emerald-500 font-light">{{ "Utilisateur"|t }}</span></h1>
                     <div class="flex items-center gap-2 mt-1.5">
                         <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Page de création de nouvel utilisateur</p>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">{{ "Page de création de nouvel utilisateur"|t }}</p>
                     </div>
                 </div>
             </div>
         </div>
         <div class="flex items-center gap-4">
             <a href="/user_list" class="flex items-center justify-center gap-2 px-6 py-3 bg-white/70 border border-slate-200 hover:bg-white text-slate-700 text-[10px] font-black uppercase rounded-xl tracking-[0.15em] transition-all shadow-sm">
-                ← Retour à la liste
+                {{ "← Retour à la liste"|t }}
             </a>
         </div>
     </div>
@@ -59,8 +60,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-sm font-black uppercase tracking-widest leading-none">Inscription</h2>
-                        <p class="text-[9px] text-gray-200 mt-1 font-bold uppercase opacity-70 ">Saisie des identifiants</p>
+                        <h2 class="text-sm font-black uppercase tracking-widest leading-none">{{ "Inscription"|t }}</h2>
+                        <p class="text-[9px] text-gray-200 mt-1 font-bold uppercase opacity-70 ">{{ "Saisie des identifiants"|t }}</p>
                     </div>
                 </div>
             </div>
@@ -81,7 +82,7 @@
                     <div class="pt-4">
                         <button type="submit"
                                 class="w-full nav-link-active text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md shadow-green-100 hover:bg-green-800 transition-all active:scale-95 flex items-center justify-center gap-3">
-                            Enregistrer l'utilisateur
+                            {{ "Enregistrer l'utilisateur"|t }}
                         </button>
                     </div>
                 </form>
@@ -89,8 +90,8 @@
         </div>
         {% else %}
         <div class="bg-white rounded-[2rem] p-8 text-center border-2 border-dashed border-gray-200">
-            <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest">Accès Restreint</h3>
-            <a href="{% url 'agent' %}" class="mt-4 inline-block px-6 py-3 bg-gray-800 text-white rounded-lg text-[9px] font-black uppercase tracking-widest">Retour</a>
+            <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest">{{ "Accès Restreint"|t }}</h3>
+            <a href="{% url 'agent' %}" class="mt-4 inline-block px-6 py-3 bg-gray-800 text-white rounded-lg text-[9px] font-black uppercase tracking-widest">{{ "Retour"|t }}</a>
         </div>
         {% endif %}
     </div>

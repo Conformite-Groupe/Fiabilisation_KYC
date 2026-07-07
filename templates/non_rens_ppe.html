@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% load crispy_forms_tags %}
 
@@ -22,7 +23,7 @@
                           <div class="relative items-center justify-center">
                        <br>
                        <div class="shadow-lg flex items-center justify-center">
-                          <span class="text-2xl sm:text-4xl text-gray-500 font-extrabold tracking-tight text-center ">CHAMPS NON RENSEIGNES.</span>
+                          <span class="text-2xl sm:text-4xl text-gray-500 font-extrabold tracking-tight text-center ">{{ "CHAMPS NON RENSEIGNES."|t }}</span>
                        </div>
                        <br>
 
@@ -33,7 +34,7 @@
 
 
        <a href="{% url 'export_csv_pp' %}" class="bg-orange-500 shadow-lg text-white px-4 py-2 rounded">
-  Exporter
+  {{ "Exporter"|t }}
 </a>
         </div>
                   <br>
@@ -67,7 +68,7 @@
       <div class="flex flex-col">
 
         <select name="filiale" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-          <option value="">Toutes filiales</option>
+          <option value="">{{ "Toutes filiales"|t }}</option>
           {% for f in filiales %}
             <option value="{{ f }}" {% if request.GET.filiale == f %}selected{% endif %}>{{ f }}</option>
           {% endfor %}
@@ -76,7 +77,7 @@
            <div class="flex flex-col">
 
         <select name="agence" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-          <option value="">Toutes les agences</option>
+          <option value="">{{ "Toutes les agences"|t }}</option>
           {% for a in agences %}
             <option value="{{ a }}" {% if request.GET.agence == a %}selected{% endif %}>{{ a }}</option>
           {% endfor %}
@@ -86,7 +87,7 @@
           <div class="flex flex-col">
 
         <select name="expl" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-          <option value="">Tous les exploitants</option>
+          <option value="">{{ "Tous les exploitants"|t }}</option>
           {% for e in exploitants %}
             <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
           {% endfor %}
@@ -95,7 +96,7 @@
           <!-- Bouton Rechercher -->
     <div class="flex items-end">
       <button type="submit" class="nav-link-active hover:nav-link-active text-white text-sm font-semibold px-5 py-2 rounded-md transition duration-200 shadow">
-        Rechercher
+        {{ "Rechercher"|t }}
       </button>
     </div>
     {% endif %}
@@ -105,7 +106,7 @@
     <div class="flex flex-col">
 
         <select name="agence" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-          <option value="">Toutes les agences</option>
+          <option value="">{{ "Toutes les agences"|t }}</option>
           {% for a in agences %}
             <option value="{{ a }}" {% if request.GET.agence == a %}selected{% endif %}>{{ a }}</option>
           {% endfor %}
@@ -115,7 +116,7 @@
           <div class="flex flex-col">
 
         <select name="expl" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-          <option value="">Tous les exploitants</option>
+          <option value="">{{ "Tous les exploitants"|t }}</option>
           {% for e in exploitants %}
             <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
           {% endfor %}
@@ -124,7 +125,7 @@
           <!-- Bouton Rechercher -->
     <div class="flex items-end">
       <button type="submit" class="nav-link-active hover:nav-link-active text-white text-sm font-semibold px-5 py-2 rounded-md transition duration-200 shadow">
-        Rechercher
+        {{ "Rechercher"|t }}
       </button>
     </div>
 
@@ -135,7 +136,7 @@
           <div class="flex flex-col">
 
         <select name="expl" class="text-sm text-green-700 border border-gray-300 rounded-md px-6 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-          <option value="">Tous les exploitants</option>
+          <option value="">{{ "Tous les exploitants"|t }}</option>
           {% for e in exploitants %}
             <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
           {% endfor %}
@@ -144,7 +145,7 @@
           <!-- Bouton Rechercher -->
     <div class="flex items-end">
       <button type="submit" class="nav-link-active hover:nav-link-active text-white text-sm font-semibold px-5 py-2 rounded-md transition duration-200 shadow">
-        Rechercher
+        {{ "Rechercher"|t }}
       </button>
     </div>
 
@@ -171,22 +172,22 @@
 <table class="min-w-[1200px] text-xs text-center border border-gray-300">
   <thead class="sticky top-0 nav-link-active text-white z-10">
       <tr class="text-center">
-              <th class="px-2 py-1 border border-gray-300">Filiale</th>
-           <th class="px-2 py-1 border border-gray-300">Agence</th>
-        <th class="px-2 py-1 border border-gray-300 sticky left-0 nav-link-active ">Client</th>
+              <th class="px-2 py-1 border border-gray-300">{{ "Filiale"|t }}</th>
+           <th class="px-2 py-1 border border-gray-300">{{ "Agence"|t }}</th>
+        <th class="px-2 py-1 border border-gray-300 sticky left-0 nav-link-active ">{{ "Client"|t }}</th>
 
-        <th class="px-2 py-1 border border-gray-300">Exploitant</th>
-        <th class="px-2 py-1 border border-gray-300">Codape</th>
-        <th class="px-2 py-1 border border-gray-300">Idp</th>
-        <th class="px-2 py-1 border border-gray-300">Pays Nais</th>
-        <th class="px-2 py-1 border border-gray-300">Profession</th>
-        <th class="px-2 py-1 border border-gray-300">Adresse</th>
-        <th class="px-2 py-1 border border-gray-300">Pays Resid</th>
-          <th class="px-2 py-1 border border-gray-300">Num Cin</th>
-        <th class="px-2 py-1 border border-gray-300">Salaire</th>
-        <th class="px-2 py-1 border border-gray-300">Origine Revenu</th>
-        <th class="px-2 py-1 border border-gray-300">Validité Cin</th>
-           <th class="px-2 py-1 border border-gray-300">Téléphone</th>
+        <th class="px-2 py-1 border border-gray-300">{{ "Exploitant"|t }}</th>
+        <th class="px-2 py-1 border border-gray-300">{{ "Codape"|t }}</th>
+        <th class="px-2 py-1 border border-gray-300">{{ "Idp"|t }}</th>
+        <th class="px-2 py-1 border border-gray-300">{{ "Pays Nais"|t }}</th>
+        <th class="px-2 py-1 border border-gray-300">{{ "Profession"|t }}</th>
+        <th class="px-2 py-1 border border-gray-300">{{ "Adresse"|t }}</th>
+        <th class="px-2 py-1 border border-gray-300">{{ "Pays Resid"|t }}</th>
+          <th class="px-2 py-1 border border-gray-300">{{ "Num Cin"|t }}</th>
+        <th class="px-2 py-1 border border-gray-300">{{ "Salaire"|t }}</th>
+        <th class="px-2 py-1 border border-gray-300">{{ "Origine Revenu"|t }}</th>
+        <th class="px-2 py-1 border border-gray-300">{{ "Validité Cin"|t }}</th>
+           <th class="px-2 py-1 border border-gray-300">{{ "Téléphone"|t }}</th>
       </tr>
     </thead>
     <tbody>
@@ -216,7 +217,7 @@
 </div>
 
   {% else %}
-    <p class="text-gray-600">Aucune donnée disponible pour les critères sélectionnés.</p>
+    <p class="text-gray-600">{{ "Aucune donnée disponible pour les critères sélectionnés."|t }}</p>
   {% endif %}
 </div>
 {% if messages %}

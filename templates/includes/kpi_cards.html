@@ -1,3 +1,4 @@
+{% load custom_filters %}
 {% if kpi_cards %}
 <div class="flex flex-wrap justify-center gap-4">
     {% for card in kpi_cards %}
@@ -14,10 +15,10 @@
                     {% elif card.tone == 'amber' %}text-amber-600
                     {% elif card.tone == 'red' %}text-red-600
                     {% else %}text-emerald-600{% endif %}">
-                    {{ card.label }}
+                    {{ card.label|t }}
                 </p>
                 <p class="mt-1 text-2xl font-black tracking-tighter text-slate-900">
-                    {{ card.value }}{% if card.suffix %}<span class="ml-1 text-sm text-slate-400">{{ card.suffix }}</span>{% endif %}
+                    {{ card.value }}{% if card.suffix %}<span class="ml-1 text-sm text-slate-400">{{ card.suffix|t }}</span>{% endif %}
                 </p>
             </div>
             <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl
@@ -31,16 +32,16 @@
             </div>
         </div>
         <div class="mt-1.5 flex items-center justify-between gap-3">
-            <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">{{ card.subtitle }}</p>
+            <p class="truncate text-[8px] font-bold uppercase tracking-widest text-slate-400">{{ card.subtitle|t }}</p>
             <div class="flex gap-1.5 shrink-0">
                 {% if card.show_modal %}
                 <button type="button" @click="open = true" class="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-white shadow-sm transition-all hover:bg-green-700">
-                    Voir
+                    {{ "Voir"|t }}
                 </button>
                 {% endif %}
                 {% if card.export_url %}
                 <a href="{{ card.export_url }}" class="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-white shadow-sm transition-all hover:bg-green-700">
-                    Exporter
+                    {{ "Exporter"|t }}
                 </a>
                 {% endif %}
             </div>
@@ -51,8 +52,8 @@
                 <div @click.outside="open = false" x-transition class="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100">
                     <div class="flex items-center justify-between gap-4 border-b border-slate-100 bg-slate-50 px-5 py-4">
                         <div>
-                            <p class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">{{ card.label }}</p>
-                            <h3 class="mt-1 text-lg font-black text-slate-900">{{ card.subtitle }}</h3>
+                            <p class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">{{ card.label|t }}</p>
+                            <h3 class="mt-1 text-lg font-black text-slate-900">{{ card.subtitle|t }}</h3>
                         </div>
                         <button type="button" @click="open = false" class="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm transition-all hover:bg-slate-900 hover:text-white">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,8 +65,8 @@
                         <div class="space-y-2">
                             {% for item in card.items %}
                             <div class="flex items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-[11px] font-black">
-                                <span class="truncate uppercase tracking-tight text-slate-700" title="{{ item.label }}">{{ item.label }}</span>
-                                <span class="shrink-0 text-slate-900">{{ item.value }} <span class="ml-2 text-slate-400">{{ item.suffix }}</span></span>
+                                <span class="truncate uppercase tracking-tight text-slate-700" title="{{ item.label|t }}">{{ item.label|t }}</span>
+                                <span class="shrink-0 text-slate-900">{{ item.value }} <span class="ml-2 text-slate-400">{{ item.suffix|t }}</span></span>
                             </div>
                             {% endfor %}
                         </div>

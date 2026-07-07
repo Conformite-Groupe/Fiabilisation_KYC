@@ -1,3 +1,4 @@
+{% load custom_filters %}
 {% load tailwind_tags %}
 {% load static %}
 
@@ -6,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accès Verrouillé | KYC</title>
+    <title>{{ "Accès Verrouillé | KYC"|t }}</title>
     {% tailwind_css %}
     <link rel="stylesheet" href="{% static 'css/dist/styles.css' %}">
     <style>
@@ -61,11 +62,11 @@
                 </div>
 
                 <span class="inline-block px-3 py-1 rounded-full bg-red-50 text-red-700 text-[9px] font-black uppercase tracking-widest mb-3">
-                    Sécurité Système
+                    {{ "Sécurité Système"|t }}
                 </span>
                 
                 <h2 class="text-xl font-extrabold text-slate-800 tracking-tight mb-4">
-                    Accès temporairement verrouillé
+                    {{ "Accès temporairement verrouillé"|t }}
                 </h2>
 
                 <p class="text-xs font-semibold text-slate-500 leading-relaxed mb-6">
@@ -75,16 +76,16 @@
 
                 <a href="{% url 'login_kyc' %}"
                     class="inline-flex w-full justify-center items-center bg-slate-800 hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 active:scale-95">
-                    Retour à la page de connexion
+                    {{ "Retour à la page de connexion"|t }}
                 </a>
             </div>
         </div>
 
         <div class="mt-6 text-center">
             <p class="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em]">
-                © <span id="year"></span> Compliance Group
+                © <span id="year"></span> {{ "Compliance Group"|t }}
             </p>
-            <a href="mailto:safkyc@boaholding.com" class="text-[9px] font-black text-white/80 hover:text-white transition-colors uppercase tracking-widest mt-2 block">Assistance technique</a>
+            <a href="mailto:safkyc@boaholding.com" class="text-[9px] font-black text-white/80 hover:text-white transition-colors uppercase tracking-widest mt-2 block">{{ "Assistance technique"|t }}</a>
         </div>
     </div>
 

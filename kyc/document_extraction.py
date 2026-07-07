@@ -622,6 +622,9 @@ def _ocr_image(image, psm=3):
 
 
 def _ocr_image_variants(image):
+    """OCR multi-passes avec arret anticipe : on s'arrete des que le texte
+    cumule contient les champs coeur (nom/numero/dates), au lieu de faire
+    systematiquement toutes les orientations/regions/PSM (jusqu'a 27 passes)."""
     orientations = [
         image,
         image.rotate(90, expand=True),
@@ -643,6 +646,8 @@ def _ocr_image_variants(image):
                 if text and key not in seen:
                     seen.add(key)
                     texts.append(text)
+                    if _has_enough_core_fields("\n".join(texts)):
+                        return "\n".join(texts)
     return "\n".join(texts)
 
 

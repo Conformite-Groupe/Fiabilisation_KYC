@@ -17,7 +17,7 @@ from django.db.models import Model
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Fiabilisation_kyc.settings")
 django.setup()
 
-from kyc.models import TauxEvolution, DATEREV, TauxEvolution_filiale, Anomalie, Filiales as FILIALES_CHOICES
+from kyc.models import TauxEvolution, TauxEvolution_filiale, Anomalie, Filiales as FILIALES_CHOICES
 
 # =====================================================
 # 2. PARAMETRES GLOBAUX
@@ -25,7 +25,7 @@ from kyc.models import TauxEvolution, DATEREV, TauxEvolution_filiale, Anomalie, 
 
 CHEMIN_BASE = os.environ.get(
     "KYC_DATA_DIR",
-   r"C:\Fiabilisation KYC\Python\data",
+   r"C:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2025\Plateforme notatio kyc v2\data",
 )
 ANOMALIES_PATTERN = os.environ.get(
     "KYC_ANOMALIES_PATTERN",
@@ -46,7 +46,6 @@ TAUX_PATTERN = os.environ.get(
 
 DELIMITEUR = ";"
 BULK_SIZE_TAUX = 5000
-BULK_SIZE_DATEREV = 20000
 BULK_SIZE_TAUX_FILIALE = 500
 BULK_SIZE_ANOMALIE = 5000
 LOG_STEP = 100000
@@ -306,118 +305,6 @@ def import_anomalies():
     logger.info("END ANOMALIES")
 
 # =====================================================
-# 7. IMPORT DATEREV
-# =====================================================
-def importer_daterev_ultra_rapide():
-    total = 0
-    logger.info("START DATEREV")
-    mapping = {
-        "AGENCE": ["AGENCE", "AG"],
-        "LIB_AGENCE": ["AGENCELIB", "LIB_AGENCE", "AGENCE_LIB"],
-        "EXPL": ["EXPL"],
-        "CLIENT": ["CLIENT"],
-        "DATEREV": ["DATREV", "DATEREV", "DATE_REV", "TO_CHAR(DATREV,'DD/MM/YYYY')", "TO_CHAR(DATEREV,'DD/MM/YYYY')"],
-        "PPE": ["PPE"],
-        "RISQUE": ["RISQUE", "CLASSE"],
-    }
-    mapping_norm = {k: [normalize_header(c) for c in v] for k, v in mapping.items()}
-    required_keys = ["AGENCE", "EXPL", "CLIENT"]
-
-    for code in FILIALES:
-        nom_filiale_complet = f"BOA {code}"
-        fichier = resolve_path(SCORING_PATTERN, code)
-
-        if not os.path.exists(fichier):
-            logger.warning(f"missing file: {fichier}")
-            continue
-
-        deleted = DATEREV.objects.filter(FILIALE=nom_filiale_complet).delete()[0]
-        logger.info(f"cleaned {deleted} rows for {nom_filiale_complet}")
-
-        buffer = []
-        inserted_for_filiale = 0
-        last_log_limit = LOG_STEP
-
-        encodings = [detect_encoding(fichier), "utf-8-sig", "latin-1", "cp1252"]
-        seen = set()
-        encodings = [e for e in encodings if not (e in seen or seen.add(e))]
-
-        for enc in encodings:
-            try:
-                with open(fichier, "r", encoding=enc) as f:
-                    reader = csv.DictReader(f, delimiter=DELIMITEUR)
-                    if reader.fieldnames:
-                        reader.fieldnames = [normalize_header(fn) for fn in reader.fieldnames]
-                        logger.debug(f"[{code}] daterev encoding={enc} headers={reader.fieldnames}")
-                    else:
-                        logger.error(f"empty headers for {code}")
-                        break
-
-                    header_set = set(reader.fieldnames)
-                    missing = []
-                    for key in required_keys:
-                        if not any(c in header_set for c in mapping_norm[key]):
-                            missing.append(key)
-                    if missing:
-                        logger.error(f"missing required columns for {code}: {missing}")
-                        break
-
-                    for line_num, row in enumerate(reader, start=1):
-                        try:
-                            row_norm = {normalize_header(k): (v or "") for k, v in row.items()}
-                            dt_raw = pick_value(row_norm, mapping_norm["DATEREV"])
-                            parsed_dt = parse_date_multi(dt_raw) if dt_raw else None
-
-                            def trunc(val, n):
-                                return (val or "").strip()[:n]
-
-                            agence = pick_value(row_norm, mapping_norm["AGENCE"])
-                            if not agence:
-                                continue
-
-                            instance = DATEREV(
-                                FILIALE=nom_filiale_complet,
-                                AGENCE=trunc(agence, 10),
-                                LIB_AGENCE=trunc(pick_value(row_norm, mapping_norm["LIB_AGENCE"]), 50),
-                                EXPL=trunc(pick_value(row_norm, mapping_norm["EXPL"]), 10),
-                                CLIENT=trunc(pick_value(row_norm, mapping_norm["CLIENT"]), 10),
-                                DATEREV=parsed_dt,
-                                PPE=trunc(pick_value(row_norm, mapping_norm["PPE"]), 20),
-                                RISQUE=trunc(pick_value(row_norm, mapping_norm["RISQUE"]), 20),
-                            )
-                            buffer.append(instance)
-
-                            if len(buffer) >= BULK_SIZE_DATEREV:
-                                DATEREV.objects.bulk_create(buffer, batch_size=BULK_SIZE_DATEREV)
-                                inserted_for_filiale += len(buffer)
-                                buffer.clear()
-
-                                if inserted_for_filiale >= last_log_limit:
-                                    logger.info(f"progress {code}: {inserted_for_filiale} rows")
-                                    last_log_limit += LOG_STEP
-
-                        except Exception as e:
-                            if line_num % 10000 == 0:
-                                logger.error(f"line {line_num} error: {e}")
-                            continue
-
-                    if buffer:
-                        DATEREV.objects.bulk_create(buffer, batch_size=BULK_SIZE_DATEREV)
-                        inserted_for_filiale += len(buffer)
-
-                total += inserted_for_filiale
-                logger.info(f"done {code}: {inserted_for_filiale} rows")
-                break
-
-            except UnicodeDecodeError:
-                continue
-            except Exception as e:
-                logger.error(f"critical error on {code}: {e}")
-                break
-
-    logger.info(f"DATEREV total: {total} rows")
-
-# =====================================================
 # 8. IMPORT TAUX FILIALES
 # =====================================================
 def import_taux_filiales():
@@ -558,9 +445,6 @@ if __name__ == "__main__":
 
         if not only or "anomalies" in only:
             import_anomalies()
-
-        if not only or "daterev" in only:
-            importer_daterev_ultra_rapide()
 
         if not only or "taux_filiales" in only:
             with transaction.atomic():

@@ -89,6 +89,7 @@ urlpatterns = [
                   path('document-extraction/start-match/', views.start_document_extraction_match_job, name='start_document_extraction_match_job'),
                   path('document-extraction/match-job/<int:job_id>/status/', views.document_extraction_match_job_status, name='document_extraction_match_job_status'),
                   path('document-extraction/export-matches/', views.export_document_extraction_matches, name='export_document_extraction_matches'),
+                  path('document-extraction/ocr-status/', views.document_extraction_ocr_status, name='document_extraction_ocr_status'),
                   path('document-types-config/', views.config_document_types, name='config_document_types'),
 
                   path('logout/', logout_user, name="logout"),
@@ -110,6 +111,7 @@ path('daterev-reminder/test-smtp/', views.test_smtp_config, name='test_smtp_conf
 path('daterev-reminder/export/', views.export_daterev_excel, name='export_daterev_excel'),
 path('bulk-upload/', views.bulk_user_upload, name='bulk_user_upload'),
 path('download-template/', views.download_excel_template, name='download_csv_template'),
+    path('i18n/', include('django.conf.urls.i18n')),  # bascule de langue (set_language)
     path('trade/', include('kyc.urls')),
 
     path('accounts/', include('django.contrib.auth.urls'))

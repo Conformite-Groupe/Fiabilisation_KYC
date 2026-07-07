@@ -1,3 +1,4 @@
+{% load custom_filters %}
 ﻿<!DOCTYPE html>
 <html>
 <head>
@@ -17,15 +18,15 @@
         <img src="{{ logo_path }}" alt="BOA" style="height: 40px;">
     </div>
     {% endif %}
-    <h1>Audit des Controles - KYC Portal</h1>
+    <h1>{{ "Audit des Controles - KYC Portal"|t }}</h1>
     <table>
         <thead>
             <tr>
-                <th>Date & Heure</th>
-                <th>Utilisateur</th>
-                <th>Regle</th>
-                <th>Action</th>
-                <th>Details</th>
+                <th>{{ "Date & Heure"|t }}</th>
+                <th>{{ "Utilisateur"|t }}</th>
+                <th>{{ "Regle"|t }}</th>
+                <th>{{ "Action"|t }}</th>
+                <th>{{ "Details"|t }}</th>
             </tr>
         </thead>
         <tbody>
@@ -39,7 +40,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5">Aucune donnee d'audit disponible.</td>
+                <td colspan="5">{{ "Aucune donnee d'audit disponible."|t }}</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -1,14 +1,105 @@
 from django.contrib import admin
+from django.core.management import call_command
 
-from .models import KycDocumentExtraction, KycDocumentMatchJob, KycDocumentMatchSettings, KycExpiredDocumentScanMatch, FilialeModuleConfig, EmailReminderConfig
+from .models import (KycDocumentExtraction, KycDocumentMatchJob, KycDocumentMatchSettings,
+                     KycExpiredDocumentScanMatch, FilialeModuleConfig, EmailReminderConfig,
+                     AppreciationConfig, Appreciation_globale, TermTranslation, KycDocumentOcrJob,
+                     KycMatchValidatorRole, KycMatchDecision,
+                     DataQualityRule, DataQualityCondition)
+
+
+class DataQualityConditionInline(admin.TabularInline):
+    model = DataQualityCondition
+    extra = 0
+    fields = ("logic", "field_name", "operator", "value")
+
+
+@admin.register(DataQualityRule)
+class DataQualityRuleAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "applicability", "control_type", "active",
+                    "filiale", "created_by", "created_at")
+    list_filter = ("applicability", "control_type", "active")
+    search_fields = ("name", "field_name", "filiale")
+    list_editable = ("active",)
+    readonly_fields = ("created_at",)
+    inlines = [DataQualityConditionInline]
+
+
+@admin.register(DataQualityCondition)
+class DataQualityConditionAdmin(admin.ModelAdmin):
+    list_display = ("id", "rule", "logic", "field_name", "operator", "value")
+    list_filter = ("logic", "operator")
+    search_fields = ("field_name", "value", "rule__name")
+
+
+@admin.register(KycMatchValidatorRole)
+class KycMatchValidatorRoleAdmin(admin.ModelAdmin):
+    list_display = ("organe", "can_validate", "can_reject", "updated_at")
+    list_editable = ("can_validate", "can_reject")
+    list_filter = ("can_validate", "can_reject")
+
+
+@admin.register(KycMatchDecision)
+class KycMatchDecisionAdmin(admin.ModelAdmin):
+    list_display = ("client_code", "client_type", "status", "match_rate", "filiale", "agence", "decided_by", "decided_at")
+    list_filter = ("status", "client_type", "filiale")
+    search_fields = ("client_code", "filiale", "agence")
+    readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(KycDocumentOcrJob)
+class KycDocumentOcrJobAdmin(admin.ModelAdmin):
+    list_display = ('id', 'import_batch', 'mode', 'status', 'progress_current', 'progress_total',
+                    'done_count', 'failed_count', 'created_by', 'created_at', 'completed_at')
+    list_filter = ('status', 'mode')
+    search_fields = ('import_batch',)
+    readonly_fields = ('created_at', 'started_at', 'completed_at', 'updated_at')
+    ordering = ('-created_at',)
+
+
+@admin.register(TermTranslation)
+class TermTranslationAdmin(admin.ModelAdmin):
+    list_display = ('terme_fr', 'terme_en', 'note', 'updated_at')
+    list_editable = ('terme_en',)
+    search_fields = ('terme_fr', 'terme_en', 'note')
+    ordering = ('terme_fr',)
+
+
+@admin.register(AppreciationConfig)
+class AppreciationConfigAdmin(admin.ModelAdmin):
+    list_display = ('filiale', 'date_demarrage', 'trimestre_actuel', 'active', 'updated_at')
+    list_editable = ('date_demarrage', 'active')
+    search_fields = ('filiale',)
+    list_filter = ('active',)
+    ordering = ('filiale',)
+    readonly_fields = ('trimestre_actuel', 'updated_at')
+
+    @admin.display(description="Trimestre courant")
+    def trimestre_actuel(self, obj):
+        return obj.trimestre_actuel() if obj and obj.date_demarrage else "—"
+
+
+@admin.register(Appreciation_globale)
+class AppreciationGlobaleAdmin(admin.ModelAdmin):
+    list_display = ('filiale', 'expl', 'trimestre', 'taux_evolution', 'taux_qualite',
+                    'notation', 'appreciation_qualite', 'appreciation_globale', 'computed_at')
+    list_filter = ('filiale', 'trimestre', 'appreciation_globale', 'appreciation_qualite')
+    search_fields = ('filiale', 'expl')
+    readonly_fields = ('computed_at',)
+    actions = ['recalculer']
+
+    @admin.action(description="Recalculer l'appréciation globale (tous les agents)")
+    def recalculer(self, request, queryset):
+        call_command('compute_appreciation_globale')
+        self.message_user(request, "Appréciation globale recalculée pour tous les agents.")
 
 
 @admin.register(FilialeModuleConfig)
 class FilialeModuleConfigAdmin(admin.ModelAdmin):
-    list_display = ('filiale', 'screening_kyc_paye_active')
-    list_editable = ('screening_kyc_paye_active',)
+    list_display = ('filiale', 'screening_kyc_paye_active', 'daterev_reminder_paye_active')
+    list_editable = ('screening_kyc_paye_active', 'daterev_reminder_paye_active')
     search_fields = ('filiale',)
-    list_filter = ('screening_kyc_paye_active',)
+    list_filter = ('screening_kyc_paye_active', 'daterev_reminder_paye_active')
 
 
 @admin.register(KycDocumentExtraction)
@@ -50,23 +141,42 @@ class KycDocumentExtractionAdmin(admin.ModelAdmin):
 class KycDocumentMatchSettingsAdmin(admin.ModelAdmin):
     list_display = (
         "name",
-        "birth_date_weight",
-        "document_validity_weight",
-        "birth_place_weight",
-        "nationality_weight",
-        "combination_threshold",
-        "active",
-        "updated_at",
-    )
-    list_editable = (
-        "birth_date_weight",
-        "document_validity_weight",
-        "birth_place_weight",
-        "nationality_weight",
-        "combination_threshold",
-        "active",
+        "pp_fullname_weight", "pp_birth_date_weight", "pp_birth_place_weight", "pp_birth_country_weight",
+        "pm_fullname_weight", "pm_fiscal_weight", "pm_address_weight", "pm_country_weight",
+        "combination_threshold", "min_display_score", "active", "updated_at",
     )
     readonly_fields = ("updated_at",)
+    fieldsets = (
+        (None, {"fields": ("name", "active")}),
+        ("Poids PP — Personnes Physiques (N° identification nationale = 100 %, somme des poids <= 100)", {
+            "fields": (
+                "pp_fullname_weight",
+                "pp_birth_date_weight",
+                "pp_birth_place_weight",
+                "pp_birth_country_weight",
+            ),
+        }),
+        ("Poids PM — Personnes Morales (Registre commerce RCSNO = 100 %, somme des poids <= 100)", {
+            "fields": (
+                "pm_fullname_weight",
+                "pm_fiscal_weight",
+                "pm_address_weight",
+                "pm_country_weight",
+            ),
+        }),
+        ("Seuils communs", {
+            "fields": ("combination_threshold", "min_display_score"),
+        }),
+        ("Equivalence Nom & Prenom / Raison sociale dans les modeles KYC", {
+            "description": "Champ des modeles KYC compare au nom & prenom (PP) / a la raison sociale (PM) "
+                           "extraits du document. Par defaut INTITULE_COMPTE.",
+            "fields": (
+                "pp_fullname_field",
+                "pm_fullname_field",
+            ),
+        }),
+        ("Suivi", {"fields": ("updated_at",)}),
+    )
 
 
 @admin.register(KycExpiredDocumentScanMatch)
@@ -132,6 +242,9 @@ class EmailReminderConfigAdmin(admin.ModelAdmin):
         }),
         ('Paramètres de rappel', {
             'fields': ('frequency', 'days_before', 'active'),
+        }),
+        ('Supervision des tâches quotidiennes', {
+            'fields': ('notify_emails',),
         }),
     )
 

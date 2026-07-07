@@ -2,6 +2,39 @@ from django import template
 
 register = template.Library()
 
+
+def _glossary_en():
+    """Dictionnaire {terme_fr: terme_en} mis en cache (glossaire admin)."""
+    from django.core.cache import cache
+    data = cache.get('term_glossary_en')
+    if data is None:
+        from kyc.models import TermTranslation
+        data = {t.terme_fr: t.terme_en
+                for t in TermTranslation.objects.all().only('terme_fr', 'terme_en')}
+        cache.set('term_glossary_en', data, 600)
+    return data
+
+
+@register.filter(name='t')
+def translate_term(value):
+    """Traduit un terme selon la langue active :
+    - FR : renvoie le texte d'origine ;
+    - EN (ou autre) : glossaire admin d'abord, sinon catalogue gettext, sinon FR.
+    Usage : {{ "Taux de complétude"|t }}
+    """
+    if value is None:
+        return value
+    text = str(value)
+    from django.utils import translation
+    lang = translation.get_language() or 'fr'
+    if lang.startswith('fr'):
+        return text
+    en = _glossary_en().get(text.strip())
+    if en:
+        return en
+    # Repli : catalogue gettext (renvoie le texte inchangé si non traduit)
+    return translation.gettext(text)
+
 @register.filter
 def split(value, arg=None):
     """
@@ -59,4 +92,20 @@ def latest_flux_notation(user):
     if not user or not user.is_authenticated:
         return None
     return user.notations.filter(flux_stock='Flux').order_by('-date_notation').first()
+
+
+@register.filter
+def appreciation_for(user):
+    """Retourne l'instance Appreciation_globale de l'agent (par filiale + code_expl),
+    ou None. Sert à afficher l'appréciation globale et la mesure."""
+    if not user:
+        return None
+    fil = (getattr(user, 'filiale', '') or '').strip()
+    expl = (getattr(user, 'code_expl', '') or '').strip()
+    if not fil or not expl:
+        return None
+    from kyc.models import Appreciation_globale
+    return (Appreciation_globale.objects
+            .filter(filiale__iexact=fil, expl__iexact=expl)
+            .first())
 

@@ -70,8 +70,9 @@ def force_password_change(request):
             # mettre à jour le flag
             user.force_password_change = False
             user.save()
-            # connecter l'utilisateur
-            auth_login(request, user)
+            # connecter l'utilisateur (préciser le backend car plusieurs
+            # AUTHENTICATION_BACKENDS sont configurés)
+            auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             # (optionnel) mettre à jour le hash de session
             update_session_auth_hash(request, user)
             return redirect('profil')

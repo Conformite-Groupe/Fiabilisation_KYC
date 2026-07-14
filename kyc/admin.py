@@ -4,7 +4,7 @@ from django.core.management import call_command
 from .models import (KycDocumentExtraction, KycDocumentMatchJob, KycDocumentMatchSettings,
                      KycExpiredDocumentScanMatch, FilialeModuleConfig, EmailReminderConfig,
                      AppreciationConfig, Appreciation_globale, TermTranslation, KycDocumentOcrJob,
-                     KycMatchValidatorRole, KycMatchDecision,
+                     KycMatchValidatorRole, KycMatchDecision, KycScreeningAccess,
                      DataQualityRule, DataQualityCondition)
 
 
@@ -37,6 +37,15 @@ class KycMatchValidatorRoleAdmin(admin.ModelAdmin):
     list_display = ("organe", "can_validate", "can_reject", "updated_at")
     list_editable = ("can_validate", "can_reject")
     list_filter = ("can_validate", "can_reject")
+
+
+@admin.register(KycScreeningAccess)
+class KycScreeningAccessAdmin(admin.ModelAdmin):
+    list_display = ("organe", "tab_charger", "tab_suivi", "tab_resultats", "tab_sources",
+                    "tab_documents", "can_upload_batches", "can_run_matching", "updated_at")
+    list_editable = ("tab_charger", "tab_suivi", "tab_resultats", "tab_sources",
+                     "tab_documents", "can_upload_batches", "can_run_matching")
+    list_filter = ("can_upload_batches", "can_run_matching")
 
 
 @admin.register(KycMatchDecision)

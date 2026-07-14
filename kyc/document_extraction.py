@@ -1,5 +1,6 @@
 import os
 import re
+import threading
 from io import BytesIO
 
 
@@ -567,6 +568,37 @@ def parse_identity_fields(text):
             normalized,
         ),
     }
+    # Numero de document : rejette les captures sans chiffres ("ero d"...) et
+    # tente le libelle CEDEAO "N° de la carte d'identite" avec valeur en dessous.
+    def _document_number_or_empty(value):
+        value = _clean_value(value)
+        return value if sum(ch.isdigit() for ch in value) >= 3 else ""
+
+    numero_document = _document_number_or_empty(fields.get("numero_document", ""))
+    if not numero_document:
+        numero_document = _document_number_or_empty(_next_value_after_label(
+            normalized,
+            [
+                r"n[°o]?\s*de\s+la\s+carte\s+d[' ]?identit\S*",
+                r"numero\s+de\s+(?:la\s+)?carte\s*\S*",
+                r"card\s+number",
+            ],
+        ))
+    if numero_document:
+        fields["numero_document"] = numero_document
+    else:
+        fields.pop("numero_document", None)
+
+    # Cas CNI CEDEAO : "Date de delivrance   Date d'expiration" sur une ligne,
+    # les deux dates sur la suivante -> la date d'expiration est la seconde.
+    delivery_expiry = re.search(
+        rf"d[ée]livrance[^\n]*expir[^\n]*\n[^\n]*?({ANY_DATE_PATTERN})\s+({ANY_DATE_PATTERN})",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    if delivery_expiry:
+        fields["date_expiration"] = _clean_value(delivery_expiry.group(2))
+
     lieu_naissance = fields.get("lieu_naissance", "")
     split_lieu = re.match(r"^([MFX])\s+(.+)$", lieu_naissance, flags=re.IGNORECASE)
     if split_lieu:
@@ -582,6 +614,131 @@ def parse_identity_fields(text):
         fields["sexe"] = "X"
 
     return {key: value for key, value in fields.items() if value}
+
+
+# --------------------------------------------------------------------- #
+# Moteur principal : RapidOCR (modeles PP-OCR via ONNX, 100% local).
+# Tesseract n'est plus utilise qu'en repli si RapidOCR est indisponible
+# ou ne parvient pas a lire le document.
+# --------------------------------------------------------------------- #
+_RAPIDOCR_LOCK = threading.Lock()
+_RAPIDOCR_ENGINE = None
+_RAPIDOCR_ERROR = None
+
+
+def _get_rapidocr_engine():
+    """Initialise RapidOCR une seule fois (thread-safe). Retourne None si
+    la librairie n'est pas installee ou si l'initialisation echoue."""
+    global _RAPIDOCR_ENGINE, _RAPIDOCR_ERROR
+    if _RAPIDOCR_ENGINE is not None or _RAPIDOCR_ERROR is not None:
+        return _RAPIDOCR_ENGINE
+    with _RAPIDOCR_LOCK:
+        if _RAPIDOCR_ENGINE is None and _RAPIDOCR_ERROR is None:
+            try:
+                from rapidocr import RapidOCR
+                _RAPIDOCR_ENGINE = RapidOCR(params={"Rec.lang_type": "fr"})
+            except Exception as exc:  # librairie absente ou modeles indisponibles
+                _RAPIDOCR_ERROR = str(exc)
+    return _RAPIDOCR_ENGINE
+
+
+def _rapidocr_reading_order(boxes, txts, scores, min_score=0.5):
+    """Reconstruit l'ordre de lecture (haut -> bas, gauche -> droite) a partir
+    des boites detectees, en regroupant les fragments d'une meme ligne."""
+    items = []
+    for box, txt, score in zip(boxes, txts, scores):
+        if not txt or score < min_score:
+            continue
+        ys = [point[1] for point in box]
+        xs = [point[0] for point in box]
+        top, bottom = min(ys), max(ys)
+        items.append({"center": (top + bottom) / 2.0, "height": max(bottom - top, 1), "left": min(xs), "text": txt.strip()})
+
+    items.sort(key=lambda item: item["center"])
+    lines = []
+    for item in items:
+        placed = False
+        for line in lines:
+            tolerance = max(item["height"], line["height"]) * 0.6
+            if abs(item["center"] - line["center"]) <= tolerance:
+                line["parts"].append((item["left"], item["text"]))
+                placed = True
+                break
+        if not placed:
+            lines.append({"center": item["center"], "height": item["height"], "parts": [(item["left"], item["text"])]})
+
+    return "\n".join(
+        " ".join(text for _, text in sorted(line["parts"], key=lambda part: part[0]))
+        for line in lines
+    )
+
+
+def _rapidocr_scan(image, min_score=0.5):
+    """OCR d'une image PIL avec RapidOCR. Retourne (texte, ratio_vertical) ou
+    None si le moteur est indisponible. Un ratio_vertical eleve signifie que
+    les boites de texte detectees sont majoritairement verticales : l'image
+    est probablement tournee de 90 degres."""
+    engine = _get_rapidocr_engine()
+    if engine is None:
+        return None
+    try:
+        import numpy as np
+        result = engine(np.array(image.convert("RGB")))
+    except Exception:
+        return None
+    if result is None or not getattr(result, "txts", None):
+        return "", 0.0
+    boxes = result.boxes if result.boxes is not None else []
+    scores = result.scores if result.scores is not None else [1.0] * len(result.txts)
+
+    vertical = horizontal = 0
+    for box, txt in zip(boxes, result.txts):
+        if len((txt or "").strip()) < 3:
+            continue
+        xs = [point[0] for point in box]
+        ys = [point[1] for point in box]
+        width = max(xs) - min(xs)
+        height = max(ys) - min(ys)
+        if height > width * 1.3:
+            vertical += 1
+        else:
+            horizontal += 1
+    vertical_ratio = vertical / max(vertical + horizontal, 1)
+
+    text = _rapidocr_reading_order(boxes, result.txts, scores, min_score=min_score)
+    return text, vertical_ratio
+
+
+def _rapidocr_text(image, min_score=0.5):
+    scan = _rapidocr_scan(image, min_score=min_score)
+    if scan is None:
+        return None
+    return scan[0]
+
+
+def _rapidocr_variants(image):
+    """Essaie RapidOCR sur l'image puis sur les rotations 90/270 et retourne le
+    meilleur texte. Une orientation dont les boites sont majoritairement
+    verticales est consideree comme tournee : pas d'arret anticipe dessus.
+    Retourne None si le moteur est indisponible."""
+    best_text = ""
+    best_field_count = -1
+    for angle in (0, 90, 270):
+        oriented = image if angle == 0 else image.rotate(angle, expand=True)
+        scan = _rapidocr_scan(oriented)
+        if scan is None:
+            return None
+        text, vertical_ratio = scan
+        well_oriented = vertical_ratio <= 0.5
+        if text and well_oriented and _has_enough_core_fields(text):
+            return text
+        field_count = len(parse_identity_fields(text)) if text else 0
+        if not well_oriented:
+            field_count -= 2  # penalise les orientations douteuses
+        if field_count > best_field_count or (field_count == best_field_count and len(text) > len(best_text)):
+            best_text = text
+            best_field_count = field_count
+    return best_text
 
 
 def _configure_tesseract(pytesseract):
@@ -622,9 +779,26 @@ def _ocr_image(image, psm=3):
 
 
 def _ocr_image_variants(image):
-    """OCR multi-passes avec arret anticipe : on s'arrete des que le texte
-    cumule contient les champs coeur (nom/numero/dates), au lieu de faire
+    """OCR d'une image : RapidOCR d'abord (rapide et precis), puis repli sur
+    le pipeline Tesseract multi-passes si les champs coeur restent absents."""
+    rapid_text = _rapidocr_variants(image)
+    if rapid_text and _has_enough_core_fields(rapid_text):
+        return rapid_text
+
+    tesseract_text = _tesseract_image_variants(image)
+    if rapid_text and tesseract_text:
+        return f"{rapid_text}\n{tesseract_text}"
+    return rapid_text or tesseract_text
+
+
+def _tesseract_image_variants(image):
+    """OCR Tesseract multi-passes avec arret anticipe : on s'arrete des que le
+    texte cumule contient les champs coeur (nom/numero/dates), au lieu de faire
     systematiquement toutes les orientations/regions/PSM (jusqu'a 27 passes)."""
+    try:
+        import pytesseract  # noqa: F401
+    except ImportError:
+        return ""
     orientations = [
         image,
         image.rotate(90, expand=True),
@@ -654,17 +828,21 @@ def _ocr_image_variants(image):
 def _extract_text_from_image(path):
     try:
         from PIL import Image
-        import pytesseract
     except ImportError:
         return "", [
-            "OCR image indisponible: installez Pillow et pytesseract, puis le moteur Tesseract sur le serveur."
+            "OCR image indisponible: installez Pillow, rapidocr et onnxruntime sur le serveur."
         ]
 
     try:
-        _configure_tesseract(pytesseract)
         with Image.open(path) as image:
             text = _ocr_image_variants(image)
-        return text, []
+        warnings = []
+        if not (text or "").strip() and _get_rapidocr_engine() is None:
+            warnings.append(
+                "Moteur OCR principal indisponible (rapidocr/onnxruntime non installes) "
+                "et le repli Tesseract n'a rien extrait."
+            )
+        return text, warnings
     except Exception as exc:
         return "", [f"OCR image impossible: {exc}"]
 
@@ -713,7 +891,10 @@ def _extract_text_from_pdf(path):
             pixmap = page.get_pixmap(matrix=matrix, alpha=False)
             image = Image.open(BytesIO(pixmap.tobytes("png")))
             rendered_images.append(image)
-            basic_ocr_parts.append(_ocr_image(image, psm=3))
+            page_text = _rapidocr_variants(image)
+            if not page_text:
+                page_text = _ocr_image(image, psm=3)
+            basic_ocr_parts.append(page_text)
 
         basic_text = "\n".join(basic_ocr_parts + text_layer_parts)
         if _has_enough_core_fields(basic_text):

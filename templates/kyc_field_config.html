@@ -155,6 +155,20 @@
                             </div>
                         </section>
                     </div>
+
+                    <section class="p-5 border-t border-slate-100">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-900">{{ "Intitulés des champs (Screening KYC ID)"|t }}</p>
+                        <p class="mt-1 text-[10px] font-bold text-slate-400">{{ "Intitulé métier utilisé par le module Screening KYC ID pour extraire la bonne information des documents chargés. Laisser vide pour garder le nom technique."|t }}</p>
+                        <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-2 max-h-[360px] overflow-y-auto custom-scrollbar pr-1">
+                            {% for field, label in section.fields %}
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-700 hover:bg-emerald-50">
+                                <span class="shrink-0 min-w-[130px]">{{ field }}</span>
+                                <input type="text" name="label_{{ field }}" value="{{ config.custom_labels|get_item:field }}" placeholder="{{ 'Intitulé métier'|t }}"
+                                    class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500">
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </section>
                 </div>
             </form>
             {% endif %}
@@ -242,6 +256,20 @@
                             </div>
                         </section>
                     </div>
+
+                    <section class="p-5 border-t border-slate-100">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-900">{{ "Intitulés des champs (Screening KYC ID)"|t }}</p>
+                        <p class="mt-1 text-[10px] font-bold text-slate-400">{{ "Intitulé métier utilisé par le module Screening KYC ID pour extraire la bonne information des documents chargés. Laisser vide pour garder le nom technique."|t }}</p>
+                        <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-2 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+                            {% for field, label in modal_config.fields %}
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-700 hover:bg-emerald-50">
+                                <span class="shrink-0 min-w-[130px]">{{ field }}</span>
+                                <input type="text" name="{{ modal_config.client_type }}_label_{{ field }}" value="{{ modal_config.custom_labels|get_item:field }}" placeholder="{{ 'Intitulé métier'|t }}"
+                                    class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500">
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </section>
                 </div>
                 {% endfor %}
             </div>

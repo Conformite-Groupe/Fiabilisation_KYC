@@ -26,19 +26,17 @@
 <body>
 <div class="container">
   <div class="header">
-    <h1 style="color: #ffffff;">🔔 Rappel — Revue de portefeuille KYC</h1>
+    <h1 style="color: #ffffff;">🔔 Rappel — Revue du portefeuille KYC</h1>
   </div>
   <div class="body">
-    <p class="greeting">Bonjour {{ nom }},</p>
+    <p class="greeting">Bonjour {{ nom }} ({{ expl }}),</p>
     <p class="intro">
-      Vous êtes chargé(e) de client pour la filiale <strong>{{ filiale }}</strong> (exploitant : <strong>{{ expl }}</strong>).<br>
-      Les clients se trouvant dans le fichier ci-joint ont une <strong>date de revue KYC (DATEREV)</strong> dépassée ou arrivant à échéance dans moins de <strong>{{ days_before }} jours</strong>.
-      Veuillez procéder à la mise à jour du scoring KYC de ces clients.
+      Les clients se trouvant dans le fichier ci-joint ont une <strong>date de revue KYC (DATEREV)</strong> dépassée ou arrivant à échéance dans moins de <strong>{{ days_before }} jours</strong>.<br><br>
+      Veuillez contacter ces clients et procéder à la mise à jour de leurs informations de KYC.<br><br>
+      Cordialement,<br>
+      Service Account Fiabilisation KYC
     </p>
 
-    <div class="alert-box">
-      ⚠️ {{ clients|length }} client(s) nécessitent une action de votre part.
-    </div>
   </div>
   <div class="footer">
     <p>Ce message est généré automatiquement par la <strong>Plateforme KYC BOA Group</strong>.<br>

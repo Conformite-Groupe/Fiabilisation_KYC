@@ -75,10 +75,13 @@ def send_daterev_reminders_core(config, filiale=None, expl=None, only_paid=True)
                 wb = openpyxl.Workbook()
                 ws = wb.active
                 ws.title = "Clients DATEREV"
-                ws.append(['Client', 'Agence', 'Lib. Agence', 'DATEREV', 'Statut'])
+                ws.append(['Agence', 'Client', 'IDP/IDM', 'DATEREV', 'Echéance', 'Risque'])
                 for c in all_clients:
-                    ws.append([c['client'], c['agence'], c.get('lib_agence', ''),
-                               str(c['daterev']), c['statut']])
+                    dr = c['daterev']
+                    dr_str = dr.strftime('%d/%m/%Y') if hasattr(dr, 'strftime') else str(dr)
+                    ws.append([c['agence'], c['client'], c.get('idpm', ''),
+                               dr_str, c.get('echeance', c.get('statut', '')),
+                               c.get('risque', '')])
                 buf = io.BytesIO()
                 wb.save(buf)
                 buf.seek(0)

@@ -23,7 +23,7 @@ library(patchwork)
 library(zip)
 library(ggrepel)
 library(readxl)
-# library(readr)  # remplace par write_delim_maison (base R)
+library(readr)
 library(stringi)
 library(data.table)
 
@@ -34,10 +34,11 @@ chemin="C://Users//mamsylla//OneDrive - BANK OF AFRICA (1)//data//"
 
 #####--------------DATES ( à modifier en prod) ------###########
 #
-   premier_jour_mois_courant <- floor_date(Sys.Date(), "month")
-   premier_jour_mois_precedent <- premier_jour_mois_courant %m-% months(1)
+  #premier_jour_mois_courant <- floor_date(Sys.Date(), "month")
+  #premier_jour_mois_precedent <- premier_jour_mois_courant %m-% months(1)
 
-
+ premier_jour_mois_courant <- "2026-06-01"
+ premier_jour_mois_precedent <- "2026-05-01"
 
 
 
@@ -47,7 +48,7 @@ chemin="C://Users//mamsylla//OneDrive - BANK OF AFRICA (1)//data//"
 
 #####-----------------------####-------------###########
 
-prerequis=read_bars2(paste(sep="",chemin,"prerequis.csv"),header=F)
+prerequis=read.csv2(paste(sep="",chemin,"prerequis.csv"),header=F)
 
   premier_jour_mois_courant <- as.character(floor_date(Sys.Date(), "month"))
   premier_jour_mois_precedent <- as.character(as.Date(premier_jour_mois_courant) %m-% months(1))
@@ -397,12 +398,33 @@ detect_encoding <- function(path, n = 100000) {
 }
 
 # Lecture CSV2 avec encodage auto + correction si besoin
+
+
+# Nettoyage post-lecture : enlève les guillemets, préserve accents/trémas/@
+clean_quotes_df <- function(df) {
+  char_cols <- vapply(df, is.character, logical(1))
+  df[char_cols] <- lapply(df[char_cols], function(x) {
+    # Sécurise l'encodage (préserve é, ï, @, etc.)
+    x <- enc2utf8(x)
+    # Supprime tous les guillemets doubles
+    x <- gsub('"', "", x, fixed = TRUE)
+    # Nettoie les espaces résiduels en début/fin
+    trimws(x)
+  })
+  # Nettoie aussi les noms de colonnes
+  names(df) <- trimws(gsub('"', "", enc2utf8(names(df)), fixed = TRUE))
+  df
+}
+
+# Lecture CSV2 avec encodage auto + correction si besoin
 read_csv2_auto <- function(path, ...) {
   enc_guess <- detect_encoding(path)
   encodings <- unique(c(enc_guess, "UTF-8-BOM", "UTF-8", "Windows-1252", "Latin1"))
   last_error <- NULL
   dots <- list(...)
   if (!"strip.white" %in% names(dots)) dots$strip.white <- TRUE
+  # Force la lecture en caractères (évite les conversions en facteurs)
+  if (!"stringsAsFactors" %in% names(dots)) dots$stringsAsFactors <- FALSE
 
   for (enc in encodings) {
     res <- tryCatch(
@@ -431,12 +453,12 @@ read_csv2_auto <- function(path, ...) {
       if (!identical(enc, enc_guess)) {
         message("Correction encodage: ", enc)
       }
-      return(res)
+      return(clean_quotes_df(res))
     }
 
     last_error <- res
 
-    # Retry without quotes if EOF in quoted string or invalid input
+    # Retry sans guillemets si EOF dans chaîne quotée ou entrée invalide
     msg <- conditionMessage(res)
     if (grepl("eof_quoted_string|invalid_input_warning|invalid input|input string|entrée incorrecte|entree incorrecte", msg, ignore.case = TRUE)) {
       dots2 <- dots
@@ -451,7 +473,7 @@ read_csv2_auto <- function(path, ...) {
           message("Correction encodage: ", enc)
         }
         message("Correction lecture: guillemets desactives (quote='')")
-        return(res2)
+        return(clean_quotes_df(res2))
       }
     }
   }
@@ -459,39 +481,108 @@ read_csv2_auto <- function(path, ...) {
   stop("Lecture impossible (encodage). Dernier avertissement: ", conditionMessage(last_error))
 }
 
-# Lecture de fichiers delimites par "||" (separateur multi-caracteres).
-# read.csv2 / read.table n'acceptent qu'un separateur d'UN seul octet : on lit
-# donc les lignes (en respectant l'encodage/BOM), on remplace "||" par un
-# caractere de controle sur (SOH) puis on parse avec read.csv2.
-read_bars2 <- function(file, sep = "||", fileEncoding = "", ...) {
-  enc <- if (nzchar(fileEncoding)) fileEncoding else getOption("encoding")
-  con <- file(file, open = "r", encoding = enc)
-  on.exit(close(con), add = TRUE)
-  lines <- readLines(con, warn = FALSE)
-  if (length(lines)) lines[1] <- sub("^﻿", "", lines[1])  # retire un BOM residuel
-  lines <- gsub(sep, "\001", lines, fixed = TRUE)
-  read.csv2(text = paste(lines, collapse = "\n"), sep = "\001", ...)
+# Lecture rapide des gros fichiers (pp_stock/pm_stock ~2 Go) via data.table::fread
+# - multi-thread, strip.white natif (espaces parasites dans les colonnes)
+# - cache .rds : les relances du script rechargent en quelques secondes
+# - type.convert reproduit le typage de read.csv2 (dec = ",")
+read_csv2_big <- function(path, cache = TRUE) {
+  t0 <- Sys.time()
+  rds <- paste0(path, ".rds")
+  if (cache && file.exists(rds) && file.mtime(rds) >= file.mtime(path)) {
+    message("[read_csv2_big] Lecture depuis le cache: ", basename(rds))
+    df <- readRDS(rds)
+    message("[read_csv2_big] Cache charge en ",
+            round(difftime(Sys.time(), t0, units = "secs")), "s (",
+            nrow(df), " lignes)")
+    return(df)
+  }
+
+  message("[read_csv2_big] ", basename(path), " : ",
+          round(file.size(path) / 1024^2), " Mo, ",
+          data.table::getDTthreads(), " threads fread")
+
+  enc_guess <- detect_encoding(path)
+  enc_fread <- if (grepl("UTF-?8", enc_guess, ignore.case = TRUE)) "UTF-8" else "Latin-1"
+  message("[read_csv2_big] Encodage fread: ", enc_fread)
+
+  # fill = Inf : certaines lignes ont des champs en trop (";" dans un libellé),
+  # sans cela fread s'arrête en cours de fichier (lecture TRONQUEE silencieuse).
+  # Le warning "Stopped early" est donc traité comme un échec.
+  fread_try <- function(q) {
+    stopped <- FALSE
+    df <- withCallingHandlers(
+      tryCatch(
+        data.table::fread(path, sep = ";", dec = ",", quote = q,
+                          colClasses = "character", encoding = enc_fread,
+                          strip.white = TRUE, fill = Inf, blank.lines.skip = TRUE,
+                          showProgress = TRUE, data.table = FALSE),
+        error = function(e) {
+          message("[read_csv2_big] fread (quote=", deparse(q), ") a echoue: ",
+                  conditionMessage(e))
+          NULL
+        }
+      ),
+      warning = function(w) {
+        msg <- conditionMessage(w)
+        if (grepl("Stopped early|Discarded single-line", msg)) {
+          message("[read_csv2_big] Lecture incomplete (quote=", deparse(q), "): ", msg)
+          stopped <<- TRUE
+        }
+        invokeRestart("muffleWarning")
+      }
+    )
+    if (stopped) return(NULL)
+    df
+  }
+
+  # quote="" en premier : les exports bancaires ont des guillemets mal appariés
+  # qui font dérailler le parsing quoté (fichier lu en 1 seule colonne)
+  df <- fread_try("")
+  if (is.null(df) || ncol(df) < 2) {
+    message("[read_csv2_big] Nouvel essai avec quote standard ...")
+    df <- fread_try("\"")
+    if (!is.null(df) && ncol(df) < 2) df <- NULL
+  }
+  # Dernier recours : ancienne lecture lente
+  if (is.null(df)) {
+    message("[read_csv2_big] ATTENTION: bascule sur read_csv2_auto (LENT, plusieurs minutes)")
+    return(read_csv2_auto(path))
+  }
+
+  message("[read_csv2_big] fread OK: ", nrow(df), " lignes en ",
+          round(difftime(Sys.time(), t0, units = "secs")), "s. Typage...")
+
+  # Répare les octets invalides (fichiers UTF-8 contenant des restes Latin-1),
+  # enlève les guillemets et espaces résiduels, puis retype comme read.csv2.
+  # validEnc (test C rapide) évite de convertir chaque chaîne : seules les
+  # valeurs réellement invalides passent par iconv.
+  fix_utf8 <- function(x) {
+    bad <- !validEnc(x)
+    if (any(bad)) {
+      x[bad] <- suppressWarnings(iconv(x[bad], from = "latin1", to = "UTF-8", sub = ""))
+    }
+    x
+  }
+  df[] <- lapply(df, function(x) {
+    x <- fix_utf8(x)
+    if (any(grepl('"', x, fixed = TRUE))) {
+      x <- trimws(gsub('"', "", x, fixed = TRUE))
+    }
+    type.convert(x, as.is = TRUE, dec = ",")
+  })
+  names(df) <- trimws(gsub('"', "", fix_utf8(names(df)), fixed = TRUE))
+
+  if (cache) {
+    message("[read_csv2_big] Ecriture du cache ", basename(rds), " ...")
+    # compress = FALSE : gzip mono-thread prendrait plusieurs minutes sur 2 Go
+    tryCatch(saveRDS(df, rds, compress = FALSE), error = function(e)
+      message("[read_csv2_big] Cache non ecrit (", conditionMessage(e), ")"))
+  }
+  message("[read_csv2_big] Termine en ",
+          round(difftime(Sys.time(), t0, units = "secs")), "s")
+  df
 }
 
-# Ecriture delimitee "maison" (remplace readr::write_delim, base R uniquement).
-# Reproduit: quote = "all" (chaque champ entre guillemets), escape = "double"
-# (les guillemets internes sont doubles), na -> "". Les arguments quote=/escape=
-# eventuellement passes sont absorbes par ... et ignores.
-write_delim_maison <- function(x, file, delim = ";", na = "", ...) {
-  x <- as.data.frame(x, stringsAsFactors = FALSE)
-  # tout convertir en caractere pour que write.table mette des guillemets partout
-  x[] <- lapply(x, function(col) {
-    col <- as.character(col)
-    col[is.na(col)] <- na
-    col
-  })
-  write.table(
-    x, file = file, sep = delim, na = na,
-    quote = TRUE, qmethod = "double",
-    row.names = FALSE, col.names = TRUE,
-    fileEncoding = "UTF-8"
-  )
-}
 
 # Excel sheet names must be <= 31 chars and avoid special chars.
 safe_sheet_name <- function(name, max_len = 31) {
@@ -574,7 +665,7 @@ ppt_dg=read_pptx(paste(chemin,"Rapport de suivi.pptx",sep=""))
     # Repartition notation et taux de complétude des agents par intervalle de taux
 
 
-    notation=read.csv(paste0(chemin,"notation.csv"), header = FALSE, row.names = NULL)
+    notation=read.csv2(paste0(chemin,"notation.csv"), header = FALSE, row.names = NULL)
 
     colnames(notation)=c("Agent","Filiale","Note","Date_notation")
     
@@ -599,83 +690,46 @@ production = function(fil) {
 
    ## Clients non fiabilisables
 
-    non_fiab=read_bars2(paste(sep="",chemin,fil,"//data//non_fiab.csv"), fileEncoding = "UTF-8-BOM")
+    non_fiab=read.csv2(paste(sep="",chemin,fil,"//data//non_fiab.csv"), fileEncoding = "UTF-8-BOM")
     non_fiab <- clean_colnames(non_fiab)
     non_fiab=as.data.frame(lapply(non_fiab, remove_spaces))
 
     non_fiab=non_fiab[non_fiab$CODE=="OI",]
 
 
+# ============================
+# 1. Chemin du fichier
+# ============================
+chemin_pm <- file.path(chemin, fil, "data", "pm_stock.csv")
 
-  if (fil!="ML") {
-       
-
-
-      # --- EXÉCUTION POUR PP_STOCK ---
-      scoring <- paste0(chemin, fil, "//data/scoring_",fil,".csv")
-      # Installer les packages si nécessaire
-
-
-      # ============================
-      # 2. Détection de l'encodage
-      # ============================
-      # Lire un échantillon du fichier
-      raw_sample <- readBin(scoring, what = "raw", n = 100000)
-
-      # Détection des encodages probables
-      encodings <- stri_enc_detect(raw_sample)
-
-
-
-      # Choisir l'encodage avec la plus forte probabilité
-      encoding_detected <- encodings[[1]]$Encoding[1]
-
-      cat("Encodage retenu :", encoding_detected, "\n")
-
-      # ============================
-      # 3. Import efficace du CSV
-      # ============================
-
-      scoring_fil = read_bars2(scoring, fileEncoding = encoding_detected, stringsAsFactors = FALSE, strip.white = TRUE)
-
-      scoring_fil <- clean_colnames(scoring_fil)
-      scoring_fil = as.data.frame(lapply(scoring_fil, remove_spaces))
-
-      scoring_fil$CLIENT= as.numeric(scoring_fil$CLIENT)
-
-     scoring_fil$DATREV = dmy(scoring_fil$DATREV)
-      
-
-
-
-    }
-
-
-chemin_pm <- paste0(chemin, fil, "//data//pm_stock.csv")
+# Vérification que le fichier existe avant lecture
+if (!file.exists(chemin_pm)) {
+  stop("Fichier introuvable : ", chemin_pm)
+}
 
 # ============================
-# 2. Détection de l'encodage
+# 2. Fonction de détection d'encodage (utilisée par read_csv2_auto)
 # ============================
-# Lire un échantillon du fichier
-raw_sample <- readBin(chemin_pm, what = "raw", n = 100000)
+detect_encoding <- function(path, n = 100000) {
+  raw_sample <- readBin(path, what = "raw", n = n)
+  encodings <- stri_enc_detect(raw_sample)
+  encoding_detected <- encodings[[1]]$Encoding[1]
 
-# Détection des encodages probables
-encodings <- stri_enc_detect(raw_sample)
+  # Sécurité si la détection échoue
+  if (is.null(encoding_detected) || is.na(encoding_detected)) {
+    encoding_detected <- "UTF-8"
+  }
 
-
-
-# Choisir l'encodage avec la plus forte probabilité
-encoding_detected <- encodings[[1]]$Encoding[1]
-
-cat("Encodage retenu :", encoding_detected, "\n")
+  cat("Encodage retenu :", encoding_detected, "\n")
+  encoding_detected
+}
 
 # ============================
-# 3. Import efficace du CSV
+# 3. Import du CSV
 # ============================
-
-pm_stock = read_bars2(chemin_pm, fileEncoding = encoding_detected, stringsAsFactors = FALSE, strip.white = TRUE)
-
-
+# read_csv2_big : lecture rapide fread (multi-thread) + cache .rds,
+# gère encodage, espaces parasites, guillemets ; fallback read_csv2_auto
+pm_stock <- read_csv2_big(chemin_pm)
 
 
 
@@ -688,7 +742,7 @@ pm_stock_s=pm_stock
 
 pm_stock_s$CLIENT=as.numeric(pm_stock_s$CLIENT)
 
-risque_s=read_bars2(paste(sep="",chemin,"ML//data//risque.csv"),header=F)
+risque_s=read.csv2(paste(sep="",chemin,"ML//data//risque.csv"),header=F)
 risque_s[,1]=as.numeric(risque_s[,1])
 risque=data.frame(CLIENT=risque_s[,1], RISQUE=risque_s[,3])
 
@@ -715,19 +769,6 @@ pm_stock = pm_stock_s
 
 
 
-
-if (fil!="ML") {
-     pm_scoring = scoring_fil[which(scoring_fil$CLIENT %in% pm_stock$CLIENT),]   
-     
-     pm_scoring_s=data.frame(CLIENT=pm_scoring$CLIENT, DATREV=pm_scoring$DATREV)
-     
-     pm_stock$CLIENT = as.numeric(pm_stock$CLIENT)
-
-     pm_stock = left_join(pm_stock, pm_scoring_s, by="CLIENT")
-    
-     
-
-}
 
 # Vérification
 nrow(pm_stock)
@@ -809,47 +850,34 @@ if ("LIB_AGENCE" %in% names(pm_stock)) {
 
 
 
-     write_delim_maison(pm_stock,   paste0(chemin,fil,"//data//pm_",fil,"_STOCK.csv"),
+     readr::write_delim(pm_stock,   paste0(chemin,fil,"//data//pm_",fil,"_STOCK.csv"),
                         delim = ";", quote = "all", escape = "double", na = "")
-     write_delim_maison(pm_stock_f, paste0(chemin,fil,"//data//pm_",fil,"_STOCK_F.csv"),
+     readr::write_delim(pm_stock_f, paste0(chemin,fil,"//data//pm_",fil,"_STOCK_F.csv"),
                         delim = ";", quote = "all", escape = "double", na = "")
-     write_delim_maison(pm_flux,    paste0(chemin,fil,"//data//pm_",fil,".csv"),
+     readr::write_delim(pm_flux,    paste0(chemin,fil,"//data//pm_",fil,".csv"),
                         delim = ";", quote = "all", escape = "double", na = "")
-     write_delim_maison(pm_flux_f,  paste0(chemin,fil,"//data//pm_",fil,"_F.csv"),
+     readr::write_delim(pm_flux_f,  paste0(chemin,fil,"//data//pm_",fil,"_F.csv"),
                         delim = ";", quote = "all", escape = "double", na = "")
 
     taux_incomp_pm=paste(round(nrow(pm_stock_f)/nrow(pm_stock)*100,1),"%",sep="")
 
       taux_incomp_pm_f=paste(round(nrow(pm_flux_f)/nrow(pm_flux)*100,1),"%",sep="")
 
-
-
-# --- EXÉCUTION POUR PP_STOCK ---
-chemin_pp <- paste0(chemin, fil, "//data/pp_stock.csv")
-# Installer les packages si nécessaire
-
-
 # ============================
-# 2. Détection de l'encodage
+# IMPORT PP_STOCK
 # ============================
-# Lire un échantillon du fichier
-raw_sample <- readBin(chemin_pp, what = "raw", n = 100000)
+chemin_pp <- file.path(chemin, fil, "data", "pp_stock.csv")
 
-# Détection des encodages probables
-encodings <- stri_enc_detect(raw_sample)
+# Vérification que le fichier existe avant lecture
+if (!file.exists(chemin_pp)) {
+  stop("Fichier introuvable : ", chemin_pp)
+}
 
+# Import du CSV
+# read_csv2_big : lecture rapide fread (multi-thread) + cache .rds,
+# gère encodage, espaces parasites, guillemets ; fallback read_csv2_auto
+pp_stock <- read_csv2_big(chemin_pp)
 
-
-# Choisir l'encodage avec la plus forte probabilité
-encoding_detected <- encodings[[1]]$Encoding[1]
-
-cat("Encodage retenu :", encoding_detected, "\n")
-
-# ============================
-# 3. Import efficace du CSV
-# ============================
-
-pp_stock = read_bars2(chemin_pp, fileEncoding = encoding_detected, stringsAsFactors = FALSE, strip.white = TRUE)
 # Vérification
 
 ## Traitement des PP
@@ -860,7 +888,7 @@ pp_stock_s=pp_stock
 
 pp_stock_s$CLIENT=as.numeric(pp_stock_s$CLIENT)
 
-risque_s=read_bars2(paste(sep="",chemin,"ML//data//risque.csv"),header=F)
+risque_s=read.csv2(paste(sep="",chemin,"ML//data//risque.csv"),header=F)
 risque_s[,1]=as.numeric(risque_s[,1])
 risque=data.frame(CLIENT=risque_s[,1], RISQUE=risque_s[,3])
 
@@ -886,18 +914,6 @@ pp_stock = pp_stock_s
 }
 
 
-if (fil!="ML") {
-     pp_scoring = scoring_fil[which(scoring_fil$CLIENT %in% pp_stock$CLIENT),]   
-     
-     pp_scoring_s=data.frame(CLIENT=pp_scoring$CLIENT, DATREV=pp_scoring$DATREV)
-          
-     pp_stock$CLIENT = as.numeric(pp_stock$CLIENT)
-
-
-     pp_stock = left_join(pp_stock, pp_scoring_s, by="CLIENT")
-     
-
-}
 
 nrow(pp_stock)
 colnames(pp_stock)
@@ -988,14 +1004,14 @@ if ("LIB_AGENCE" %in% names(pp_stock)) {
 
 
 
-     write_delim_maison(pp_stock, paste0(chemin,fil,"//data//pp_",fil,"_STOCK.csv"),
+     readr::write_delim(pp_stock, paste0(chemin,fil,"//data//pp_",fil,"_STOCK.csv"),
                         delim = ";", quote = "all", escape = "double", na = "")
-     write_delim_maison(pp_flux, paste0(chemin,fil,"//data//pp_",fil,".csv"),
+     readr::write_delim(pp_flux, paste0(chemin,fil,"//data//pp_",fil,".csv"),
                         delim = ";", quote = "all", escape = "double", na = "")
 
-     write_delim_maison(pp_stock_f, paste0(chemin,fil,"//data//pp_",fil,"_STOCK_F.csv"),
+     readr::write_delim(pp_stock_f, paste0(chemin,fil,"//data//pp_",fil,"_STOCK_F.csv"),
                         delim = ";", quote = "all", escape = "double", na = "")
-     write_delim_maison(pp_flux_f, paste0(chemin,fil,"//data//pp_",fil,"_F.csv"),
+     readr::write_delim(pp_flux_f, paste0(chemin,fil,"//data//pp_",fil,"_F.csv"),
                         delim = ";", quote = "all", escape = "double", na = "")
 
     taux_incomp_pp=paste(round(nrow(pp_stock_f)/nrow(pp_stock)*100,1),"%",sep="")
@@ -1034,16 +1050,16 @@ if ("LIB_AGENCE" %in% names(pp_stock)) {
      sigle=paste("BOA_",fil, sep="")
   
          ## les fichiers excel
-     cp_flux=read_bars2(paste(sep="",chemin,fil,"//contrôle qualité_CP_Flux.csv"), fileEncoding = "UTF-8-BOM")
+     cp_flux=read.csv2(paste(sep="",chemin,fil,"//contrôle qualité_CP_Flux.csv"), fileEncoding = "UTF-8-BOM")
      cp_flux <- clean_colnames(cp_flux)
           cp_flux$Agents=as.character(cp_flux$Agents)
 
 
-     cp_stock=read_bars2(paste(sep="",chemin,fil,"//contrôle qualité_CP_Stock.csv"), fileEncoding = "UTF-8-BOM")
+     cp_stock=read.csv2(paste(sep="",chemin,fil,"//contrôle qualité_CP_Stock.csv"), fileEncoding = "UTF-8-BOM")
      cp_stock <- clean_colnames(cp_stock)
           cp_stock$Agents=as.character(cp_stock$Agents)
 
-     zone=read_bars2(paste(sep="",chemin,"zone_",fil,".csv"), fileEncoding = "UTF-8-BOM")
+     zone=read.csv2(paste(sep="",chemin,"zone_",fil,".csv"), fileEncoding = "UTF-8-BOM")
      zone <- clean_colnames(zone)
 
      zone$AGENCE=as.numeric(zone$AGENCE)
@@ -1194,20 +1210,20 @@ taux_function_pp=function(x) {
             cat("#####################################################\n")
             # Importatations des donnees
           
-            pp_ne=read_bars2(paste(sep="",chemin,fil,"//data//pp_",fil,".csv"), fileEncoding = "UTF-8-BOM")
-            pp_ne <- clean_colnames(pp_ne)
+            # pp_flux/pm_flux sont déjà en mémoire (dérivés de pp_stock/pm_stock),
+            # inutile de relire les CSV qui viennent d'être écrits
+            pp_ne <- pp_flux
             pp_ne$AGENCE=as.numeric(pp_ne$AGENCE)
 
-            
+
             pp_ne=select_pp_fields(pp_ne, pp_fields)
 
             colnames(pp_ne)=toupper(colnames(pp_ne))
-            pm_ne=read_bars2(paste(sep="",chemin,fil,"//data//pm_",fil,".csv"), fileEncoding = "UTF-8-BOM")
-            pm_ne <- clean_colnames(pm_ne)
+            pm_ne <- pm_flux
             pm_ne$AGENCE=as.numeric(pm_ne$AGENCE)
 
 
-            
+
             pm_ne=select_pm_fields(pm_ne, pm_fields)
 
             colnames(pm_ne)=toupper(colnames(pm_ne))
@@ -1401,21 +1417,21 @@ taux_function_pp=function(x) {
             cat("#####################################################\n")
             # Importatations des donnees
 
-           pp_ne=read_bars2(paste(sep="",chemin,fil,"//data//pp_",fil,"_STOCK.csv"), fileEncoding = "UTF-8-BOM")
-            pp_ne <- clean_colnames(pp_ne)
+            # pp_stock/pm_stock sont déjà en mémoire et nettoyés,
+            # inutile de relire les CSV _STOCK qui viennent d'être écrits
+            pp_ne <- pp_stock
             pp_ne$AGENCE=as.numeric(pp_ne$AGENCE)
 
 
-            
+
 
             pp_ne=select_pp_fields(pp_ne, pp_fields)
- 
+
             colnames(pp_ne)=toupper(colnames(pp_ne))
-            pm_ne=read_bars2(paste(sep="",chemin,fil,"//data//pm_",fil,"_STOCK.csv"), fileEncoding = "UTF-8-BOM")
-            pm_ne <- clean_colnames(pm_ne)
+            pm_ne <- pm_stock
             pm_ne$AGENCE=as.numeric(pm_ne$AGENCE)
 
-            
+
             pm_ne=select_pm_fields(pm_ne, pm_fields)
             colnames(pm_ne)=toupper(colnames(pm_ne))
 
@@ -1747,7 +1763,7 @@ taux_function_pp=function(x) {
 
 
 if (file.exists(paste0(chemin,fil,"//suivi_fiabilisation.txt"))) {
-    suivi_fiabilisation=read_bars2(paste0(chemin,fil,"//suivi_fiabilisation.txt"))
+    suivi_fiabilisation=read.csv2(paste0(chemin,fil,"//suivi_fiabilisation.txt"))
       if (colnames(suivi_fiabilisation)[1]=="X"){
       suivi_fiabilisation=suivi_fiabilisation[,-1]
   }
@@ -1761,7 +1777,7 @@ if (file.exists(paste0(chemin,fil,"//suivi_fiabilisation.txt"))) {
 
 
 if (file.exists(paste0(chemin,fil,"//suivi_anomalie.txt"))) {
-      suivi_anomalie=read_bars2(paste0(chemin,fil,"//suivi_anomalie.txt"), dec=",")
+      suivi_anomalie=read.csv2(paste0(chemin,fil,"//suivi_anomalie.txt"), dec=",")
     if (colnames(suivi_anomalie)[1]=="X"){
       suivi_anomalie=suivi_anomalie[,-1]
     }
@@ -1775,7 +1791,7 @@ if (file.exists(paste0(chemin,fil,"//suivi_anomalie.txt"))) {
 
 
 if (file.exists(paste0(chemin,"//note_groupe.csv"))) {
-      note_groupe=read_bars2(paste0(chemin,"//note_groupe.csv"))
+      note_groupe=read.csv2(paste0(chemin,"//note_groupe.csv"))
     if (colnames(note_groupe)[1]=="X"){
       note_groupe=note_groupe[,-1]
     }
@@ -1784,7 +1800,7 @@ if (file.exists(paste0(chemin,"//note_groupe.csv"))) {
 }
 
 if (file.exists(paste0(chemin,"//note_groupe_stock.csv"))) {
-      note_groupe_stock=read_bars2(paste0(chemin,"//note_groupe_stock.csv"))
+      note_groupe_stock=read.csv2(paste0(chemin,"//note_groupe_stock.csv"))
     if (colnames(note_groupe_stock)[1]=="X"){
       note_groupe_stock=note_groupe_stock[,-1]
     }
@@ -1836,23 +1852,21 @@ if (file.exists(paste0(chemin,"//note_groupe_stock.csv"))) {
  
             cat("######### Chargement des données de\n",sigle, "\n")
 
-        # Importatations des donnees
-        pp_ne=read_bars2(paste(sep="",chemin,fil,"//data//pp_",fil,".csv"), fileEncoding = "UTF-8-BOM")
-        pp_ne <- clean_colnames(pp_ne)
+        # pp_flux/pm_flux déjà en mémoire, pas de relecture des CSV
+        pp_ne <- pp_flux
         pp_ne$AGENCE=as.numeric(pp_ne$AGENCE)
 
         pp_ne=pp_ne[is.na(pp_ne$AGENCE)=="FALSE",]
-        
+
         pp_ne=select_pp_fields(pp_ne, pp_fields)
         colnames(pp_ne)=toupper(colnames(pp_ne))
 
-        pm_ne=read_bars2(paste(sep="",chemin,fil,"//data//pm_",fil,".csv"), fileEncoding = "UTF-8-BOM")
-        pm_ne <- clean_colnames(pm_ne)
+        pm_ne <- pm_flux
           pm_ne$AGENCE=as.numeric(pm_ne$AGENCE)
 
                 pm_ne=pm_ne[is.na(pm_ne$AGENCE)=="FALSE",]
 
-        
+
         pm_ne=select_pm_fields(pm_ne, pm_fields)
 
         colnames(pm_ne)=toupper(colnames(pm_ne))
@@ -2536,8 +2550,8 @@ anom_pp= function(x) {
           cat("######### Chargement des données Stock de\n",sigle, "\n")
         # Importatations des donnees
      
-          pp_ne=read_bars2(paste(sep="",chemin,fil,"//data//pp_",fil,"_STOCK.csv"), fileEncoding = "UTF-8-BOM")
-            pp_ne <- clean_colnames(pp_ne)
+          # pp_stock/pm_stock déjà en mémoire, pas de relecture des CSV _STOCK
+          pp_ne <- pp_stock
             pp_ne$AGENCE=as.numeric(pp_ne$AGENCE)
 
           #
@@ -2545,8 +2559,7 @@ anom_pp= function(x) {
           colnames(pp_ne)=toupper(colnames(pp_ne))
 
 
-          pm_ne=read_bars2(paste(sep="",chemin,fil,"//data//pm_",fil,"_STOCK.csv"), fileEncoding = "UTF-8-BOM")
-            pm_ne <- clean_colnames(pm_ne)
+          pm_ne <- pm_stock
             pm_ne$AGENCE=as.numeric(pm_ne$AGENCE)
 
           #

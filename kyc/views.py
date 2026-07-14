@@ -31,7 +31,7 @@ from kyc.models import (
     KycDocumentMatchJob, KycDocumentMatchSettings, DOCUMENT_EXTRACTION_TYPE_CHOICES,
     KycFieldVisibilityConfig, KycDocumentType, Filiales, CLIENT_TYPE_CHOICES,
     DATA_QUALITY_FIELD_CHOICES, EmailReminderConfig, KycDocumentOcrJob,
-    KycMatchValidatorRole, KycMatchDecision,
+    KycMatchValidatorRole, KycMatchDecision, KycScreeningAccess, TauxQualite,
 )
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -347,6 +347,25 @@ def _dq_eval_condition(op, raw_val, raw_target, today, parse_date, calc_age):
     return False
 
 
+def _dq_safe_parse_date(value):
+    if not value: return None
+    if hasattr(value, 'date'): return value.date()
+    if isinstance(value, str):
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y%m%d"):
+            try:
+                return datetime.strptime(value.strip(), fmt).date()
+            except ValueError:
+                continue
+    return None
+
+
+def _dq_calculate_age(birth_date_str):
+    parsed = _dq_safe_parse_date(birth_date_str)
+    if not parsed: return None
+    today_date = datetime.today().date()
+    return today_date.year - parsed.year - ((today_date.month, today_date.day) < (parsed.month, parsed.day))
+
+
 def _dq_conditions_flag(conditions, get_value, today, parse_date, calc_age):
     """Combine les conditions en forme normale disjonctive (DNF) :
       - le connecteur 'OU' (logic=OR) démarre un nouveau groupe,
@@ -443,22 +462,8 @@ def evaluate_data_quality_rule(rule, filiale=None, agence=None, expl=None):
     today = datetime.today().date()
     client_fields = ['CLIENT', 'EXPL', 'FILIALE', 'AGENCE']
 
-    def safe_parse_date(value):
-        if not value: return None
-        if hasattr(value, 'date'): return value.date()
-        if isinstance(value, str):
-            for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y%m%d"):
-                try:
-                    return datetime.strptime(value.strip(), fmt).date()
-                except ValueError:
-                    continue
-        return None
-
-    def calculate_age(birth_date_str):
-        parsed = safe_parse_date(birth_date_str)
-        if not parsed: return None
-        today_date = datetime.today().date()
-        return today_date.year - parsed.year - ((today_date.month, today_date.day) < (parsed.month, parsed.day))
+    safe_parse_date = _dq_safe_parse_date
+    calculate_age = _dq_calculate_age
 
     def build_clients_from_values(rows, value_key):
         return [{
@@ -950,7 +955,7 @@ def export_rule_failures(request, rule_id):
         today = datetime.today().date()
 
         for row in queryset.values(*set(fields_to_fetch)).iterator():
-            if _dq_conditions_flag(conditions, lambda f: row.get(f, ''), today, safe_parse_date, calculate_age):
+            if _dq_conditions_flag(conditions, lambda f: row.get(f, ''), today, _dq_safe_parse_date, _dq_calculate_age):
                 line = [row['CLIENT'], row['EXPL'], row['FILIALE'], row['AGENCE']]
                 for f in unique_cond_fields:
                     line.append(str(row.get(f) or ''))
@@ -1220,6 +1225,19 @@ def _get_cached_field_visibility_configs():
     return _field_visibility_configs_cache
 
 
+def _document_source_allows(allowed_source, document_type):
+    """Vrai si le type de document peut alimenter le champ.
+    allowed_source : vide/None = tous documents ; str (un code, ou plusieurs
+    separes par des virgules — heritage) ; ou liste de codes (multi-sources)."""
+    if not allowed_source:
+        return True
+    if isinstance(allowed_source, str):
+        allowed = [s.strip() for s in allowed_source.split(",") if s.strip()]
+    else:
+        allowed = [str(s).strip() for s in allowed_source if str(s).strip()]
+    return not allowed or document_type in allowed
+
+
 def _get_field_sources(filiale, client_type_val):
     configs = _get_cached_field_visibility_configs()
     spec_config = next((c for c in configs if c.client_type == client_type_val and filiale in (c.filiales or [])), None)
@@ -1351,6 +1369,36 @@ def _user_filiale_scope(user):
         or not getattr(user, "filiale", "")
     )
     return "" if is_group_user else (user.filiale or "").strip()
+
+
+def _filter_matches_for_user_scope(matches, user):
+    """Restreint les correspondances au perimetre de l'utilisateur :
+    - groupe (BOA Group / organes groupe) : tout ;
+    - Charge Client : uniquement son portefeuille (FILIALE + EXPL = code_expl) ;
+    - Directeur Agence : uniquement son agence (FILIALE + AGENCE) ;
+    - autres organes filiale : toute leur filiale."""
+    if not matches:
+        return matches
+    filiale_scope = _user_filiale_scope(user)
+    if not filiale_scope:
+        return matches
+    organe = (getattr(user, "organe", "") or "").strip()
+    agence = (getattr(user, "agence", "") or "").strip()
+    code_expl = (getattr(user, "code_expl", "") or "").strip()
+    filiale_key = _normalize_match_value(filiale_scope)
+    scoped = []
+    for match in matches:
+        client = match.get("client")
+        if _normalize_match_value(getattr(client, "FILIALE", "") or "") != filiale_key:
+            continue
+        if organe == "Chargé Client" and code_expl:
+            if _normalize_match_value(getattr(client, "EXPL", "") or "") != _normalize_match_value(code_expl):
+                continue
+        elif organe == "Directeur Agence" and agence:
+            if _normalize_match_value(getattr(client, "AGENCE", "") or "") != _normalize_match_value(agence):
+                continue
+        scoped.append(match)
+    return scoped
 
 
 def _name_tokens(value):
@@ -1604,7 +1652,7 @@ def _build_kyc_pp_document_matches(document_queryset, limit=3000, result_limit=2
             field_sources = _get_field_sources(client_filiale, "pp")
             for kyc_field, document_field, label in KYC_PP_DOCUMENT_FIELD_MAP:
                 allowed_source = field_sources.get(kyc_field)
-                if allowed_source and document.document_type != allowed_source:
+                if not _document_source_allows(allowed_source, document.document_type):
                     continue
                 document_value = getattr(document, document_field, "")
                 if not document_value or not _is_empty_kyc_value(getattr(client, kyc_field, "")):
@@ -1772,7 +1820,7 @@ def _build_kyc_pm_document_matches(document_queryset, limit=3000, result_limit=2
             field_sources = _get_field_sources(client_filiale, "pm")
             for kyc_field, document_field, label in KYC_PM_DOCUMENT_FIELD_MAP:
                 allowed_source = field_sources.get(kyc_field)
-                if allowed_source and document.document_type != allowed_source:
+                if not _document_source_allows(allowed_source, document.document_type):
                     continue
                 document_value = getattr(document, document_field, "")
                 if not document_value or not _is_empty_kyc_value(getattr(client, kyc_field, "")):
@@ -1794,7 +1842,7 @@ def _build_kyc_pm_document_matches(document_queryset, limit=3000, result_limit=2
             extra_action_items = []
             for kyc_field, document_field, label in KYC_PM_DOCUMENT_FIELD_MAP:
                 allowed_source = field_sources.get(kyc_field)
-                if allowed_source and document.document_type != allowed_source:
+                if not _document_source_allows(allowed_source, document.document_type):
                     continue
                 document_value = getattr(document, document_field, "")
                 if document_value and _is_empty_kyc_value(getattr(client, kyc_field, "")):
@@ -2005,8 +2053,10 @@ def _merge_kyc_pp_match_lists(match_lists):
             client_id = getattr(client, "IDP", None) or getattr(client, "IDM", None)
             normalized_id = _normalize_match_value(client_id or "")
             client_pk = getattr(client, "pk", None)
+            # Cle par couple (client, document) : un meme client peut apparaitre sur
+            # plusieurs lignes (une par document), chacune validable individuellement.
             key = (
-                ("idp", normalized_id)
+                ("idp", normalized_id, _document_unique_key(match.get("document")))
                 if normalized_id
                 else ("client", client_pk, _document_unique_key(match.get("document")))
             )
@@ -2058,7 +2108,13 @@ def _run_document_match_job(job_id):
         last_saved_step = {"value": -1}
 
         def progress_callback(current, total, message):
-            if current != total and current - last_saved_step["value"] < 5:
+            # Toujours persister le premier appel (fixe le total affiche : 0/N au lieu
+            # de 0/0 pendant la preparation). Ensuite : chaque document pour les petits
+            # lots, 1 ecriture / 5 documents au-dela pour limiter les acces DB.
+            step = 1 if total <= 20 else 5
+            if (last_saved_step["value"] >= 0
+                    and current != total
+                    and current - last_saved_step["value"] < step):
                 return
             last_saved_step["value"] = current
             KycDocumentMatchJob.objects.filter(pk=job_id).update(
@@ -2107,6 +2163,13 @@ def _run_document_match_job(job_id):
 
 @login_required
 def start_document_extraction_match_job(request):
+    user = request.user
+    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
+    is_group_user = (user.filiale in ["BOA Group", "BOA GROUP"]) or (user.organe in users_groupe) or (not user.filiale)
+    legacy_can_insert = (user.organe == "DSI") or (user.organe == "PASS" and is_group_user)
+    if not KycScreeningAccess.perms_for(user, legacy_can_insert=legacy_can_insert)["can_run_matching"]:
+        messages.error(request, "Vous n'avez pas l'autorisation de lancer un rapprochement.")
+        return redirect("document_extraction")
     scope_params = _document_match_scope_params(request.GET)
     # perimetre filiale : fige la filiale du demandeur (vide = groupe, tout le perimetre)
     filiale_scope = _user_filiale_scope(request.user)
@@ -2266,6 +2329,11 @@ def _build_kyc_pp_match_action_items(match):
     client_filiale = getattr(client, "FILIALE", "").strip()
     client_type_val = "pm" if is_pm else "pp"
     field_sources = _get_field_sources(client_filiale, client_type_val)
+    # Intitules metier definis dans /kyc-field-config/ (filiale > global > nom technique)
+    custom_labels = _kyc_custom_field_labels(client_type_val, client_filiale)
+
+    def field_display(field_name):
+        return custom_labels.get(field_name) or field_name
 
     def add_action(kind, field, text):
         normalized_field = (field or "").strip().upper()
@@ -2281,7 +2349,7 @@ def _build_kyc_pp_match_action_items(match):
         document_value = suggestion.get("document_value", "") or suggestion.get("value", "")
         if not field or not document_value:
             continue
-        add_action("complete", field, f"{field}: {document_value}")
+        add_action("complete", field, f"{field_display(field)}: {document_value}")
 
     fields_in_order = []
     fields_seen = set()
@@ -2299,7 +2367,7 @@ def _build_kyc_pp_match_action_items(match):
         document_values = []
         for document_field, label in mapped_fields:
             allowed_source = field_sources.get(kyc_field)
-            if allowed_source and document.document_type != allowed_source:
+            if not _document_source_allows(allowed_source, document.document_type):
                 continue
             val = getattr(document, document_field, "")
             if val:
@@ -2320,16 +2388,21 @@ def _build_kyc_pp_match_action_items(match):
             continue
 
         document_value, label = document_values[0]
-        add_action("modify", kyc_field, f"{label} ({kyc_field}): {kyc_value or '-'} -> {document_value}")
+        if kyc_field in custom_labels:
+            modify_label = f"{custom_labels[kyc_field]} ({kyc_field})"
+        else:
+            modify_label = f"{label} ({kyc_field})"
+        add_action("modify", kyc_field, f"{modify_label}: {kyc_value or '-'} -> {document_value}")
 
     expired_match = match.get("expired_document_match")
     if expired_match and "DATVALID" not in fields_with_actions:
         allowed_source = field_sources.get("DATVALID")
-        if not allowed_source or (expired_match.document and expired_match.document.document_type == allowed_source):
+        if not allowed_source or (expired_match.document
+                                  and _document_source_allows(allowed_source, expired_match.document.document_type)):
             add_action(
                 "modify",
                 "DATVALID",
-                f"DATVALID: {expired_match.old_validity_date or '-'} -> {expired_match.document_validity_date or '-'}",
+                f"{field_display('DATVALID')}: {expired_match.old_validity_date or '-'} -> {expired_match.document_validity_date or '-'}",
             )
 
     for action in match.get("extra_action_items") or []:
@@ -2357,12 +2430,24 @@ def export_document_extraction_matches(request):
             matches, _ = _build_kyc_pp_document_matches(documents, result_limit=None)
 
     matches = _merge_kyc_pp_match_lists([matches])
+    matches = _filter_matches_for_user_scope(matches, request.user)
     matches = _filter_kyc_pp_matches(matches, request.GET)
+    # Meme regle que l'onglet Resultats : les non-validateurs n'exportent que le valide.
+    is_match_validator = (KycMatchValidatorRole.user_can_validate(request.user)
+                          or KycMatchValidatorRole.user_can_reject(request.user))
+    export_status = (request.GET.get("match_status") or "active").strip()
+    if export_status not in DOCUMENT_MATCH_STATUS_FILTERS:
+        export_status = "active"
+    if not is_match_validator:
+        export_status = "validated"
+    matches = _annotate_matches_with_decisions(matches, client_type, export_status)
 
     selected_import_batch = (requested_scope_params.get("import_batch") or "").strip()
     expired_document_matches_qs = KycExpiredDocumentScanMatch.objects.select_related("client", "document").filter(
         status="a_valider"
     )
+    if not is_match_validator:
+        expired_document_matches_qs = expired_document_matches_qs.none()
     if selected_import_batch:
         expired_document_matches_qs = expired_document_matches_qs.filter(document__import_batch=selected_import_batch)
     expired_match_by_client_id = {}
@@ -2698,6 +2783,62 @@ def _save_grouped_pdf_job(uploaded_file, document_type, user, import_batch, page
     return container, job
 
 
+# Listes maitres des champs KYC configurables — LA reference partagee entre
+# /kyc-field-config/ et l'onglet « Sources par champ » de /document-extraction/.
+# Les champs affiches dans Sources par champ = intersection de ces listes avec
+# les empty_check_fields de la config (par filiale, PP/PM) de /kyc-field-config/.
+KYC_PP_CONFIG_FIELDS = [
+    "CLIENT", "EXPL", "FILIALE", "AGENCE", "LIB_AGENCE", "IDP", "PAYNAIS",
+    "PROFESSION", "SALAIRE", "NUMID", "CODAPE", "TEL", "DATNAIS", "ADRESSE",
+    "DATVALID", "ORIGINE_REV", "INTITULE_COMPTE", "EMPLOYEUR", "PAYS_RESID",
+    "LIEU_DELIVRANCE_CIN", "BOITE_POSTALE", "CONSENT_BIC", "DATOUV", "PPE",
+    "DEVISE", "RESID", "DATEREV", "RISQUE",
+]
+
+KYC_PM_CONFIG_FIELDS = [
+    "CLIENT", "EXPL", "FILIALE", "AGENCE", "LIB_AGENCE", "IDM", "CODAPE",
+    "AGEC", "CAPITAL", "CA", "RESULTAT", "RCSNO", "ORIGINE_REV", "TEL",
+    "INTITULE_COMPTE", "ADRESSE_SOCIALE", "NUMERO_FISCAL", "PAYS_JUR",
+    "ACTIONNAIRE", "MANDATAIRE", "BOITE_POSTALE", "CONSENT_BIC", "DATOUV",
+    "DEVISE", "RESID", "DATEREV", "PPE", "RISQUE",
+]
+
+# Libelles lisibles pour l'onglet Sources par champ (repli : nom technique).
+DOCUMENT_PP_FIELD_LABELS = {
+    "CLIENT": "Nom & Prénom",
+    "NUMID": "Numéro de document / NIN/NPI",
+    "DATNAIS": "Date de naissance",
+    "DATVALID": "Date d'expiration",
+    "PAYNAIS": "Nationalité / Pays de naissance",
+    "ADRESSE": "Adresse",
+    "ORIGINE_REV": "Origine des revenus",
+    "LIEU_DELIVRANCE_CIN": "Lieu de délivrance CIN",
+    "BOITE_POSTALE": "Boîte postale",
+}
+
+DOCUMENT_PM_FIELD_LABELS = {
+    "CLIENT": "Raison sociale / Dénomination",
+    "RCSNO": "Registre du commerce (RCS/RCCM)",
+    "NUMERO_FISCAL": "Numéro fiscal (NIF)",
+    "ADRESSE_SOCIALE": "Adresse sociale / Siège",
+    "BOITE_POSTALE": "Boîte postale",
+}
+
+
+def _kyc_custom_field_labels(client_type, filiale=""):
+    """Intitules metier des champs KYC definis dans /kyc-field-config/ :
+    la regle filiale prime, sinon la regle globale, sinon {}."""
+    configs = [c for c in _get_cached_field_visibility_configs() if c.client_type == client_type]
+    if filiale:
+        for c in configs:
+            if filiale in (c.filiales or []) and (c.field_labels or {}):
+                return dict(c.field_labels)
+    for c in configs:
+        if not c.filiales and (c.field_labels or {}):
+            return dict(c.field_labels)
+    return {}
+
+
 @login_required
 def document_extraction(request):
     extraction = None
@@ -2707,7 +2848,12 @@ def document_extraction(request):
     user = request.user
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
     is_group_user = (user.filiale in ["BOA Group", "BOA GROUP"]) or (user.organe in users_groupe) or (not user.filiale)
-    can_insert_batches = (user.organe == "DSI") or (user.organe == "PASS" and is_group_user)
+    legacy_can_insert = (user.organe == "DSI") or (user.organe == "PASS" and is_group_user)
+    # Habilitations par organe editables en admin (KycScreeningAccess) ;
+    # repli sur la regle historique si l'organe n'y figure pas.
+    screening_perms = KycScreeningAccess.perms_for(user, legacy_can_insert=legacy_can_insert)
+    can_insert_batches = screening_perms["can_upload_batches"]
+    can_run_matching = screening_perms["can_run_matching"]
 
     liste_filiales = [choice[0] for choice in Filiales]
 
@@ -2717,22 +2863,13 @@ def document_extraction(request):
     else:
         selected_filiale = getattr(user, "filiale", "").strip()
 
-    pp_fields = [
-        ("CLIENT", "Nom & Prénom"),
-        ("NUMID", "Numéro de document / NIN/NPI"),
-        ("DATNAIS", "Date de naissance"),
-        ("DATVALID", "Date d'expiration"),
-        ("PAYNAIS", "Nationalité / Pays de naissance"),
-        ("ADRESSE", "Adresse"),
-        ("ORIGINE_REV", "Origine des revenus"),
-    ]
-    
-    pm_fields = [
-        ("CLIENT", "Raison sociale / Dénomination"),
-        ("RCSNO", "Registre du commerce (RCS/RCCM)"),
-        ("NUMERO_FISCAL", "Numéro fiscal (NIF)"),
-        ("ADRESSE_SOCIALE", "Adresse sociale / Siège"),
-    ]
+    # Memes champs que /kyc-field-config/ : l'onglet Sources par champ presente
+    # exactement les champs KYC configures (par filiale, PP/PM), avec les intitules
+    # metier definis dans /kyc-field-config/ (filiale > global > libelle par defaut).
+    pp_custom_labels = _kyc_custom_field_labels("pp", selected_filiale)
+    pm_custom_labels = _kyc_custom_field_labels("pm", selected_filiale)
+    pp_fields = [(f, pp_custom_labels.get(f) or DOCUMENT_PP_FIELD_LABELS.get(f, f)) for f in KYC_PP_CONFIG_FIELDS]
+    pm_fields = [(f, pm_custom_labels.get(f) or DOCUMENT_PM_FIELD_LABELS.get(f, f)) for f in KYC_PM_CONFIG_FIELDS]
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -2794,8 +2931,10 @@ def document_extraction(request):
             if not retry_batch:
                 messages.error(request, "Lot introuvable pour la relance OCR.")
                 return redirect("document_extraction")
+            retry_scope = (request.POST.get("scope") or "failed").strip()
+            retry_statuses = ["failed", "done"] if retry_scope == "all" else ["failed"]
             requeued = KycDocumentExtraction.objects.filter(
-                import_batch=retry_batch, extraction_status="failed"
+                import_batch=retry_batch, extraction_status__in=retry_statuses
             ).update(extraction_status="pending", extraction_warnings="")
             has_active_job = KycDocumentOcrJob.objects.filter(
                 import_batch=retry_batch, mode="files", status__in=("pending", "running")
@@ -2806,12 +2945,12 @@ def document_extraction(request):
                     mode="files",
                     created_by=request.user,
                     progress_total=requeued,
-                    message="Relance OCR des documents en echec",
+                    message="Retraitement OCR de tout le lot" if retry_scope == "all" else "Relance OCR des documents en echec",
                 )
             if requeued:
                 messages.success(request, f"{requeued} document(s) remis en file d'attente OCR pour le lot {retry_batch}.")
             else:
-                messages.info(request, "Aucun document en echec a relancer pour ce lot.")
+                messages.info(request, "Aucun document a relancer pour ce lot.")
             return redirect(f"{reverse('document_extraction')}?{urlencode({'uploaded_batch': retry_batch})}#charger")
         if action == "correct_document_type":
             extraction_id = (request.POST.get("extraction_id") or "").strip()
@@ -2902,9 +3041,10 @@ def document_extraction(request):
                     
                     sources_dict = dict(config.field_sources or {})
                     for field_name, _ in fields_list:
-                        val = request.POST.get(f"source_{client_type_item}_{field_name}", "").strip()
-                        if val:
-                            sources_dict[field_name] = val
+                        # multi-selection : plusieurs types de documents autorises par champ
+                        vals = [v.strip() for v in request.POST.getlist(f"source_{client_type_item}_{field_name}") if v.strip()]
+                        if vals:
+                            sources_dict[field_name] = vals if len(vals) > 1 else vals[0]
                         else:
                             sources_dict.pop(field_name, None)
                     config.field_sources = sources_dict
@@ -2933,9 +3073,10 @@ def document_extraction(request):
                     
                     sources_dict = dict(config.field_sources or {})
                     for field_name, _ in fields_list:
-                        val = request.POST.get(f"source_{client_type_item}_{field_name}", "").strip()
-                        if val:
-                            sources_dict[field_name] = val
+                        # multi-selection : plusieurs types de documents autorises par champ
+                        vals = [v.strip() for v in request.POST.getlist(f"source_{client_type_item}_{field_name}") if v.strip()]
+                        if vals:
+                            sources_dict[field_name] = vals if len(vals) > 1 else vals[0]
                         else:
                             sources_dict.pop(field_name, None)
                     config.field_sources = sources_dict
@@ -3083,8 +3224,12 @@ def document_extraction(request):
     selected_document_type = request.GET.get("document_type", "")
     selected_import_batch = (request.GET.get("import_batch") or "").strip()
     uploaded_batch = (request.GET.get("uploaded_batch") or "").strip()
-    if not uploaded_batch and not request.GET:
+    uploaded_batch_from_session = False
+    if not uploaded_batch:
+        # Repli session systematique (et plus seulement sur URL sans parametres) :
+        # le bandeau du dernier lot charge reste stable quelle que soit la navigation.
         uploaded_batch = (request.session.get(LAST_UPLOADED_DOCUMENT_BATCH_SESSION_KEY) or "").strip()
+        uploaded_batch_from_session = bool(uploaded_batch)
     search_query = (request.GET.get("q") or "").strip()
     search_field = request.GET.get("field") or "all"
     document_type_labels = _document_type_label_map()
@@ -3145,6 +3290,19 @@ def document_extraction(request):
         if not _user_can_access_document_match_job(request.user, selected_match_job):
             selected_match_job = None
 
+    # Suivi : un rapprochement termine ET deja consulte redescend dans la liste
+    # (la grande carte de progression ne reste pas affichee).
+    consulted_match_job_ids = set(request.session.get("consulted_match_job_ids") or [])
+    if selected_match_job and selected_match_job.status == "completed" and show_match_job_results:
+        if selected_match_job.pk not in consulted_match_job_ids:
+            consulted_match_job_ids.add(selected_match_job.pk)
+            request.session["consulted_match_job_ids"] = sorted(consulted_match_job_ids)
+            request.session.modified = True
+    selected_match_job_consulted = bool(
+        selected_match_job and selected_match_job.status == "completed"
+        and selected_match_job.pk in consulted_match_job_ids
+    )
+
     last_match_result = request.session.get(LAST_KYC_PP_MATCH_RESULT_SESSION_KEY)
     active_match_params = None
     is_global_consultation = not request.GET
@@ -3198,60 +3356,42 @@ def document_extraction(request):
             request.session[KYC_PP_MATCHED_BATCHES_SESSION_KEY] = sorted(matched_batches)
         request.session.modified = True
     elif wants_results_tab or is_global_consultation:
-        stored_matches, stored_summary, stored_params = _hydrate_kyc_pp_match_result(last_match_result)
-        if not wants_results_tab and stored_summary is not None and stored_params == {}:
-            kyc_pp_matches = stored_matches
-            kyc_pp_match_summary = stored_summary
-        else:
-            if wants_results_tab:
-                completed_jobs = KycDocumentMatchJob.objects.filter(
-                    created_by=request.user,
-                    status="completed",
-                ).order_by("-completed_at", "-created_at")
-                hydrated_match_lists = []
-                documents_checked_total = 0
-                for job in completed_jobs:
-                    job_matches, job_summary, _ = _hydrate_kyc_pp_match_result(job.result)
-                    if job_matches:
-                        hydrated_match_lists.append(job_matches)
-                    if job_summary:
-                        documents_checked_total += job_summary.get("documents_checked", 0)
+        # #consulter et ?tab=results#consulter menent a la meme page : agregation de
+        # tous les rapprochements termines (quel que soit le lanceur). Le perimetre
+        # utilisateur (portefeuille / agence / filiale) est applique plus bas via
+        # _filter_matches_for_user_scope.
+        completed_jobs = KycDocumentMatchJob.objects.filter(
+            status="completed",
+        ).order_by("-completed_at", "-created_at")
+        hydrated_match_lists = []
+        documents_checked_total = 0
+        for job in completed_jobs:
+            job_matches, job_summary, _ = _hydrate_kyc_pp_match_result(job.result)
+            if job_matches:
+                hydrated_match_lists.append(job_matches)
+            if job_summary:
+                documents_checked_total += job_summary.get("documents_checked", 0)
 
-                kyc_pp_matches = _merge_kyc_pp_match_lists(hydrated_match_lists)
-                if kyc_pp_matches:
-                    matched_idp_keys = {
-                        _normalize_match_value(getattr(match["client"], "IDM" if client_type == "pm" else "IDP", "")) or str(match["client"].pk)
-                        for match in kyc_pp_matches
-                    }
-                    kyc_pp_match_summary = {
-                        "documents_checked": documents_checked_total,
-                        "documents_matched": len({match["document"].pk for match in kyc_pp_matches}),
-                        "clients_matched": len(matched_idp_keys),
-                        "suggestions_count": sum(len(_build_kyc_pp_match_action_items(match)) for match in kyc_pp_matches),
-                        "match_rate": 0,
-                    }
-                    request.session[LAST_KYC_PP_MATCH_SESSION_KEY] = {}
-                    request.session[LAST_KYC_PP_MATCH_RESULT_SESSION_KEY] = _serialize_kyc_pp_matches(
-                        kyc_pp_matches,
-                        kyc_pp_match_summary,
-                        {},
-                    )
-                    request.session.modified = True
-            else:
-                global_job = (
-                    KycDocumentMatchJob.objects
-                    .filter(created_by=request.user, scope_params={}, status="completed")
-                    .order_by("-completed_at", "-created_at")
-                    .first()
-                )
-                if global_job:
-                    kyc_pp_matches, stored_summary, stored_params = _hydrate_kyc_pp_match_result(global_job.result)
-                    if stored_summary is not None:
-                        kyc_pp_match_summary = stored_summary
-                        request.session[LAST_KYC_PP_MATCH_SESSION_KEY] = {}
-                        request.session[LAST_KYC_PP_MATCH_RESULT_SESSION_KEY] = global_job.result
-                        request.session.modified = True
+        kyc_pp_matches = _merge_kyc_pp_match_lists(hydrated_match_lists)
         if kyc_pp_matches:
+            matched_idp_keys = {
+                _normalize_match_value(getattr(match["client"], "IDM" if client_type == "pm" else "IDP", "")) or str(match["client"].pk)
+                for match in kyc_pp_matches
+            }
+            kyc_pp_match_summary = {
+                "documents_checked": documents_checked_total,
+                "documents_matched": len({match["document"].pk for match in kyc_pp_matches}),
+                "clients_matched": len(matched_idp_keys),
+                "suggestions_count": sum(len(_build_kyc_pp_match_action_items(match)) for match in kyc_pp_matches),
+                "match_rate": 0,
+            }
+            request.session[LAST_KYC_PP_MATCH_SESSION_KEY] = {}
+            request.session[LAST_KYC_PP_MATCH_RESULT_SESSION_KEY] = _serialize_kyc_pp_matches(
+                kyc_pp_matches,
+                kyc_pp_match_summary,
+                {},
+            )
+            request.session.modified = True
             active_match_params = {}
     elif not is_global_consultation:
         kyc_pp_matches, stored_summary, stored_params = _hydrate_kyc_pp_match_result(last_match_result)
@@ -3263,20 +3403,45 @@ def document_extraction(request):
             active_match_params = stored_params
 
     kyc_pp_matches = _merge_kyc_pp_match_lists([kyc_pp_matches])
+    # Perimetre utilisateur : Charge Client -> portefeuille, Directeur Agence -> agence,
+    # autres organes filiale -> filiale, groupe -> tout.
+    scoped_matches = _filter_matches_for_user_scope(kyc_pp_matches, request.user)
+    if len(scoped_matches) != len(kyc_pp_matches):
+        kyc_pp_matches = scoped_matches
+        kyc_pp_match_summary = dict(kyc_pp_match_summary or {})
+        kyc_pp_match_summary.update({
+            "documents_matched": len({m["document"].pk for m in kyc_pp_matches}),
+            "clients_matched": len({m["client"].pk for m in kyc_pp_matches}),
+            "suggestions_count": sum(len(_build_kyc_pp_match_action_items(m)) for m in kyc_pp_matches),
+        })
     run_kyc_pp_matching = active_match_params is not None
     # workflow de validation : statut par correspondance + filtre (rejetees masquees par defaut)
+    can_validate_matches = KycMatchValidatorRole.user_can_validate(request.user)
+    can_reject_matches = KycMatchValidatorRole.user_can_reject(request.user)
+    is_match_validator = can_validate_matches or can_reject_matches
     match_status = (request.GET.get("match_status") or "active").strip()
     if match_status not in DOCUMENT_MATCH_STATUS_FILTERS:
         match_status = "active"
+    if not is_match_validator:
+        # Les non-validateurs ne voient que les correspondances deja validees.
+        match_status = "validated"
     kyc_pp_matches = _annotate_matches_with_decisions(kyc_pp_matches, client_type, match_status)
     kyc_pp_match_total_count = len(kyc_pp_matches)
     kyc_pp_match_filters = _get_kyc_pp_match_filters(request.GET)
     kyc_pp_matches = _filter_kyc_pp_matches(kyc_pp_matches, request.GET)
-    can_validate_matches = KycMatchValidatorRole.user_can_validate(request.user)
-    can_reject_matches = KycMatchValidatorRole.user_can_reject(request.user)
     expired_document_matches = KycExpiredDocumentScanMatch.objects.select_related("client", "document").filter(
         status="a_valider"
     )
+    if not is_match_validator:
+        # Ces lignes sont par nature « a valider » : invisibles pour les non-validateurs.
+        expired_document_matches = expired_document_matches.none()
+    _expired_filiale_scope = _user_filiale_scope(request.user)
+    if _expired_filiale_scope:
+        expired_document_matches = expired_document_matches.filter(filiale__iexact=_expired_filiale_scope)
+        _user_organe = (getattr(request.user, "organe", "") or "").strip()
+        _user_agence = (getattr(request.user, "agence", "") or "").strip()
+        if _user_organe in ("Chargé Client", "Directeur Agence") and _user_agence:
+            expired_document_matches = expired_document_matches.filter(agence__iexact=_user_agence)
     if selected_import_batch:
         expired_document_matches = expired_document_matches.filter(document__import_batch=selected_import_batch)
     unique_expired_document_matches = {}
@@ -3293,6 +3458,11 @@ def document_extraction(request):
             match["expired_document_match"] = expired_match
         match["action_items"] = _build_kyc_pp_match_action_items(match)
         match["action_summary"] = " | ".join(action["text"] for action in match["action_items"])
+        # Intitules metier pour l'affichage brut des suggestions (repli du template)
+        _match_labels = _kyc_custom_field_labels(client_type, getattr(match["client"], "FILIALE", "") or "")
+        for _suggestion in match.get("suggestions", []):
+            _sf = (_suggestion.get("field") or "").strip().upper()
+            _suggestion["field_label"] = _match_labels.get(_sf) or _sf
     expired_document_matches = list(expired_match_by_client_id.values())
     matched_batches = set(request.session.get(KYC_PP_MATCHED_BATCHES_SESSION_KEY) or [])
     if is_group_user:
@@ -3302,13 +3472,29 @@ def document_extraction(request):
         match_jobs_qs = KycDocumentMatchJob.objects.filter(created_by__filiale=user.filiale)
         extractions_qs = KycDocumentExtraction.objects.filter(uploaded_by__filiale=user.filiale)
 
+    # Jobs globaux (sans import_batch, ex. « Tout lancer ») : ils couvrent tous les
+    # lots charges avant leur lancement — a prendre en compte pour le statut des lots.
+    recent_global_jobs = list(
+        match_jobs_qs.filter(scope_params__import_batch__isnull=True)
+        .order_by("-created_at")[:8]
+    )
+
+    def _global_job_covering(since_dt):
+        """Dernier job global lance apres `since_dt` (donc couvrant ce lot)."""
+        if not since_dt:
+            return None
+        for gj in recent_global_jobs:
+            if gj.created_at >= since_dt:
+                return gj
+        return None
+
     uploaded_batch_job_done = False
     uploaded_batch_running_job = None
     uploaded_batch_result_url = ""
     if uploaded_batch:
         uploaded_batch_running_job = (
             match_jobs_qs
-            .filter(scope_params={"import_batch": uploaded_batch}, status__in=["pending", "running"])
+            .filter(scope_params__import_batch=uploaded_batch, status__in=["pending", "running"])
             .order_by("-created_at")
             .first()
         )
@@ -3317,12 +3503,12 @@ def document_extraction(request):
             follow_params["match_job"] = uploaded_batch_running_job.pk
             uploaded_batch_running_job.follow_url = f"{reverse('document_extraction')}?{urlencode(follow_params)}#suivi"
         uploaded_batch_job_done = match_jobs_qs.filter(
-            scope_params={"import_batch": uploaded_batch},
+            scope_params__import_batch=uploaded_batch,
             status="completed",
         ).exists()
         uploaded_batch_completed_job = (
             match_jobs_qs
-            .filter(scope_params={"import_batch": uploaded_batch}, status="completed")
+            .filter(scope_params__import_batch=uploaded_batch, status="completed")
             .order_by("-completed_at", "-created_at")
             .first()
         )
@@ -3331,7 +3517,30 @@ def document_extraction(request):
             result_params["match_job"] = uploaded_batch_completed_job.pk
             result_params["show_match_results"] = "1"
             uploaded_batch_result_url = f"{reverse('document_extraction')}?{urlencode(result_params)}#consulter"
+        if not uploaded_batch_job_done and not uploaded_batch_running_job:
+            # un job global posterieur au chargement couvre aussi ce lot
+            latest_doc_dt = extractions_qs.filter(import_batch=uploaded_batch).aggregate(m=Max("created_at"))["m"]
+            covering_job = _global_job_covering(latest_doc_dt)
+            if covering_job is not None:
+                cover_params = dict(covering_job.scope_params or {})
+                cover_params["match_job"] = covering_job.pk
+                if covering_job.status == "completed":
+                    uploaded_batch_job_done = True
+                    cover_params["show_match_results"] = "1"
+                    uploaded_batch_result_url = f"{reverse('document_extraction')}?{urlencode(cover_params)}#consulter"
+                elif covering_job.status in {"pending", "running"}:
+                    covering_job.follow_url = f"{reverse('document_extraction')}?{urlencode(cover_params)}#suivi"
+                    uploaded_batch_running_job = covering_job
     uploaded_batch_matching_done = bool(uploaded_batch and (uploaded_batch in matched_batches or uploaded_batch_job_done))
+    if uploaded_batch_from_session and uploaded_batch_matching_done:
+        # Lot entierement traite (rapprochement termine) : le bandeau de succes n'a
+        # plus d'utilite — on purge la session pour qu'il ne reapparaisse plus.
+        request.session.pop(LAST_UPLOADED_DOCUMENT_BATCH_SESSION_KEY, None)
+        request.session.modified = True
+        uploaded_batch = ""
+        uploaded_batch_running_job = None
+        uploaded_batch_result_url = ""
+        uploaded_batch_matching_done = False
     show_document_modal = (bool(extraction) and not show_match_child_modal) or request.GET.get("lot_view") == "1"
     recent_match_jobs = list(match_jobs_qs.order_by("-created_at")[:12])
     for job in recent_match_jobs:
@@ -3355,10 +3564,13 @@ def document_extraction(request):
         batch["documents_url"] = f"{reverse('document_extraction')}?{urlencode({'import_batch': batch_name})}#base"
         latest_job = (
             match_jobs_qs
-            .filter(scope_params={"import_batch": batch_name})
+            .filter(scope_params__import_batch=batch_name)
             .order_by("-created_at")
             .first()
         )
+        if latest_job is None:
+            # un rapprochement global lance apres le chargement couvre aussi ce lot
+            latest_job = _global_job_covering(batch.get("latest_created_at"))
         batch["job"] = latest_job
         batch["status"] = "pending"
         batch["status_label"] = "En attente"
@@ -3384,6 +3596,14 @@ def document_extraction(request):
                 batch["status_label"] = "Echec"
         if batch["status"] in {"pending", "failed"}:
             upload_batch_queue.append(batch)
+
+    if not is_match_validator:
+        # Onglet Documents extraits : les lecteurs ne voient que les documents dont
+        # le rapprochement a ete fait et valide par un profil habilite.
+        decided_doc_ids = KycMatchDecision.objects.filter(
+            client_type=client_type, status="validated"
+        ).values_list("document_id", flat=True).distinct()
+        documents = documents.filter(pk__in=decided_doc_ids)
 
     paginator = Paginator(documents, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
@@ -3489,6 +3709,21 @@ def document_extraction(request):
     if not pm_active_db_fields:
         pm_active_db_fields = {"CLIENT", "RCSNO", "NUMERO_FISCAL", "ADRESSE_SOCIALE"}
 
+    def _normalize_source_map(source_map):
+        """Valeurs toujours en liste pour le template (heritage str accepte)."""
+        normalized = {}
+        for field_name, value in (source_map or {}).items():
+            if isinstance(value, str):
+                vals = [s.strip() for s in value.split(",") if s.strip()]
+            else:
+                vals = [str(s).strip() for s in value if str(s).strip()]
+            if vals:
+                normalized[field_name] = vals
+        return normalized
+
+    pp_sources = _normalize_source_map(pp_sources)
+    pm_sources = _normalize_source_map(pm_sources)
+
     filtered_pp_fields = [
         (f_name, label)
         for f_name, label in pp_fields
@@ -3580,7 +3815,15 @@ def document_extraction(request):
         "selected_filiale": selected_filiale,
         "document_field_source_sections": document_field_source_sections,
         "document_field_source_return_url": request.get_full_path(),
+        "selected_match_job_consulted": selected_match_job_consulted,
         "can_insert_batches": can_insert_batches,
+        "can_run_matching": can_run_matching,
+        "screening_perms": screening_perms,
+        # Limites d'import affichees dans l'onglet Charger
+        "upload_max_files": settings.DATA_UPLOAD_MAX_NUMBER_FILES,
+        "zip_max_members": ZIP_MAX_MEMBERS,
+        "zip_max_total_mb": ZIP_MAX_TOTAL_BYTES // (1024 * 1024),
+        "matching_doc_limit": 3000,
     }
     return render(request, 'document_extraction.html', context)
 
@@ -3763,8 +4006,15 @@ def profil(request):
     notation = notes.filter(date_notation__in=[n['latest_date'] for n in latest_notes])
     notation = notation.filter(agent__filiale=user.filiale, agent__code_expl=user.code_expl)
 
+    # Dernière notation Contrôle Permanent de l'agent connecté
+    derniere_notation = (Notation.objects
+                         .filter(agent=user)
+                         .order_by('-date_notation')
+                         .first())
+
     context = {'roles_exclus': roles_exclus,
                'notation': notation,
+               'derniere_notation': derniere_notation,
                }
     return render(request, 'profil.html', context)
 
@@ -7068,6 +7318,20 @@ def statistiques(request):
     rules_version = cache.get('quality_control_rules_version', 1)
 
     def compute_quality_rate_by_typology(applicability):
+        # 1. Table de synthèse précalculée le matin (compute_quality_rates).
+        #    Lecture instantanée, évite le scan de Kyc_pp. Si absente (batch pas
+        #    encore passé, ou scope ad hoc via drill-down expl), on retombe sur le
+        #    calcul live ci-dessous -> chiffres toujours corrects.
+        snapshot = TauxQualite.objects.filter(
+            filiale=quality_scope.get('filiale'),
+            agence=quality_scope.get('agence'),
+            expl=quality_scope.get('expl'),
+            applicability=applicability,
+            date=timezone.localdate(),
+        ).first()
+        if snapshot is not None:
+            return snapshot.rate
+
         scope_signature = (
             f"{quality_scope.get('filiale')}|{quality_scope.get('agence')}|"
             f"{quality_scope.get('expl')}|{user.organe}|{applicability}"
@@ -8687,67 +8951,9 @@ def download_excel_template(request):
 
 @login_required
 def kyc_field_config(request):
-    KYC_PP_FIELD_LABELS = [
-        ("CLIENT", "CLIENT"),
-        ("EXPL", "EXPL"),
-        ("FILIALE", "FILIALE"),
-        ("AGENCE", "AGENCE"),
-        ("LIB_AGENCE", "LIB_AGENCE"),
-        ("IDP", "IDP"),
-        ("PAYNAIS", "PAYNAIS"),
-        ("PROFESSION", "PROFESSION"),
-        ("SALAIRE", "SALAIRE"),
-        ("NUMID", "NUMID"),
-        ("CODAPE", "CODAPE"),
-        ("TEL", "TEL"),
-        ("DATNAIS", "DATNAIS"),
-        ("ADRESSE", "ADRESSE"),
-        ("DATVALID", "DATVALID"),
-        ("ORIGINE_REV", "ORIGINE_REV"),
-        ("INTITULE_COMPTE", "INTITULE_COMPTE"),
-        ("EMPLOYEUR", "EMPLOYEUR"),
-        ("PAYS_RESID", "PAYS_RESID"),
-        ("LIEU_DELIVRANCE_CIN", "LIEU_DELIVRANCE_CIN"),
-        ("BOITE_POSTALE", "BOITE_POSTALE"),
-        ("CONSENT_BIC", "CONSENT_BIC"),
-        ("DATOUV", "DATOUV"),
-        ("PPE", "PPE"),
-        ("DEVISE", "DEVISE"),
-        ("RESID", "RESID"),
-        ("DATEREV", "DATEREV"),
-        ("RISQUE", "RISQUE"),
-    ]
-
-    KYC_PM_FIELD_LABELS = [
-        ("CLIENT", "CLIENT"),
-        ("EXPL", "EXPL"),
-        ("FILIALE", "FILIALE"),
-        ("AGENCE", "AGENCE"),
-        ("LIB_AGENCE", "LIB_AGENCE"),
-        ("IDM", "IDM"),
-        ("CODAPE", "CODAPE"),
-        ("AGEC", "AGEC"),
-        ("CAPITAL", "CAPITAL"),
-        ("CA", "CA"),
-        ("RESULTAT", "RESULTAT"),
-        ("RCSNO", "RCSNO"),
-        ("ORIGINE_REV", "ORIGINE_REV"),
-        ("TEL", "TEL"),
-        ("INTITULE_COMPTE", "INTITULE_COMPTE"),
-        ("ADRESSE_SOCIALE", "ADRESSE_SOCIALE"),
-        ("NUMERO_FISCAL", "NUMERO_FISCAL"),
-        ("PAYS_JUR", "PAYS_JUR"),
-        ("ACTIONNAIRE", "ACTIONNAIRE"),
-        ("MANDATAIRE", "MANDATAIRE"),
-        ("BOITE_POSTALE", "BOITE_POSTALE"),
-        ("CONSENT_BIC", "CONSENT_BIC"),
-        ("DATOUV", "DATOUV"),
-        ("DEVISE", "DEVISE"),
-        ("RESID", "RESID"),
-        ("DATEREV", "DATEREV"),
-        ("PPE", "PPE"),
-        ("RISQUE", "RISQUE"),
-    ]
+    # Listes maitres partagees avec l'onglet Sources par champ de /document-extraction/.
+    KYC_PP_FIELD_LABELS = [(f, f) for f in KYC_PP_CONFIG_FIELDS]
+    KYC_PM_FIELD_LABELS = [(f, f) for f in KYC_PM_CONFIG_FIELDS]
 
     # Retrieve all unique filiales
     filiale_choices = sorted(list(set(
@@ -8767,11 +8973,18 @@ def kyc_field_config(request):
                     config_id = request.POST.get(f'{ct}_config_id', '')
                     empty_fields = request.POST.getlist(f'{ct}_empty_fields')
                     display_fields = request.POST.getlist(f'{ct}_display_fields')
-                    
+                    master_fields = KYC_PP_CONFIG_FIELDS if ct == 'pp' else KYC_PM_CONFIG_FIELDS
+                    field_labels = {}
+                    for f in master_fields:
+                        val = (request.POST.get(f'{ct}_label_{f}') or '').strip()
+                        if val:
+                            field_labels[f] = val
+
                     if config_id:
                         config = KycFieldVisibilityConfig.objects.get(id=config_id)
                         config.empty_check_fields = empty_fields
                         config.display_fields = display_fields
+                        config.field_labels = field_labels
                         config.save()
                     else:
                         # Create specific config for this filiale
@@ -8779,7 +8992,8 @@ def kyc_field_config(request):
                             client_type=ct,
                             filiales=[sel_filiale],
                             empty_check_fields=empty_fields,
-                            display_fields=display_fields
+                            display_fields=display_fields,
+                            field_labels=field_labels
                         )
                 messages.success(request, f"Configurations spécifiques pour la filiale {sel_filiale} enregistrées.")
             return redirect('kyc_field_config')
@@ -8792,6 +9006,12 @@ def kyc_field_config(request):
             filiales = request.POST.getlist('filiales') if scope == 'filiales' else []
             empty_fields = request.POST.getlist('empty_fields')
             display_fields = request.POST.getlist('display_fields')
+            master_fields = KYC_PP_CONFIG_FIELDS if client_type == 'pp' else KYC_PM_CONFIG_FIELDS
+            field_labels = {}
+            for f in master_fields:
+                val = (request.POST.get(f'label_{f}') or '').strip()
+                if val:
+                    field_labels[f] = val
 
             if action == "delete":
                 if config_id:
@@ -8803,6 +9023,7 @@ def kyc_field_config(request):
                 config = KycFieldVisibilityConfig.objects.get(id=config_id)
                 config.empty_check_fields = empty_fields
                 config.display_fields = display_fields
+                config.field_labels = field_labels
                 if not config.filiales or scope == 'filiales':
                     config.filiales = filiales
                 config.save()
@@ -8811,7 +9032,8 @@ def kyc_field_config(request):
                     client_type=client_type,
                     filiales=filiales,
                     empty_check_fields=empty_fields,
-                    display_fields=display_fields
+                    display_fields=display_fields,
+                    field_labels=field_labels
                 )
             messages.success(request, "Configuration enregistrée.")
             return redirect('kyc_field_config')
@@ -8841,6 +9063,7 @@ def kyc_field_config(request):
             c.scope_label = f"Filiales : {', '.join(c.filiales)}"
         c.empty_fields = c.empty_check_fields
         c.display_field_names = c.display_fields
+        c.custom_labels = c.field_labels or {}
 
     sections = [
         {
@@ -8871,6 +9094,7 @@ def kyc_field_config(request):
                 config_id = spec_config.id
                 empty_fields = spec_config.empty_check_fields
                 display_fields = spec_config.display_fields
+                custom_labels = spec_config.field_labels or {}
                 scope_label = f"Règle spécifique pour {selected_filiale}"
             else:
                 is_specific = False
@@ -8878,6 +9102,7 @@ def kyc_field_config(request):
                 config_id = None
                 empty_fields = global_c.empty_check_fields if global_c else []
                 display_fields = global_c.display_fields if global_c else [f[0] for f in (KYC_PP_FIELD_LABELS if ct == 'pp' else KYC_PM_FIELD_LABELS)]
+                custom_labels = (global_c.field_labels or {}) if global_c else {}
                 scope_label = "Hérité du global (Toutes les filiales)"
 
             selected_filiale_configs.append({
@@ -8888,6 +9113,7 @@ def kyc_field_config(request):
                 'scope_label': scope_label,
                 'empty_fields': empty_fields,
                 'display_field_names': display_fields,
+                'custom_labels': custom_labels,
                 'fields': KYC_PP_FIELD_LABELS if ct == 'pp' else KYC_PM_FIELD_LABELS,
                 'filiales': [selected_filiale]
             })
@@ -9508,23 +9734,32 @@ def _get_exploitants_daterev_expired(filiale_filter=None, days_before=30, only_p
     result = {}
 
     for model, label in [(Kyc_pp, 'PP'), (Kyc_pm, 'PM')]:
+        id_field = 'IDP' if label == 'PP' else 'IDM'
+        fields = ['FILIALE', 'EXPL', 'CLIENT', 'AGENCE', 'LIB_AGENCE', 'DATEREV', id_field, 'RISQUE']
         qs = (model.objects
               .exclude(DATEREV='').exclude(DATEREV__isnull=True)
               .exclude(EXPL='').exclude(FILIALE='')
-              .only('FILIALE', 'EXPL', 'CLIENT', 'AGENCE', 'LIB_AGENCE', 'DATEREV'))
+              .only(*fields))
         if filiale_filter:
             qs = qs.filter(FILIALE=filiale_filter)
         if paid_filiales is not None:
             qs = qs.filter(FILIALE__in=paid_filiales)
 
         key_label = f'clients_{label.lower()}'
-        for obj in qs.values('FILIALE', 'EXPL', 'CLIENT', 'AGENCE', 'LIB_AGENCE', 'DATEREV'):
+        for obj in qs.values(*fields):
             dr = _parse_daterev(obj['DATEREV'])
             if dr is None or dr > limit_date:
                 continue
 
             filiale = obj['FILIALE']
             expl = obj['EXPL']
+
+            if dr < today:
+                echeance = f'Échue depuis {(today - dr).days} j.'
+            elif dr == today:
+                echeance = "Échue aujourd'hui"
+            else:
+                echeance = f'Dans {(dr - today).days} j.'
 
             fil_dict = result.setdefault(filiale, {})
             expl_dict = fil_dict.setdefault(expl, {'clients_pp': [], 'clients_pm': []})
@@ -9533,7 +9768,10 @@ def _get_exploitants_daterev_expired(filiale_filter=None, days_before=30, only_p
                 'client': obj['CLIENT'],
                 'agence': obj['AGENCE'],
                 'lib_agence': obj['LIB_AGENCE'],
+                'idpm': obj[id_field],
                 'daterev': dr,
+                'echeance': echeance,
+                'risque': obj['RISQUE'],
                 'statut': 'Dépassée' if dr < today else f'Dans {(dr - today).days} j.',
             })
 

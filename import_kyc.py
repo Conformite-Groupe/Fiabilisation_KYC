@@ -2,6 +2,8 @@ import csv
 import logging
 import os
 import sys
+import time
+import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
@@ -224,6 +226,34 @@ def should_use_direct_insert():
     return is_mssql_database()
 
 
+# --- Retry deadlock (SQL Server erreur 1205) ---
+DEADLOCK_MAX_RETRIES = int(os.environ.get("KYC_DEADLOCK_RETRIES", "5"))
+
+
+def is_deadlock_error(exc):
+    text = str(exc)
+    return "1205" in text or "deadlock" in text.lower()
+
+
+def run_with_deadlock_retry(func, description):
+    """Rejoue func() si SQL Server tue la transaction sur deadlock (1205)."""
+    attempt = 0
+    while True:
+        try:
+            return func()
+        except Exception as exc:
+            if not is_deadlock_error(exc) or attempt >= DEADLOCK_MAX_RETRIES:
+                raise
+            attempt += 1
+            # back-off exponentiel + jitter pour desynchroniser les processus
+            wait = min(2 ** attempt, 30) * 0.5 + random.uniform(0, 0.5)
+            logger.warning(
+                f"Deadlock sur {description} (tentative {attempt}/{DEADLOCK_MAX_RETRIES}), "
+                f"nouvelle tentative dans {wait:.1f}s."
+            )
+            time.sleep(wait)
+
+
 # --- 5. INSERTION ---
 def build_insert_sql(model, columns):
     table = quoted_name(model._meta.db_table)
@@ -239,7 +269,7 @@ def direct_insert_batch(model, columns, rows_with_lines, filename):
     sql = build_insert_sql(model, columns)
     rows = [values for _, values in rows_with_lines]
 
-    try:
+    def _insert_all():
         with transaction.atomic():
             with connection.cursor() as cursor:
                 raw_cursor = getattr(cursor, "cursor", None)
@@ -247,6 +277,9 @@ def direct_insert_batch(model, columns, rows_with_lines, filename):
                     raw_cursor.fast_executemany = True
                 cursor.executemany(sql, rows)
         return len(rows)
+
+    try:
+        return run_with_deadlock_retry(_insert_all, f"INSERT {model._meta.db_table} ({len(rows)} lignes)")
     except Exception as batch_error:
         logger.error(f"Insertion batch refusee ({len(rows)} lignes) dans {model._meta.db_table}: {batch_error}")
 
@@ -307,10 +340,14 @@ def delete_filiale_rows(model, filiale_value):
     table = quoted_name(model._meta.db_table)
     column = quoted_name("FILIALE")
     sql = f"DELETE FROM {table} WHERE {column} = %s"
-    with transaction.atomic():
-        with connection.cursor() as cursor:
-            cursor.execute(sql, [filiale_value])
-            return cursor.rowcount
+
+    def _delete():
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute(sql, [filiale_value])
+                return cursor.rowcount
+
+    return run_with_deadlock_retry(_delete, f"DELETE {model._meta.db_table} ({filiale_value})")
 
 
 # --- 6. IMPORTATION ---
@@ -435,9 +472,11 @@ if __name__ == "__main__":
         IMPORT_METHOD,
     )
 
-    if len(FILIALES) == 1:
-        traiter_filiale(FILIALES[0])
-    else:
+    # Ecritures sequentielles : evite les deadlocks SQL Server (les inserts
+    # sont deja en fast_executemany, le parallelisme n'apportait quasi rien
+    # cote base mais provoquait des etreintes fatales sur Kyc_pm/Kyc_pp).
+    # Basculer sur KYC_PARALLEL=1 pour revenir au traitement multi-processus.
+    if os.environ.get("KYC_PARALLEL", "0") == "1" and len(FILIALES) > 1:
         workers = min(len(FILIALES), os.cpu_count() or 1)
         with ProcessPoolExecutor(max_workers=workers) as executor:
             futures = {executor.submit(traiter_filiale, code): code for code in FILIALES}
@@ -447,5 +486,11 @@ if __name__ == "__main__":
                     future.result()
                 except Exception as exc:
                     logger.error(f"Erreur filiale {code}: {exc}")
+    else:
+        for code in FILIALES:
+            try:
+                traiter_filiale(code)
+            except Exception as exc:
+                logger.error(f"Erreur filiale {code}: {exc}")
 
     logger.info("\nProcessus termine.")

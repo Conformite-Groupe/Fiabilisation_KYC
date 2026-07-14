@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pc:chgInfo xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:ac="http://schemas.microsoft.com/office/drawing/2013/main/command" xmlns:pc="http://schemas.microsoft.com/office/powerpoint/2013/main/command">
+  <pc:docChgLst>
+    <pc:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}"/>
+    <pc:docChg chg="undo custSel addSld delSld modSld">
+      <pc:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T16:05:47.061" v="239" actId="47"/>
+      <pc:docMkLst>
+        <pc:docMk/>
+      </pc:docMkLst>
+      <pc:sldChg chg="modSp mod">
+        <pc:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:35:06.102" v="39" actId="1076"/>
+        <pc:sldMkLst>
+          <pc:docMk/>
+          <pc:sldMk cId="0" sldId="256"/>
+        </pc:sldMkLst>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:35:06.102" v="39" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="256"/>
+            <ac:spMk id="2" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-05T09:31:35.803" v="13" actId="20577"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="256"/>
+            <ac:spMk id="10" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+      </pc:sldChg>
+      <pc:sldChg chg="modSp mod">
+        <pc:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:59:58.565" v="237" actId="20577"/>
+        <pc:sldMkLst>
+          <pc:docMk/>
+          <pc:sldMk cId="0" sldId="257"/>
+        </pc:sldMkLst>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-05T09:31:27.105" v="9" actId="20577"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="257"/>
+            <ac:spMk id="7" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:59:58.565" v="237" actId="20577"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="257"/>
+            <ac:spMk id="18" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+      </pc:sldChg>
+      <pc:sldChg chg="modSp mod">
+        <pc:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:49:55.992" v="225" actId="20577"/>
+        <pc:sldMkLst>
+          <pc:docMk/>
+          <pc:sldMk cId="0" sldId="258"/>
+        </pc:sldMkLst>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:49:55.992" v="225" actId="20577"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="258"/>
+            <ac:spMk id="18" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+      </pc:sldChg>
+      <pc:sldChg chg="modSp mod">
+        <pc:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:38:54.910" v="211" actId="207"/>
+        <pc:sldMkLst>
+          <pc:docMk/>
+          <pc:sldMk cId="0" sldId="260"/>
+        </pc:sldMkLst>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-05T09:32:38.891" v="21" actId="20577"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="260"/>
+            <ac:spMk id="9" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-05T09:30:30.437" v="0"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="260"/>
+            <ac:spMk id="39" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:35:37.255" v="104" actId="20577"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="260"/>
+            <ac:spMk id="40" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:graphicFrameChg chg="modGraphic">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:38:54.910" v="211" actId="207"/>
+          <ac:graphicFrameMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="260"/>
+            <ac:graphicFrameMk id="42" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:graphicFrameMkLst>
+        </pc:graphicFrameChg>
+      </pc:sldChg>
+      <pc:sldChg chg="delSp modSp mod">
+        <pc:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:49.827" v="232" actId="1076"/>
+        <pc:sldMkLst>
+          <pc:docMk/>
+          <pc:sldMk cId="0" sldId="261"/>
+        </pc:sldMkLst>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:39.463" v="231" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="3" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-05T09:35:13.105" v="37" actId="20577"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="8" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:49.827" v="232" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="10" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:49.827" v="232" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="13" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:49.827" v="232" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="18" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:49.827" v="232" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="19" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:49.827" v="232" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="20" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:49.827" v="232" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="22" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:49.827" v="232" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="30" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:49.827" v="232" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="39" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:49.827" v="232" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="50" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:49.827" v="232" actId="1076"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="51" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="del">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:33.839" v="229" actId="478"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="52" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="del">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:28.852" v="228" actId="478"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="55" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="del">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:28.852" v="228" actId="478"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="57" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="del">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:28.852" v="228" actId="478"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="60" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="del">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:28.852" v="228" actId="478"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="61" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="del">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:28.852" v="228" actId="478"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="62" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="del">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:28.852" v="228" actId="478"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="64" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="del">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:28.852" v="228" actId="478"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="66" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="del">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:28.852" v="228" actId="478"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="68" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="del">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:28.852" v="228" actId="478"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="69" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="del">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:52:28.852" v="228" actId="478"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="261"/>
+            <ac:spMk id="70" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+      </pc:sldChg>
+      <pc:sldChg chg="modSp mod">
+        <pc:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:53:15.801" v="234" actId="20577"/>
+        <pc:sldMkLst>
+          <pc:docMk/>
+          <pc:sldMk cId="0" sldId="262"/>
+        </pc:sldMkLst>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T14:53:15.801" v="234" actId="20577"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="262"/>
+            <ac:spMk id="9" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-05T09:30:30.437" v="0"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="262"/>
+            <ac:spMk id="24" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-05T09:30:30.437" v="0"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="262"/>
+            <ac:spMk id="25" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+      </pc:sldChg>
+      <pc:sldChg chg="modSp mod">
+        <pc:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-05T09:34:15.327" v="33" actId="20577"/>
+        <pc:sldMkLst>
+          <pc:docMk/>
+          <pc:sldMk cId="0" sldId="264"/>
+        </pc:sldMkLst>
+        <pc:spChg chg="mod">
+          <ac:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-05T09:34:15.327" v="33" actId="20577"/>
+          <ac:spMkLst>
+            <pc:docMk/>
+            <pc:sldMk cId="0" sldId="264"/>
+            <ac:spMk id="10" creationId="{00000000-0000-0000-0000-000000000000}"/>
+          </ac:spMkLst>
+        </pc:spChg>
+      </pc:sldChg>
+      <pc:sldChg chg="add del mod setBg modShow">
+        <pc:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T16:05:47.061" v="239" actId="47"/>
+        <pc:sldMkLst>
+          <pc:docMk/>
+          <pc:sldMk cId="3341009548" sldId="265"/>
+        </pc:sldMkLst>
+      </pc:sldChg>
+      <pc:sldChg chg="add del mod setBg modShow">
+        <pc:chgData name="Mamadou Fallou Sylla" userId="c456aed9-8824-4632-add3-85c26a03832d" providerId="ADAL" clId="{59587479-4389-46B4-BE53-52C117EAA1BD}" dt="2026-06-10T16:05:40.295" v="238" actId="47"/>
+        <pc:sldMkLst>
+          <pc:docMk/>
+          <pc:sldMk cId="1359394268" sldId="266"/>
+        </pc:sldMkLst>
+      </pc:sldChg>
+    </pc:docChg>
+  </pc:docChgLst>
+</pc:chgInfo>

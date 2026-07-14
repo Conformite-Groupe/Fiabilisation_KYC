@@ -17,7 +17,7 @@ from django.db.models import Model
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Fiabilisation_kyc.settings")
 django.setup()
 
-from kyc.models import TauxEvolution, TauxEvolution_filiale, Anomalie, Filiales as FILIALES_CHOICES
+from kyc.models import  TauxEvolution_filiale, Anomalie, Filiales as FILIALES_CHOICES
 
 # =====================================================
 # 2. PARAMETRES GLOBAUX

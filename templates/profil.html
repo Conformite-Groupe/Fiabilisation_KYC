@@ -61,18 +61,6 @@
                         <span class="px-2.5 py-1 bg-green-50 text-green-800 text-[9px] font-black rounded-lg border border-green-200/80 uppercase tracking-widest shadow-sm">
                             {{ user.organe|default:"Collaborateur"|t }} <span class="mx-1.5 opacity-50">•</span> {{ user.filiale|default:"Non assigné"|t }}
                         </span>
-                        {% if user.code_expl %}
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[9px] font-black rounded-lg border border-emerald-200/80 uppercase tracking-widest shadow-sm">
-                            <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                            {{ "Code exploitant"|t }} {{ user.code_expl }}
-                        </span>
-                        {% endif %}
-                        {% if user.agence %}
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 text-slate-600 text-[9px] font-black rounded-lg border border-slate-200/80 uppercase tracking-widest shadow-sm">
-                            <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path></svg>
-                            {{ "Agence"|t }} {{ user.agence }}
-                        </span>
-                        {% endif %}
                     </div>
                 </div>
                 
@@ -143,7 +131,7 @@
                     <div class="relative z-10 flex items-center justify-between gap-4">
                         <div>
                             <p class="text-[9px] font-black uppercase tracking-[0.2em] text-white/70 mb-0.5">{{ "Votre appréciation"|t }}</p>
-                            <p class="text-2xl font-black tracking-wider text-white drop-shadow-sm leading-none">{{ appr.appreciation_globale }}</p>
+                            <p class="text-2xl font-black tracking-wider text-white drop-shadow-sm leading-none">{{ appr.appreciation_globale|t }}</p>
                         </div>
                         <div class="w-9 h-9 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center border border-white/25 shrink-0">
                             <svg class="w-5 h-5 text-white drop-shadow" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -155,12 +143,13 @@
                 <div class="grid grid-cols-3 divide-x divide-slate-100">
                     <div class="px-3 py-2.5 text-center">
                         <p class="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{{ "Notation Contrôle Permanent"|t }}</p>
-                        {% if appr.notation %}
+                        {% firstof appr.notation derniere_notation.note as note_cp %}
+                        {% if note_cp %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide
-                            {% if appr.notation == 'Très Bien' %}bg-emerald-50 text-emerald-700 border border-emerald-200
-                            {% elif appr.notation == 'Bien' %}bg-blue-50 text-blue-700 border border-blue-200
-                            {% elif appr.notation == 'Passable' %}bg-amber-50 text-amber-700 border border-amber-200
-                            {% else %}bg-orange-50 text-orange-700 border border-orange-200{% endif %}">{{ appr.notation|t }}</span>
+                            {% if note_cp == 'Très Bien' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                            {% elif note_cp == 'Bien' %}bg-blue-50 text-blue-700 border border-blue-200
+                            {% elif note_cp == 'Passable' %}bg-amber-50 text-amber-700 border border-amber-200
+                            {% else %}bg-orange-50 text-orange-700 border border-orange-200{% endif %}">{{ note_cp|t }}</span>
                         {% else %}
                         <span class="text-[10px] font-bold text-slate-300 italic">{{ "Non notée"|t }}</span>
                         {% endif %}
@@ -193,48 +182,68 @@
         {% endif %}
         {% endwith %}
 
-        <!-- Section des recommandations -->
+        <!-- Notes du Contrôle Permanent (style boîte de réception) -->
         {% if user.notations.all %}
         <div class="mt-6">
             <div class="flex items-center gap-2.5 mb-2.5 pl-2">
-                <div class="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center border border-amber-200">
-                    <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200">
+                    <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                 </div>
-                <h3 class="text-xs font-black text-slate-700 uppercase tracking-widest">{{ "Recommandations du Contrôleur"|t }}</h3>
+                <h3 class="text-xs font-black text-slate-700 uppercase tracking-widest">{{ "Notes du Contrôle Permanent"|t }}</h3>
+                <span class="ml-auto text-[8px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">{{ user.notations.all|length }}</span>
             </div>
 
-            <div class="space-y-3">
+            <div class="glass-panel bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden divide-y divide-slate-100">
                 {% for note in user.notations.all|dictsortreversed:"date_notation" %}
-                {% if note.recommandation %}
-                <div class="glass-panel relative overflow-hidden bg-white rounded-2xl border border-slate-100 shadow-lg">
-                    <!-- Bandeau coloré (hero) selon la note -->
-                    <div class="relative px-5 py-2.5 overflow-hidden
-                        {% if note.note == 'Très Bien' %}bg-gradient-to-br from-emerald-600 to-emerald-800
-                        {% elif note.note == 'Bien' %}bg-gradient-to-br from-blue-600 to-blue-800
-                        {% elif note.note == 'Passable' %}bg-gradient-to-br from-amber-500 to-amber-700
-                        {% else %}bg-gradient-to-br from-orange-500 to-orange-700{% endif %}">
-                        <div class="absolute -right-6 -top-8 w-28 h-28 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-                        <div class="relative z-10 flex items-center justify-between gap-4">
-                            <div class="flex items-center gap-3">
-                                <p class="text-lg font-black tracking-wider text-white drop-shadow-sm leading-none uppercase">{{ note.note|t }}</p>
-                                <span class="text-[9px] font-bold text-white/70 uppercase tracking-widest">{{ "Le"|t }} {{ note.date_notation|date:"d/m/Y" }}</span>
-                            </div>
-                            <div class="w-8 h-8 rounded-lg bg-white/15 backdrop-blur flex items-center justify-center border border-white/25 shrink-0">
-                                <svg class="w-4 h-4 text-white drop-shadow" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            </div>
+                <details class="group">
+                    <summary class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50/80 transition-colors list-none [&::-webkit-details-marker]:hidden">
+                        <!-- Avatar / initiales du contrôleur -->
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-black shrink-0 shadow-sm uppercase
+                            {% if note.note == 'Très Bien' %}bg-gradient-to-br from-emerald-500 to-emerald-700
+                            {% elif note.note == 'Bien' %}bg-gradient-to-br from-blue-500 to-blue-700
+                            {% elif note.note == 'Passable' %}bg-gradient-to-br from-amber-500 to-amber-700
+                            {% else %}bg-gradient-to-br from-orange-500 to-orange-700{% endif %}">
+                            {{ note.note_par.first_name|first|default:note.note_par.username|first }}{{ note.note_par.last_name|first }}
                         </div>
-                    </div>
 
-                    <!-- Recommandation -->
-                    <div class="px-5 py-2.5 flex items-start gap-2.5
-                        {% if note.note == 'Très Bien' %}bg-emerald-50/60{% elif note.note == 'Bien' %}bg-blue-50/60{% elif note.note == 'Passable' %}bg-amber-50/60{% else %}bg-orange-50/60{% endif %}">
-                        <svg class="w-3.5 h-3.5 mt-0.5 shrink-0
-                            {% if note.note == 'Très Bien' %}text-emerald-600{% elif note.note == 'Bien' %}text-blue-600{% elif note.note == 'Passable' %}text-amber-600{% else %}text-orange-600{% endif %}"
-                            fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <p class="text-[12px] font-semibold italic text-slate-700 leading-snug">"{{ note.recommandation }}"</p>
+                        <!-- Expéditeur + aperçu -->
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                <p class="text-[11px] font-black text-slate-800 truncate">{{ note.note_par.first_name }} {{ note.note_par.last_name|default:note.note_par.username }}</p>
+                                <span class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wide
+                                    {% if note.note == 'Très Bien' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                    {% elif note.note == 'Bien' %}bg-blue-50 text-blue-700 border border-blue-200
+                                    {% elif note.note == 'Passable' %}bg-amber-50 text-amber-700 border border-amber-200
+                                    {% else %}bg-orange-50 text-orange-700 border border-orange-200{% endif %}">{{ note.note|t }}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 truncate mt-0.5">
+                                {% if note.recommandation %}{{ note.recommandation }}{% else %}<span class="italic text-slate-300">{{ "Aucune recommandation"|t }}</span>{% endif %}
+                            </p>
+                        </div>
+
+                        <!-- Date + flux/stock + chevron -->
+                        <div class="flex items-center gap-2.5 shrink-0">
+                            <div class="text-right">
+                                <p class="text-[9px] font-bold text-slate-400 whitespace-nowrap">{{ note.date_notation|date:"d/m/Y" }}</p>
+                                {% if note.flux_stock %}<span class="text-[7px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{{ note.flux_stock }}</span>{% endif %}
+                            </div>
+                            <svg class="w-3.5 h-3.5 text-slate-300 transition-transform group-open:rotate-90 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                        </div>
+                    </summary>
+
+                    <!-- Corps déplié : recommandation complète -->
+                    <div class="px-4 pb-3.5 pl-16">
+                        {% if note.recommandation %}
+                        <div class="p-3 rounded-xl text-[12px] font-medium italic text-slate-700 leading-snug border-l-2
+                            {% if note.note == 'Très Bien' %}bg-emerald-50/60 border-emerald-400
+                            {% elif note.note == 'Bien' %}bg-blue-50/60 border-blue-400
+                            {% elif note.note == 'Passable' %}bg-amber-50/60 border-amber-400
+                            {% else %}bg-orange-50/60 border-orange-400{% endif %}">"{{ note.recommandation }}"</div>
+                        {% else %}
+                        <p class="text-[11px] italic text-slate-300 px-1">{{ "Aucune recommandation associée à cette note."|t }}</p>
+                        {% endif %}
                     </div>
-                </div>
-                {% endif %}
+                </details>
                 {% endfor %}
             </div>
         </div>

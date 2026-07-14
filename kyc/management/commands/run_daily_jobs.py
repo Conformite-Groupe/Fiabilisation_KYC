@@ -1,8 +1,11 @@
 """
 Tâche planifiée UNIQUE regroupant tous les traitements quotidiens :
-  1. Préchauffe des caches (warm_ui_caches)
-  2. Calcul des appréciations globales (compute_appreciation_globale)
-  3. Envoi des rappels DATEREV (filiales payées uniquement)
+  0a. Worker OCR documents (process_document_ocr --loop, processus détaché)
+  0. Imports (import_kyc.py, import_premier.py, import_taux_agent.py)
+  1. Calcul des taux de qualité complets (compute_quality_rates)
+  2. Préchauffe des caches (warm_ui_caches)
+  3. Calcul des appréciations globales (compute_appreciation_globale)
+  4. Envoi des rappels DATEREV (filiales payées uniquement)
 
 À la fin, envoie un rapport d'exécution (OK / problèmes) par email à la liste
 de supervision (champ « Emails de supervision » de la Configuration Rappel DATEREV),
@@ -28,9 +31,12 @@ class Command(BaseCommand):
                             help="N'envoie pas le rapport par email (exécution seule).")
         parser.add_argument("--skip", default="",
                             help="Jobs à ignorer, séparés par des virgules : "
-                                 "import_kyc,import_premier,import_taux,warm,appreciation,daterev")
+                                 "ocr_worker,import_kyc,import_premier,import_taux,quality,warm,appreciation,daterev")
         parser.add_argument("--script-timeout", type=int, default=7200,
                             help="Délai max (secondes) par script d'import (défaut 7200).")
+        parser.add_argument("--daterev-filiale", default="",
+                            help="Limite l'envoi des rappels DATEREV à cette filiale (ex. « BOA SN »). "
+                                 "Vide = toutes les filiales payées.")
 
     def handle(self, *args, **options):
         from kyc.models import EmailReminderConfig
@@ -79,11 +85,51 @@ class Command(BaseCommand):
                 raise RuntimeError(f"code retour {proc.returncode} — {tail[:200]}")
             return (tail[:200] or "Terminé.")
 
+        # ── 0a. Worker OCR documents (processus DÉTACHÉ, non bloquant) ────────
+        # Lancé en tout premier : la fonction retourne immédiatement après le spawn,
+        # le worker vit ensuite indépendamment des autres jobs (un échec du worker
+        # n'affecte pas la suite, et inversement). Garde anti-doublon par fichier PID.
+        def _ocr_worker():
+            pid_file = os.path.join(str(settings.BASE_DIR), "ocr_worker.pid")
+            if os.path.exists(pid_file):
+                try:
+                    pid = int(open(pid_file).read().strip())
+                    check = subprocess.run(["tasklist", "/FI", f"PID eq {pid}"],
+                                           capture_output=True, timeout=30)
+                    if str(pid).encode() in (check.stdout or b""):
+                        return f"Worker OCR déjà actif (PID {pid}) — rien à faire."
+                except Exception:
+                    pass  # PID illisible ou tasklist indisponible : on relance.
+            log_handle = open(os.path.join(str(settings.BASE_DIR), "ocr_worker.log"), "ab")
+            creationflags = 0
+            if os.name == "nt":
+                creationflags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+            proc = subprocess.Popen(
+                [_sys.executable, "-X", "utf8", "manage.py", "process_document_ocr",
+                 "--loop", "--interval", "5", "--workers", "3"],
+                cwd=str(settings.BASE_DIR), stdout=log_handle, stderr=log_handle,
+                stdin=subprocess.DEVNULL, creationflags=creationflags, close_fds=True,
+            )
+            with open(pid_file, "w") as fh:
+                fh.write(str(proc.pid))
+            return f"Worker OCR lancé en arrière-plan (PID {proc.pid}, log : ocr_worker.log)."
+        run("ocr_worker", "Worker OCR documents (process_document_ocr --loop)", _ocr_worker)
+
         run("import_kyc", "Importation KYC (import_kyc.py)", lambda: _run_script("import_kyc.py"))
         run("import_premier", "Importation évolution / DATEREV / anomalies (import_premier.py)", lambda: _run_script("import_premier.py"))
         run("import_taux", "Importation taux agents (import_taux_agent.py)", lambda: _run_script("import_taux_agent.py"))
 
-        # ── 1. Préchauffe des caches ──────────────────────────────────────────
+        # ── 1a. Taux de qualité complets (TOUS les scopes) ────────────────────
+        # À faire AVANT le warm : les dashboards (statistiques) lisent la table
+        # TauxQualite. compute_quality_rates couvre tous les scopes actifs alors
+        # que warm_ui_caches ne calcule que les ~20 scopes représentatifs.
+        def _quality():
+            buf = io.StringIO()
+            call_command("compute_quality_rates", stdout=buf)
+            return buf.getvalue().strip().splitlines()[-1] if buf.getvalue().strip() else "Terminé."
+        run("quality", "Calcul des taux de qualité (compute_quality_rates)", _quality)
+
+        # ── 1b. Préchauffe des caches ─────────────────────────────────────────
         def _warm():
             buf = io.StringIO()
             call_command("warm_ui_caches", stdout=buf)
@@ -98,14 +144,29 @@ class Command(BaseCommand):
         run("appreciation", "Calcul des appréciations globales", _appr)
 
         # ── 3. Rappels DATEREV (filiales payées) ──────────────────────────────
+        daterev_filiale = (options.get("daterev_filiale") or "").strip()
+
         def _daterev():
             from kyc.daterev_mailer import send_daterev_reminders_core
             cfg = EmailReminderConfig.objects.filter(active=True).order_by("-updated_at").first()
             if not cfg:
                 return "Aucune configuration SMTP active — envoi ignoré."
-            sent, skipped = send_daterev_reminders_core(cfg, only_paid=True)
-            return f"{sent} mail(s) envoyé(s), {skipped} ignoré(s) (email manquant)."
-        run("daterev", "Envoi des rappels DATEREV (filiales payées)", _daterev)
+            # Respect de la fréquence configurée (l'envoi manuel via l'interface
+            # n'est pas concerné : il passe directement par send_daterev_reminders_core).
+            today = timezone.localdate()
+            freq = (cfg.frequency or "manual").lower()
+            if freq == "manual":
+                return "Fréquence « Manuel » — envoi automatique ignoré."
+            if freq == "weekly" and today.weekday() != 0:
+                return "Fréquence « Hebdomadaire » — envoi uniquement le lundi, ignoré aujourd'hui."
+            if freq == "monthly" and today.day != 1:
+                return "Fréquence « Mensuel » — envoi uniquement le 1er du mois, ignoré aujourd'hui."
+            sent, skipped = send_daterev_reminders_core(cfg, filiale=daterev_filiale or None, only_paid=True)
+            cible = f" pour la filiale « {daterev_filiale} »" if daterev_filiale else ""
+            return f"{sent} mail(s) envoyé(s), {skipped} ignoré(s) (email manquant){cible}."
+        label_daterev = (f"Envoi des rappels DATEREV — filiale « {daterev_filiale} »"
+                         if daterev_filiale else "Envoi des rappels DATEREV (filiales payées)")
+        run("daterev", label_daterev, _daterev)
 
         ended = timezone.localtime()
         all_ok = all(r["ok"] for r in results)

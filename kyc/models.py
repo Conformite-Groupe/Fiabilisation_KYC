@@ -250,6 +250,10 @@ class KycFieldVisibilityConfig(models.Model):
     display_fields = models.JSONField(blank=True, default=list)
     filiales = models.JSONField(blank=True, default=list)
     field_sources = models.JSONField(blank=True, default=dict)
+    # Intitules metier des champs Kyc_pp / Kyc_pm ({champ: intitule}), utilises par
+    # le module Screening KYC ID (onglet Sources par champ) pour presenter et
+    # rapprocher la bonne information extraite des documents.
+    field_labels = models.JSONField(blank=True, default=dict)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -561,6 +565,56 @@ class KycMatchValidatorRole(models.Model):
         return cls.objects.filter(organe=getattr(user, "organe", ""), can_reject=True).exists()
 
 
+class KycScreeningAccess(models.Model):
+    """Habilitations par organe sur le module Screening KYC ID (/document-extraction).
+    Meme logique que KycMatchValidatorRole : une ligne par organe, editable en admin.
+    Si aucune ligne n'existe pour l'organe d'un utilisateur, repli sur le comportement
+    historique (DSI / PASS groupe pour le chargement, onglets Resultats + Documents pour tous)."""
+    from accounts.models import Organe as _ORGANE_CHOICES
+    organe = models.CharField(max_length=50, choices=_ORGANE_CHOICES, unique=True,
+                              verbose_name="Organe")
+    tab_charger = models.BooleanField(default=False, verbose_name="Onglet Charger")
+    tab_suivi = models.BooleanField(default=False, verbose_name="Onglet Suivi")
+    tab_resultats = models.BooleanField(default=True, verbose_name="Onglet Resultats")
+    tab_sources = models.BooleanField(default=False, verbose_name="Onglet Sources par champ")
+    tab_documents = models.BooleanField(default=True, verbose_name="Onglet Documents extraits")
+    can_upload_batches = models.BooleanField(default=False, verbose_name="Peut charger des lots")
+    can_run_matching = models.BooleanField(default=False, verbose_name="Peut lancer le rapprochement")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Acces Screening KYC ID (par organe)"
+        verbose_name_plural = "Acces Screening KYC ID (par organe)"
+        ordering = ["organe"]
+
+    def __str__(self):
+        return self.organe
+
+    ALL_PERMS = ("tab_charger", "tab_suivi", "tab_resultats", "tab_sources",
+                 "tab_documents", "can_upload_batches", "can_run_matching")
+
+    @classmethod
+    def perms_for(cls, user, legacy_can_insert=False):
+        """Renvoie {perm: bool} pour l'utilisateur.
+        Superuser : tout autorise. Organe sans ligne : repli historique."""
+        if user and getattr(user, "is_superuser", False):
+            return {p: True for p in cls.ALL_PERMS}
+        row = None
+        if user and getattr(user, "is_authenticated", False):
+            row = cls.objects.filter(organe=getattr(user, "organe", "")).first()
+        if row is None:
+            return {
+                "tab_charger": legacy_can_insert,
+                "tab_suivi": legacy_can_insert,
+                "tab_resultats": True,
+                "tab_sources": legacy_can_insert,
+                "tab_documents": True,
+                "can_upload_batches": legacy_can_insert,
+                "can_run_matching": legacy_can_insert,
+            }
+        return {p: getattr(row, p) for p in cls.ALL_PERMS}
+
+
 class KycMatchDecision(models.Model):
     """Decision de validation d'une correspondance document <-> client KYC.
     Superpose un statut persistant (tracable) sur le resultat de rapprochement."""
@@ -716,6 +770,14 @@ class Kyc_pp(models.Model):
     EMPLOYEUR = models.CharField(blank=True, max_length=200)
     INTITULE_COMPTE = models.CharField(blank=True, max_length=200)
     LIEU_DELIVRANCE_CIN = models.CharField(blank=True, max_length=200)
+
+    class Meta:
+        # Accélère les filtrages par scope (filiale/agence/expl) omniprésents
+        # dans l'évaluation des règles qualité et le batch compute_quality_rates.
+        indexes = [
+            models.Index(fields=["FILIALE", "AGENCE", "EXPL"], name="kyc_pp_scope_idx"),
+        ]
+
     def __str__(self):
         return f"{self.CLIENT} - {self.FILIALE}"
 
@@ -767,6 +829,44 @@ class TauxEvolution_filiale(models.Model):
 
     def __str__(self):
         return f"{self.filiale} – {self.date}"
+
+
+class TauxQualite(models.Model):
+    """Table de synthèse du taux de qualité par scope (comme TauxEvolution_filiale
+    pour les taux d'évolution). Remplie chaque matin par la commande
+    `compute_quality_rates`, lue par le dashboard pour éviter de rescanner Kyc_pp.
+
+    Un scope est identifié par (filiale, agence, expl) ; les champs à None
+    représentent un périmètre plus large (expl=None => niveau agence ; agence=None
+    => niveau filiale ; filiale=None => niveau Groupe). `applicability` vaut 'PP'
+    ou 'PM'. Le taux est calculé exactement comme dans la vue statistiques :
+    somme(ok_count) / somme(total) * 100 sur toutes les règles actives du scope.
+    """
+    filiale = models.CharField(max_length=50, null=True, blank=True)
+    agence = models.CharField(max_length=50, null=True, blank=True)
+    expl = models.CharField(max_length=50, null=True, blank=True)
+    applicability = models.CharField(max_length=2)  # 'PP' ou 'PM'
+    rate = models.FloatField(default=0)
+    ok_count = models.IntegerField(default=0)
+    total = models.IntegerField(default=0)
+    date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # Un seul enregistrement par scope + typologie + jour.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["filiale", "agence", "expl", "applicability", "date"],
+                name="uniq_tauxqualite_scope_jour",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["date", "applicability", "filiale", "agence", "expl"]),
+        ]
+
+    def __str__(self):
+        return f"{self.filiale or 'GROUPE'}/{self.agence or '-'}/{self.expl or '-'} {self.applicability} {self.date}: {self.rate}%"
+
 
 class DATEREV(models.Model):
     FILIALE = models.CharField(blank=True, max_length=10)

@@ -129,6 +129,8 @@ INSTALLED_APPS = [
     'django_countries',
     # Protection brute-force
     'axes',
+    # Configuration modifiable depuis l'admin (django-constance)
+    'constance',
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
@@ -296,9 +298,28 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
+# ─── CONFIGURATION MODIFIABLE DEPUIS L'ADMIN (django-constance) ──────────────
+CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
+CONSTANCE_CONFIG = {
+    'AXES_FAILURE_LIMIT': (
+        5, "Nombre de tentatives échouées avant verrouillage du compte", int),
+    'AXES_COOLOFF_HOURS': (
+        1, "Durée du verrouillage temporaire (en heures)", int),
+}
+
 # ─── PROTECTION BRUTE FORCE (django-axes) ────────────────────────────────────
-AXES_FAILURE_LIMIT = 5            # Verrouille après 5 échecs consécutifs
-AXES_COOLOFF_TIME = 1             # Temps de blocage : 1 heure
+# Les seuils sont pilotés par django-constance (modifiables dans l'admin).
+def _axes_failure_limit(request=None, credentials=None):
+    from constance import config
+    return config.AXES_FAILURE_LIMIT
+
+def _axes_cooloff_time(request=None, credentials=None):
+    from datetime import timedelta
+    from constance import config
+    return timedelta(hours=config.AXES_COOLOFF_HOURS)
+
+AXES_FAILURE_LIMIT = _axes_failure_limit   # Verrou après N échecs (réglable admin)
+AXES_COOLOFF_TIME = _axes_cooloff_time     # Durée de blocage (réglable admin)
 AXES_LOCKOUT_TEMPLATE = 'accounts/lockout.html'
 AXES_RESET_ON_SUCCESS = True       # Réinitialise le compteur sur login réussi
 AXES_ENABLED = not (len(sys.argv) > 1 and sys.argv[1] == 'test')

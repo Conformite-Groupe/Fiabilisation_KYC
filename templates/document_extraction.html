@@ -127,7 +127,7 @@
                 <div class="flex items-center gap-2 mt-1.5">
                     <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <p class="page-header-subtitle">
-                        {{ "Extraction documentaire et rapprochement KYC PP"|t }}
+                        {{ "Extraction documentaire et rapprochement KYC"|t }}
                     </p>
                 </div>
             </div>
@@ -143,35 +143,41 @@
 
     <nav class="flex" aria-label="Navigation extraction documents">
         <div class="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200/50 shadow-inner">
-            {% if can_insert_batches %}
+            {% if screening_perms.tab_charger %}
             <button type="button" data-tab="charger"
                 class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
                 {{ "Charger"|t }}
             </button>
+            {% endif %}
+            {% if screening_perms.tab_suivi %}
             <button type="button" data-tab="suivi"
                 class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
                 {{ "Suivi"|t }}
             </button>
             {% endif %}
+            {% if screening_perms.tab_resultats %}
             <button type="button" data-tab="consulter"
                 data-tab-url="{% url 'document_extraction' %}?tab=results#consulter"
                 class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
                 {{ "Resultats"|t }}
             </button>
-            {% if can_insert_batches %}
+            {% endif %}
+            {% if screening_perms.tab_sources %}
             <button type="button" data-tab="sources"
                 class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
                 {{ "Sources par champ"|t }}
             </button>
             {% endif %}
+            {% if screening_perms.tab_documents %}
             <button type="button" data-tab="base"
                 class="document-tab px-6 py-2 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider">
                 {{ "Documents extraits"|t }}
             </button>
+            {% endif %}
         </div>
     </nav>
 
-    {% if can_insert_batches %}
+    {% if screening_perms.tab_charger %}
     <section data-panel="charger"
         class="document-panel bg-white border border-green-100 rounded-2xl shadow-sm overflow-hidden">
         <div
@@ -226,6 +232,28 @@
                                 accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.txt,.zip"
                                 class="block w-full md:w-auto text-[11px] font-bold text-gray-600 file:mr-4 file:rounded-xl file:border-0 file:bg-green-700 file:px-4 file:py-3 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:text-white hover:file:bg-green-800">
                         </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-sky-800 mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                            {{ "Modes d'import et limites par lot"|t }}
+                        </p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="rounded-xl bg-white border border-sky-100 p-3">
+                                <p class="text-[9px] font-black uppercase tracking-widest text-sky-700">{{ "Import multiple"|t }}</p>
+                                <p class="text-[10px] font-bold text-gray-600 mt-1">{{ "Jusqu'a"|t }} <span class="font-black text-gray-800">{{ upload_max_files }} {{ "fichiers"|t }}</span> {{ "par envoi (PDF, JPG, PNG, TIFF, TXT)."|t }}</p>
+                            </div>
+                            <div class="rounded-xl bg-white border border-sky-100 p-3">
+                                <p class="text-[9px] font-black uppercase tracking-widest text-sky-700">{{ "Archive ZIP"|t }}</p>
+                                <p class="text-[10px] font-bold text-gray-600 mt-1">{{ "Jusqu'a"|t }} <span class="font-black text-gray-800">{{ zip_max_members }} {{ "fichiers"|t }}</span> {{ "et"|t }} <span class="font-black text-gray-800">{{ zip_max_total_mb }} {{ "Mo decompresses"|t }}</span> {{ "par archive."|t }}</p>
+                            </div>
+                            <div class="rounded-xl bg-white border border-sky-100 p-3">
+                                <p class="text-[9px] font-black uppercase tracking-widest text-sky-700">{{ "PDF groupe"|t }}</p>
+                                <p class="text-[10px] font-bold text-gray-600 mt-1">{{ "Un seul PDF contenant plusieurs pieces, decoupe selon 'Pages par document'."|t }}</p>
+                            </div>
+                        </div>
+                        <p class="text-[9px] font-bold text-sky-700/80 mt-3">{{ "Le rapprochement traite jusqu'a"|t }} {{ matching_doc_limit }} {{ "documents par execution. L'OCR s'effectue en arriere-plan apres le chargement."|t }}</p>
                     </div>
                 </div>
 
@@ -305,12 +333,26 @@
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-gray-800 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-700">
                         {{ "Documents du lot"|t }}
                     </a>
+                    {% if can_insert_batches %}
+                    <form method="post" class="inline-flex"
+                        onsubmit="return confirm('{{ "Retraiter l'OCR de tous les documents du lot ? Les champs extraits seront recalcules."|t|escapejs }}');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="retry_failed_ocr">
+                        <input type="hidden" name="scope" value="all">
+                        <input type="hidden" name="import_batch" value="{{ uploaded_batch }}">
+                        <button type="submit"
+                            class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-600">
+                            {{ "Retraiter l'OCR du lot"|t }}
+                        </button>
+                    </form>
+                    {% endif %}
                     {% if uploaded_batch_running_job %}
                     <a href="{{ uploaded_batch_running_job.follow_url }}"
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-700">
                         {{ "Suivre le rapprochement"|t }}
                     </a>
                     {% elif not uploaded_batch_matching_done %}
+                    {% if can_run_matching %}
                     <a href="{% url 'start_document_extraction_match_job' %}?import_batch={{ uploaded_batch|urlencode }}"
                         data-processing-link data-processing-title="{{ 'Rapprochement KYC PP en cours'|t }}"
                         data-processing-detail="Analyse du lot charge et recherche des champs vides dans KYC PP."
@@ -318,6 +360,7 @@
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-800">
                         {{ "Lancer le rapprochement"|t }}
                     </a>
+                    {% endif %}
                     {% else %}
                     <a href="{{ uploaded_batch_result_url|default:'#consulter' }}"
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-green-800 text-[10px] font-black uppercase tracking-widest hover:bg-green-100">
@@ -405,90 +448,6 @@
         </div>
         {% endif %}
 
-        <div class="border-t border-gray-200 bg-white px-6 py-6">
-            <div class="mb-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">{{ "Lots en attente"|t }}</h3>
-                    <p class="mt-1 text-[11px] font-bold text-gray-400">
-                        {{ "Lots charges mais pas encore lances en rapprochement."|t }}
-                    </p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                    <span
-                        class="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700">
-                        {{ upload_batch_queue|length }} lot{{ upload_batch_queue|length|pluralize }}
-                    </span>
-                    {% if upload_batch_queue %}
-                    <a href="{% url 'start_document_extraction_match_job' %}" data-processing-link
-                        data-processing-title="{{ 'Rapprochement global KYC PP'|t }}"
-                        data-processing-detail="Analyse de tous les lots et recherche des champs vides dans KYC PP."
-                        data-processing-count="{{ documents_count }}"
-                        class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
-                        {{ "Tout lancer"|t }}
-                    </a>
-                    {% else %}
-                    <button type="button" disabled
-                        class="inline-flex cursor-not-allowed items-center justify-center rounded-xl bg-slate-200 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        {{ "Tout lancer"|t }}
-                    </button>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-                <table class="w-full min-w-[760px] border-separate border-spacing-0 text-[10px]">
-                    <thead>
-                        <tr class="bg-slate-900 text-[9px] font-black uppercase tracking-widest text-white">
-                            <th class="px-4 py-3 text-left">{{ "Lot"|t }}</th>
-                            <th class="w-28 px-4 py-3 text-center">{{ "Documents"|t }}</th>
-                            <th class="w-32 px-4 py-3 text-center">{{ "Etat"|t }}</th>
-                            <th class="w-56 px-4 py-3 text-right">{{ "Actions"|t }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for batch in upload_batch_queue %}
-                        <tr class="border-t border-slate-100 text-slate-700 transition-colors hover:bg-emerald-50">
-                            <td class="border-t border-slate-100 px-4 py-3 align-middle">
-                                <p class="max-w-[520px] truncate text-[11px] font-black text-slate-800"
-                                    title="{{ batch.import_batch }}">{{ batch.import_batch }}</p>
-                                <p class="mt-0.5 text-[9px] font-black uppercase tracking-widest text-slate-400">{{ batch.latest_created_at|date:"d/m/Y H:i" }}</p>
-                            </td>
-                            <td class="border-t border-slate-100 px-4 py-3 text-center align-middle">
-                                <span
-                                    class="inline-flex min-w-10 justify-center rounded-lg bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-800">{{ batch.documents_count }}</span>
-                            </td>
-                            <td class="border-t border-slate-100 px-4 py-3 text-center align-middle">
-                                <span
-                                    class="inline-flex rounded border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest {% if batch.status  ==  'failed' %}border-red-100 bg-red-50 text-red-700{% else %}border-slate-200 bg-slate-50 text-slate-700{% endif %}">
-                                    {{ batch.status_label }}
-                                </span>
-                            </td>
-                            <td class="border-t border-slate-100 px-4 py-3 text-right align-middle">
-                                <div class="inline-flex items-center gap-2">
-                                    <a href="{{ batch.documents_url }}"
-                                        class="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-[9px] font-black uppercase tracking-widest text-slate-700 hover:bg-white">
-                                        {{ "Documents"|t }}
-                                    </a>
-                                    <a href="{{ batch.start_url }}" data-processing-link
-                                        data-processing-title="{{ 'Rapprochement KYC PP en cours'|t }}"
-                                        data-processing-detail="Analyse du lot et recherche des champs vides dans KYC PP."
-                                        data-processing-count="{{ batch.documents_count }}"
-                                        class="inline-flex h-8 items-center rounded-lg bg-emerald-700 px-3 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
-                                        {{ "Lancer"|t }}
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="px-4 py-8 text-center text-[11px] font-bold text-slate-400">
-                                {{ "Aucun lot en attente. Les lots en cours ou termines sont visibles dans l'onglet Suivi."|t }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </section>
     {% endif %}
 
@@ -496,7 +455,7 @@
     <div class="fixed inset-0 z-[80] bg-slate-950/65 backdrop-blur-md"></div>
     {% endif %}
 
-    {% if can_insert_batches %}
+    {% if screening_perms.tab_suivi %}
     <section data-panel="suivi"
         class="document-panel bg-white border border-emerald-100 rounded-2xl shadow-sm overflow-hidden">
         <div
@@ -508,7 +467,7 @@
         </div>
 
         <div class="p-6 space-y-5">
-            {% if selected_match_job and not show_match_job_results %}
+            {% if selected_match_job and not show_match_job_results and not selected_match_job_consulted %}
             <div id="matchJobProgress"
                 data-status-url="{% url 'document_extraction_match_job_status' selected_match_job.pk %}"
                 data-initial-status="{{ selected_match_job.status }}"
@@ -556,6 +515,88 @@
             </div>
             {% endif %}
 
+            <div>
+                <div class="mb-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-700">{{ "Lots en attente"|t }}</h3>
+                        <p class="mt-1 text-[11px] font-bold text-gray-400">
+                            {{ "Lots charges mais pas encore lances en rapprochement."|t }}
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span
+                            class="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                            {{ upload_batch_queue|length }} lot{{ upload_batch_queue|length|pluralize }}
+                        </span>
+                        {% if upload_batch_queue and can_run_matching %}
+                        <a href="{% url 'start_document_extraction_match_job' %}" data-processing-link
+                            data-processing-title="{{ 'Rapprochement global KYC PP'|t }}"
+                            data-processing-detail="Analyse de tous les lots et recherche des champs vides dans KYC PP."
+                            data-processing-count="{{ documents_count }}"
+                            class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
+                            {{ "Tout lancer"|t }}
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <table class="w-full min-w-[760px] border-separate border-spacing-0 text-[10px]">
+                        <thead>
+                            <tr class="bg-slate-900 text-[9px] font-black uppercase tracking-widest text-white">
+                                <th class="px-4 py-3 text-left">{{ "Lot"|t }}</th>
+                                <th class="w-28 px-4 py-3 text-center">{{ "Documents"|t }}</th>
+                                <th class="w-32 px-4 py-3 text-center">{{ "Etat"|t }}</th>
+                                <th class="w-56 px-4 py-3 text-right">{{ "Actions"|t }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for batch in upload_batch_queue %}
+                            <tr class="border-t border-slate-100 text-slate-700 transition-colors hover:bg-emerald-50">
+                                <td class="border-t border-slate-100 px-4 py-3 align-middle">
+                                    <p class="max-w-[520px] truncate text-[11px] font-black text-slate-800"
+                                        title="{{ batch.import_batch }}">{{ batch.import_batch }}</p>
+                                    <p class="mt-0.5 text-[9px] font-black uppercase tracking-widest text-slate-400">{{ batch.latest_created_at|date:"d/m/Y H:i" }}</p>
+                                </td>
+                                <td class="border-t border-slate-100 px-4 py-3 text-center align-middle">
+                                    <span
+                                        class="inline-flex min-w-10 justify-center rounded-lg bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-800">{{ batch.documents_count }}</span>
+                                </td>
+                                <td class="border-t border-slate-100 px-4 py-3 text-center align-middle">
+                                    <span
+                                        class="inline-flex rounded border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest {% if batch.status  ==  'failed' %}border-red-100 bg-red-50 text-red-700{% else %}border-slate-200 bg-slate-50 text-slate-700{% endif %}">
+                                        {{ batch.status_label }}
+                                    </span>
+                                </td>
+                                <td class="border-t border-slate-100 px-4 py-3 text-right align-middle">
+                                    <div class="inline-flex items-center gap-2">
+                                        <a href="{{ batch.documents_url }}"
+                                            class="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-[9px] font-black uppercase tracking-widest text-slate-700 hover:bg-white">
+                                            {{ "Documents"|t }}
+                                        </a>
+                                        {% if can_run_matching %}
+                                        <a href="{{ batch.start_url }}" data-processing-link
+                                            data-processing-title="{{ 'Rapprochement KYC PP en cours'|t }}"
+                                            data-processing-detail="Analyse du lot et recherche des champs vides dans KYC PP."
+                                            data-processing-count="{{ batch.documents_count }}"
+                                            class="inline-flex h-8 items-center rounded-lg bg-emerald-700 px-3 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
+                                            {{ "Lancer"|t }}
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="px-4 py-8 text-center text-[11px] font-bold text-slate-400">
+                                    {{ "Aucun lot en attente."|t }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                 <table class="w-full min-w-[820px] border-separate border-spacing-0 text-[10px]">
                     <thead>
@@ -583,11 +624,13 @@
                                 </span>
                             </td>
                             <td class="border-t border-slate-100 px-4 py-3 align-middle">
-                                <div class="h-2 overflow-hidden rounded-full bg-slate-100">
-                                    <div class="h-full rounded-full bg-emerald-700"
-                                        style="width: {{ job.progress_percent }}%"></div>
+                                <div class="flex items-center gap-3">
+                                    <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                        <div class="h-full rounded-full bg-emerald-700"
+                                            style="width: {{ job.progress_percent }}%"></div>
+                                    </div>
+                                    <span class="w-16 shrink-0 text-right text-[9px] font-black text-slate-400 whitespace-nowrap">{{ job.progress_current }} / {{ job.progress_total }}</span>
                                 </div>
-                                <p class="mt-1 text-center text-[9px] font-black text-slate-400">{{ job.progress_current }} / {{ job.progress_total }}</p>
                             </td>
                             <td class="border-t border-slate-100 px-4 py-3 text-right align-middle">
                                 {% if job.status  ==  'completed' %}
@@ -616,6 +659,7 @@
     </section>
     {% endif %}
 
+    {% if screening_perms.tab_resultats %}
     <section data-panel="consulter"
         class="document-panel {% if show_document_modal %}document-modal-panel fixed inset-3 lg:inset-6 z-[90] overflow-hidden rounded-2xl bg-gray-50 border border-white/20 shadow-2xl{% else %}space-y-6{% endif %}">
         {% if show_document_modal %}
@@ -747,6 +791,7 @@
                             class="inline-flex h-8 items-center justify-center rounded-xl px-3 text-[9px] font-black uppercase tracking-widest text-white shadow-sm">
                             client{{ kyc_pp_match_total_count|pluralize }} trouve{{ kyc_pp_match_total_count|pluralize }} {{ kyc_pp_match_filtered_count }} / {{ kyc_pp_match_total_count }}
                         </span>
+                        {% if can_validate_matches or can_reject_matches %}
                         <div class="inline-flex items-center rounded-xl border border-white/20 bg-white/10 p-0.5">
                             {% for st_code, st_label in match_status_options %}
                             <a href="?{% if match_querystring %}{{ match_querystring }}&{% endif %}match_status={{ st_code }}#consulter"
@@ -755,6 +800,11 @@
                             </a>
                             {% endfor %}
                         </div>
+                        {% else %}
+                        <span class="inline-flex h-8 items-center justify-center rounded-xl border border-white/20 bg-white/10 px-3 text-[8px] font-black uppercase tracking-widest text-emerald-100">
+                            {{ "Correspondances validees uniquement"|t }}
+                        </span>
+                        {% endif %}
                         <a href="{% url 'export_document_extraction_matches' %}{% if export_match_querystring %}?{{ export_match_querystring }}{% endif %}"
                             class="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-600 px-3.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm shadow-emerald-900/10 transition hover:bg-emerald-700">
                             {{ "Exporter CSV"|t }}
@@ -764,7 +814,7 @@
                         <a href="{% url 'document_extraction' %}{% if match_reset_querystring %}?{{ match_reset_querystring }}{% endif %}#consulter"
                             class="inline-flex h-8 items-center justify-center rounded-xl border border-white/15 bg-white px-3.5 text-[9px] font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-100">{{ "Reset"|t }}</a>
                     </div>
-                    {% elif not selected_match_job and not wants_results_tab %}
+                    {% elif not selected_match_job and not wants_results_tab and can_run_matching %}
                     <a href="{% url 'start_document_extraction_match_job' %}{% if match_querystring %}?{{ match_querystring }}{% endif %}"
                         data-processing-link data-processing-title="{{ 'Rapprochement KYC PP en cours'|t }}"
                         data-processing-detail="Analyse des documents et recherche des champs vides dans KYC PP."
@@ -810,7 +860,7 @@
                             {% if run_kyc_pp_matching and match_scope_import_batch  ==  selected_import_batch %}
                             <span class="">
                             </span>
-                            {% else %}
+                            {% elif can_run_matching %}
                             <a href="{% url 'start_document_extraction_match_job' %}?import_batch={{ selected_import_batch|urlencode }}"
                                 data-processing-link data-processing-title="{{ 'Rapprochement KYC PP en cours'|t }}"
                                 data-processing-detail="Analyse du lot selectionne et recherche des champs vides dans KYC PP."
@@ -825,17 +875,31 @@
                     {% if selected_match_job and not show_match_job_results %}
                     {% elif wants_results_tab and not run_kyc_pp_matching and not expired_document_matches %}
                     <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
+                        {% if can_validate_matches or can_reject_matches %}
                         <p class="text-sm font-black text-gray-700">{{ "Aucun resultat global disponible."|t }}</p>
                         <p class="text-[11px] font-bold text-gray-400 mt-2">
-
+                            {{ "Lancez un rapprochement depuis l'onglet Charger ou Suivi pour alimenter cette page."|t }}
                         </p>
+                        {% else %}
+                        <p class="text-sm font-black text-gray-700">{{ "Aucune correspondance validee pour le moment."|t }}</p>
+                        <p class="text-[11px] font-bold text-gray-400 mt-2">
+                            {{ "Les correspondances apparaissent ici une fois controlees et validees par les profils habilites (Conformite, Controle Permanent...)."|t }}
+                        </p>
+                        {% endif %}
                     </div>
                     {% elif not run_kyc_pp_matching and not expired_document_matches %}
                     <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">
+                        {% if can_validate_matches or can_reject_matches %}
                         <p class="text-sm font-black text-gray-700">{{ "Rapprochement non lance."|t }}</p>
                         <p class="text-[11px] font-bold text-gray-400 mt-2">
                             {{ "Le calcul peut parcourir plusieurs milliers de documents et clients. Lancez-le uniquement apres avoir filtre un lot ou une recherche."|t }}
                         </p>
+                        {% else %}
+                        <p class="text-sm font-black text-gray-700">{{ "Aucune correspondance validee pour le moment."|t }}</p>
+                        <p class="text-[11px] font-bold text-gray-400 mt-2">
+                            {{ "Les correspondances apparaissent ici une fois controlees et validees par les profils habilites (Conformite, Controle Permanent...)."|t }}
+                        </p>
+                        {% endif %}
                     </div>
                     {% elif kyc_pp_match_total_count or expired_document_matches %}
                     <form id="kyc-match-filter-form" method="get" action="{% url 'document_extraction' %}#consulter">
@@ -971,7 +1035,7 @@
                                                 {% for suggestion in match.suggestions %}
                                                 <span
                                                     class="block rounded bg-green-50 border border-green-100 px-1.5 py-0.5 text-[8px] font-black leading-snug text-green-800 whitespace-normal break-words">
-                                                    {{ suggestion.field }}: {{ suggestion.document_value }}
+                                                    {{ suggestion.field_label|default:suggestion.field }}: {{ suggestion.document_value }}
                                                 </span>
                                                 {% endfor %}
                                                 {% if match.expired_document_match %}
@@ -1092,8 +1156,9 @@
         </div>
         {% endif %}
     </section>
+    {% endif %}
 
-    {% if can_insert_batches %}
+    {% if screening_perms.tab_sources %}
     <section data-panel="sources"
         class="document-panel bg-white border border-green-100 rounded-2xl shadow-sm overflow-hidden">
         <div
@@ -1181,14 +1246,17 @@
                             <label
                                 class="grid grid-cols-1 gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-700 md:grid-cols-[1fr_280px] md:items-center">
                                 <span class="uppercase tracking-wider">{{ label }}</span>
-                                <select name="source_{{ section.client_type }}_{{ field }}"
-                                    class="w-full py-1.5 px-2 rounded-lg border border-slate-200 bg-white text-[10px] font-black uppercase tracking-normal text-slate-700 focus:border-emerald-500 focus:ring-emerald-500 leading-normal">
-                                    <option value="" {% if not selected_source %}selected{% endif %}>{{ "Tous documents"|t }}
-                                    </option>
-                                    {% for value, doc_label in document_type_choices %}
-                                    <option value="{{ value }}" {% if selected_source == value %}selected{% endif %}>{{ doc_label }}</option>
-                                    {% endfor %}
-                                </select>
+                                <span>
+                                    <select name="source_{{ section.client_type }}_{{ field }}" multiple size="4"
+                                        class="w-full py-1.5 px-2 rounded-lg border border-slate-200 bg-white text-[10px] font-black uppercase tracking-normal text-slate-700 focus:border-emerald-500 focus:ring-emerald-500 leading-normal">
+                                        <option value="" {% if not selected_source %}selected{% endif %}>{{ "Tous documents"|t }}
+                                        </option>
+                                        {% for value, doc_label in document_type_choices %}
+                                        <option value="{{ value }}" {% if selected_source and value in selected_source %}selected{% endif %}>{{ doc_label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <span class="block mt-1 text-[8px] font-bold normal-case tracking-normal text-slate-400">{{ "Ctrl+clic pour choisir plusieurs types de documents."|t }}</span>
+                                </span>
                             </label>
                             {% endwith %}
                             {% endfor %}
@@ -1201,6 +1269,7 @@
     </section>
     {% endif %}
 
+    {% if screening_perms.tab_documents %}
     <section data-panel="base"
         class="document-panel bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
         <div
@@ -1386,6 +1455,7 @@
             {% endif %}
         </div>
     </section>
+    {% endif %}
 </div>
 
 {% if show_match_result_modal and selected_match_job %}
@@ -1588,6 +1658,7 @@
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
                         {{ "Plus tard"|t }}
                     </button>
+                    {% if can_run_matching %}
                     <a href="{% url 'start_document_extraction_match_job' %}?import_batch={{ uploaded_batch|urlencode }}"
                         data-processing-link data-processing-title="{{ 'Rapprochement KYC PP en cours'|t }}"
                         data-processing-detail="Analyse du lot charge et recherche des champs vides dans KYC PP."
@@ -1595,6 +1666,7 @@
                         class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-green-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-800">
                         {{ "Lancer le rapprochement"|t }}
                     </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -1803,9 +1875,12 @@
     const hashTab = ["#charger", "#suivi", "#consulter", "#sources", "#base"].includes(window.location.hash)
         ? window.location.hash.slice(1)
         : "";
-    const canInsertBatches = {{ can_insert_batches|yesno:"true,false" }};
-    const defaultTab = canInsertBatches ? "charger" : "consulter";
-    const initialTab = hashTab || (searchParams.has("match_job") ? "suivi" : (window.location.search ? "consulter" : defaultTab));
+    const availableTabs = Array.from(document.querySelectorAll(".document-tab")).map((b) => b.dataset.tab);
+    const defaultTab = availableTabs[0] || "consulter";
+    let initialTab = hashTab || (searchParams.has("match_job") ? "suivi" : (window.location.search ? "consulter" : defaultTab));
+    if (!availableTabs.includes(initialTab)) {
+        initialTab = defaultTab;
+    }
 
     if (document.querySelector(".document-modal-panel")) {
         document.body.classList.add("overflow-hidden");

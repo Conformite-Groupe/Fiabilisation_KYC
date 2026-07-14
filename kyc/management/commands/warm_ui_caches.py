@@ -6,12 +6,16 @@ from django.core.management.base import BaseCommand
 from django.test import RequestFactory
 from django.utils import timezone
 
-from kyc.models import DataQualityRule, TauxEvolution_filiale, EmailReminderConfig, Kyc_pp, Kyc_pm
+from kyc.models import (
+    DataQualityRule, TauxEvolution_filiale, EmailReminderConfig, Kyc_pp, Kyc_pm, TauxQualite,
+)
 from kyc.views import (
     _evaluate_data_quality_rule_scoped,
     _quality_cache_version,
     _rule_eval_filiale,
     _get_exploitants_daterev_expired,
+    evaluate_data_quality_rule,
+    evaluate_data_quality_scope,
     devise,
     devise_pm,
     non_anom,
@@ -37,6 +41,7 @@ class Command(BaseCommand):
         parser.add_argument("--quality-only", action="store_true", help="Ne prechauffe que les caches qualite/non_anom.")
         parser.add_argument("--dashboards-only", action="store_true", help="Ne prechauffe que les caches statistiques/evolutions.")
         parser.add_argument("--specific-only", action="store_true", help="Ne prechauffe que les pages PPE et comptes specifiques.")
+        parser.add_argument("--slice", type=str, default="1/1", help="Decoupage parallele des utilisateurs, format i/N (ex. 2/6 = worker 2 sur 6). Chaque worker traite un sous-ensemble disjoint des utilisateurs.")
 
     def handle(self, *args, **options):
         max_users = max(options["users"], 0)
@@ -45,18 +50,35 @@ class Command(BaseCommand):
         dashboards_only = options["dashboards_only"]
         specific_only = options["specific_only"]
 
+        # --slice i/N : repartit les utilisateurs (deja dedupliques par scope) en
+        # N sous-ensembles disjoints via un pas (stride). Permet de lancer N workers
+        # en parallele, chacun traitant 1/N des scopes sur TOUS les blocs.
+        try:
+            slice_idx, slice_total = (int(x) for x in options["slice"].split("/"))
+        except (ValueError, AttributeError):
+            slice_idx, slice_total = 1, 1
+        if slice_total < 1 or not (1 <= slice_idx <= slice_total):
+            slice_idx, slice_total = 1, 1
+
         users = self._representative_users(max_users)
+        if slice_total > 1:
+            users = users[slice_idx - 1::slice_total]
         if not users:
-            self.stdout.write(self.style.WARNING("Aucun utilisateur actif trouve."))
+            self.stdout.write(self.style.WARNING("Aucun utilisateur actif pour ce slice."))
             return
 
-        warmed = {"quality": 0, "non_anom": 0, "dashboards": 0, "specific": 0, "daterev": 0}
+        warmed = {"quality": 0, "non_anom": 0, "taux_qualite": 0, "dashboards": 0, "specific": 0, "daterev": 0}
 
         if not dashboards_only and not specific_only:
-            warmed["quality"] = self._warm_quality_rule_stats(users)
+            # La stat globale par regle est independante du scope : un seul worker
+            # (le premier slice) la calcule pour eviter la redite entre workers.
+            warmed["quality"] = self._warm_quality_rule_stats(users, include_global=(slice_idx == 1))
             warmed["non_anom"] = self._warm_non_anom(users, max_rules)
 
         if not quality_only and not specific_only:
+            # IMPORTANT : precalculer la table TauxQualite AVANT les dashboards,
+            # car statistiques() lit ce snapshot pour eviter de rescanner Kyc_pp.
+            warmed["taux_qualite"] = self._warm_quality_snapshot(users)
             warmed["dashboards"] = self._warm_dashboards(users)
 
         if not quality_only and not dashboards_only:
@@ -68,8 +90,8 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 "Prechauffage termine: "
                 f"quality={warmed['quality']}, non_anom={warmed['non_anom']}, "
-                f"dashboards={warmed['dashboards']}, specific={warmed['specific']}, "
-                f"daterev={warmed['daterev']}."
+                f"taux_qualite={warmed['taux_qualite']}, dashboards={warmed['dashboards']}, "
+                f"specific={warmed['specific']}, daterev={warmed['daterev']}."
             )
         )
 
@@ -106,7 +128,7 @@ class Command(BaseCommand):
             return None, None, None
         return user.filiale or None, None, None
 
-    def _warm_quality_rule_stats(self, users):
+    def _warm_quality_rule_stats(self, users, include_global=True):
         rules = list(DataQualityRule.objects.filter(active=True).prefetch_related("conditions"))
         rules_version = _quality_cache_version()
         data_refresh_bucket = timezone.localdate().isoformat()
@@ -114,7 +136,7 @@ class Command(BaseCommand):
 
         # 1. Stat globale par regle : la signature n'utilise que les attributs de la
         #    regle -> independante du scope utilisateur, calcul une seule fois.
-        for rule in rules:
+        for rule in rules if include_global else []:
             quality_signature = (
                 f"{rule.id}|{rule.name}|{rule.applicability}|{rule.filiale}|"
                 f"{rule.field_name}|{rule.control_type}|{rule.parameter}|{rule.active}"
@@ -159,6 +181,41 @@ class Command(BaseCommand):
                 warmed += 1
 
         return warmed
+
+    def _warm_quality_snapshot(self, users):
+        """Precalcule la table TauxQualite pour les scopes de CE slice d'utilisateurs.
+
+        Reproduit a l'identique compute_quality_rate_by_typology (kyc/views.py) :
+        somme(ok_count)/somme(total) sur toutes les regles actives du scope.
+        statistiques() lira ce snapshot au lieu de rescanner Kyc_pp. Le scope est
+        derive via evaluate_data_quality_scope -> meme cle que la lecture dashboard.
+        """
+        today = timezone.localdate()
+        seen = set()
+        written = 0
+        for user in users:
+            scope = evaluate_data_quality_scope(user)
+            key = (scope.get("filiale"), scope.get("agence"), scope.get("expl"))
+            if key in seen:
+                continue
+            seen.add(key)
+            filiale, agence, expl = key
+            for applicability in ("PP", "PM"):
+                rules = list(DataQualityRule.objects.filter(active=True, applicability=applicability))
+                total_ok = 0
+                total_evaluated = 0
+                for rule in rules:
+                    stat = evaluate_data_quality_rule(rule, filiale=filiale, agence=agence, expl=expl)
+                    total_ok += stat.get("ok_count", 0)
+                    total_evaluated += stat.get("total", 0)
+                rate = round(total_ok / total_evaluated * 100, 1) if total_evaluated else 0
+                TauxQualite.objects.update_or_create(
+                    filiale=filiale, agence=agence, expl=expl,
+                    applicability=applicability, date=today,
+                    defaults={"rate": rate, "ok_count": total_ok, "total": total_evaluated},
+                )
+                written += 1
+        return written
 
     def _warm_dashboards(self, users):
         request_factory = RequestFactory()

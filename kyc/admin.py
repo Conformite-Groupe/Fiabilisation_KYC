@@ -5,7 +5,24 @@ from .models import (KycDocumentExtraction, KycDocumentMatchJob, KycDocumentMatc
                      KycExpiredDocumentScanMatch, FilialeModuleConfig, EmailReminderConfig,
                      AppreciationConfig, Appreciation_globale, TermTranslation, KycDocumentOcrJob,
                      KycMatchValidatorRole, KycMatchDecision, KycScreeningAccess,
-                     DataQualityRule, DataQualityCondition)
+                     DataQualityRule, DataQualityCondition, QualityFluxConfig, TauxQualite)
+
+
+@admin.register(QualityFluxConfig)
+class QualityFluxConfigAdmin(admin.ModelAdmin):
+    list_display = ("flux_window", "active", "updated_at")
+    list_editable = ("active",)
+    list_display_links = ("flux_window",)
+
+
+@admin.register(TauxQualite)
+class TauxQualiteAdmin(admin.ModelAdmin):
+    list_display = ("date", "flux_stock", "applicability", "filiale", "agence", "expl",
+                    "rate", "ok_count", "total")
+    list_filter = ("flux_stock", "applicability", "date", "filiale")
+    search_fields = ("filiale", "agence", "expl")
+    date_hierarchy = "date"
+    ordering = ("-date", "filiale")
 
 
 class DataQualityConditionInline(admin.TabularInline):

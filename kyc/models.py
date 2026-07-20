@@ -738,6 +738,18 @@ class Kyc_pm(models.Model):
     NUMERO_FISCAL = models.CharField(blank=True, max_length=200)
     PAYS_JUR = models.CharField(blank=True, max_length=200)
 
+    class Meta:
+        # Même index de scope que Kyc_pp (filtres filiale/agence/expl) + index
+        # DATEREV/RISQUE pour les filtres période et les KPI de /clients_scorer.
+        indexes = [
+            models.Index(fields=["FILIALE", "AGENCE", "EXPL"], name="kyc_pm_scope_idx"),
+            models.Index(fields=["DATEREV"], name="kyc_pm_daterev_idx"),
+            models.Index(fields=["RISQUE"], name="kyc_pm_risque_idx"),
+            # Filtres exacts des pages /non_resid_pm et /devise_pm
+            models.Index(fields=["RESID"], name="kyc_pm_resid_idx"),
+            models.Index(fields=["DEVISE"], name="kyc_pm_devise_idx"),
+        ]
+
     def __str__(self):
         return f"{self.CLIENT} - {self.FILIALE}"
 
@@ -776,6 +788,14 @@ class Kyc_pp(models.Model):
         # dans l'évaluation des règles qualité et le batch compute_quality_rates.
         indexes = [
             models.Index(fields=["FILIALE", "AGENCE", "EXPL"], name="kyc_pp_scope_idx"),
+            # Filtres période (DATEREV < / entre bornes) et KPI scoré/non scoré
+            # de /clients_scorer.
+            models.Index(fields=["DATEREV"], name="kyc_pp_daterev_idx"),
+            models.Index(fields=["RISQUE"], name="kyc_pp_risque_idx"),
+            # Filtres exacts des pages /ppe, /non_resid et /devise
+            models.Index(fields=["PPE"], name="kyc_pp_ppe_idx"),
+            models.Index(fields=["RESID"], name="kyc_pp_resid_idx"),
+            models.Index(fields=["DEVISE"], name="kyc_pp_devise_idx"),
         ]
 
     def __str__(self):
@@ -813,6 +833,13 @@ class TauxEvolution(models.Model):
 
     class Meta:
         ordering = ['filiale', 'expl', 'date']
+        indexes = [
+            # Max(date) est exécuté à CHAQUE requête dashboard (version du cache) :
+            # sans index c'est un scan complet de la table à chaque affichage.
+            models.Index(fields=["date"], name="tauxevo_date_idx"),
+            # Filtres (flux_stock, filiale, expl) de la vue statistiques.
+            models.Index(fields=["filiale", "flux_stock", "expl"], name="tauxevo_scope_idx"),
+        ]
     def __str__(self):
         return f"{self.filiale} - {self.expl}"
 
@@ -826,6 +853,13 @@ class TauxEvolution_filiale(models.Model):
     stock_PP = models.FloatField(null=True, blank=True)
     date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # filter(filiale).order_by(date) + Max(date) des vues dashboard.
+        indexes = [
+            models.Index(fields=["filiale", "date"], name="tauxevofil_scope_idx"),
+            models.Index(fields=["date"], name="tauxevofil_date_idx"),
+        ]
 
     def __str__(self):
         return f"{self.filiale} – {self.date}"
@@ -842,10 +876,19 @@ class TauxQualite(models.Model):
     ou 'PM'. Le taux est calculé exactement comme dans la vue statistiques :
     somme(ok_count) / somme(total) * 100 sur toutes les règles actives du scope.
     """
+    FLUX_STOCK_CHOICES = [
+        ("stock", "Stock (toute la base)"),
+        ("flux", "Flux (nouveaux clients selon DATOUV)"),
+    ]
+
     filiale = models.CharField(max_length=50, null=True, blank=True)
     agence = models.CharField(max_length=50, null=True, blank=True)
     expl = models.CharField(max_length=50, null=True, blank=True)
     applicability = models.CharField(max_length=2)  # 'PP' ou 'PM'
+    # 'stock' = taux sur toute la base (comportement historique) ;
+    # 'flux' = taux restreint aux clients dont DATOUV tombe dans la fenêtre
+    # configurée (QualityFluxConfig : veille ou mois précédent).
+    flux_stock = models.CharField(max_length=5, choices=FLUX_STOCK_CHOICES, default="stock")
     rate = models.FloatField(default=0)
     ok_count = models.IntegerField(default=0)
     total = models.IntegerField(default=0)
@@ -853,19 +896,50 @@ class TauxQualite(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        # Un seul enregistrement par scope + typologie + jour.
+        # Un seul enregistrement par scope + typologie + stock/flux + jour.
         constraints = [
             models.UniqueConstraint(
-                fields=["filiale", "agence", "expl", "applicability", "date"],
+                fields=["filiale", "agence", "expl", "applicability", "flux_stock", "date"],
                 name="uniq_tauxqualite_scope_jour",
             )
         ]
         indexes = [
             models.Index(fields=["date", "applicability", "filiale", "agence", "expl"]),
+            models.Index(fields=["flux_stock", "date"], name="tauxqualite_flux_date_idx"),
         ]
 
     def __str__(self):
         return f"{self.filiale or 'GROUPE'}/{self.agence or '-'}/{self.expl or '-'} {self.applicability} {self.date}: {self.rate}%"
+
+
+class QualityFluxConfig(models.Model):
+    """Configuration (admin Django) de la fenêtre « flux » du taux de qualité.
+
+    Définit quels clients PP/PM constituent le flux, via leur DATOUV (format ISO
+    YYYY-MM-DD) : la dernière journée (veille du calcul) ou le mois calendaire
+    précédent. Utilisée par compute_quality_rates pour historiser le taux
+    qualité flux dans TauxQualite (flux_stock='flux'), comme les taux de
+    complétude le sont dans TauxEvolution.
+    """
+    WINDOW_CHOICES = [
+        ("veille", "Dernière journée (DATOUV = hier)"),
+        ("mois", "Mois précédent (DATOUV dans le mois calendaire précédent)"),
+    ]
+
+    flux_window = models.CharField(
+        max_length=10, choices=WINDOW_CHOICES, default="veille",
+        verbose_name="Fenêtre du flux",
+        help_text="Clients comptés dans le flux : DATOUV de la veille, ou du mois calendaire précédent.",
+    )
+    active = models.BooleanField(default=True, verbose_name="Active")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuration flux qualité"
+        verbose_name_plural = "Configuration flux qualité"
+
+    def __str__(self):
+        return f"Flux qualité : {self.get_flux_window_display()}"
 
 
 class DATEREV(models.Model):

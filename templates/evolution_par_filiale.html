@@ -229,6 +229,12 @@
               <span class="absolute inset-0 flex items-center justify-center text-[13px] font-black text-slate-800">{{ quality_rate_pp|default:0|floatformat:1 }}%</span>
             </div>
         </div>
+        {% if quality_rate_pp_flux is not None %}
+        <div class="mt-2 pt-2 border-t border-slate-200/70 flex items-center justify-between">
+          <span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 text-[8px] font-black uppercase tracking-widest">{{ "Flux"|t }} — {{ flux_window_label|t }}</span>
+          <span class="text-[12px] font-black text-emerald-600">{{ quality_rate_pp_flux|floatformat:1 }}%</span>
+        </div>
+        {% endif %}
       </div>
     </article>
 
@@ -249,6 +255,12 @@
               <span class="absolute inset-0 flex items-center justify-center text-[13px] font-black text-slate-800">{{ quality_rate_pm|default:0|floatformat:1 }}%</span>
             </div>
         </div>
+        {% if quality_rate_pm_flux is not None %}
+        <div class="mt-2 pt-2 border-t border-slate-200/70 flex items-center justify-between">
+          <span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 text-[8px] font-black uppercase tracking-widest">{{ "Flux"|t }} — {{ flux_window_label|t }}</span>
+          <span class="text-[12px] font-black text-orange-600">{{ quality_rate_pm_flux|floatformat:1 }}%</span>
+        </div>
+        {% endif %}
       </div>
     </article>
   </section>

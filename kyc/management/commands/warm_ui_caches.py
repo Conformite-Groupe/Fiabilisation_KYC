@@ -41,6 +41,8 @@ class Command(BaseCommand):
         parser.add_argument("--quality-only", action="store_true", help="Ne prechauffe que les caches qualite/non_anom.")
         parser.add_argument("--dashboards-only", action="store_true", help="Ne prechauffe que les caches statistiques/evolutions.")
         parser.add_argument("--specific-only", action="store_true", help="Ne prechauffe que les pages PPE et comptes specifiques.")
+        parser.add_argument("--skip-snapshot", action="store_true",
+                            help="Ne recalcule pas la table TauxQualite (deja remplie par compute_quality_rates).")
         parser.add_argument("--slice", type=str, default="1/1", help="Decoupage parallele des utilisateurs, format i/N (ex. 2/6 = worker 2 sur 6). Chaque worker traite un sous-ensemble disjoint des utilisateurs.")
 
     def handle(self, *args, **options):
@@ -78,7 +80,10 @@ class Command(BaseCommand):
         if not quality_only and not specific_only:
             # IMPORTANT : precalculer la table TauxQualite AVANT les dashboards,
             # car statistiques() lit ce snapshot pour eviter de rescanner Kyc_pp.
-            warmed["taux_qualite"] = self._warm_quality_snapshot(users)
+            # --skip-snapshot : run_daily_jobs execute compute_quality_rates juste
+            # avant (tous les scopes) -> inutile de recalculer ici.
+            if not options["skip_snapshot"]:
+                warmed["taux_qualite"] = self._warm_quality_snapshot(users)
             warmed["dashboards"] = self._warm_dashboards(users)
 
         if not quality_only and not dashboards_only:
@@ -211,7 +216,7 @@ class Command(BaseCommand):
                 rate = round(total_ok / total_evaluated * 100, 1) if total_evaluated else 0
                 TauxQualite.objects.update_or_create(
                     filiale=filiale, agence=agence, expl=expl,
-                    applicability=applicability, date=today,
+                    applicability=applicability, flux_stock="stock", date=today,
                     defaults={"rate": rate, "ok_count": total_ok, "total": total_evaluated},
                 )
                 written += 1
@@ -219,34 +224,35 @@ class Command(BaseCommand):
 
     def _warm_dashboards(self, users):
         request_factory = RequestFactory()
-        periods = ["journalier", "mensuel"]
+        # Toutes les périodes proposées par les vues. La querystring fait partie
+        # de la clé de cache, donc l'URL NUE (premier clic dans le menu, sans
+        # paramètre) doit être préchauffée aussi : "" != "periode=journalier".
+        periods = ["journalier", "hebdomadaire", "mensuel", "annuel"]
         warmed = 0
 
+        def _hit(user, path, view_func):
+            nonlocal warmed
+            request = request_factory.get(path)
+            request.user = user
+            view_func(request)
+            warmed += 1
+
         for user in users:
+            _hit(user, "/statistiques/", statistiques)
             for mode in ["Flux", "Stock"]:
                 for periode in periods:
-                    request = request_factory.get(f"/statistiques/?mode={mode}&periode={periode}")
-                    request.user = user
-                    statistiques(request)
-                    warmed += 1
+                    _hit(user, f"/statistiques/?mode={mode}&periode={periode}", statistiques)
 
+            _hit(user, "/evolution_filiale/", taux_evolution_view)
+            _hit(user, "/evolution_filiale_stock/", taux_evolution_view_stock)
             for periode in periods:
-                request = request_factory.get(f"/evolution_filiale/?periode={periode}")
-                request.user = user
-                taux_evolution_view(request)
-                warmed += 1
-
-                request = request_factory.get(f"/evolution_filiale_stock/?periode={periode}")
-                request.user = user
-                taux_evolution_view_stock(request)
-                warmed += 1
+                _hit(user, f"/evolution_filiale/?periode={periode}", taux_evolution_view)
+                _hit(user, f"/evolution_filiale_stock/?periode={periode}", taux_evolution_view_stock)
 
             if getattr(user, "organe", "") in GROUP_ORGANS:
                 for filiale in TauxEvolution_filiale.objects.values_list("filiale", flat=True).distinct()[:10]:
-                    request = request_factory.get(f"/evolution_filiale/?filiale={filiale}&periode=mensuel")
-                    request.user = user
-                    taux_evolution_view(request)
-                    warmed += 1
+                    _hit(user, f"/evolution_filiale/?filiale={filiale}&periode=mensuel", taux_evolution_view)
+                    _hit(user, f"/evolution_filiale_stock/?filiale={filiale}&periode=mensuel", taux_evolution_view_stock)
 
         return warmed
 

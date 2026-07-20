@@ -27,6 +27,9 @@ class Command(BaseCommand):
         parser.add_argument("--filiale", type=str, default=None,
                             help="Limiter à une filiale donnée.")
         parser.add_argument("--verbose", action="store_true", help="Affiche le détail par agent.")
+        parser.add_argument("--slice", type=str, default="1/1",
+                            help="Découpage parallèle des agents, format i/N (ex. 2/6 = worker 2 sur 6). "
+                                 "Chaque worker traite un sous-ensemble disjoint des agents.")
 
     def handle(self, *args, **options):
         from accounts.models import ProfileV  # import tardif (évite les cycles)
@@ -54,6 +57,21 @@ class Command(BaseCommand):
 
         if not agents:
             self.stdout.write(self.style.WARNING("Aucun agent (TauxEvolution flux) trouvé."))
+            return
+
+        # --slice i/N : répartit les agents (triés) en N sous-ensembles disjoints
+        # via un pas (stride), comme warm_ui_caches. Permet N workers parallèles.
+        try:
+            slice_idx, slice_total = (int(x) for x in options["slice"].split("/"))
+        except (ValueError, AttributeError):
+            slice_idx, slice_total = 1, 1
+        if slice_total < 1 or not (1 <= slice_idx <= slice_total):
+            slice_idx, slice_total = 1, 1
+        agents = sorted(agents)
+        if slice_total > 1:
+            agents = agents[slice_idx - 1::slice_total]
+        if not agents:
+            self.stdout.write(self.style.WARNING("Aucun agent pour ce slice."))
             return
 
         # ── 2. Taux d'évolution flux (moyenne PP + PM, dernier point) ──
@@ -103,9 +121,12 @@ class Command(BaseCommand):
                 rate = min(rate, 99)
             return float(rate)
 
-        # ── 5. Calcul + stockage ──
-        created = updated = 0
-        for fil, expl in sorted(agents):
+        # ── 5. Calcul (lectures seules, la partie longue) ──
+        # Les écritures sont différées à la fin : sur SQLite, un seul écrivain à
+        # la fois est possible ; on garde donc la fenêtre d'écriture minimale
+        # pour que les workers parallèles (--slice) ne se bloquent pas entre eux.
+        rows = []
+        for fil, expl in agents:
             trimestre = trimestre_for(fil)
             te = taux_evolution_agent(fil, expl)
             tq = taux_qualite_agent(fil, expl)
@@ -116,24 +137,44 @@ class Command(BaseCommand):
             appr_g = appreciation_globale(te, appr_q, trimestre)
             mesure = mesure_from_appreciation(appr_g)
 
-            obj, is_created = Appreciation_globale.objects.update_or_create(
-                filiale=fil, expl=expl,
-                defaults={
-                    "agent": prof,
-                    "trimestre": trimestre,
-                    "taux_evolution": te,
-                    "taux_qualite": tq,
-                    "notation": note or "",
-                    "appreciation_qualite": appr_q,
-                    "appreciation_globale": appr_g,
-                    "mesure": mesure,
-                },
-            )
-            created += int(is_created)
-            updated += int(not is_created)
+            rows.append((fil, expl, {
+                "agent": prof,
+                "trimestre": trimestre,
+                "taux_evolution": te,
+                "taux_qualite": tq,
+                "notation": note or "",
+                "appreciation_qualite": appr_q,
+                "appreciation_globale": appr_g,
+                "mesure": mesure,
+            }))
             if options.get("verbose"):
                 self.stdout.write(f"  {fil} / {expl} (T{trimestre}): évo={te} qual={tq} "
                                   f"note={note or '—'} -> {appr_q} / {appr_g}")
+
+        # ── 6. Stockage (rafale courte, retente si la base est verrouillée) ──
+        import time
+        from django.db import transaction
+        from django.db.utils import OperationalError
+
+        created = updated = 0
+        for attempt in range(5):
+            try:
+                with transaction.atomic():
+                    created = updated = 0
+                    for fil, expl, defaults in rows:
+                        _, is_created = Appreciation_globale.objects.update_or_create(
+                            filiale=fil, expl=expl, defaults=defaults,
+                        )
+                        created += int(is_created)
+                        updated += int(not is_created)
+                break
+            except OperationalError as e:
+                if "locked" not in str(e).lower() or attempt == 4:
+                    raise
+                wait = 5 * (attempt + 1)
+                self.stdout.write(f"Base verrouillée, nouvel essai dans {wait}s "
+                                  f"(tentative {attempt + 2}/5)...")
+                time.sleep(wait)
 
         self.stdout.write(self.style.SUCCESS(
             f"Appréciation globale calculée : {created} créées, {updated} mises à jour "

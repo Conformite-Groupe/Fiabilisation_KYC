@@ -24,6 +24,15 @@ python manage.py warm_ui_caches --users 20 --rules 20
    tous les utilisateurs actifs, sans prechauffage) :
    python manage.py compute_quality_rates
 
+   Depuis juillet 2026, compute_quality_rates historise DEUX taux par scope :
+   - stock (toute la base, comportement historique)
+   - flux  (clients dont DATOUV tombe dans la fenetre configuree dans
+     l'admin Django > Configuration flux qualite : veille ou mois precedent)
+   L'historique est conserve 400 jours (option --prune-days) pour etudier
+   l'evolution, comme les taux de completude dans TauxEvolution.
+   Prerequis : DATOUV au format ISO -> normalisation via
+   python manage.py normalize_daterev   (traite DATEREV + DATOUV)
+
 
 4. Vider le cache 
 python manage.py shell -c "from django.core.cache import cache; cache.clear()"  --(ne pqs oublier de decommenter qu nivequ des vues correspondqntes)

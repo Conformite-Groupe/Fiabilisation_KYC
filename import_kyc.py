@@ -1,11 +1,12 @@
 import csv
 import logging
 import os
+import re
 import sys
 import time
 import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from datetime import datetime
+from datetime import date, datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -142,6 +143,37 @@ FIELD_ALIASES = {
 
 NUMERIC_TEXT_FIELDS = {"CAPITAL", "CA", "RESULTAT"}
 
+# Champs date stockés en texte : normalisés en ISO 'YYYY-MM-DD' à l'import,
+# car les filtres (échéances de /clients_scorer notamment) comparent lexicalement.
+DATE_TEXT_FIELDS = {"DATEREV"}
+
+_DATE_RE_ISO = re.compile(r"^(\d{4})[-/](\d{1,2})[-/](\d{1,2})")
+_DATE_RE_FR = re.compile(r"^(\d{1,2})[-/](\d{1,2})[-/](\d{4})")
+_DATE_RE_FR_YY = re.compile(r"^(\d{1,2})[-/](\d{1,2})[-/](\d{2})$")
+
+
+def normalize_date_text(value):
+    """Ramène 'dd/mm/yyyy', 'yyyy/mm/dd', 'dd-mm-yyyy', 'dd/mm/yy'… au format ISO
+    'YYYY-MM-DD'. Année à 2 chiffres : pivot 50 (29 -> 2029, 87 -> 1987).
+    Renvoie la valeur d'origine si le format n'est pas reconnu ou la date invalide."""
+    m = _DATE_RE_ISO.match(value)
+    if m:
+        y, mo, d = m.groups()
+    else:
+        m = _DATE_RE_FR.match(value)
+        if m:
+            d, mo, y = m.groups()
+        else:
+            m = _DATE_RE_FR_YY.match(value)
+            if not m:
+                return value
+            d, mo, y = m.groups()
+            y = str((2000 if int(y) < 50 else 1900) + int(y))
+    try:
+        return date(int(y), int(mo), int(d)).isoformat()
+    except ValueError:
+        return value
+
 
 def detect_encoding(path):
     if chardet is None:
@@ -203,6 +235,9 @@ def row_to_values(row, plan, filiale_value):
 
         if field_name in NUMERIC_TEXT_FIELDS and value:
             value = value.replace(",", ".").replace(" ", "")
+
+        if field_name in DATE_TEXT_FIELDS and value:
+            value = normalize_date_text(value)
 
         values.append(value)
     return tuple(values)

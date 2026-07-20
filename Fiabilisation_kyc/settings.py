@@ -206,7 +206,23 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',  # ou un chemin vers un autre fichier .sqlite3 si tu préfères
-    }
+        'OPTIONS': {
+            # Attente max d'un verrou SQLite (défaut 5 s) : indispensable quand
+            # plusieurs workers parallèles (run_daily_jobs) écrivent en même temps.
+            'timeout': 60,
+        },
+    },
+    # Base de production (lecture seule ici : sert à dumper les données vers SQLite)
+    'prod': {
+        'ENGINE': 'mssql',
+        'NAME': 'kyc_notation',
+        'HOST': '10.170.83.20',
+        'PORT': '1433',
+        'OPTIONS': {
+            'driver': 'ODBC Driver 17 for SQL Server',
+            'extra_params': 'TrustServerCertificate=yes;',
+        },
+    },
 }
 
 # Password validation

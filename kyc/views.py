@@ -432,7 +432,29 @@ def get_incomplete_clients_queryset(queryset, client_type):
             
     return queryset.filter(combined_q)
 
-def evaluate_data_quality_rule(rule, filiale=None, agence=None, expl=None):
+def flux_datouv_window(reference_date=None):
+    """Bornes ISO (début, fin) incluses de la fenêtre « flux » configurée.
+
+    Lit QualityFluxConfig (admin Django) : 'veille' = DATOUV d'hier uniquement,
+    'mois' = mois calendaire précédent. DATOUV est stocké en ISO YYYY-MM-DD,
+    la comparaison lexicale équivaut donc à la comparaison chronologique
+    (même principe que DATEREV).
+    """
+    from kyc.models import QualityFluxConfig
+    ref = reference_date or timezone.localdate()
+    config = QualityFluxConfig.objects.filter(active=True).order_by('-updated_at').first()
+    window = config.flux_window if config else 'veille'
+    if window == 'mois':
+        first_of_month = ref.replace(day=1)
+        end = first_of_month - timedelta(days=1)      # dernier jour du mois précédent
+        start = end.replace(day=1)                     # 1er jour du mois précédent
+    else:
+        start = end = ref - timedelta(days=1)          # la veille
+    return start.isoformat(), end.isoformat()
+
+
+def evaluate_data_quality_rule(rule, filiale=None, agence=None, expl=None,
+                               datouv_start=None, datouv_end=None):
     model = Kyc_pp if rule.applicability == 'PP' else Kyc_pm
     field_names = [f.name for f in model._meta.get_fields() if not f.many_to_many and not f.one_to_many]
     if rule.control_type != 'composite' and rule.field_name not in field_names and rule.control_type not in ['expired_document', 'codape_agec_match']:
@@ -453,7 +475,14 @@ def evaluate_data_quality_rule(rule, filiale=None, agence=None, expl=None):
         queryset = queryset.filter(AGENCE=agence)
     if expl:
         queryset = queryset.filter(EXPL=expl)
-        
+
+    # Mode « flux » : restreint aux clients dont la DATOUV (ISO) tombe dans la
+    # fenêtre [datouv_start, datouv_end] incluse. Sans bornes -> stock (toute la base).
+    if datouv_start and datouv_end:
+        queryset = queryset.exclude(DATOUV='').filter(
+            DATOUV__gte=datouv_start, DATOUV__lte=datouv_end,
+        )
+
     total = queryset.count()
     if total == 0:
         return {'total': 0, 'fail_count': 0, 'ok_count': 0, 'clients': [], 'message': 'Aucune donnée disponible pour ce segment'}
@@ -4019,6 +4048,7 @@ def profil(request):
     return render(request, 'profil.html', context)
 
 
+@login_required
 def profile(request):
     if request.method == 'POST':
         user_form = ProfileModify(request.POST, instance=request.user)
@@ -4045,6 +4075,7 @@ class ChangePasswordView(SuccessMessageMixin, PasswordChangeView):
         return context
 
 
+@login_required
 def reset_user_password_b(request, user_id):
     roles_exclus = ["Chargé Client"]
     user = get_object_or_404(ProfileV, pk=user_id)
@@ -4118,6 +4149,7 @@ def agent(request):
     })
 
 
+@login_required
 def export_agents_excel(request):
     def strip_tz(value):
         if hasattr(value, 'tzinfo'):
@@ -4177,6 +4209,7 @@ def export_agents_excel(request):
     return response
 
 
+@login_required
 def export_agents_excel_s(request):
     def strip_tz(value):
         if hasattr(value, 'tzinfo'):
@@ -4236,6 +4269,7 @@ def export_agents_excel_s(request):
     return response
 
 
+@login_required
 def perso_stock(request):
     # Récupérer l'utilisateur connecté
     user = request.user
@@ -4283,6 +4317,7 @@ def agent_stock(request):
     return render(request, 'agent_stock.html', {'notes': notes, 'query': query})
 
 
+@login_required
 def notes(request):
     agent = None
     roles_exclus = ["Chargé Client", "Directeur Agence"]
@@ -4322,6 +4357,7 @@ def notes(request):
     return render(request, 'notation.html', {'form': form, 'agent': agent, 'roles_exclus': roles_exclus})
 
 
+@login_required
 def agent_detail(request, agent_id):
     agent = get_object_or_404(ProfileV, id=agent_id)
     notations = agent.notations.all().order_by('-date_notation')
@@ -4349,6 +4385,7 @@ def historique(request):
     return render(request, 'historique.html', {'notations': notations, 'roles_exclus': roles_exclus})
 
 
+@login_required
 def test(request):
     return render(request, 'test.html')
 
@@ -4645,7 +4682,8 @@ def ppe(request):
     client_txt = (request.GET.get('col_client') or request.GET.get('client', '')).strip()
     risque_txt = (request.GET.get('col_risque') or request.GET.get('risque', '')).strip()
 
-    donnees = Kyc_pp.objects.filter(PPE__icontains="O")
+    # Valeurs normalisées à l'import ('O'/'N'/'') : filtre exact indexable
+    donnees = Kyc_pp.objects.filter(PPE="O")
 
     # Filtrage automatique selon le rôle
     if user.organe == "Chargé Client":
@@ -4674,18 +4712,8 @@ def ppe(request):
         donnees = donnees.filter(CLIENT__icontains=client_txt)
     if risque_txt:
         donnees = donnees.filter(RISQUE__icontains=risque_txt)
-    if filiale_txt:
-        donnees = donnees.filter(FILIALE__icontains=filiale_txt)
-    if agence_txt:
-        donnees = donnees.filter(AGENCE__icontains=agence_txt)
     if lib_agence:
         donnees = donnees.filter(LIB_AGENCE__icontains=lib_agence)
-    if expl_txt:
-        donnees = donnees.filter(EXPL__icontains=expl_txt)
-    if client_txt:
-        donnees = donnees.filter(CLIENT__icontains=client_txt)
-    if risque_txt:
-        donnees = donnees.filter(RISQUE__icontains=risque_txt)
 
     # === Valeurs du formulaire selon le rôle ===
     if user.organe == "Directeur Agence":
@@ -4700,8 +4728,23 @@ def ppe(request):
 
     filiales = donnees.values_list('FILIALE', flat=True).distinct()
 
+    # === Pagination (même schéma que non_resid) ===
+    ITEMS_PER_PAGE = 25
+    paginator = Paginator(donnees.order_by('id'), ITEMS_PER_PAGE)
+    page_number = request.GET.get('page')
+    try:
+        objets_page = paginator.page(page_number)
+    except PageNotAnInteger:
+        objets_page = paginator.page(1)
+    except EmptyPage:
+        objets_page = paginator.page(paginator.num_pages)
+
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
+
     # PPE KPIs
-    total_ppe = donnees.count()
+    total_ppe = paginator.count
     missing_ppe = get_incomplete_clients_queryset(donnees, 'pp').count()
     complete_ppe = max(0, total_ppe - missing_ppe)
     compliance_rate = round((complete_ppe / total_ppe) * 100, 1) if total_ppe > 0 else 100.0
@@ -4752,13 +4795,14 @@ def ppe(request):
     ]
 
     context = {
-        'donnees': donnees,
+        'donnees': objets_page,
         'filiales': filiales,
         'agences': agences,
         'exploitants': exploitants,
         'roles_exclus': roles_exclus,
         'users_groupe': users_groupe,
         'users_filiale': users_filiale,
+        'get_params': query_params.urlencode(),
         'kpi_cards': kpi_cards,
     }
 
@@ -4785,7 +4829,7 @@ def export_ppe(request):
     risque_txt = request.GET.get('risque', '').strip()
 
     # Base queryset : PPE = "O"
-    donnees = Kyc_pp.objects.filter(PPE__icontains="O")
+    donnees = Kyc_pp.objects.filter(PPE="O")
 
     incompletes_only = request.GET.get('incompletes', '') == '1'
     if incompletes_only:
@@ -4894,7 +4938,7 @@ def non_resid(request):
     # ðŸŒŸ CORRECTION / AMÃ‰LIORATION ðŸŒŸ
     # Utilisation de __exact pour filtrer strictement les non-résidents ('N')
     # Utilisez __icontains="N" si le champ peut contenir d'autres informations et que "N" suffit.
-    donnees = Kyc_pp.objects.filter(RESID__icontains="N")
+    donnees = Kyc_pp.objects.filter(RESID="N")
     # Si vous voulez l'ancienne logique avec moins de sensibilité Ã  la casse :
     # donnees = Kyc_pp.objects.filter(RESID__iexact="N")
 
@@ -5043,7 +5087,7 @@ def export_non_resid_pp(request):
         expl_param = request.GET.get('expl', '')
 
         # Début du Queryset
-        donnees = Kyc_pp.objects.filter(RESID__icontains="N")
+        donnees = Kyc_pp.objects.filter(RESID="N")
 
 
         # === Filtrage automatique selon le rôle (identique Ã  devise) ===
@@ -5270,7 +5314,7 @@ def export_non_resid_pm(request):
     expl_param = request.GET.get('expl', '')
 
     # Début du Queryset
-    donnees = Kyc_pm.objects.filter(RESID__icontains="N")
+    donnees = Kyc_pm.objects.filter(RESID="N")
 
     # === Filtrage automatique selon le rôle (identique Ã  devise) ===
     if user.organe == "Chargé Client":
@@ -5593,6 +5637,7 @@ def export_csv_scoring(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
+@login_required
 def export_csv_scoring_ppe(request):
     user = request.user
     users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
@@ -5670,6 +5715,7 @@ def export_csv_scoring_ppe(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
+@login_required
 def clients_scorer(request):
     from .models import Notation, Kyc_pm, Kyc_pp
     users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau", 'Risques', 'DAI', 'Qualité']
@@ -5733,8 +5779,9 @@ def clients_scorer(request):
             qsets = _f(qsets, FILIALE=user.filiale)
 
     # Période — DATEREV est une chaîne ISO 'YYYY-MM-DD' (tri lexical = tri chronologique)
+    # Échues = DATEREV < aujourd'hui ; 3m/6m/1y = va échoir entre aujourd'hui et aujourd'hui + N jours
     if periode_param == "today":
-        qsets = [q.exclude(DATEREV='').filter(DATEREV__lte=today_str) for q in qsets]
+        qsets = [q.exclude(DATEREV='').filter(DATEREV__lt=today_str) for q in qsets]
     elif periode_param == "3m":
         qsets = [q.exclude(DATEREV='').filter(DATEREV__gte=today_str, DATEREV__lte=(today + timedelta(days=90)).isoformat()) for q in qsets]
     elif periode_param == "6m":
@@ -5797,7 +5844,7 @@ def clients_scorer(request):
         a = q.aggregate(
             scored=Count(Case(When(~Q(RISQUE="") & ~Q(RISQUE__isnull=True), then=1), output_field=IntegerField())),
             unscored=Count(Case(When(Q(RISQUE="") | Q(RISQUE__isnull=True), then=1), output_field=IntegerField())),
-            overdue_unscored=Count(Case(When((Q(RISQUE="") | Q(RISQUE__isnull=True)) & ~Q(DATEREV="") & Q(DATEREV__lte=today_str), then=1), output_field=IntegerField())),
+            overdue_unscored=Count(Case(When((Q(RISQUE="") | Q(RISQUE__isnull=True)) & ~Q(DATEREV="") & Q(DATEREV__lt=today_str), then=1), output_field=IntegerField())),
         )
         scorer_scored_count += a['scored'] or 0
         scorer_unscored_count += a['unscored'] or 0
@@ -5842,7 +5889,7 @@ def clients_scorer(request):
         if col_ppe: nsq = _f(nsq, PPE__icontains=col_ppe)
         nsq = _f(nsq, Q(RISQUE="") | Q(RISQUE__isnull=True))
         if is_overdue:
-            nsq = [q.exclude(DATEREV='').filter(DATEREV__lte=today_str) for q in nsq]
+            nsq = [q.exclude(DATEREV='').filter(DATEREV__lt=today_str) for q in nsq]
         _nsvals = [q.values(*FIELDS) for q in nsq]
         if len(_nsvals) == 1:
             non_scored_qs = _nsvals[0].order_by("CLIENT")
@@ -5906,6 +5953,7 @@ def clients_scorer(request):
     }
     return render(request, "clients_scorer.html", context)
 
+@login_required
 def export_csv_scoring_clients(request):
     from .models import Kyc_pm, Kyc_pp
     user = request.user
@@ -5933,7 +5981,7 @@ def export_csv_scoring_clients(request):
         elif user.organe == "Directeur Agence": qsets = _f(qsets, FILIALE=user.filiale, AGENCE=user.agence)
         elif user.organe in ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau", 'Risques', 'DAI', 'Qualité']: qsets = _f(qsets, FILIALE=user.filiale)
 
-    if periode_param == "today": qsets = [q.exclude(DATEREV='').filter(DATEREV__lte=today_str) for q in qsets]
+    if periode_param == "today": qsets = [q.exclude(DATEREV='').filter(DATEREV__lt=today_str) for q in qsets]
     elif periode_param == "3m": qsets = [q.exclude(DATEREV='').filter(DATEREV__gte=today_str, DATEREV__lte=(today + timedelta(days=90)).isoformat()) for q in qsets]
     elif periode_param == "6m": qsets = [q.exclude(DATEREV='').filter(DATEREV__gte=today_str, DATEREV__lte=(today + timedelta(days=180)).isoformat()) for q in qsets]
     elif periode_param == "1y": qsets = [q.exclude(DATEREV='').filter(DATEREV__gte=today_str, DATEREV__lte=(today + timedelta(days=365)).isoformat()) for q in qsets]
@@ -6165,6 +6213,7 @@ def export_sans_classe(request):
 from django.db.models import Q, Max
 
 
+@login_required
 def sans_classe_s(request):
     user = request.user
 
@@ -6270,6 +6319,7 @@ def sans_classe_s(request):
     return render(request, 'sans_classe_s.html', context)
 
 
+@login_required
 def export_sans_classe_s(request):
     def strip_tz(value):
         if hasattr(value, 'tzinfo'):
@@ -6483,6 +6533,7 @@ def get_filter_lists_pm(user, request):
     return filiale_list, agence_list, expl_list, datouv_list
 
 # --- 3. VUE PRINCIPALE PM ---
+@login_required
 def non_rens_pm(request):
     user = request.user
 
@@ -7153,14 +7204,91 @@ def _dashboard_data_cache_version():
     return f"{latest_filiale or 'none'}|{latest_expl or 'none'}|rules:{rules_version}"
 
 
+_DASHBOARD_GROUP_ORGANES = frozenset([
+    "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
+    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST",
+])
+
+# Seuls paramètres GET qui influencent le rendu des dashboards. Tout le reste
+# (paramètre inconnu, ordre, valeur vide) ne doit PAS fragmenter le cache.
+_DASHBOARD_QS_PARAMS = ("mode", "periode", "filiale", "expl", "utilisateur")
+
+
+def _dashboard_effective_scope(user):
+    """Scope effectif (classe de rôle, filiale, agence, expl) d'un utilisateur.
+
+    Deux utilisateurs de même classe et même périmètre voient exactement le même
+    contenu dashboard : Conformité/Risques/DSI/... d'une même filiale partagent
+    la même entrée de cache (l'organe exact ne change rien au rendu).
+    """
+    organe = str(getattr(user, "organe", "") or "")
+    filiale = str(getattr(user, "filiale", "") or "")
+    agence = str(getattr(user, "agence", "") or "")
+    expl = str(getattr(user, "code_expl", "") or "")
+    if organe in _DASHBOARD_GROUP_ORGANES:
+        return "groupe", "", "", ""
+    if organe == "Chargé Client":
+        return "expl", filiale, agence, expl
+    if organe == "Directeur Agence":
+        return "agence", filiale, agence, ""
+    return "filiale", filiale, "", ""
+
+
+def _quality_rate_snapshot(quality_scope, applicability, flux_stock='stock'):
+    """Dernier taux qualité précalculé (table TauxQualite) pour ce scope.
+
+    On prend le snapshot le plus récent, même s'il date de la veille : un taux
+    d'hier affiché instantanément vaut mieux qu'un rescan live de Kyc_pp
+    (~80 s) quand le batch du matin n'est pas encore passé. Renvoie None si
+    aucun snapshot n'existe pour ce scope (le repli live s'applique alors).
+    flux_stock='flux' renvoie le taux du flux (fenêtre DATOUV configurée) ;
+    pas de repli live pour le flux : None -> non affiché.
+    """
+    snapshot = (
+        TauxQualite.objects.filter(
+            filiale=quality_scope.get('filiale'),
+            agence=quality_scope.get('agence'),
+            expl=quality_scope.get('expl'),
+            applicability=applicability,
+            flux_stock=flux_stock,
+        )
+        .order_by('-date')
+        .first()
+    )
+    if snapshot is None:
+        return None
+    # Flux sans aucun client dans la fenêtre : ne pas afficher 0.0% (trompeur),
+    # le badge est masqué (None). Le stock garde son comportement (0 = 0).
+    if flux_stock == 'flux' and not snapshot.total:
+        return None
+    return snapshot.rate
+
+
+def _flux_window_label():
+    """Libellé court de la fenêtre flux configurée, pour affichage dashboard."""
+    from kyc.models import QualityFluxConfig
+    config = QualityFluxConfig.objects.filter(active=True).order_by('-updated_at').first()
+    return 'mois précédent' if (config and config.flux_window == 'mois') else 'veille'
+
+
 def _build_dashboard_cache_key(prefix, user, request, extra=""):
+    # PAS d'id utilisateur ni d'organe brut dans la clé : le contenu ne dépend
+    # que du scope effectif + des paramètres GET utiles (whitelist, ordre fixe,
+    # vides ignorés). Ainsi le préchauffage d'un utilisateur représentatif par
+    # scope (warm_ui_caches) sert à TOUS les utilisateurs du même périmètre,
+    # quel que soit l'ordre des paramètres dans l'URL cliquée.
+    role, filiale, agence, expl = _dashboard_effective_scope(user)
+    normalized_qs = "&".join(
+        f"{param}={request.GET[param]}"
+        for param in _DASHBOARD_QS_PARAMS
+        if request.GET.get(param)
+    )
     scope = "|".join([
-        str(getattr(user, "id", "")),
-        str(getattr(user, "organe", "")),
-        str(getattr(user, "filiale", "")),
-        str(getattr(user, "agence", "")),
-        str(getattr(user, "code_expl", "")),
-        request.GET.urlencode(),
+        role,
+        filiale,
+        agence,
+        expl,
+        normalized_qs,
         extra,
         _dashboard_data_cache_version(),
     ])
@@ -7319,22 +7447,16 @@ def statistiques(request):
 
     def compute_quality_rate_by_typology(applicability):
         # 1. Table de synthèse précalculée le matin (compute_quality_rates).
-        #    Lecture instantanée, évite le scan de Kyc_pp. Si absente (batch pas
-        #    encore passé, ou scope ad hoc via drill-down expl), on retombe sur le
-        #    calcul live ci-dessous -> chiffres toujours corrects.
-        snapshot = TauxQualite.objects.filter(
-            filiale=quality_scope.get('filiale'),
-            agence=quality_scope.get('agence'),
-            expl=quality_scope.get('expl'),
-            applicability=applicability,
-            date=timezone.localdate(),
-        ).first()
-        if snapshot is not None:
-            return snapshot.rate
+        #    Lecture instantanée, évite le scan de Kyc_pp. Si absente (scope ad
+        #    hoc via drill-down expl), on retombe sur le calcul live ci-dessous
+        #    -> chiffres toujours corrects.
+        snapshot_rate = _quality_rate_snapshot(quality_scope, applicability)
+        if snapshot_rate is not None:
+            return snapshot_rate
 
         scope_signature = (
             f"{quality_scope.get('filiale')}|{quality_scope.get('agence')}|"
-            f"{quality_scope.get('expl')}|{user.organe}|{applicability}"
+            f"{quality_scope.get('expl')}|{applicability}"
         )
         scope_hash = hashlib.md5(scope_signature.encode('utf-8')).hexdigest()
         cache_key = f"quality_control:dashboard_rate:v{rules_version}:{scope_hash}"
@@ -7390,6 +7512,9 @@ def statistiques(request):
         'liste_filiales': liste_filiales,
         'quality_rate_pp': quality_rate_pp,
         'quality_rate_pm': quality_rate_pm,
+        'quality_rate_pp_flux': _quality_rate_snapshot(quality_scope, 'PP', flux_stock='flux'),
+        'quality_rate_pm_flux': _quality_rate_snapshot(quality_scope, 'PM', flux_stock='flux'),
+        'flux_window_label': _flux_window_label(),
         'quality_scope_label': quality_scope.get('label'),
         'latest_taux_date': latest_taux_date,
     }
@@ -8295,6 +8420,7 @@ def export_devise_pp(request):
     return response
 
 
+@login_required
 def devise_pm(request):
     roles_exclus = ["Chargé Client"]
     users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
@@ -8666,13 +8792,17 @@ def taux_evolution_view(request):
     def compute_quality_rate_by_typology(applicability):
         scope_signature = (
             f"{quality_scope.get('filiale')}|{quality_scope.get('agence')}|"
-            f"{quality_scope.get('expl')}|{user.organe}|{applicability}|evolution_filiale"
+            f"{quality_scope.get('expl')}|{applicability}|evolution_filiale"
         )
         scope_hash = hashlib.md5(scope_signature.encode('utf-8')).hexdigest()
         cache_key = f"quality_control:evolution_rate:v{rules_version}:{scope_hash}"
         cached_rate = cache.get(cache_key)
         if cached_rate is not None:
             return cached_rate
+
+        snapshot_rate = _quality_rate_snapshot(quality_scope, applicability)
+        if snapshot_rate is not None:
+            return snapshot_rate
 
         rules = list(DataQualityRule.objects.filter(active=True, applicability=applicability))
         total_ok = 0
@@ -8702,6 +8832,9 @@ def taux_evolution_view(request):
         'kpi_pp': kpi_pp,
         'quality_rate_pp': compute_quality_rate_by_typology('PP'),
         'quality_rate_pm': compute_quality_rate_by_typology('PM'),
+        'quality_rate_pp_flux': _quality_rate_snapshot(quality_scope, 'PP', flux_stock='flux'),
+        'quality_rate_pm_flux': _quality_rate_snapshot(quality_scope, 'PM', flux_stock='flux'),
+        'flux_window_label': _flux_window_label(),
         'quality_scope_label': quality_scope.get('label'),
         'history_rows': list(reversed(history_rows[-10:])),
         'latest_taux_date': latest_taux_date,
@@ -8819,13 +8952,17 @@ def taux_evolution_view_stock(request):
     def compute_quality_rate_by_typology(applicability):
         scope_signature = (
             f"{quality_scope.get('filiale')}|{quality_scope.get('agence')}|"
-            f"{quality_scope.get('expl')}|{user.organe}|{applicability}|evolution_filiale_stock"
+            f"{quality_scope.get('expl')}|{applicability}|evolution_filiale_stock"
         )
         scope_hash = hashlib.md5(scope_signature.encode('utf-8')).hexdigest()
         cache_key = f"quality_control:evolution_stock_rate:v{rules_version}:{scope_hash}"
         cached_rate = cache.get(cache_key)
         if cached_rate is not None:
             return cached_rate
+
+        snapshot_rate = _quality_rate_snapshot(quality_scope, applicability)
+        if snapshot_rate is not None:
+            return snapshot_rate
 
         rules = list(DataQualityRule.objects.filter(active=True, applicability=applicability))
         total_ok = 0
@@ -8855,6 +8992,9 @@ def taux_evolution_view_stock(request):
         'kpi_pp': kpi_pp,
         'quality_rate_pp': compute_quality_rate_by_typology('PP'),
         'quality_rate_pm': compute_quality_rate_by_typology('PM'),
+        'quality_rate_pp_flux': _quality_rate_snapshot(quality_scope, 'PP', flux_stock='flux'),
+        'quality_rate_pm_flux': _quality_rate_snapshot(quality_scope, 'PM', flux_stock='flux'),
+        'flux_window_label': _flux_window_label(),
         'quality_scope_label': quality_scope.get('label'),
         'history_rows': list(reversed(history_rows[-10:])),
         'latest_taux_date': latest_taux_date,
@@ -9954,7 +10094,7 @@ def test_smtp_config(request):
             f"Auth : {'oui' if auth_used else 'relais sans auth'}</p>",
             'html', 'utf-8'
         )
-        msg['Subject'] = "[KYC BOA] Test de configuration SMTP"
+        msg['Subject'] = " Test de configuration SMTP"
         msg['From'] = f"{config.from_name} <{config.from_email}>"
         msg['To'] = test_recipient
         server.sendmail(config.from_email, test_recipient, msg.as_string())

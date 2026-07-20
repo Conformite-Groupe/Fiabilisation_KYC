@@ -17,7 +17,7 @@ from django.db.models import Model
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Fiabilisation_kyc.settings")
 django.setup()
 
-from kyc.models import  TauxEvolution_filiale, Anomalie, Filiales as FILIALES_CHOICES
+from kyc.models import  TauxEvolution_filiale, Filiales as FILIALES_CHOICES
 
 # =====================================================
 # 2. PARAMETRES GLOBAUX
@@ -26,14 +26,6 @@ from kyc.models import  TauxEvolution_filiale, Anomalie, Filiales as FILIALES_CH
 CHEMIN_BASE = os.environ.get(
     "KYC_DATA_DIR",
    r"C:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2025\Plateforme notatio kyc v2\data",
-)
-ANOMALIES_PATTERN = os.environ.get(
-    "KYC_ANOMALIES_PATTERN",
-    os.path.join(CHEMIN_BASE, "anomalies_{code}.csv"),
-)
-SCORING_PATTERN = os.environ.get(
-    "KYC_SCORING_PATTERN",
-    os.path.join(CHEMIN_BASE, "scoring_{code}.csv"),
 )
 SUIVI_PATTERN = os.environ.get(
     "KYC_SUIVI_PATTERN",
@@ -47,7 +39,6 @@ TAUX_PATTERN = os.environ.get(
 DELIMITEUR = ";"
 BULK_SIZE_TAUX = 5000
 BULK_SIZE_TAUX_FILIALE = 500
-BULK_SIZE_ANOMALIE = 5000
 LOG_STEP = 100000
 
 # =====================================================
@@ -188,123 +179,6 @@ def build_filiales_codes(cli_filiales=None):
     return codes
 
 # =====================================================
-# 6. IMPORT ANOMALIES
-# =====================================================
-def import_anomalies():
-    logger.info("START ANOMALIES")
-    mapping = {
-        "AGENCE": ["AGENCE", "AG", "CODE_AGENCE"],
-        "LIB_AGENCE": ["AGENCELIB", "LIB_AGENCE", "AGENCE_LIB"],
-        "EXPL": ["EXPL"],
-        "CLIENT": ["CLIENT"],
-        "ANOMALIE_AGE": ["ANOMALIE_AGE"],
-        "ANOMALIE_DATE_EER": ["ANOMALIE_DATE_EER"],
-        "ANOMALIE_CIN": ["ANOMALIE_CIN"],
-        "PPE": ["PPE"],
-    }
-    required_keys = [
-        "AGENCE",
-        "EXPL",
-        "CLIENT",
-        "ANOMALIE_AGE",
-        "ANOMALIE_DATE_EER",
-        "ANOMALIE_CIN",
-        "PPE",
-    ]
-    optional_keys = ["LIB_AGENCE"]
-
-    for code in FILIALES:
-        nom_filiale_complet = f"BOA {code}"
-        fichier = resolve_path(ANOMALIES_PATTERN, code)
-
-        if not os.path.exists(fichier):
-            logger.warning(f"missing anomalies file: {fichier}")
-            continue
-
-        deleted = Anomalie.objects.filter(FILIALE=nom_filiale_complet).delete()[0]
-        logger.info(f"cleaned {deleted} rows for {nom_filiale_complet}")
-
-        buffer = []
-        inserted_for_filiale = 0
-
-        encodings = [detect_encoding(fichier), "utf-8-sig", "latin-1", "cp1252"]
-        seen = set()
-        encodings = [e for e in encodings if not (e in seen or seen.add(e))]
-
-        for enc in encodings:
-            try:
-                with open(fichier, "r", encoding=enc, errors="replace") as f:
-                    reader = csv.DictReader(f, delimiter=DELIMITEUR, skipinitialspace=True)
-                    if reader.fieldnames:
-                        reader.fieldnames = [normalize_header(fn) for fn in reader.fieldnames]
-                        logger.debug(f"[{code}] anomalies encoding={enc} headers={reader.fieldnames}")
-                    else:
-                        logger.error(f"empty headers for {code}")
-                        break
-
-                    header_set = set(reader.fieldnames)
-                    missing = []
-                    for key in required_keys:
-                        candidates = [normalize_header(c) for c in mapping[key]]
-                        if not any(c in header_set for c in candidates):
-                            missing.append(key)
-                    if missing:
-                        logger.error(f"missing required columns for {code}: {missing}")
-                        break
-
-                    for key in optional_keys:
-                        candidates = [normalize_header(c) for c in mapping[key]]
-                        if not any(c in header_set for c in candidates):
-                            logger.warning(f"missing optional column {key} for {code}")
-
-                    for line_num, row in enumerate(reader, start=1):
-                        try:
-                            row_norm = {normalize_header(k): (v or "") for k, v in row.items()}
-
-                            ag = pick_value(row_norm, [normalize_header(c) for c in mapping["AGENCE"]])
-                            if not ag:
-                                continue
-
-                            def norm_num(val):
-                                return (val or "").replace(",", ".").strip()
-
-                            instance = Anomalie(
-                                FILIALE=nom_filiale_complet,
-                                AGENCE=ag,
-                                LIB_AGENCE=pick_value(row_norm, [normalize_header(c) for c in mapping["LIB_AGENCE"]]),
-                                EXPL=pick_value(row_norm, [normalize_header(c) for c in mapping["EXPL"]]),
-                                CLIENT=pick_value(row_norm, [normalize_header(c) for c in mapping["CLIENT"]]),
-                                ANOMALIE_AGE=norm_num(pick_value(row_norm, [normalize_header(c) for c in mapping["ANOMALIE_AGE"]])),
-                                ANOMALIE_DATE_EER=norm_num(pick_value(row_norm, [normalize_header(c) for c in mapping["ANOMALIE_DATE_EER"]])),
-                                ANOMALIE_CIN=norm_num(pick_value(row_norm, [normalize_header(c) for c in mapping["ANOMALIE_CIN"]])),
-                                PPE=norm_num(pick_value(row_norm, [normalize_header(c) for c in mapping["PPE"]])),
-                            )
-                            buffer.append(instance)
-
-                            if len(buffer) >= BULK_SIZE_ANOMALIE:
-                                Anomalie.objects.bulk_create(buffer)
-                                inserted_for_filiale += len(buffer)
-                                buffer.clear()
-                        except Exception as e:
-                            if line_num % 10000 == 0:
-                                logger.error(f"line {line_num} error: {e}")
-                            continue
-
-                    if buffer:
-                        Anomalie.objects.bulk_create(buffer)
-                        inserted_for_filiale += len(buffer)
-
-                logger.info(f"done {code}: {inserted_for_filiale} rows")
-                break
-            except UnicodeDecodeError:
-                continue
-            except Exception as e:
-                logger.error(f"critical error on {code}: {e}")
-                break
-
-    logger.info("END ANOMALIES")
-
-# =====================================================
 # 8. IMPORT TAUX FILIALES
 # =====================================================
 def import_taux_filiales():
@@ -396,8 +270,6 @@ if __name__ == "__main__":
 
         parser.add_argument("--filiales", help="Liste des filiales: SN,CI,BF")
         parser.add_argument("--data-dir", dest="data_dir", help="Base directory for CSV files")
-        parser.add_argument("--anomalies-pattern", dest="anomalies_pattern")
-        parser.add_argument("--scoring-pattern", dest="scoring_pattern")
         parser.add_argument("--suivi-pattern", dest="suivi_pattern")
         parser.add_argument("--taux-pattern", dest="taux_pattern")
 
@@ -409,20 +281,12 @@ if __name__ == "__main__":
         if args.data_dir:
             globals()["CHEMIN_BASE"] = args.data_dir
 
-        if args.anomalies_pattern:
-            globals()["ANOMALIES_PATTERN"] = args.anomalies_pattern
-        if args.scoring_pattern:
-            globals()["SCORING_PATTERN"] = args.scoring_pattern
         if args.suivi_pattern:
             globals()["SUIVI_PATTERN"] = args.suivi_pattern
         if args.taux_pattern:
             globals()["TAUX_PATTERN"] = args.taux_pattern
 
         if args.data_dir:
-            if not args.anomalies_pattern:
-                globals()["ANOMALIES_PATTERN"] = os.path.join(CHEMIN_BASE, "anomalies_{code}.csv")
-            if not args.scoring_pattern:
-                globals()["SCORING_PATTERN"] = os.path.join(CHEMIN_BASE, "scoring_{code}.csv")
             if not args.suivi_pattern:
                 globals()["SUIVI_PATTERN"] = os.path.join(CHEMIN_BASE, "suivi_fiabilisation_{code}.csv")
             if not args.taux_pattern:
@@ -442,9 +306,6 @@ if __name__ == "__main__":
         only = []
         if only_raw:
             only = [p.strip().lower() for p in only_raw.replace(";", ",").split(",") if p.strip()]
-
-        if not only or "anomalies" in only:
-            import_anomalies()
 
         if not only or "taux_filiales" in only:
             with transaction.atomic():

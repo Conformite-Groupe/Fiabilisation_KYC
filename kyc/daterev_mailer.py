@@ -94,7 +94,7 @@ def send_daterev_reminders_core(config, filiale=None, expl=None, only_paid=True)
                 part.add_header('Content-Disposition', f'attachment; filename="daterev_{ex}_{fil}.xlsx"')
                 msg.attach(part)
 
-                msg['Subject'] = f"[KYC BOA] Rappel — Revue de portefeuille client à effectuer ({fil})"
+                msg['Subject'] = f" Rappel — Revue de portefeuille client à effectuer ({fil})"
                 msg['From'] = f"{config.from_name} <{config.from_email}>"
                 msg['To'] = recipient
                 server.sendmail(config.from_email, recipient, msg.as_string())

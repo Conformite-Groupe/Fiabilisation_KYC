@@ -42,6 +42,8 @@ class Command(BaseCommand):
                                  "Vide = toutes les filiales payées.")
 
     def handle(self, *args, **options):
+        import sys as _sys
+
         from kyc.models import EmailReminderConfig
 
         # Console Windows en cp1252 : les caractères non représentables (dont le

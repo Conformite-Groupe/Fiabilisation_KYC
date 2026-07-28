@@ -568,8 +568,8 @@ def parse_identity_fields(text):
             normalized,
         ),
     }
-    # Numero de document : rejette les captures sans chiffres ("ero d"...) et
-    # tente le libelle CEDEAO "N° de la carte d'identite" avec valeur en dessous.
+                                                                             
+                                                                                 
     def _document_number_or_empty(value):
         value = _clean_value(value)
         return value if sum(ch.isdigit() for ch in value) >= 3 else ""
@@ -589,8 +589,8 @@ def parse_identity_fields(text):
     else:
         fields.pop("numero_document", None)
 
-    # Cas CNI CEDEAO : "Date de delivrance   Date d'expiration" sur une ligne,
-    # les deux dates sur la suivante -> la date d'expiration est la seconde.
+                                                                              
+                                                                            
     delivery_expiry = re.search(
         rf"d[ée]livrance[^\n]*expir[^\n]*\n[^\n]*?({ANY_DATE_PATTERN})\s+({ANY_DATE_PATTERN})",
         normalized,
@@ -616,11 +616,11 @@ def parse_identity_fields(text):
     return {key: value for key, value in fields.items() if value}
 
 
-# --------------------------------------------------------------------- #
-# Moteur principal : RapidOCR (modeles PP-OCR via ONNX, 100% local).
-# Tesseract n'est plus utilise qu'en repli si RapidOCR est indisponible
-# ou ne parvient pas a lire le document.
-# --------------------------------------------------------------------- #
+                                                                         
+                                                                    
+                                                                       
+                                        
+                                                                         
 _RAPIDOCR_LOCK = threading.Lock()
 _RAPIDOCR_ENGINE = None
 _RAPIDOCR_ERROR = None
@@ -637,7 +637,7 @@ def _get_rapidocr_engine():
             try:
                 from rapidocr import RapidOCR
                 _RAPIDOCR_ENGINE = RapidOCR(params={"Rec.lang_type": "fr"})
-            except Exception as exc:  # librairie absente ou modeles indisponibles
+            except Exception as exc:                                              
                 _RAPIDOCR_ERROR = str(exc)
     return _RAPIDOCR_ENGINE
 
@@ -734,7 +734,7 @@ def _rapidocr_variants(image):
             return text
         field_count = len(parse_identity_fields(text)) if text else 0
         if not well_oriented:
-            field_count -= 2  # penalise les orientations douteuses
+            field_count -= 2                                       
         if field_count > best_field_count or (field_count == best_field_count and len(text) > len(best_text)):
             best_text = text
             best_field_count = field_count
@@ -796,7 +796,7 @@ def _tesseract_image_variants(image):
     texte cumule contient les champs coeur (nom/numero/dates), au lieu de faire
     systematiquement toutes les orientations/regions/PSM (jusqu'a 27 passes)."""
     try:
-        import pytesseract  # noqa: F401
+        import pytesseract              
     except ImportError:
         return ""
     orientations = [

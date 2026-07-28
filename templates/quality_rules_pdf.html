@@ -36,7 +36,7 @@
     {% for item in rules %}
     <div class="rule-block" style="border: 2px solid #1a202c;">
         <div class="rule-title" style="background-color: #f8fafc; padding: 8px; border-bottom: 2px solid #1a202c; margin: -15px -15px 15px -15px; border-radius: 6px 6px 0 0;">
-            <span style="color: #1a202c;">#{{ forloop.counter }}</span> | {{ item.rule.name }}
+            <span style="color: #1a202c;">#{{ item.rule_number|default:item.rule.rule_number }}</span> | {{ item.rule.name }}
             <span style="float: right; font-size: 9px; color: {% if item.rule.active %}#2f855a{% else %}#718096{% endif %};">
                 [{% if item.rule.active %}ACTIVE{% else %}INACTIVE{% endif %}]
             </span>

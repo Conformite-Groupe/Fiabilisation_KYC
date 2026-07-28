@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 
 
 GLOSSARY = {
-    # ── Interface / général (page profil pilote) ──
+                                                    
     'interface': {
         'MON': 'MY',
         'PROFIL': 'PROFILE',
@@ -25,7 +25,7 @@ GLOSSARY = {
         'Votre appréciation': 'Your appraisal',
         'Non notée': 'Not rated',
         'Mesure': 'Action',
-        # Sidebar / menus
+                         
         'Analyse & Suivi': 'Analysis & Monitoring',
         'Tableau de bord': 'Dashboard',
         'Agents notés': 'Rated officers',
@@ -45,7 +45,7 @@ GLOSSARY = {
         'Importation': 'Import',
         'Pilotage': 'Steering',
         'Rappels DATEREV': 'DATEREV reminders',
-        # Login
+               
         'Fiabilisation': 'Reliability',
         'Connectez-vous à votre espace': 'Sign in to your workspace',
         'Se connecter': 'Sign in',
@@ -53,7 +53,7 @@ GLOSSARY = {
         'votre@email.com': 'your@email.com',
         'Mot de passe': 'Password',
         'Identifiant': 'Login ID',
-        # Statistiques / évolution
+                                  
         'STATISTIQUES': 'STATISTICS',
         'BANQUE': 'BANK',
         'PAR AGENT': 'BY OFFICER',
@@ -72,7 +72,7 @@ GLOSSARY = {
         'Veuillez choisir un agent dans les filtres pour afficher les données.':
             'Please select an officer in the filters to display the data.',
     },
-    # ── Conformité / KYC ──
+                            
     'conformite': {
         'Appréciation globale': 'Overall appraisal',
         'Notation Contrôle Permanent': 'Permanent Control rating',
@@ -97,12 +97,12 @@ GLOSSARY = {
         "Demande d'explication avec sanction forte et décote sur le bonus si motif infondé":
             'Request for explanation with strong sanction and bonus reduction if the grounds are unfounded',
         'Impact positif sur le bonus': 'Positive impact on the bonus',
-        # Appréciations
+                       
         'Bon++': 'Good++', 'Bon+': 'Good+', 'Bon-': 'Good-',
         'Moyen++': 'Average++', 'Moyen+': 'Average+', 'Moyen-': 'Average-',
         'Faible++': 'Low++', 'Faible+': 'Low+', 'Faible-': 'Low-',
     },
-    # ── Banque (rôles / organes) ──
+                                    
     'banque': {
         'Collaborateur': 'Staff member',
         'Agence': 'Branch',
@@ -121,7 +121,7 @@ GLOSSARY = {
         'Exploitant': 'Officer',
         'Client': 'Customer',
     },
-    # ── Finance ──
+                   
     'finance': {
         'Taux de complétude': 'Completeness rate',
         'Taux de qualité': 'Quality rate',
@@ -133,9 +133,9 @@ GLOSSARY = {
         'Origine des revenus': 'Source of income',
         'Date de revue': 'Review date',
     },
-    # ── Pages : agents, anomalies, scoring, pilotage ──
+                                                        
     'general': {
-        # agent.html
+                    
         'Agents': 'Officers', 'notés': 'rated',
         'Consultation des notations par exploitant': 'Officer ratings overview',
         'FLUX': 'FLOW', 'STOCK': 'STOCK', 'Exporter': 'Export', 'Recherche': 'Search',
@@ -144,7 +144,7 @@ GLOSSARY = {
         'Aucun exploitant trouvé pour cette recherche.': 'No officer found for this search.',
         'Nom et Prénom': 'Full name', 'Email': 'Email', 'Date notation': 'Rating date',
         'Non calculée': 'Not computed',
-        # non_anom.html
+                       
         'CLIENTS EN': 'CUSTOMERS WITH', 'ANOMALIE': 'ANOMALY',
         'Clients en anomalie par regle de qualité': 'Flagged customers by quality rule',
         'Regles actives': 'Active rules', 'Anomalies': 'Anomalies', 'Evalues': 'Evaluated',
@@ -155,7 +155,7 @@ GLOSSARY = {
         'Resultats de la regle': 'Rule results', 'Criteres de la regle': 'Rule criteria',
         'Precedent': 'Previous', 'Suivant': 'Next', 'Filtre': 'Filter', 'Expl.': 'Off.',
         'Risque': 'Risk', 'Echeance': 'Due date',
-        # clients_scorer.html
+                             
         'Scoring': 'Scoring', 'Clients': 'Customers', 'dossiers': 'files',
         'entreprises': 'companies', 'particuliers': 'individuals', 'à traiter': 'to process',
         'Clients Scorés': 'Scored customers', 'Non Scorés': 'Not scored',
@@ -168,7 +168,7 @@ GLOSSARY = {
         'Tous les risques': 'All risks', 'Toutes periodes': 'All periods',
         'À traiter': 'To process', 'Page': 'Page', 'PRECEDENT': 'PREVIOUS', 'SUIVANT': 'NEXT',
         'Particuliers (PP)': 'Individuals (PP)', 'Entreprises (PM)': 'Companies (PM)',
-        # pilotage_kyc.html
+                           
         'Conforme': 'Compliant', 'Sous seuil': 'Below threshold',
         '(non applicable en mode Groupe)': '(not applicable in Group mode)',
         '(tous si aucun sélectionné)': '(all if none selected)',
@@ -218,7 +218,7 @@ GLOSSARY = {
     },
 }
 
-# Termes extraits automatiquement des templates (traduction globale du 2026-07-02)
+                                                                                  
 GLOSSARY['pages_2026_07'] = {
     '& RECOMMANDATIONS': '& RECOMMENDATIONS',
     '&laquo; Première': '&laquo; First',
@@ -808,7 +808,7 @@ GLOSSARY['pages_2026_07'] = {
     '✕ Réinitialiser': '✕ Reset',
 }
 
-# Libellés des KPI cards / modales construits dans kyc/views.py
+                                                               
 GLOSSARY['kpi_2026_07'] = {
     'Répartition par Risque': 'Breakdown by Risk',
     'Clients PPE par classe de risque': 'PEP clients by risk class',
@@ -866,8 +866,8 @@ GLOSSARY['kpi_2026_07'] = {
     'sans classe de risque': 'without risk class',
 }
 
-# En-têtes de colonnes des modèles KYC PP / PM (codes bruts -> anglais).
-# Le français conserve le code d'origine ; seule la version EN est traduite.
+                                                                        
+                                                                            
 GLOSSARY['kyc_field_codes'] = {
     'CLIENT': 'Client',
     'EXPL': 'Officer',

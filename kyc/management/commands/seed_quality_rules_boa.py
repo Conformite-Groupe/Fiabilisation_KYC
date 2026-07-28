@@ -31,9 +31,9 @@ from django.db import transaction
 
 FILIALE = "|BOA SN|BOA RDC|"
 
-# Chaque règle : (name, applicability, field_name, description, [ (field, operator, value), ... ])
+                                                                                                  
 RULES = [
-    # ─────────────────────────  ENTREPRISES (PM)  ─────────────────────────
+                                                                            
     ("Format téléphone invalide (trop court)", "PM", "TEL",
      "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
      [("TEL", "is_not_empty", ""), ("TEL", "min_length", "9")]),
@@ -82,7 +82,7 @@ RULES = [
      "Le code d'activité économique (CODAPE) n'est pas renseigné.",
      [("CODAPE", "is_empty", "")]),
 
-    # ─────────────────────────  PARTICULIERS (PP)  ────────────────────────
+                                                                            
     ("Format téléphone invalide (trop court)", "PP", "TEL",
      "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
      [("TEL", "is_not_empty", ""), ("TEL", "min_length", "9")]),
@@ -167,8 +167,8 @@ class Command(BaseCommand):
 
         for name, applicability, field_name, description, conditions in RULES:
             managed_keys.add((name, applicability))
-            # Clé = (name, applicability, filiale) : PP et PM peuvent porter le même nom
-            # (les badges dédiés distinguent le type dans l'UI).
+                                                                                        
+                                                                
             rule, is_created = DataQualityRule.objects.update_or_create(
                 name=name, applicability=applicability, filiale=FILIALE,
                 defaults={
@@ -179,7 +179,7 @@ class Command(BaseCommand):
                     "active": True,
                 },
             )
-            # Réécriture des conditions (évite les doublons entre exécutions)
+                                                                             
             rule.conditions.all().delete()
             DataQualityCondition.objects.bulk_create([
                 DataQualityCondition(rule=rule, field_name=f, operator=op, value=val)

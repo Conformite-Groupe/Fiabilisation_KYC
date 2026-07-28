@@ -1,16 +1,16 @@
 {% load custom_filters %}
 <div class="p-6">
 
-    <!-- NOUVEAU CONTENEUR POUR LA PARTIE DYNAMIQUE (Remplacé par AJAX) -->
+    
     <div id="tableContainer">
 
-        <!-- Affichage du total items -->
+        
         <div class=" text-orange-600 font-semibold tracking-tight">
             {{ donnees.paginator.count }} client(s) trouvé(s)
         </div>
 
         {% if donnees.paginator.count > 0 %}
-        <!-- Conteneur principal avec overflow X uniquement pour le scroll horizontal -->
+        
         <div class="overflow-x-auto relative border border-gray-300 rounded-lg shadow-lg">
             <table class="min-w-[1200px] text-xs text-center">
                 <thead class="sticky top-0 nav-link-active text-white z-10 shadow-md">
@@ -32,7 +32,7 @@
                         <th class="px-2 py-3 border border-gray-300 whitespace-nowrap">{{ "Téléphone"|t }}</th>
                     </tr>
                 </thead>
-                <!-- Le contexte 'donnees' est maintenant l'objet Page -->
+                
                 <tbody>
                     {% for item in donnees %}
                     <tr class="hover:bg-gray-200 transition-colors duration-200 ease-in-out">
@@ -57,7 +57,7 @@
             </table>
         </div>
 
-        <!-- CONTRÔLES DE PAGINATION CLASSIQUE -->
+        
         <div id="paginationControls" class="flex justify-center items-center py-4 space-x-2">
             {% if donnees.has_previous %}
                 <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
@@ -81,9 +81,9 @@
         {% else %}
         <p class="text-gray-600">{{ "Aucune donnée disponible pour les critères sélectionnés."|t }}</p>
         {% endif %}
-    </div> <!-- Fin de #tableContainer -->
+    </div> 
 
-    <!-- Indicateur de chargement pour l'AJAX -->
+    
     <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-70 flex items-center justify-center z-50 hidden">
         <div class="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-green-700 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
             <span class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">{{ "Chargement..."|t }}</span>
@@ -91,6 +91,6 @@
     </div>
 
 
-    <!-- SCRIPTS JAVASCRIPT POUR LA PAGINATION AJAX PARTIELLE -->
+    
 
 </div>

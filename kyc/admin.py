@@ -5,7 +5,7 @@ from .models import (KycDocumentExtraction, KycDocumentMatchJob, KycDocumentMatc
                      KycExpiredDocumentScanMatch, FilialeModuleConfig, EmailReminderConfig,
                      AppreciationConfig, Appreciation_globale, TermTranslation, KycDocumentOcrJob,
                      KycMatchValidatorRole, KycMatchDecision, KycScreeningAccess,
-                     DataQualityRule, DataQualityCondition, QualityFluxConfig, TauxQualite)
+                     SidebarAccess, DataQualityRule, DataQualityCondition, QualityFluxConfig, TauxQualite)
 
 
 @admin.register(QualityFluxConfig)
@@ -63,6 +63,24 @@ class KycScreeningAccessAdmin(admin.ModelAdmin):
     list_editable = ("tab_charger", "tab_suivi", "tab_resultats", "tab_sources",
                      "tab_documents", "can_upload_batches", "can_run_matching")
     list_filter = ("can_upload_batches", "can_run_matching")
+
+
+@admin.register(SidebarAccess)
+class SidebarAccessAdmin(admin.ModelAdmin):
+    list_display = ("organe", "dashboard", "agents_notes", "champs_non_renseignes",
+                    "clients_anomalie", "scoring_clients", "screening_kyc",
+                    "nouvelle_notation", "historique_notation", "ppe",
+                    "comptes_specifiques", "parametrage_utilisateurs",
+                    "regles_qualite", "champs_kyc", "documents_screening",
+                    "rappels_scoring", "pilotage", "audit", "updated_at")
+    list_editable = ("dashboard", "agents_notes", "champs_non_renseignes",
+                     "clients_anomalie", "scoring_clients", "screening_kyc",
+                     "nouvelle_notation", "historique_notation", "ppe",
+                     "comptes_specifiques", "parametrage_utilisateurs",
+                     "regles_qualite", "champs_kyc", "documents_screening",
+                     "rappels_scoring", "pilotage", "audit")
+    list_filter = ("dashboard", "screening_kyc", "pilotage", "audit")
+    search_fields = ("organe",)
 
 
 @admin.register(KycMatchDecision)

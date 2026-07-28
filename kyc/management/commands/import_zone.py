@@ -5,7 +5,7 @@ from django.db import transaction
 from django.core.management.base import BaseCommand
 from pathlib import Path
 
-# Initialisation de l'environnement Django
+                                          
 if not os.environ.get("DJANGO_SETTINGS_MODULE"):
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Fiabilisation_kyc.settings")
     django.setup()
@@ -36,7 +36,7 @@ class Command(BaseCommand):
                     reader = csv.DictReader(f, delimiter=';')
 
                     for row in reader:
-                        # Nettoyage des clés (MAJUSCULES et sans espaces)
+                                                                         
                         row_clean = {k.strip().upper(): v.strip() for k, v in row.items() if k}
 
                         zone_val = row_clean.get('ZONE')

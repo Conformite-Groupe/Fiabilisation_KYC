@@ -21,6 +21,7 @@ from kyc.views import (
     non_anom,
     non_resid,
     non_resid_pm,
+    pilotage_kyc,
     ppe,
     statistiques,
     taux_evolution_view,
@@ -52,9 +53,9 @@ class Command(BaseCommand):
         dashboards_only = options["dashboards_only"]
         specific_only = options["specific_only"]
 
-        # --slice i/N : repartit les utilisateurs (deja dedupliques par scope) en
-        # N sous-ensembles disjoints via un pas (stride). Permet de lancer N workers
-        # en parallele, chacun traitant 1/N des scopes sur TOUS les blocs.
+                                                                                 
+                                                                                    
+                                                                          
         try:
             slice_idx, slice_total = (int(x) for x in options["slice"].split("/"))
         except (ValueError, AttributeError):
@@ -69,22 +70,23 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Aucun utilisateur actif pour ce slice."))
             return
 
-        warmed = {"quality": 0, "non_anom": 0, "taux_qualite": 0, "dashboards": 0, "specific": 0, "daterev": 0}
+        warmed = {"quality": 0, "non_anom": 0, "taux_qualite": 0, "dashboards": 0, "pilotage": 0, "specific": 0, "daterev": 0}
 
         if not dashboards_only and not specific_only:
-            # La stat globale par regle est independante du scope : un seul worker
-            # (le premier slice) la calcule pour eviter la redite entre workers.
+                                                                                  
+                                                                                
             warmed["quality"] = self._warm_quality_rule_stats(users, include_global=(slice_idx == 1))
             warmed["non_anom"] = self._warm_non_anom(users, max_rules)
 
         if not quality_only and not specific_only:
-            # IMPORTANT : precalculer la table TauxQualite AVANT les dashboards,
-            # car statistiques() lit ce snapshot pour eviter de rescanner Kyc_pp.
-            # --skip-snapshot : run_daily_jobs execute compute_quality_rates juste
-            # avant (tous les scopes) -> inutile de recalculer ici.
+                                                                                
+                                                                                 
+                                                                                  
+                                                                   
             if not options["skip_snapshot"]:
                 warmed["taux_qualite"] = self._warm_quality_snapshot(users)
             warmed["dashboards"] = self._warm_dashboards(users)
+            warmed["pilotage"] = self._warm_pilotage(users)
 
         if not quality_only and not dashboards_only:
             warmed["specific"] = self._warm_specific_accounts(users)
@@ -96,6 +98,7 @@ class Command(BaseCommand):
                 "Prechauffage termine: "
                 f"quality={warmed['quality']}, non_anom={warmed['non_anom']}, "
                 f"taux_qualite={warmed['taux_qualite']}, dashboards={warmed['dashboards']}, "
+                f"pilotage={warmed['pilotage']}, "
                 f"specific={warmed['specific']}, daterev={warmed['daterev']}."
             )
         )
@@ -139,8 +142,8 @@ class Command(BaseCommand):
         data_refresh_bucket = timezone.localdate().isoformat()
         warmed = 0
 
-        # 1. Stat globale par regle : la signature n'utilise que les attributs de la
-        #    regle -> independante du scope utilisateur, calcul une seule fois.
+                                                                                    
+                                                                               
         for rule in rules if include_global else []:
             quality_signature = (
                 f"{rule.id}|{rule.name}|{rule.applicability}|{rule.filiale}|"
@@ -151,9 +154,9 @@ class Command(BaseCommand):
                 cache.set(quality_key, _evaluate_data_quality_rule_scoped(rule), timeout=86400)
                 warmed += 1
 
-        # 2. Stat non_anom : depend uniquement du scope effectif (filiale, agence, expl).
-        #    De nombreux utilisateurs partagent le meme scope -> on deduplique pour
-        #    ne pas recalculer / relire le cache (disque) plusieurs fois par scope.
+                                                                                         
+                                                                                   
+                                                                                   
         distinct_scopes = {self._scope_for_user(user) for user in users}
         for filiale, agence, expl in distinct_scopes:
             for rule in rules:
@@ -224,9 +227,9 @@ class Command(BaseCommand):
 
     def _warm_dashboards(self, users):
         request_factory = RequestFactory()
-        # Toutes les périodes proposées par les vues. La querystring fait partie
-        # de la clé de cache, donc l'URL NUE (premier clic dans le menu, sans
-        # paramètre) doit être préchauffée aussi : "" != "periode=journalier".
+                                                                                
+                                                                             
+                                                                              
         periods = ["journalier", "hebdomadaire", "mensuel", "annuel"]
         warmed = 0
 
@@ -256,6 +259,51 @@ class Command(BaseCommand):
 
         return warmed
 
+    def _warm_pilotage(self, users):
+        """Prechauffe /pilotage-kyc : la partie lourde (completude + qualite sur
+        Kyc_pp/Kyc_pm) est INDEPENDANTE DU SEUIL et mise en cache journalier par
+        _pilotage_base_payload. On force le recalcul (_force_daily_cache_refresh)
+        pour un scope groupe (habilites) et un scope filiale par filiale, de sorte
+        que le chargement au seuil par defaut soit ensuite quasi instantane."""
+        request_factory = RequestFactory()
+        pilotage_group_organs = {
+            "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
+            "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST",
+        }
+        pilotage_filiale_organs = {"Conformité", "DSI", "Qualité", "Contrôle Permanent"}
+        warmed = 0
+        seen_paths = set()
+
+        for user in users:
+            organe = (getattr(user, "organe", "") or "").strip()
+            can_group = bool(getattr(user, "is_superuser", False)) or organe in pilotage_group_organs
+            if not (can_group or organe in pilotage_filiale_organs):
+                continue
+
+            paths = []
+            if can_group:
+                                                                                  
+                paths.append("/pilotage-kyc/?scope=groupe")
+                paths.append("/pilotage-kyc/?scope=filiale")
+            else:
+                fil = (getattr(user, "filiale", "") or "").strip()
+                paths.append(f"/pilotage-kyc/?scope=filiale&filiale={fil}")
+
+            for path in paths:
+                if path in seen_paths:
+                    continue
+                seen_paths.add(path)
+                request = request_factory.get(path)
+                request.user = user
+                request._force_daily_cache_refresh = True
+                try:
+                    pilotage_kyc(request)
+                    warmed += 1
+                except Exception as exc:                                                           
+                    self.stdout.write(self.style.WARNING(f"pilotage {path}: {exc}"))
+
+        return warmed
+
     def _warm_daterev_reminders(self):
         import hashlib
         from django.utils import timezone
@@ -271,7 +319,7 @@ class Command(BaseCommand):
         if cache.get(global_key) is None:
             cache.set(global_key, _get_exploitants_daterev_expired(None, days_before, only_paid=True), timeout=3600)
 
-        # Uniquement les filiales dont le module Rappels DATEREV est payé
+                                                                         
         from kyc.views import _paid_daterev_filiales
         filiales = sorted(_paid_daterev_filiales())
         warmed = 1

@@ -8,9 +8,9 @@ import argparse
 
 import django
 
-# =====================================================
-# 1. CONFIG DJANGO
-# =====================================================
+                                                       
+                  
+                                                       
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
@@ -20,9 +20,9 @@ django.setup()
 
 from kyc.models import TauxEvolution, TauxEvolution_filiale
 
-# =====================================================
-# 2. PARAMETRES
-# =====================================================
+                                                       
+               
+                                                       
 DEFAULT_DATA_DIR = os.environ.get(
     "KYC_DATA_DIR",
     r"C:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2025\Plateforme notatio kyc v2\data",
@@ -31,9 +31,9 @@ DEFAULT_AGENT_FILE = "suivi_fiabilisation_agent.csv"
 DEFAULT_GROUPE_FILE = "suivi_fiabilisation_groupe.csv"
 BULK_SIZE = 5000
 
-# =====================================================
-# 3. LOGGING
-# =====================================================
+                                                       
+            
+                                                       
 def setup_logging():
     logger = logging.getLogger("KYC_TAUX_IMPORT")
     logger.setLevel(logging.INFO)
@@ -46,9 +46,9 @@ def setup_logging():
 
 logger = setup_logging()
 
-# =====================================================
-# 4. UTILS
-# =====================================================
+                                                       
+          
+                                                       
 def normalize_header(name):
     s = (name or "").strip().upper().replace("\ufeff", "")
     s = re.sub(r"[\\s/\\-]+", "_", s)
@@ -118,7 +118,7 @@ def normalize_pp_pm(val):
 
 def detect_encoding(path):
     try:
-        import chardet  # type: ignore
+        import chardet                
         with open(path, "rb") as f:
             raw = f.read(50000)
         return chardet.detect(raw)["encoding"] or "utf-8"
@@ -130,9 +130,9 @@ def detect_delimiter(sample):
         return ";"
     return ","
 
-# =====================================================
-# 5. IMPORT AGENTS (TauxEvolution)
-# =====================================================
+                                                       
+                                  
+                                                       
 def import_taux_agents(path, default_filiale=None, clear=False):
     logger.info("=== IMPORT TAUX AGENTS ===")
     if not os.path.exists(path):
@@ -218,9 +218,9 @@ def import_taux_agents(path, default_filiale=None, clear=False):
 
     logger.info(f"Agents: {inserted} lignes importées, {skipped} ignorées")
 
-# =====================================================
-# 6. IMPORT GROUPE (TauxEvolution_filiale)
-# =====================================================
+                                                       
+                                          
+                                                       
 def import_taux_groupe(path, default_filiale=None, clear=False):
     logger.info("=== IMPORT TAUX GROUPE ===")
     if not os.path.exists(path):
@@ -257,7 +257,7 @@ def import_taux_groupe(path, default_filiale=None, clear=False):
 
             filiale = normalize_filiale(pick_value(row_norm, filiale_cols) or default_filiale)
             if not filiale:
-                # fallback logique pour les fichiers "groupe"
+                                                             
                 filiale = "BOA Group"
                 if not warned_missing_filiale:
                     logger.warning("Filiale absente dans le CSV groupe. Fallback sur 'BOA Group'.")
@@ -303,9 +303,9 @@ def import_taux_groupe(path, default_filiale=None, clear=False):
 
     logger.info(f"Groupe: {inserted} lignes importées, {skipped} ignorées")
 
-# =====================================================
-# 7. MAIN
-# =====================================================
+                                                       
+         
+                                                       
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Import Taux Agents & Groupe")
     parser.add_argument("--data-dir", default=DEFAULT_DATA_DIR, help="Dossier contenant les fichiers CSV")

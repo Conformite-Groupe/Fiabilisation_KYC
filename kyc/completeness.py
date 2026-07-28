@@ -7,7 +7,7 @@ from django.db.models.functions import Length
 from django.core.cache import cache
 from django.utils import timezone
 
-# Register Length lookup to allow __length=1 in Q objects (extremely faster than __regex=r'^.$')
+                                                                                                
 CharField.register_lookup(Length)
 
 from .models import (

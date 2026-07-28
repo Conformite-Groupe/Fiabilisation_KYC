@@ -49,7 +49,7 @@ class Command(BaseCommand):
         rows = list(ws.iter_rows(values_only=True))
 
         created = updated = skipped = 0
-        for raw in rows[1:]:  # saute l'en-tête
+        for raw in rows[1:]:                   
             data = {COLS[i]: (raw[i] if i < len(raw) else None) for i in range(len(COLS))}
             email = (str(data["email"]).strip() if data["email"] else "")
             password = (str(data["password"]).strip() if data["password"] else "")

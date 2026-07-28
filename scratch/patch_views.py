@@ -86,14 +86,14 @@ except_token = '            except Exception as e:\n                messages.err
 
 idx_post = content_norm.find(post_token)
 if idx_post != -1:
-    # We look for the first except token that follows idx_post
-    # Let's search for the exception block in a more generic way to avoid encoding issues
+                                                              
+                                                                                         
     idx_except = content_norm.find('            except Exception as e:', idx_post)
     if idx_except != -1:
-        # find the next line:messages.error(request, f"Erreur d'ex
+                                                                  
         idx_msg = content_norm.find('messages.error(request, f"Erreur', idx_except)
         if idx_msg != -1 and idx_msg < idx_except + 150:
-            # find end of line
+                              
             idx_eol = content_norm.find('\n', idx_msg)
             if idx_eol != -1:
                 end_idx = idx_eol + 1

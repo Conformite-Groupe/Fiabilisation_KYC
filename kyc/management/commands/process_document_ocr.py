@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+                       
 """
 Worker OCR du module Screening KYC ID (/document-extraction).
 
@@ -43,7 +43,7 @@ class Command(BaseCommand):
                             help="Traite uniquement ce job (debug).")
 
     def handle(self, *args, **options):
-        # Console Windows (cp1252) : evite un crash sur les caracteres accentues.
+                                                                                 
         for stream in (self.stdout, self.stderr):
             try:
                 stream._out.reconfigure(errors="replace")
@@ -61,14 +61,14 @@ class Command(BaseCommand):
             job = self._claim_next_job(job_id)
             if job:
                 self._process_job(job)
-                continue  # enchainer immediatement s'il reste des jobs
+                continue                                               
             if not loop or job_id:
                 break
             time.sleep(interval)
 
-    # ------------------------------------------------------------------ #
-    # File d'attente
-    # ------------------------------------------------------------------ #
+                                                                          
+                    
+                                                                          
     def _requeue_stale_jobs(self):
         threshold = timezone.now() - timedelta(minutes=self.stale_minutes)
         stale = KycDocumentOcrJob.objects.filter(status="running", updated_at__lt=threshold)
@@ -89,7 +89,7 @@ class Command(BaseCommand):
         job = queryset.first()
         if not job:
             return None
-        # verrou optimiste : seul le process qui reussit l'update prend le job
+                                                                              
         claimed = KycDocumentOcrJob.objects.filter(pk=job.pk, status="pending").update(
             status="running", started_at=timezone.now(),
             message="Demarrage du traitement OCR", updated_at=timezone.now(),
@@ -99,9 +99,9 @@ class Command(BaseCommand):
         job.refresh_from_db()
         return job
 
-    # ------------------------------------------------------------------ #
-    # Traitement
-    # ------------------------------------------------------------------ #
+                                                                          
+                
+                                                                          
     def _process_job(self, job):
         self.stdout.write(f"Traitement job #{job.pk} (lot {job.import_batch}, mode {job.mode})...")
         try:
@@ -137,7 +137,7 @@ class Command(BaseCommand):
             fields["message"] = message
         KycDocumentOcrJob.objects.filter(pk=job_pk).update(**fields)
 
-    # -- mode fichiers --------------------------------------------------- #
+                                                                            
     def _process_files(self, job):
         from kyc.views import _fill_document_extraction_fields, _apply_detected_document_type
 
@@ -190,7 +190,7 @@ class Command(BaseCommand):
                                           f"OCR {processed}/{total} ({failed} echec(s))")
         return done, failed
 
-    # -- mode PDF groupe -------------------------------------------------- #
+                                                                             
     def _process_grouped_pdf(self, job):
         from django.conf import settings as dj_settings
         from kyc.document_extraction import extract_pdf_grouped_documents
@@ -237,7 +237,7 @@ class Command(BaseCommand):
                 self.stderr.write(f"  - echec piece {index}: {exc}")
             self._update_progress(job.pk, index, total, f"Pieces {index}/{total}")
 
-        # le conteneur technique ne doit pas apparaitre comme un document
+                                                                         
         if container and done:
             container.delete()
         elif container:

@@ -1,9 +1,8 @@
 from django.contrib import admin
-from accounts.models import ProfileV, UserLoginHistory, Zone
+from accounts.models import AuditEvent, ProfileV, UserLoginHistory, Zone
 from kyc.models import (
     Notation,
     Kyc_pm,
-    Anomalie,
     TauxEvolution,
     DATEREV,
     Kyc_pp,
@@ -34,29 +33,29 @@ admin.site.register(Devise)
 
 class KycAdminBase(admin.ModelAdmin):
   
-    # Colonnes affichées dans la liste
+                                      
     list_display = ('CLIENT', 'FILIALE', 'AGENCE', 'EXPL', 'DATOUV')
     
-    # Filtres latéraux (Visualisation par filiale)
+                                                  
     list_filter = ('FILIALE', 'AGENCE')
     
-    # Barre de recherche (Filtre par CLIENT et autres numéros)
-    # Note : 'IDM' pour PM et 'IDP'/'NUMID' pour PP sont ajoutés spécifiquement plus bas
+                                                              
+                                                                                        
     search_fields = ('CLIENT', 'EXPL')
     
-    # Nombre d'éléments par page
+                                
     list_per_page = 50
 
 @admin.register(Kyc_pm)
 class KycPmAdmin(KycAdminBase):
-    # On ajoute les colonnes spécifiques aux Personnes Morales
+                                                              
     list_display = ('CLIENT', 'FILIALE', 'IDM', 'RCSNO', 'DATOUV', 'DATEREV')
-    # Recherche par Nom Client, IDM (Numéro ID), ou RCS
+                                                       
     search_fields = ('CLIENT', 'IDM', 'RCSNO')
 
 @admin.register(Kyc_pp)
 class KycPpAdmin(KycAdminBase):
-    # On ajoute les colonnes spécifiques aux Personnes Physiques
+                                                                
     list_display = (
         'CLIENT',
         'IDP',
@@ -64,7 +63,7 @@ class KycPpAdmin(KycAdminBase):
         'AGENCE',
         'DATEREV',
     )
-    # Recherche par Nom Client, NUMID, ou IDP
+                                             
     list_filter = ('FILIALE', 'AGENCE', 'PAYNAIS', 'RESID', 'PPE')
     search_fields = (
         'CLIENT',
@@ -91,7 +90,6 @@ class KycPpAdmin(KycAdminBase):
             'fields': ('CODAPE', 'SALAIRE', 'ORIGINE_REV', 'TEL', 'DATOUV', 'DATEREV', 'PPE', 'DEVISE', 'RESID')
         }),
     )
-admin.site.register(Anomalie)
 @admin.register(TauxEvolution)
 class TauxEvolutionAdmin(admin.ModelAdmin):
     list_display = (
@@ -142,3 +140,20 @@ class UserLoginHistoryAdmin(admin.ModelAdmin):
     search_fields = ("user__username", "user__first_name", "user__last_name")
     list_filter = ("login_at",)
     ordering = ("-login_at",)
+
+
+@admin.register(AuditEvent)
+class AuditEventAdmin(admin.ModelAdmin):
+    list_display = ("timestamp", "category", "action", "username", "organe", "filiale",
+                    "target", "ip_address", "success")
+    list_filter = ("category", "success", "filiale", "organe", "timestamp")
+    search_fields = ("username", "action", "target", "details", "ip_address")
+    ordering = ("-timestamp",)
+    date_hierarchy = "timestamp"
+    readonly_fields = tuple(f.name for f in AuditEvent._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

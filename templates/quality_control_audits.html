@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load custom_filters %}
 
 {% block content %}
@@ -47,7 +47,7 @@
 
 <div class="min-h-screen py-12 px-4 lg:px-8 max-w-[1600px] mx-auto space-y-12">
 
-    <!-- HEADER -->
+    
     <header class="glass-panel rounded-[2.5rem] p-6 flex flex-col lg:flex-row items-center justify-between gap-6">
         <div class="flex items-center gap-6">
             <div class="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-2xl">
@@ -90,7 +90,7 @@
         </div>
     </header>
 
-    <!-- AUDIT TABLE -->
+    
     <div class="glass-panel rounded-[3.5rem] overflow-hidden border-4 border-slate-900 shadow-2xl">
         <table class="w-full text-left border-collapse audit-table">
             <thead>
@@ -149,7 +149,7 @@
                     <td class="px-8 py-8">
                         <div class="flex flex-col">
                             <span class="text-xs font-black text-slate-900 uppercase tracking-tighter">{{ audit.rule_name_display }}</span>
-                            <span class="text-[9px] text-slate-400 font-medium">ID Regle: #{{ audit.id }}</span>
+                            <span class="text-[9px] text-slate-400 font-medium">ID Regle: #{{ audit.rule_number|default:audit.id }}</span>
                         </div>
                     </td>
                     <td class="px-8 py-8">

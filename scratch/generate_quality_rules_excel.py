@@ -15,35 +15,35 @@ import os
 
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "Regles_Controle_Qualite_KYC_BOA.xlsx")
 
-# ─────────────────────────────────────────────
-# PALETTE DE COULEURS
-# ─────────────────────────────────────────────
+                                               
+                     
+                                               
 C = {
-    # Entêtes de section
-    "hdr_pp":       "1A3C6E",   # Bleu marine foncé – PP
-    "hdr_pm":       "0D5C63",   # Vert pétrole – PM
-    "hdr_shared":   "3D2B6E",   # Violet – règles communes
-    "hdr_reg":      "7B1818",   # Rouge bordeaux – réglementaire
-    "hdr_text":     "FFFFFF",   # Blanc
+                        
+    "hdr_pp":       "1A3C6E",                           
+    "hdr_pm":       "0D5C63",                      
+    "hdr_shared":   "3D2B6E",                             
+    "hdr_reg":      "7B1818",                                   
+    "hdr_text":     "FFFFFF",          
 
-    # Criticité
-    "crit_critique": "FF4444",  # Rouge vif
-    "crit_import":   "FF9900",  # Orange
-    "crit_normale":  "2ECC71",  # Vert
+               
+    "crit_critique": "FF4444",             
+    "crit_import":   "FF9900",          
+    "crit_normale":  "2ECC71",        
     "crit_txt_dark": "1A1A1A",
 
-    # Dimensions
-    "dim1_completude": "E8F4FD",  # Bleu très clair
-    "dim2_validite":   "FFF3E0",  # Orange très clair
-    "dim3_coherence":  "F3E8FF",  # Violet très clair
-    "dim4_conformite": "FDECEA",  # Rouge très clair
-    "dim5_unicite":    "E8FDF5",  # Vert très clair
+                
+    "dim1_completude": "E8F4FD",                   
+    "dim2_validite":   "FFF3E0",                     
+    "dim3_coherence":  "F3E8FF",                     
+    "dim4_conformite": "FDECEA",                    
+    "dim5_unicite":    "E8FDF5",                   
 
-    # Lignes alternées
+                      
     "row_odd":     "F7F9FC",
     "row_even":    "FFFFFF",
 
-    # Général
+             
     "accent_blue":  "2E86AB",
     "light_gray":   "F0F0F0",
     "dark_text":    "1A1A1A",
@@ -79,11 +79,11 @@ CRIT_MAP = {
     "🟢 Normale":     (C["crit_normale"],  "FFFFFF", "NORMALE"),
 }
 
-# ─────────────────────────────────────────────
-# DONNÉES
-# ─────────────────────────────────────────────
+                                               
+         
+                                               
 
-# Colonnes : ID | Nom règle | Champ(s) | Type | Opérateur / Logique | Paramètre | Description | Base légale | Texte légal précis | Criticité
+                                                                                                                                            
 COLS = [
     "Réf.", "Nom de la règle", "Champ(s) contrôlé(s)", "Type de contrôle",
     "Opérateur / Logique", "Paramètre", "Description fonctionnelle",
@@ -99,7 +99,7 @@ DIM_COLORS = {
     5: C["dim5_unicite"],
 }
 
-# ── DIMENSION 1 : COMPLÉTUDE ──────────────────────────────────────────────────
+                                                                                
 D1_PP = [
     ("PP-C01","Numéro pièce identité manquant","NUMID","Simple","is_empty","—",
      "Le numéro de pièce d'identité doit être renseigné pour tout client PP.",
@@ -226,7 +226,7 @@ D1_PM = [
      "RGPD / Loi protection données","Art. 7 RGPD – «Le consentement des PM doit être documenté»","🟢 Normale"),
 ]
 
-# ── DIMENSION 2 : VALIDITÉ ────────────────────────────────────────────────────
+                                                                                
 D2_PP = [
     ("PP-V01","Format téléphone invalide (longueur)","TEL","Composite","min_length=8 ET max_length=15","8–15 car.",
      "Un numéro de téléphone doit contenir entre 8 et 15 chiffres selon la norme internationale.",
@@ -299,7 +299,7 @@ D2_PM = [
      "Contrôle qualité interne","Politique QualitéDonnées BOA § 5.4 – Cohérence financière PM","🟡 Importante"),
 ]
 
-# ── DIMENSION 3 : COHÉRENCE ───────────────────────────────────────────────────
+                                                                                
 D3_PP = [
     ("PP-K01","PPE déclaré sans risque Élevé","PPE + RISQUE","Composite","PPE=O ET RISQUE!=Élevé","—",
      "Toute PPE doit obligatoirement être classée en risque Élevé selon les rec. GAFI.",
@@ -360,7 +360,7 @@ D3_PM = [
      "Instruction BCEAO n°01-2018","Art. 23 – «Les informations financières doivent être complètes»","🟡 Importante"),
 ]
 
-# ── DIMENSION 4 : CONFORMITÉ RÉGLEMENTAIRE ────────────────────────────────────
+                                                                                
 D4_PP = [
     ("PP-R01","Risque élevé sans révision < 1 an","RISQUE + DATEREV","Composite","RISQUE=Élevé ET DATEREV > 1 an","—",
      "Les clients à risque élevé doivent faire l'objet d'une révision KYC annuelle au minimum.",
@@ -415,7 +415,7 @@ D4_PM = [
      "Recommandation GAFI 24","Rec. 24 – «Les actionnaires détenant plus de 25% du capital sont des bénéficiaires effectifs»","🔴 Critique"),
 ]
 
-# ── DIMENSION 5 : UNICITÉ ─────────────────────────────────────────────────────
+                                                                                
 D5 = [
     ("U01","Même numéro d'identité sur plusieurs PP","NUMID","Agrégation","Même NUMID → plusieurs CLIENT","—",
      "Un numéro de pièce d'identité ne peut pas être associé à plusieurs clients distincts.",
@@ -432,15 +432,15 @@ D5 = [
 ]
 
 
-# ─────────────────────────────────────────────
-# CRÉATION DU WORKBOOK
-# ─────────────────────────────────────────────
+                                               
+                      
+                                               
 wb = openpyxl.Workbook()
-wb.remove(wb.active)  # Supprimer la feuille par défaut
+wb.remove(wb.active)                                   
 
-# ─────────────────────────────────────────────
-# FONCTION : créer un onglet de règles
-# ─────────────────────────────────────────────
+                                               
+                                      
+                                               
 def make_rules_sheet(wb, title, tab_color, dimensions):
     """
     dimensions = list of (dim_label, dim_number, dim_color, rules_list)
@@ -448,7 +448,7 @@ def make_rules_sheet(wb, title, tab_color, dimensions):
     ws = wb.create_sheet(title=title)
     ws.sheet_properties.tabColor = tab_color
 
-    # ── En-tête du document ──
+                               
     ws.merge_cells("A1:J1")
     ws["A1"] = f"📋 RÈGLES DE CONTRÔLE QUALITÉ KYC – {title.upper()}"
     ws["A1"].font = Font(bold=True, size=14, color="FFFFFF", name="Calibri")
@@ -461,13 +461,13 @@ def make_rules_sheet(wb, title, tab_color, dimensions):
     ws["A2"].fill = fill("1B2A4A")
     ws["A2"].alignment = align("center", wrap=False)
 
-    # Hauteurs des lignes titre
+                               
     ws.row_dimensions[1].height = 28
     ws.row_dimensions[2].height = 16
 
     row = 3
     for (dim_label, dim_num, dim_color, rules) in dimensions:
-        # ── Séparateur de dimension ──
+                                       
         ws.row_dimensions[row].height = 22
         ws.merge_cells(f"A{row}:J{row}")
         dim_hdr = ws[f"A{row}"]
@@ -477,7 +477,7 @@ def make_rules_sheet(wb, title, tab_color, dimensions):
         dim_hdr.alignment = align("left", wrap=False)
         row += 1
 
-        # ── Colonnes ──
+                        
         ws.row_dimensions[row].height = 30
         for col_idx, col_name in enumerate(COLS, start=1):
             cell = ws.cell(row=row, column=col_idx, value=col_name)
@@ -487,7 +487,7 @@ def make_rules_sheet(wb, title, tab_color, dimensions):
             cell.border = border("666666")
         row += 1
 
-        # ── Lignes de données ──
+                                 
         for i, rule in enumerate(rules):
             ws.row_dimensions[row].height = 40
             crit = rule[-1]
@@ -499,15 +499,15 @@ def make_rules_sheet(wb, title, tab_color, dimensions):
                 cell.alignment = align("left", "center", wrap=True)
                 cell.border = border()
 
-                if col_idx == 1:  # Réf
+                if col_idx == 1:       
                     cell.font = Font(bold=True, size=9, color="1A3C6E", name="Calibri")
                     cell.fill = fill(bg)
-                elif col_idx == 10:  # Criticité
+                elif col_idx == 10:             
                     cell.value = crit_label
                     cell.font = Font(bold=True, size=9, color=crit_txt_c, name="Calibri")
                     cell.fill = fill(crit_fill_c)
                     cell.alignment = align("center", "center", wrap=False)
-                elif col_idx in (8, 9):  # Base légale + Texte légal
+                elif col_idx in (8, 9):                             
                     cell.font = Font(size=8, italic=(col_idx == 9), color="444444", name="Calibri")
                     cell.fill = fill("FAFAFA")
                 else:
@@ -515,20 +515,20 @@ def make_rules_sheet(wb, title, tab_color, dimensions):
                     cell.fill = fill(bg)
             row += 1
 
-        row += 1  # Ligne vide entre dimensions
+        row += 1                               
 
-    # ── Largeurs de colonnes ──
+                                
     for col_idx, width in enumerate(COL_WIDTHS, start=1):
         ws.column_dimensions[get_column_letter(col_idx)].width = width
 
-    # Figer les 3 premières lignes + colonne A
+                                              
     ws.freeze_panes = "B4"
     return ws
 
 
-# ─────────────────────────────────────────────
-# ONGLET 1 – PERSONNES PHYSIQUES (PP)
-# ─────────────────────────────────────────────
+                                               
+                                     
+                                               
 make_rules_sheet(wb, "Personnes Physiques (PP)", C["tab_pp"], [
     ("📁 DIMENSION 1 – COMPLÉTUDE  |  Exhaustivité des champs obligatoires PP", 1, C["dim1_completude"], D1_PP),
     ("🔍 DIMENSION 2 – VALIDITÉ  |  Format et valeurs attendus PP", 2, C["dim2_validite"], D2_PP),
@@ -536,9 +536,9 @@ make_rules_sheet(wb, "Personnes Physiques (PP)", C["tab_pp"], [
     ("⚖️ DIMENSION 4 – CONFORMITÉ RÉGLEMENTAIRE  |  LCB-FT / GAFI / BCEAO – PP", 4, C["dim4_conformite"], D4_PP),
 ])
 
-# ─────────────────────────────────────────────
-# ONGLET 2 – PERSONNES MORALES (PM)
-# ─────────────────────────────────────────────
+                                               
+                                   
+                                               
 make_rules_sheet(wb, "Personnes Morales (PM)", C["tab_pm"], [
     ("📁 DIMENSION 1 – COMPLÉTUDE  |  Exhaustivité des champs obligatoires PM", 1, C["dim1_completude"], D1_PM),
     ("🔍 DIMENSION 2 – VALIDITÉ  |  Format et valeurs attendus PM", 2, C["dim2_validite"], D2_PM),
@@ -546,9 +546,9 @@ make_rules_sheet(wb, "Personnes Morales (PM)", C["tab_pm"], [
     ("⚖️ DIMENSION 4 – CONFORMITÉ RÉGLEMENTAIRE  |  LCB-FT / GAFI / OHADA – PM", 4, C["dim4_conformite"], D4_PM),
 ])
 
-# ─────────────────────────────────────────────
-# ONGLET 3 – UNICITÉ (PP + PM)
-# ─────────────────────────────────────────────
+                                               
+                              
+                                               
 ws_u = wb.create_sheet(title="Unicité & Doublons")
 ws_u.sheet_properties.tabColor = C["tab_shared"]
 
@@ -608,9 +608,9 @@ for col_idx, width in enumerate(COL_WIDTHS_U, start=1):
     ws_u.column_dimensions[get_column_letter(col_idx)].width = width
 ws_u.freeze_panes = "B4"
 
-# ─────────────────────────────────────────────
-# ONGLET 4 – SYNTHÈSE & TABLEAU DE BORD
-# ─────────────────────────────────────────────
+                                               
+                                       
+                                               
 ws_s = wb.create_sheet(title="📊 Synthèse")
 ws_s.sheet_properties.tabColor = C["tab_summary"]
 
@@ -628,7 +628,7 @@ ws_s["A2"].fill = fill("1B2A4A")
 ws_s["A2"].alignment = align("center", wrap=False)
 ws_s.row_dimensions[2].height = 18
 
-# ── Statistiques ──
+                    
 summary_data = [
     ("",),
     ("📌 RÉCAPITULATIF PAR DIMENSION",),
@@ -689,7 +689,7 @@ for r_idx, row_data in enumerate(summary_data, start=3):
             cell.alignment = align("left", "center", wrap=False)
             ws_s.merge_cells(f"A{r_idx}:H{r_idx}")
             break
-        elif r_idx == 5:  # Header row
+        elif r_idx == 5:              
             cell.font = Font(bold=True, size=10, color="FFFFFF", name="Calibri")
             cell.fill = fill("2C3E50")
             cell.alignment = align("center", "center")
@@ -714,7 +714,7 @@ for r_idx, row_data in enumerate(summary_data, start=3):
             cell.font = Font(size=9, color="666666", name="Calibri")
             cell.alignment = align()
 
-# Légende criticité
+                   
 start_legend = len(summary_data) + 5
 ws_s.merge_cells(f"A{start_legend}:H{start_legend}")
 ws_s[f"A{start_legend}"] = "🔴 Critique : Non-conformité grave – risque de sanction réglementaire immédiat"
@@ -737,7 +737,7 @@ ws_s[f"A{start_legend+2}"].fill = fill(C["crit_normale"])
 ws_s[f"A{start_legend+2}"].alignment = align("left", "center", wrap=False)
 ws_s.row_dimensions[start_legend+2].height = 22
 
-# Bases légales référencées
+                           
 start_ref = start_legend + 5
 ws_s.merge_cells(f"A{start_ref}:H{start_ref}")
 ws_s[f"A{start_ref}"] = "📚 BASES LÉGALES RÉFÉRENCÉES"
@@ -775,15 +775,15 @@ for i, (ref, desc) in enumerate(refs):
     c2.border = border()
     c2.alignment = align("left", "center", wrap=True)
 
-# Largeurs
+          
 for col_idx, width in enumerate([28, 60, 12, 12, 12, 14, 18, 14], start=1):
     ws_s.column_dimensions[get_column_letter(col_idx)].width = width
 
 ws_s.freeze_panes = "A3"
 
-# ─────────────────────────────────────────────
-# ENREGISTREMENT
-# ─────────────────────────────────────────────
+                                               
+                
+                                               
 out = os.path.abspath(OUTPUT_PATH)
 wb.save(out)
 print("\n[OK] Fichier Excel genere avec succes :")

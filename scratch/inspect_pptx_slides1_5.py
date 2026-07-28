@@ -24,7 +24,7 @@ def inspect_range(filepath, start, end):
                 
             fill_color = "N/A"
             try:
-                if shape.fill and shape.fill.type == 1: # Solid
+                if shape.fill and shape.fill.type == 1:        
                     fill_color = str(shape.fill.fore_color.rgb)
             except Exception:
                 pass

@@ -50,8 +50,8 @@ class Command(BaseCommand):
         else:
             target_date = timezone.localdate()
 
-        # --slice i/N : répartit les scopes (triés) en N sous-ensembles disjoints
-        # via un pas (stride), comme warm_ui_caches. Permet N workers parallèles.
+                                                                                 
+                                                                                 
         try:
             slice_idx, slice_total = (int(x) for x in options["slice"].split("/"))
         except (ValueError, AttributeError):
@@ -66,12 +66,12 @@ class Command(BaseCommand):
         self.stdout.write(f"{len(scopes)} scope(s) distinct(s) à calculer pour le {target_date} "
                           f"(slice {slice_idx}/{slice_total}).")
 
-        # Calcul d'abord (lectures seules, la partie longue), écritures groupées
-        # à la fin : sur SQLite un seul écrivain à la fois, on garde la fenêtre
-        # d'écriture minimale pour ne pas bloquer les autres workers.
-        # Modes calculés : stock (toute la base, comportement historique) et
-        # flux (clients dont DATOUV tombe dans la fenêtre configurée dans
-        # l'admin : veille ou mois précédent).
+                                                                                
+                                                                               
+                                                                     
+                                                                            
+                                                                         
+                                              
         modes = [] if options["flux_only"] else [("stock", None, None)]
         if not options["skip_flux"]:
             flux_start, flux_end = flux_datouv_window(target_date)
@@ -94,7 +94,7 @@ class Command(BaseCommand):
 
         pruned = 0
         prune_days = options["prune_days"]
-        # Un seul worker purge (le 1er) pour éviter les suppressions concurrentes.
+                                                                                  
         if prune_days > 0 and slice_idx == 1:
             from datetime import timedelta
             cutoff = target_date - timedelta(days=prune_days)
@@ -147,6 +147,25 @@ class Command(BaseCommand):
         for user in User.objects.filter(is_active=True):
             s = evaluate_data_quality_scope(user)
             key = (s.get("filiale"), s.get("agence"), s.get("expl"))
+            if key in seen:
+                continue
+            seen.add(key)
+            scopes.append(key)
+
+                                                                             
+                                                                              
+                                                                              
+                                                                               
+        from kyc.models import TauxEvolution_filiale
+        filiales = (
+            TauxEvolution_filiale.objects
+            .values_list("filiale", flat=True).distinct()
+        )
+        for filiale in filiales:
+            filiale = (filiale or "").strip()
+            if not filiale:
+                continue
+            key = (filiale, None, None)
             if key in seen:
                 continue
             seen.add(key)

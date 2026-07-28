@@ -14,7 +14,7 @@ import os
 import sys
 import environ
 import time
-# Build paths inside the project like this: os.path .join(BASE_DIR, ...)
+                                                                        
 from pathlib import Path
 
 import kyc
@@ -24,15 +24,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env.read_env(env_file=str(BASE_DIR / "Fiabilisation_kyc" / ".env"))
 
-# Cache partage entre le serveur web et les scripts cron.
-#
-# Bascule Redis SANS changement de code : il suffit de definir dans .env
-#   CACHE_URL=redis://127.0.0.1:6379/1      (ou rediss:// pour TLS)
-# -> lecture en memoire, cache partage entre tous les workers et le cron.
-# Si CACHE_URL est absent, on retombe automatiquement sur FileBasedCache
-# (comportement actuel, aucune infra supplementaire requise).
-#
-# Prerequis pour Redis : `pip install django-redis` + un serveur Redis accessible.
+                                                         
+ 
+                                                                        
+                                                                   
+                                                                         
+                                                                        
+                                                             
+ 
+                                                                                  
 _cache_url = env("CACHE_URL", default="")
 if _cache_url.startswith(("redis://", "rediss://", "unix://")):
     CACHES = {
@@ -40,19 +40,19 @@ if _cache_url.startswith(("redis://", "rediss://", "unix://")):
             "BACKEND": "django_redis.cache.RedisCache",
             "LOCATION": _cache_url,
             "TIMEOUT": 60 * 60 * 24,
-            # Namespace les cles dans la base Redis (evite les collisions si la
-            # meme instance Redis sert a autre chose). Sans impact sur le code
-            # applicatif : Django ajoute/retire le prefixe de maniere transparente.
+                                                                               
+                                                                              
+                                                                                   
             "KEY_PREFIX": env("CACHE_KEY_PREFIX", default="kyc"),
             "OPTIONS": {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
-                # Si Redis devient injoignable, on sert la page sans cache au
-                # lieu de planter (get -> None, set -> no-op).
+                                                                             
+                                                              
                 "IGNORE_EXCEPTIONS": True,
             },
         }
     }
-    # N'affiche pas de stacktrace a chaque incident Redis quand IGNORE_EXCEPTIONS est actif.
+                                                                                            
     DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = False
 else:
     CACHES = {
@@ -69,14 +69,14 @@ else:
         }
     }
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
+                                                              
+                                                                        
 
-# ─── CLÉS SECRÈTES & MODE DEBUG ─────────────────────────────────────────────
-# SECURITY: la clé secrète est lue depuis le fichier .env UNIQUEMENT
+                                                                              
+                                                                    
 SECRET_KEY = env('SECRET_KEY')
 
-# SECURITY: DEBUG doit être False en production
+                                               
 DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
 CSRF_TRUSTED_ORIGINS = [
@@ -87,30 +87,30 @@ CSRF_TRUSTED_ORIGINS = [
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# ─── SÉCURITÉ PRODUCTION (actifs quand DEBUG=False + HTTPS) ──────────────────
-# Forcer HTTPS (désactiver localement avec SECURE_SSL_REDIRECT=False dans .env)
+                                                                               
+                                                                               
 SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=not DEBUG)
 
-# HSTS — informer les navigateurs de n'utiliser que HTTPS pendant 1 an
+                                                                      
 SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
-# Cookies sécurisés (HTTPS uniquement, non accessibles en JS)
+                                                             
 SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=not DEBUG)
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=not DEBUG)
 CSRF_COOKIE_HTTPONLY = True
 
-# Expiration de session (8 heures)
+                                  
 SESSION_COOKIE_AGE = 28800
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
-# Anti MIME-sniffing et clickjacking
+                                    
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
 
-# Application definition
+                        
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -127,9 +127,9 @@ INSTALLED_APPS = [
     'tailwind',
     'theme',
     'django_countries',
-    # Protection brute-force
+                            
     'axes',
-    # Configuration modifiable depuis l'admin (django-constance)
+                                                                
     'constance',
 ]
 
@@ -138,20 +138,20 @@ CRISPY_TEMPLATE_PACK = "tailwind"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # WhiteNoise : sert les fichiers statiques en production (DEBUG=False)
-    # doit être juste après SecurityMiddleware
+                                                                          
+                                              
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # i18n : détermine la langue active (session / cookie / navigateur)
+                                                                       
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    # Middleware de protection anti brute-force Axes
+                                                    
     'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # Note: MessageMiddleware dupliqué supprimé (corrigé)
+                                                         
 ]
 
 ROOT_URLCONF = 'Fiabilisation_kyc.urls'
@@ -177,6 +177,7 @@ TEMPLATES = [
                 'kyc.context_processors.static_version_processor',
                 'kyc.context_processors.kyc_display_fields_processor',
                 'kyc.context_processors.module_screening_processor',
+                'kyc.context_processors.sidebar_access_processor',
             ],
         },
     },
@@ -184,35 +185,35 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Fiabilisation_kyc.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/1.11/ref/settings/#databases
+          
+                                                                
 
-# DATABASES = {
-#    'default': {
-#        'ENGINE': 'mssql',
-#        'NAME': 'kyc_notation',
-#        'HOST': '10.170.83.20',
-#        'PORT': '1433',
-#        'OPTIONS': {
-#            'driver': 'ODBC Driver 17 for SQL Server',
-#            'extra_params': 'TrustServerCertificate=yes;',
-#        },
-#    }
-# }
-#
+               
+                 
+                           
+                                
+                                
+                        
+                     
+                                                       
+                                                           
+           
+      
+   
+ 
 
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',  # ou un chemin vers un autre fichier .sqlite3 si tu préfères
+        'NAME': BASE_DIR / 'db.sqlite3',                                                              
         'OPTIONS': {
-            # Attente max d'un verrou SQLite (défaut 5 s) : indispensable quand
-            # plusieurs workers parallèles (run_daily_jobs) écrivent en même temps.
+                                                                               
+                                                                                   
             'timeout': 60,
         },
     },
-    # Base de production (lecture seule ici : sert à dumper les données vers SQLite)
+                                                                                    
     'prod': {
         'ENGINE': 'mssql',
         'NAME': 'kyc_notation',
@@ -225,40 +226,40 @@ DATABASES = {
     },
 }
 
-# Password validation
-# https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
+                     
+                                                                               
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        # Empêche les mots de passe similaires aux infos personnelles
+                                                                     
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
     {
-        # Longueur minimale portée à 10 caractères
+                                                  
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
         'OPTIONS': {'min_length': 10},
     },
     {
-        # Bloque les mots de passe communs (password, azerty, 123456...)
+                                                                        
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
     {
-        # Bloque les mots de passe entièrement numériques
+                                                         
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/1.11/topics/i18n/
+                      
+                                                     
 
 LANGUAGE_CODE = 'fr-fr'
 
-# Langues disponibles (FR par défaut, EN via le sélecteur)
+                                                          
 LANGUAGES = [
     ('fr', 'Français'),
     ('en', 'English'),
 ]
-# Emplacement des catalogues .po/.mo
+                                    
 LOCALE_PATHS = [BASE_DIR / 'locale']
 
 TIME_ZONE = 'UTC'
@@ -269,52 +270,54 @@ USE_L10N = True
 
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.11/howto/static-files/
+                                        
+                                                            
 
 
 STATIC_URL = '/static/'
-# STATIC_ROOT : dossier de collecte pour la production (différent de STATICFILES_DIRS !)
-# Ne pas utiliser 'static/' ici car c'est aussi dans STATICFILES_DIRS
+                                                                                        
+                                                                     
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "theme/static"),  # Sources CSS/JS du thème Tailwind
+    os.path.join(BASE_DIR, "theme/static"),                                    
 ]
 
-# WhiteNoise : compression + cache-busting automatique des fichiers statiques
-# Permet à Django de servir les statics en production sans configuration Nginx supplémentaire
+                                                                             
+                                                                                             
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 LOGOUT_REDIRECT_URL = "/login_kyc"
-LOGIN_URL = '/login_kyc/'  # L'URL de votre page de connexion
+LOGIN_URL = '/login_kyc/'                                    
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / "media"
 AUTH_USER_MODEL = 'accounts.ProfileV'
 TAILWIND_APP_NAME = "theme"
+                                                                               
+                                                   
 INTERNAL_IPS = [
-    "127.0.0.1", "10.170.82.20", "0.0.0.0"
+    "127.0.0.1", "10.170.82.20",
 ]
 
-# Specify your base template file
+                                 
 DFS_BASE_TEMPLATE = 'base.html'
 DFS_CURRENCY_LOCALE = 'fr_fr'
 
 NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
 
-# Cache-busting version for static assets (override with ASSET_VERSION in .env)
+                                                                               
 STATIC_VERSION = env("ASSET_VERSION", default=str(int(time.time())))
 
-# ─── CONFIGURATION DES BACKENDS D'AUTHENTIFICATION ───────────────────────────
+                                                                               
 AUTHENTICATION_BACKENDS = [
-    # AxesStandaloneBackend en premier pour intercepter les tentatives de login
+                                                                               
     'axes.backends.AxesStandaloneBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-# ─── CONFIGURATION MODIFIABLE DEPUIS L'ADMIN (django-constance) ──────────────
+                                                                               
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
 CONSTANCE_CONFIG = {
     'AXES_FAILURE_LIMIT': (
@@ -323,8 +326,8 @@ CONSTANCE_CONFIG = {
         1, "Durée du verrouillage temporaire (en heures)", int),
 }
 
-# ─── PROTECTION BRUTE FORCE (django-axes) ────────────────────────────────────
-# Les seuils sont pilotés par django-constance (modifiables dans l'admin).
+                                                                               
+                                                                          
 def _axes_failure_limit(request=None, credentials=None):
     from constance import config
     return config.AXES_FAILURE_LIMIT
@@ -334,14 +337,14 @@ def _axes_cooloff_time(request=None, credentials=None):
     from constance import config
     return timedelta(hours=config.AXES_COOLOFF_HOURS)
 
-AXES_FAILURE_LIMIT = _axes_failure_limit   # Verrou après N échecs (réglable admin)
-AXES_COOLOFF_TIME = _axes_cooloff_time     # Durée de blocage (réglable admin)
+AXES_FAILURE_LIMIT = _axes_failure_limit                                           
+AXES_COOLOFF_TIME = _axes_cooloff_time                                        
 AXES_LOCKOUT_TEMPLATE = 'accounts/lockout.html'
-AXES_RESET_ON_SUCCESS = True       # Réinitialise le compteur sur login réussi
+AXES_RESET_ON_SUCCESS = True                                                  
 AXES_ENABLED = not (len(sys.argv) > 1 and sys.argv[1] == 'test')
 
-# ─── CONFIGURATION DE LA JOURNALISATION DE SÉCURITÉ ──────────────────────────
-# Assure que le dossier logs/ existe bien pour y écrire les fichiers logs
+                                                                               
+                                                                         
 LOGS_DIR = BASE_DIR / 'logs'
 if not LOGS_DIR.exists():
     LOGS_DIR.mkdir()
@@ -360,7 +363,7 @@ LOGGING = {
             'level': 'WARNING',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOGS_DIR / 'security.log',
-            'maxBytes': 1024 * 1024 * 10,  # 10 Mo
+            'maxBytes': 1024 * 1024 * 10,         
             'backupCount': 5,
             'formatter': 'verbose',
         },

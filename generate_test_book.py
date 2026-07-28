@@ -17,31 +17,31 @@ onglets_base = [
 ]
 
 def a_acces(organe, onglet):
-    # Tableau de bord : tout le monde
+                                     
     if onglet == "Tableau de bord":
         return "Oui"
     
-    # Agents notés : tout le monde sauf Directeur Agence et Chargé Client
+                                                                         
     if onglet == "Agents notés":
         return "Non" if organe in ["Directeur Agence", "Chargé Client"] else "Oui"
     
-    # Menus de base : tout le monde
+                                   
     if onglet in ["Champs non-renseignés", "Clients en anomalie", "Scoring Clients", "Screening KYC ID"]:
         return "Oui"
     
-    # Notations
+               
     if onglet in ["Nouvelle Notation", "Historique (Notations)"]:
         return "Oui" if organe in ["Contrôle Permanent", "PASS"] else "Non"
         
-    # Conformité
+                
     if onglet in ["PPE (Conformité)", "Comptes spécifiques (Conformité)"]:
         return "Oui" if organe in ["Conformité", "Conformité Groupe", "PASS"] else "Non"
         
-    # Administration DSI / PASS
+                               
     if onglet in ["Paramètres Système", "Régles de Qualité"]:
         return "Oui" if organe in ["PASS", "DSI"] else "Non"
         
-    # Administration PASS seul
+                              
     if onglet in ["Champs KYC", "Types de documents", "Importation", "Pilotage"]:
         return "Oui" if organe == "PASS" else "Non"
         
@@ -90,11 +90,11 @@ def get_specific_tests(organe, onglet):
     
     return tests
 
-# Create the excel file
+                       
 wb = Workbook()
 
-# Styling tokens
-header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid") # Dark Slate Premium
+                
+header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")                     
 header_font = Font(name="Segoe UI", size=11, color="FFFFFF", bold=True)
 header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
@@ -132,7 +132,7 @@ def apply_header_style(ws, headers_list):
         cell.alignment = header_alignment
         cell.border = border_thin
 
-# First sheet: Recap
+                    
 ws_recap = wb.active
 ws_recap.title = "Matrice des Accès"
 apply_header_style(ws_recap, ["Organe", "Onglet", "Accès Prévu", "Statut du Test (OK/KO)", "Commentaires"])
@@ -149,11 +149,11 @@ for organe in organes:
             cell.fill = alt_fill_1 if row_num % 2 == 0 else alt_fill_2
         row_num += 1
 
-# Adjust columns for Recap
+                          
 for col in ws_recap.columns:
     ws_recap.column_dimensions[col[0].column_letter].width = 25
 
-# Add individual sheets for each Organe
+                                       
 for organe in organes:
     ws = wb.create_sheet(title=organe[:31])
     apply_header_style(ws, headers)
@@ -175,47 +175,47 @@ for organe in organes:
             ws.append([onglet, acces, "N/A", attendu, "", "", "", ""])
             current_row += 1
             
-        # Merge cells for "Onglet", "Accès Prévu", "Résultat attendu"
+                                                                     
         if current_row - 1 > start_row:
             ws.merge_cells(start_row=start_row, start_column=1, end_row=current_row-1, end_column=1)
             ws.merge_cells(start_row=start_row, start_column=2, end_row=current_row-1, end_column=2)
             ws.merge_cells(start_row=start_row, start_column=4, end_row=current_row-1, end_column=4)
             
-        # Apply styles
+                      
         group_fill = alt_fill_1 if idx_onglet % 2 == 0 else alt_fill_2
         
         for row in range(start_row, current_row):
-            ws.row_dimensions[row].height = 45 # Make rows taller for better readability
+            ws.row_dimensions[row].height = 45                                          
             for col_idx, cell in enumerate(ws[row], 1):
                 cell.font = cell_font
                 cell.border = border_thin
                 
-                # Alignments
+                            
                 if col_idx in [1, 2, 4]:
                     cell.alignment = center_alignment
                 else:
                     cell.alignment = cell_alignment
                 
-                # Highlights for "Accès Prévu"
+                                              
                 if col_idx == 2:
                     if acces == "Oui":
-                        cell.fill = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid") # Emerald-100
+                        cell.fill = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")              
                         cell.font = Font(name="Segoe UI", size=10, color="065F46", bold=True)
                     else:
-                        cell.fill = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid") # Red-100
+                        cell.fill = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")          
                         cell.font = Font(name="Segoe UI", size=10, color="991B1B", bold=True)
                 else:
                     cell.fill = group_fill
 
-    # Set column widths
-    ws.column_dimensions['A'].width = 25 # Onglet
-    ws.column_dimensions['B'].width = 15 # Accès
-    ws.column_dimensions['C'].width = 50 # Tests
-    ws.column_dimensions['D'].width = 22 # Résultat attendu
-    ws.column_dimensions['E'].width = 20 # Obtenu
-    ws.column_dimensions['F'].width = 15 # Date
-    ws.column_dimensions['G'].width = 35 # Motif
-    ws.column_dimensions['H'].width = 25 # Ecran
+                       
+    ws.column_dimensions['A'].width = 25         
+    ws.column_dimensions['B'].width = 15        
+    ws.column_dimensions['C'].width = 50        
+    ws.column_dimensions['D'].width = 22                   
+    ws.column_dimensions['E'].width = 20         
+    ws.column_dimensions['F'].width = 15       
+    ws.column_dimensions['G'].width = 35        
+    ws.column_dimensions['H'].width = 25        
 
 wb.save("Cahier_de_Tests_KYC_v5.xlsx")
 print("Cahier de tests généré avec succès : Cahier_de_Tests_KYC_v5.xlsx")

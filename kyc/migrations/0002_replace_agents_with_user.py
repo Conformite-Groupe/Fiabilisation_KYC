@@ -17,7 +17,7 @@ def forwards_map_agents(apps, schema_editor):
     by_email = {u.email.lower(): u.id for u in users if u.email}
     by_code = {u.code_expl: u.id for u in users if getattr(u, "code_expl", "")}
 
-    # Placeholder user for unmapped agents
+                                          
     placeholder_user = None
 
     def get_placeholder_user():
@@ -51,21 +51,21 @@ def forwards_map_agents(apps, schema_editor):
             return by_code[expl]
         return get_placeholder_user().id
 
-    # Notation
+              
     for obj in Notation.objects.select_related("agent").all():
         user_id = map_agent_to_user(obj.agent)
         if user_id:
             obj.agent_user_id = user_id
             obj.save(update_fields=["agent_user"])
 
-    # Historique
+                
     for obj in Historique.objects.select_related("agent").all():
         user_id = map_agent_to_user(obj.agent)
         if user_id:
             obj.agent_user_id = user_id
             obj.save(update_fields=["agent_user"])
 
-    # Compte
+            
     for obj in Compte.objects.select_related("agent").all():
         user_id = map_agent_to_user(obj.agent)
         if user_id:

@@ -31,7 +31,7 @@ def open_smtp(cfg):
             srv.login(cfg.smtp_user, cfg.smtp_password)
         except smtplib.SMTPAuthenticationError:
             srv.quit()
-            srv = _conn()   # relais interne sans authentification
+            srv = _conn()                                         
     return srv
 
 
@@ -91,7 +91,7 @@ def send_daterev_reminders_core(config, filiale=None, expl=None, only_paid=True)
                 part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
                 part.set_payload(buf.read())
                 encoders.encode_base64(part)
-                part.add_header('Content-Disposition', f'attachment; filename="daterev_{ex}_{fil}.xlsx"')
+                part.add_header('Content-Disposition', f'attachment; filename="Revue Scoring_{ex}_{fil}.xlsx"')
                 msg.attach(part)
 
                 msg['Subject'] = f" Rappel — Revue de portefeuille client à effectuer ({fil})"

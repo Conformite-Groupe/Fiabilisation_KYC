@@ -40,11 +40,20 @@
         box-shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.13);
     }
 
-    .rule-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
-    .rule-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    .rule-scroll::-webkit-scrollbar {
+        height: 6px;
+        width: 6px;
+    }
+
+    .rule-scroll::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
     .quality-modal-table {
         table-layout: fixed;
     }
+
     .quality-modal-table th,
     .quality-modal-table td {
         width: 150px;
@@ -55,46 +64,67 @@
         overflow-wrap: anywhere;
     }
 
-    .progress-glow-circle { filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.35)); }
-    .progress-glow-orange { filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.35)); }
+    .progress-glow-circle {
+        filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.35));
+    }
+
+    .progress-glow-orange {
+        filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.35));
+    }
+
     .rule-number {
         font-family: 'Outfit', sans-serif;
     }
 
     /* ── Mini navbar segmentée (onglets PP / PM / Toutes) ── */
     .rule-tab {
-        color: #64748b;                 /* slate-500 */
+        color: #64748b;
+        /* slate-500 */
         cursor: pointer;
     }
-    .rule-tab:hover { color: #0f172a; } /* slate-900 */
+
+    .rule-tab:hover {
+        color: #0f172a;
+    }
+
+    /* slate-900 */
     .rule-tab .rule-tab-count {
-        background: #f1f5f9;            /* slate-100 */
+        background: #f1f5f9;
+        /* slate-100 */
         color: #64748b;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
+
     .rule-tab.is-active {
         color: #ffffff;
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         box-shadow: 0 8px 20px -6px rgba(15, 23, 42, 0.45);
     }
+
     .rule-tab.is-active .rule-tab-count {
         background: var(--premium-accent);
         color: #ffffff;
     }
-    .rule-card.is-hidden { display: none !important; }
+
+    .rule-card.is-hidden {
+        display: none !important;
+    }
 </style>
 
 <div class="min-h-screen px-4 pb-4 pt-1 lg:px-8 lg:pb-8 lg:pt-2 space-y-3 max-w-[1600px] mx-auto">
-    <header class="glass-panel rounded-none px-5 py-4 lg:px-6 lg:py-4 flex flex-col lg:flex-row items-center justify-between gap-4">
+    <header
+        class="glass-panel rounded-none px-5 py-4 lg:px-6 lg:py-4 flex flex-col lg:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-4">
             <div class="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl">
                 <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                    </path>
                 </svg>
             </div>
             <div>
                 <h1 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                    {{ "CLIENTS EN"|t }} <span class="text-emerald-500 font-light">{{ "ANOMALIE"|t }}</span> 
+                    {{ "CLIENTS EN"|t }} <span class="text-emerald-500 font-light">{{ "ANOMALIE"|t }}</span>
                 </h1>
                 <div class="flex items-center gap-2 mt-1.5">
                     <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -119,124 +149,156 @@
         <form method="get" class="flex flex-wrap items-end justify-center gap-3">
             {% if can_pick_filiale %}
             <div class="w-full md:w-36 lg:w-40 relative group order-2">
-                <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                <label
+                    class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                        </path>
                     </svg>
                     {{ "Filiale"|t }}
                 </label>
                 <div class="relative">
-                    <select name="filiale" onchange="this.form.submit()" class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
+                    <select name="filiale" onchange="this.form.submit()"
+                        class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
                         <option value="">{{ "Toutes filiales"|t }}</option>
                         {% for f in filiale_list %}
                         <option value="{{ f }}" {% if request.GET.filiale == f %}selected{% endif %}>{{ f }}</option>
                         {% endfor %}
                     </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
+                    <div
+                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
                         </svg>
                     </div>
                 </div>
             </div>
             {% elif user.filiale %}
             <div class="w-full md:w-36 lg:w-40 relative group order-2">
-                <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                <label
+                    class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                        </path>
                     </svg>
                     {{ "Filiale"|t }}
                 </label>
                 <div class="relative">
-                    <input value="{{ user.filiale }}" disabled class="appearance-none block w-full pl-4 pr-3 py-3 text-xs font-bold text-slate-500 bg-slate-50 backdrop-blur-md border border-slate-200/50 rounded-2xl truncate h-[42px] cursor-not-allowed opacity-60">
+                    <input value="{{ user.filiale }}" disabled
+                        class="appearance-none block w-full pl-4 pr-3 py-3 text-xs font-bold text-slate-500 bg-slate-50 backdrop-blur-md border border-slate-200/50 rounded-2xl truncate h-[42px] cursor-not-allowed opacity-60">
                 </div>
             </div>
             {% endif %}
 
             {% if can_pick_agence %}
             <div class="w-full md:w-36 lg:w-40 relative group order-3">
-                <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                <label
+                    class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
                     </svg>
                     {{ "Agence"|t }}
                 </label>
                 <div class="relative">
-                    <select name="agence" onchange="this.form.submit()" class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
+                    <select name="agence" onchange="this.form.submit()"
+                        class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
                         <option value="">{{ "Toutes agences"|t }}</option>
                         {% for a in agence_list %}
                         <option value="{{ a }}" {% if request.GET.agence == a %}selected{% endif %}>{{ a }}</option>
                         {% endfor %}
                     </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
+                    <div
+                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
                         </svg>
                     </div>
                 </div>
             </div>
             {% elif user.agence %}
             <div class="w-full md:w-36 lg:w-40 relative group order-3">
-                <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                <label
+                    class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
                     </svg>
                     {{ "Agence"|t }}
                 </label>
                 <div class="relative">
-                    <input value="{{ user.agence }}" disabled class="appearance-none block w-full pl-4 pr-3 py-3 text-xs font-bold text-slate-500 bg-slate-50 backdrop-blur-md border border-slate-200/50 rounded-2xl truncate h-[42px] cursor-not-allowed opacity-60">
+                    <input value="{{ user.agence }}" disabled
+                        class="appearance-none block w-full pl-4 pr-3 py-3 text-xs font-bold text-slate-500 bg-slate-50 backdrop-blur-md border border-slate-200/50 rounded-2xl truncate h-[42px] cursor-not-allowed opacity-60">
                 </div>
             </div>
             {% endif %}
 
             {% if not is_charge_client %}
             <div class="w-full md:w-36 lg:w-40 relative group order-4">
-                <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                <label
+                    class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                     </svg>
                     {{ "Exploitant"|t }}
                 </label>
                 <div class="relative">
-                    <select name="expl" class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
+                    <select name="expl"
+                        class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer">
                         <option value="">{{ "Tous les exploitants"|t }}</option>
                         {% for e in expl_list %}
                         <option value="{{ e }}" {% if request.GET.expl == e %}selected{% endif %}>{{ e }}</option>
                         {% endfor %}
                     </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
+                    <div
+                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 group-hover:text-emerald-500 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
                         </svg>
                     </div>
                 </div>
             </div>
             {% elif user.code_expl %}
             <div class="w-full md:w-36 lg:w-40 relative group order-4">
-                <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                <label
+                    class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                     </svg>
                     {{ "Exploitant"|t }}
                 </label>
                 <div class="relative">
-                    <input value="{{ user.code_expl }}" disabled class="appearance-none block w-full pl-4 pr-3 py-3 text-xs font-bold text-slate-500 bg-slate-50 backdrop-blur-md border border-slate-200/50 rounded-2xl truncate h-[42px] cursor-not-allowed opacity-60">
+                    <input value="{{ user.code_expl }}" disabled
+                        class="appearance-none block w-full pl-4 pr-3 py-3 text-xs font-bold text-slate-500 bg-slate-50 backdrop-blur-md border border-slate-200/50 rounded-2xl truncate h-[42px] cursor-not-allowed opacity-60">
                 </div>
             </div>
             {% endif %}
 
             <div class="flex gap-3 w-full lg:w-auto h-full items-end mt-4 lg:mt-0 order-5">
-                <button type="submit" class="group relative flex-1 lg:w-32 h-10 overflow-hidden rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                    <div class="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300 ease-out"></div>
+                <button type="submit"
+                    class="group relative flex-1 lg:w-32 h-10 overflow-hidden rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                    <div
+                        class="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300 ease-out">
+                    </div>
                     <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <span class="relative z-10">{{ "Filtrer"|t }}</span>
                 </button>
 
-                <a href="{{ request.path }}" class="group relative flex-1 lg:w-32 h-10 overflow-hidden rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2 text-center">
+                <a href="{{ request.path }}"
+                    class="group relative flex-1 lg:w-32 h-10 overflow-hidden rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2 text-center">
                     <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     <span class="relative z-10">{{ "Reset"|t }}</span>
                 </a>
@@ -245,26 +307,40 @@
     </section>
 
     <section class="space-y-4">
-        {# ── Mini navbar segmentée : Toutes / Particuliers (PP) / Entreprises (PM) + compteur ── #}
+
         <div class="flex flex-wrap items-center justify-center gap-3 sm:justify-between">
-            <div id="ruleTabs" class="glass-panel inline-flex items-center gap-1 rounded-2xl bg-white/70 p-1.5 shadow-lg ring-1 ring-slate-100">
+            <div id="ruleTabs"
+                class="glass-panel inline-flex items-center gap-1 rounded-2xl bg-white/70 p-1.5 shadow-lg ring-1 ring-slate-100">
                 <button type="button" data-filter="all" aria-pressed="true"
-                        class="rule-tab group relative flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
-                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    class="rule-tab group relative flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
                     <span>{{ "Toutes"|t }}</span>
-                    <span class="rule-tab-count inline-flex min-w-[20px] items-center justify-center rounded-lg px-1.5 py-0.5 text-[9px] font-black tabular-nums">{{ total_rules }}</span>
+                    <span
+                        class="rule-tab-count inline-flex min-w-[20px] items-center justify-center rounded-lg px-1.5 py-0.5 text-[9px] font-black tabular-nums">{{ total_rules }}</span>
                 </button>
                 <button type="button" data-filter="PP" aria-pressed="false"
-                        class="rule-tab group relative flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
-                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    class="rule-tab group relative flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
                     <span>{{ "Particuliers (PP)"|t }}</span>
-                    <span class="rule-tab-count inline-flex min-w-[20px] items-center justify-center rounded-lg px-1.5 py-0.5 text-[9px] font-black tabular-nums">{{ pp_rules_count }}</span>
+                    <span
+                        class="rule-tab-count inline-flex min-w-[20px] items-center justify-center rounded-lg px-1.5 py-0.5 text-[9px] font-black tabular-nums">{{ pp_rules_count }}</span>
                 </button>
                 <button type="button" data-filter="PM" aria-pressed="false"
-                        class="rule-tab group relative flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
-                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    class="rule-tab group relative flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                        </path>
+                    </svg>
                     <span>{{ "Entreprises (PM)"|t }}</span>
-                    <span class="rule-tab-count inline-flex min-w-[20px] items-center justify-center rounded-lg px-1.5 py-0.5 text-[9px] font-black tabular-nums">{{ pm_rules_count }}</span>
+                    <span
+                        class="rule-tab-count inline-flex min-w-[20px] items-center justify-center rounded-lg px-1.5 py-0.5 text-[9px] font-black tabular-nums">{{ pm_rules_count }}</span>
                 </button>
             </div>
             <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400"><span id="rulesVisibleCount">{{ rules|length }}</span> {% if rules|length > 1 %}{{ "regles affichees"|t }}{% else %}{{ "regle affichee"|t }}{% endif %}</p>
@@ -275,27 +351,28 @@
         <div id="rulesGrid" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {% for item in rules %}
             <a href="?{% if base_querystring %}{{ base_querystring }}&{% endif %}rule={{ item.rule.pk }}"
-               data-app="{{ item.rule.applicability }}"
-               class="rule-card glass-panel border-2 rounded-[1.25rem] p-4 flex flex-col justify-between shadow-lg bg-white/90 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300
+                data-app="{{ item.rule.applicability }}" class="rule-card glass-panel border-2 rounded-[1.25rem] p-4 flex flex-col justify-between shadow-lg bg-white/90 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300
                       {% if item.stat.fail_count == 0 %}border-emerald-400 shadow-[0_14px_30px_rgba(16,185,129,0.25)]
                       {% elif 'PM' in item.rule.applicability and 'PP' not in item.rule.applicability %}border-orange-400 shadow-[0_14px_30px_rgba(249,115,22,0.25)]
                       {% elif 'PP' in item.rule.applicability and 'PM' not in item.rule.applicability %}border-emerald-400 shadow-[0_14px_30px_rgba(16,185,129,0.25)]
                       {% else %}border-blue-400 shadow-[0_14px_30px_rgba(59,130,246,0.25)]{% endif %}">
-                
+
                 <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-2xl transition-colors
                             {% if item.stat.fail_count == 0 %}bg-emerald-300/20 group-hover:bg-emerald-300/30
                             {% elif 'PM' in item.rule.applicability and 'PP' not in item.rule.applicability %}bg-orange-300/20 group-hover:bg-orange-300/30
                             {% elif 'PP' in item.rule.applicability and 'PM' not in item.rule.applicability %}bg-emerald-300/20 group-hover:bg-emerald-300/30
                             {% else %}bg-blue-300/20 group-hover:bg-blue-300/30{% endif %}"></div>
                 <div class="absolute right-4 top-4 z-20">
-                    <span class="js-rule-index rule-number w-7 h-7 bg-white border-[3px] border-slate-900 rounded-xl flex items-center justify-center text-[10px] font-black text-slate-900 shadow-lg">
-                        {{ item.rule.pk }}
+                    <span
+                        class="js-rule-index rule-number w-7 h-7 bg-white border-[3px] border-slate-900 rounded-xl flex items-center justify-center text-[10px] font-black text-slate-900 shadow-lg">
+                        {{ item.rule_number|default:item.rule.rule_number }}
                     </span>
                 </div>
 
                 <div class="relative z-10 flex flex-col justify-between h-full w-full pr-8">
                     <div class="flex items-center gap-2 mb-3">
-                        <div class="px-2 py-0.5 rounded-md text-white text-[9px] font-black tracking-widest shadow-md
+                        <div
+                            class="px-2 py-0.5 rounded-md text-white text-[9px] font-black tracking-widest shadow-md
                                     {% if 'PM' in item.rule.applicability and 'PP' not in item.rule.applicability %}bg-gradient-to-br from-orange-400 to-orange-600 shadow-orange-500/30
                                     {% elif 'PP' in item.rule.applicability and 'PM' not in item.rule.applicability %}bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/30
                                     {% else %}bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-500/30{% endif %}">
@@ -305,17 +382,21 @@
 
                     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-0">
                         <div class="flex-1 min-w-0 sm:pr-4">
-                            <h3 class="line-clamp-2 text-sm font-black text-slate-900 group-hover:text-slate-700" title="{{ item.rule.name }}">
+                            <h3 class="line-clamp-2 text-sm font-black text-slate-900 group-hover:text-slate-700"
+                                title="{{ item.rule.name }}">
                                 {{ item.rule.name }}
                             </h3>
                             <p class="mt-1 text-[10px] font-bold text-slate-500">Champ: {{ item.rule.field_name|default:"Multi-criteres" }}</p>
-                            
+
                             <div class="mt-3 flex items-center gap-1.5 flex-nowrap">
-                                <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-100 shrink-0">
+                                <div
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-100 shrink-0">
                                     <span class="text-[8px] font-black uppercase text-slate-400">{{ "Anomalies"|t }}</span>
-                                    <span class="text-[10px] font-black {% if item.stat.fail_count > 0 %}text-orange-600{% else %}text-emerald-600{% endif %}">{{ item.stat.fail_count|intcomma }}</span>
+                                    <span
+                                        class="text-[10px] font-black {% if item.stat.fail_count > 0 %}text-orange-600{% else %}text-emerald-600{% endif %}">{{ item.stat.fail_count|intcomma }}</span>
                                 </div>
-                                <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-100 shrink-0">
+                                <div
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-100 shrink-0">
                                     <span class="text-[8px] font-black uppercase text-slate-400">{{ "Evalues"|t }}</span>
                                     <span class="text-[10px] font-black text-slate-600">{{ item.stat.total|intcomma }}</span>
                                 </div>
@@ -324,25 +405,31 @@
 
                         <div class="relative w-[72px] h-[72px] shrink-0 self-end sm:self-auto">
                             <svg class="w-[72px] h-[72px] -rotate-90 drop-shadow-md" viewBox="0 0 112 112">
-                                <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" class="text-slate-100"></circle>
-                                <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10" 
-                                        class="stat-rate-circle
+                                <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10"
+                                    class="text-slate-100"></circle>
+                                <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10"
+                                    class="stat-rate-circle
                                                {% if 'PM' in item.rule.applicability and 'PP' not in item.rule.applicability %}text-orange-500 progress-glow-orange
                                                {% elif 'PP' in item.rule.applicability and 'PM' not in item.rule.applicability %}text-emerald-500 progress-glow-circle
                                                {% else %}text-blue-500 drop-shadow-[0_0_4px_rgba(59,130,246,0.35)]{% endif %}"
-                                        stroke-dasharray="314" stroke-dashoffset="314" data-rate="{{ item.stat.compliance_rate|default:0|floatformat:1 }}" stroke-linecap="round"></circle>
+                                    stroke-dasharray="314" stroke-dashoffset="314"
+                                    data-rate="{{ item.stat.compliance_rate|default:0|floatformat:1 }}"
+                                    stroke-linecap="round"></circle>
                             </svg>
-                            <span class="absolute inset-0 flex items-center justify-center text-[13px] font-black text-slate-800">{{ item.stat.compliance_rate|default:0|floatformat:1 }}%</span>
+                            <span
+                                class="absolute inset-0 flex items-center justify-center text-[13px] font-black text-slate-800">{{ item.stat.compliance_rate|default:0|floatformat:1 }}%</span>
                         </div>
                     </div>
                 </div>
             </a>
             {% empty %}
-            <div class="md:col-span-2 xl:col-span-3 rounded-3xl border border-slate-100 bg-white px-6 py-12 text-center text-[11px] font-black uppercase tracking-widest text-slate-300">
+            <div
+                class="md:col-span-2 xl:col-span-3 rounded-3xl border border-slate-100 bg-white px-6 py-12 text-center text-[11px] font-black uppercase tracking-widest text-slate-300">
                 {{ "Aucune regle active trouvee."|t }}
             </div>
             {% endfor %}
-            <div id="rulesEmptyFilter" class="hidden md:col-span-2 xl:col-span-3 rounded-3xl border border-slate-100 bg-white px-6 py-12 text-center text-[11px] font-black uppercase tracking-widest text-slate-300">
+            <div id="rulesEmptyFilter"
+                class="hidden md:col-span-2 xl:col-span-3 rounded-3xl border border-slate-100 bg-white px-6 py-12 text-center text-[11px] font-black uppercase tracking-widest text-slate-300">
                 {{ "Aucune regle active trouvee."|t }}
             </div>
         </div>
@@ -351,13 +438,16 @@
 
 {% if show_rule_modal and selected_rule %}
 <div class="fixed inset-0 z-[9999] bg-slate-950/55 p-3 backdrop-blur-sm lg:p-6">
-    <div class="mx-auto flex h-full max-w-[1500px] flex-col overflow-hidden rounded-3xl border border-white/30 bg-white shadow-2xl">
-        <div class="flex flex-col gap-3 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">
+    <div
+        class="mx-auto flex h-full max-w-[1500px] flex-col overflow-hidden rounded-3xl border border-white/30 bg-white shadow-2xl">
+        <div
+            class="flex flex-col gap-3 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-300">{{ "Resultats de la regle"|t }}</p>
                 <div class="mt-1 flex flex-wrap items-center gap-3">
                     {% if selected_rule_number %}
-                    <span class="rule-number w-9 h-9 bg-white border-4 border-emerald-300 rounded-2xl flex items-center justify-center text-xs font-black text-slate-950 shadow-xl shrink-0">
+                    <span
+                        class="rule-number w-9 h-9 bg-white border-4 border-emerald-300 rounded-2xl flex items-center justify-center text-xs font-black text-slate-950 shadow-xl shrink-0">
                         {{ selected_rule_number }}
                     </span>
                     {% endif %}
@@ -366,42 +456,49 @@
                 <p class="mt-1 text-[10px] font-bold text-slate-300">
                     {{ selected_rule.applicability }} | {{ failures_page.paginator.count|intcomma }} resultat{{ failures_page.paginator.count|pluralize }}
                 </p>
-                <p class="mt-2 inline-flex rounded-xl bg-white/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-200">
+                <p
+                    class="mt-2 inline-flex rounded-xl bg-white/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-200">
                     Filiale(s): {{ selected_rule_filiales_display|default:"Filiale non definie" }}
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <a href="{% url 'kyc:export_rule_failures' selected_rule.pk %}{% if export_querystring %}?{{ export_querystring }}{% endif %}"
-                   class="inline-flex h-9 items-center rounded-xl bg-emerald-600 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700">
+                    class="inline-flex h-9 items-center rounded-xl bg-emerald-600 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-700">
                     {{ "Exporter la regle"|t }}
                 </a>
                 <a href="{{ request.path }}{% if base_querystring %}?{{ base_querystring }}{% endif %}"
-                   class="inline-flex h-9 items-center rounded-xl border border-white/15 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 hover:bg-slate-100">
+                    class="inline-flex h-9 items-center rounded-xl border border-white/15 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 hover:bg-slate-100">
                     {{ "Fermer"|t }}
                 </a>
             </div>
         </div>
 
         {% if failure_message %}
-        <div class="mx-5 mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-[11px] font-bold text-amber-700">{{ failure_message }}</div>
+        <div
+            class="mx-5 mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-[11px] font-bold text-amber-700">
+            {{ failure_message }}</div>
         {% endif %}
 
         <div class="border-b border-slate-100 bg-white px-5 py-4">
-            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ "Criteres de la regle"|t }}</p>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ "Criteres de la regle"|t }}
+            </p>
             <div class="mt-3 flex flex-wrap items-center gap-2">
                 {% for condition in selected_rule_conditions %}
                 {% if not forloop.first %}
-                <span class="rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-widest {% if condition.logic == 'OR' %}bg-amber-100 text-amber-700{% else %}bg-slate-200 text-slate-600{% endif %}">
+                <span
+                    class="rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-widest {% if condition.logic == 'OR' %}bg-amber-100 text-amber-700{% else %}bg-slate-200 text-slate-600{% endif %}">
                     {{ condition.get_logic_display }}
                 </span>
                 {% endif %}
-                <span class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-700">
+                <span
+                    class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-700">
                     <strong class="font-black text-slate-900">{{ condition.field_name }}</strong>
                     <span class="text-slate-400">{{ condition.get_operator_display }}</span>
                     {% if condition.value %}<span class="rounded-lg bg-white px-2 py-1 text-orange-700">{{ condition.value }}</span>{% endif %}
                 </span>
                 {% empty %}
-                <span class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-400">
+                <span
+                    class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-400">
                     {{ "Aucun critere detaille disponible."|t }}
                 </span>
                 {% endfor %}
@@ -412,89 +509,118 @@
             <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <form method="get">
                     {% if base_querystring %}
-                        {% for key, value in request.GET.items %}
-                            {% if key != 'page' and key != 'failure_client' %}
-                                {% if key|slice:":8" != "failure" %}
-                                <input type="hidden" name="{{ key }}" value="{{ value }}">
-                                {% endif %}
-                            {% endif %}
-                        {% endfor %}
+                    {% for key, value in request.GET.items %}
+                    {% if key != 'page' and key != 'failure_client' %}
+                    {% if key|slice:":8" != "failure" %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endif %}
+                    {% endif %}
+                    {% endfor %}
                     {% endif %}
                     <input type="hidden" name="rule" value="{{ selected_rule.pk }}">
-                <table class="quality-modal-table w-full min-w-[900px] border-separate border-spacing-0 text-[10px]">
-                    <thead>
-                        <tr class="bg-slate-900 text-white">
-                            <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">{{ "Client"|t }}</th>
-                            {% if is_group_user %}
-                            <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">{{ "Filiale"|t }}</th>
-                            {% endif %}
-                            <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">{{ "Agence"|t }}</th>
-                            <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">{{ "Exploitant"|t }}</th>
-                            {% for column in failure_columns %}
-                            <th class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">{{ column.name }}</th>
+                    <table
+                        class="quality-modal-table w-full min-w-[900px] border-separate border-spacing-0 text-[10px]">
+                        <thead>
+                            <tr class="bg-slate-900 text-white">
+                                <th
+                                    class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
+                                    {{ "Client"|t }}</th>
+                                {% if is_group_user %}
+                                <th
+                                    class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
+                                    {{ "Filiale"|t }}</th>
+                                {% endif %}
+                                <th
+                                    class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
+                                    {{ "Agence"|t }}</th>
+                                <th
+                                    class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
+                                    {{ "Exploitant"|t }}</th>
+                                {% for column in failure_columns %}
+                                <th
+                                    class="sticky top-0 z-30 bg-slate-900 px-4 py-3 font-black uppercase tracking-widest">
+                                    {{ column.name }}</th>
+                                {% endfor %}
+                            </tr>
+                            <tr class="bg-slate-900/95">
+                                <th class="sticky top-[42px] z-30 bg-slate-900/95 px-2 py-2">
+                                    <input name="failure_client" value="{{ failure_client_filter }}"
+                                        placeholder="{{ 'Filtre'|t }}" onchange="this.form.submit()"
+                                        class="w-full rounded border border-slate-300 bg-white/95 px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500">
+                                </th>
+                                {% if is_group_user %}
+                                <th class="sticky top-[42px] z-30 bg-slate-900/95 px-2 py-2">
+                                    <input name="failure_filiale" value="{{ failure_filiale_filter }}"
+                                        placeholder="{{ 'Filiale'|t }}" onchange="this.form.submit()"
+                                        class="w-full rounded border border-slate-300 bg-white/95 px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500">
+                                </th>
+                                {% endif %}
+                                <th class="sticky top-[42px] z-30 bg-slate-900/95 px-2 py-2">
+                                    <input name="failure_agence" value="{{ failure_agence_filter }}"
+                                        placeholder="{{ 'Agence'|t }}" onchange="this.form.submit()"
+                                        class="w-full rounded border border-slate-300 bg-white/95 px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500">
+                                </th>
+                                <th class="sticky top-[42px] z-30 bg-slate-900/95 px-2 py-2">
+                                    <input name="failure_expl" value="{{ failure_expl_filter }}"
+                                        placeholder="{{ 'Expl.'|t }}" onchange="this.form.submit()"
+                                        class="w-full rounded border border-slate-300 bg-white/95 px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500">
+                                </th>
+                                {% for column in failure_columns %}
+                                <th class="sticky top-[42px] z-30 bg-slate-900/95 px-2 py-2">
+                                    <input name="{{ column.param }}" value="{{ column.filter_value }}"
+                                        placeholder="{{ 'Filtre'|t }}" onchange="this.form.submit()"
+                                        class="w-full rounded border border-slate-300 bg-white/95 px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500">
+                                </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in failures_page %}
+                            <tr class="hover:bg-emerald-50">
+                                <td class="border-b border-slate-100 px-4 py-3 font-black text-slate-900">{{ row.client|default:"-" }}</td>
+                                {% if is_group_user %}
+                                <td class="border-b border-slate-100 px-4 py-3 text-center font-bold text-slate-500">{{ row.filiale|default:"-" }}</td>
+                                {% endif %}
+                                <td class="border-b border-slate-100 px-4 py-3 text-center font-bold text-slate-500">{{ row.agence|default:"-" }}</td>
+                                <td class="border-b border-slate-100 px-4 py-3 text-center font-bold text-slate-500">{{ row.expl|default:"-" }}</td>
+                                {% for value in row.values %}
+                                <td
+                                    class="border-b border-slate-100 bg-orange-50/50 px-4 py-3 text-center font-black text-orange-700">
+                                    {{ value|default:"-" }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="12"
+                                    class="px-4 py-12 text-center text-[11px] font-black uppercase tracking-widest text-slate-300">
+                                    {{ "Aucun client en anomalie pour cette regle."|t }}
+                                </td>
+                            </tr>
                             {% endfor %}
-                        </tr>
-                        <tr class="bg-slate-900/95">
-                            <th class="sticky top-[42px] z-30 bg-slate-900/95 px-2 py-2">
-                                <input name="failure_client" value="{{ failure_client_filter }}" placeholder="{{ 'Filtre'|t }}" onchange="this.form.submit()" class="w-full rounded border border-slate-300 bg-white/95 px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500">
-                            </th>
-                            {% if is_group_user %}
-                            <th class="sticky top-[42px] z-30 bg-slate-900/95 px-2 py-2">
-                                <input name="failure_filiale" value="{{ failure_filiale_filter }}" placeholder="{{ 'Filiale'|t }}" onchange="this.form.submit()" class="w-full rounded border border-slate-300 bg-white/95 px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500">
-                            </th>
-                            {% endif %}
-                            <th class="sticky top-[42px] z-30 bg-slate-900/95 px-2 py-2">
-                                <input name="failure_agence" value="{{ failure_agence_filter }}" placeholder="{{ 'Agence'|t }}" onchange="this.form.submit()" class="w-full rounded border border-slate-300 bg-white/95 px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500">
-                            </th>
-                            <th class="sticky top-[42px] z-30 bg-slate-900/95 px-2 py-2">
-                                <input name="failure_expl" value="{{ failure_expl_filter }}" placeholder="{{ 'Expl.'|t }}" onchange="this.form.submit()" class="w-full rounded border border-slate-300 bg-white/95 px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500">
-                            </th>
-                            {% for column in failure_columns %}
-                            <th class="sticky top-[42px] z-30 bg-slate-900/95 px-2 py-2">
-                                <input name="{{ column.param }}" value="{{ column.filter_value }}" placeholder="{{ 'Filtre'|t }}" onchange="this.form.submit()" class="w-full rounded border border-slate-300 bg-white/95 px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500">
-                            </th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in failures_page %}
-                        <tr class="hover:bg-emerald-50">
-                            <td class="border-b border-slate-100 px-4 py-3 font-black text-slate-900">{{ row.client|default:"-" }}</td>
-                            {% if is_group_user %}
-                            <td class="border-b border-slate-100 px-4 py-3 text-center font-bold text-slate-500">{{ row.filiale|default:"-" }}</td>
-                            {% endif %}
-                            <td class="border-b border-slate-100 px-4 py-3 text-center font-bold text-slate-500">{{ row.agence|default:"-" }}</td>
-                            <td class="border-b border-slate-100 px-4 py-3 text-center font-bold text-slate-500">{{ row.expl|default:"-" }}</td>
-                            {% for value in row.values %}
-                            <td class="border-b border-slate-100 bg-orange-50/50 px-4 py-3 text-center font-black text-orange-700">{{ value|default:"-" }}</td>
-                            {% endfor %}
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="12" class="px-4 py-12 text-center text-[11px] font-black uppercase tracking-widest text-slate-300">
-                                {{ "Aucun client en anomalie pour cette regle."|t }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
                 </form>
             </div>
         </div>
-        <div class="flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div
+            class="flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 Page {{ failures_page.number }} / {{ failures_page.paginator.num_pages }} | {{ failures_page.paginator.count|intcomma }} resultat{{ failures_page.paginator.count|pluralize }}
             </p>
             <div class="flex items-center gap-2">
                 {% if failures_page.has_previous %}
-                <a href="?{% if pagination_querystring %}{{ pagination_querystring }}&{% endif %}page={{ failures_page.previous_page_number }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 hover:bg-emerald-50">{{ "Precedent"|t }}</a>
+                <a href="?{% if pagination_querystring %}{{ pagination_querystring }}&{% endif %}page={{ failures_page.previous_page_number }}"
+                    class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 hover:bg-emerald-50">{{ "Precedent"|t }}</a>
                 {% else %}
-                <span class="rounded-xl border border-slate-100 bg-slate-100 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-300">{{ "Precedent"|t }}</span>
+                <span
+                    class="rounded-xl border border-slate-100 bg-slate-100 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-300">{{ "Precedent"|t }}</span>
                 {% endif %}
                 {% if failures_page.has_next %}
-                <a href="?{% if pagination_querystring %}{{ pagination_querystring }}&{% endif %}page={{ failures_page.next_page_number }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 hover:bg-emerald-50">{{ "Suivant"|t }}</a>
+                <a href="?{% if pagination_querystring %}{{ pagination_querystring }}&{% endif %}page={{ failures_page.next_page_number }}"
+                    class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 hover:bg-emerald-50">{{ "Suivant"|t }}</a>
                 {% else %}
-                <span class="rounded-xl border border-slate-100 bg-slate-100 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-300">{{ "Suivant"|t }}</span>
+                <span
+                    class="rounded-xl border border-slate-100 bg-slate-100 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-300">{{ "Suivant"|t }}</span>
                 {% endif %}
             </div>
         </div>
@@ -504,56 +630,51 @@
 {% endif %}
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('circle.stat-rate-circle').forEach(circle => {
-    const rate = parseFloat(circle.getAttribute('data-rate') || 0);
-    const bounded = Math.max(0, Math.min(100, rate));
-    const circumference = 314;
-    const offset = circumference - (bounded / 100) * circumference;
-    circle.style.strokeDashoffset = circumference;
-    setTimeout(() => {
-      circle.style.transition = 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
-      circle.style.strokeDashoffset = offset;
-    }, 250);
-  });
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('circle.stat-rate-circle').forEach(circle => {
+            const rate = parseFloat(circle.getAttribute('data-rate') || 0);
+            const bounded = Math.max(0, Math.min(100, rate));
+            const circumference = 314;
+            const offset = circumference - (bounded / 100) * circumference;
+            circle.style.strokeDashoffset = circumference;
+            setTimeout(() => {
+                circle.style.transition = 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                circle.style.strokeDashoffset = offset;
+            }, 250);
+        });
 
-  // ── Mini navbar : filtrage PP / PM / Toutes ──
-  const tabsBox = document.getElementById('ruleTabs');
-  if (tabsBox) {
-    const tabs = Array.from(tabsBox.querySelectorAll('.rule-tab'));
-    const cards = Array.from(document.querySelectorAll('#rulesGrid .rule-card'));
-    const emptyMsg = document.getElementById('rulesEmptyFilter');
-    const visibleCount = document.getElementById('rulesVisibleCount');
-    const STORAGE_KEY = 'nonAnomRuleFilter';
+        // ── Mini navbar : filtrage PP / PM / Toutes ──
+        const tabsBox = document.getElementById('ruleTabs');
+        if (tabsBox) {
+            const tabs = Array.from(tabsBox.querySelectorAll('.rule-tab'));
+            const cards = Array.from(document.querySelectorAll('#rulesGrid .rule-card'));
+            const emptyMsg = document.getElementById('rulesEmptyFilter');
+            const visibleCount = document.getElementById('rulesVisibleCount');
 
-    function applyFilter(filter) {
-      let shown = 0;
-      cards.forEach(card => {
-        const match = (filter === 'all') || (card.dataset.app === filter);
-        card.classList.toggle('is-hidden', !match);
-        if (match) {
-          shown += 1;   // le numéro affiché reste l'ID de la règle (stable entre les pages)
+            function applyFilter(filter) {
+                let shown = 0;
+                cards.forEach(card => {
+                    const match = (filter === 'all') || (card.dataset.app === filter);
+                    card.classList.toggle('is-hidden', !match);
+                    if (match) {
+                        shown += 1;   // le numéro affiché reste l'ID de la règle (stable entre les pages)
+                    }
+                });
+                tabs.forEach(t => {
+                    const active = t.dataset.filter === filter;
+                    t.classList.toggle('is-active', active);
+                    t.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+                if (emptyMsg) emptyMsg.classList.toggle('hidden', shown !== 0);
+                if (visibleCount) visibleCount.textContent = shown;
+            }
+
+            tabs.forEach(t => t.addEventListener('click', () => applyFilter(t.dataset.filter)));
+
+            // Onglet « Toutes » systématiquement actif à l'ouverture de la page :
+            // le choix PP / PM n'est plus mémorisé d'une visite à l'autre.
+            applyFilter('all');
         }
-      });
-      tabs.forEach(t => {
-        const active = t.dataset.filter === filter;
-        t.classList.toggle('is-active', active);
-        t.setAttribute('aria-pressed', active ? 'true' : 'false');
-      });
-      if (emptyMsg) emptyMsg.classList.toggle('hidden', shown !== 0);
-      if (visibleCount) visibleCount.textContent = shown;
-      try { localStorage.setItem(STORAGE_KEY, filter); } catch (e) {}
-    }
-
-    tabs.forEach(t => t.addEventListener('click', () => applyFilter(t.dataset.filter)));
-
-    let initial = 'all';
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && tabs.some(t => t.dataset.filter === saved)) initial = saved;
-    } catch (e) {}
-    applyFilter(initial);
-  }
-});
+    });
 </script>
 {% endblock %}

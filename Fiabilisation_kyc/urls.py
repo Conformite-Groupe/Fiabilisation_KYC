@@ -1,15 +1,13 @@
 import kyc as kyc
-from django.conf.urls.static import static
 from django.contrib import admin, auth
-from kyc import views
-from kyc.views import accueil, change_user_password, edit_user, perso, profile, ChangePasswordView, profil, perso_stock, \
-    agent_detail, agent, agent_stock, notes, historique, register, reset_user_password, reset_user_password_b, \
-    user_list, user_statistics_view, non_anom, statistiques, non_rens, ppe, devise, non_resid, scoring, \
-    non_anom_ppe, sans_classe, devise_pm, non_resid_pm, taux_evolution_view, \
-    taux_evolution_view_stock, sans_classe_s, export_devise_pp, export_non_resid_pm, export_non_resid_pp, \
+from kyc import audit_views, views
+from kyc.views import accueil, change_user_password, edit_user, perso, profile, ChangePasswordView, profil, perso_stock,\
+    agent_detail, agent, agent_stock, notes, historique, register, reset_user_password,\
+    user_list, user_statistics_view, non_anom, statistiques, non_rens, ppe, devise, non_resid, scoring,\
+    sans_classe, devise_pm, non_resid_pm, taux_evolution_view,\
+    taux_evolution_view_stock, sans_classe_s, export_devise_pp, export_non_resid_pm, export_non_resid_pp,\
     export_devise_pm
-from Fiabilisation_kyc import settings
-from django.urls import path, include
+from django.urls import path, include, re_path
 from accounts.views import login_kyc, logout_user, force_password_change
 from django.contrib.auth import views as auth_views
 
@@ -32,7 +30,6 @@ urlpatterns = [
                   path('statistiques/', statistiques, name='statistiques'),
 
                   path('ppe/', ppe, name='ppe'),
-                  path('anom_ppe/', non_anom_ppe, name='anom_ppe'),
                   path('devise/', devise, name='devise'),
                   path('export_devise_pp/', export_devise_pp, name='export_devise_pp'),
 
@@ -56,7 +53,6 @@ urlpatterns = [
                   path('kyc-field-config/', views.kyc_field_config, name='kyc_field_config'),
                   path('pilotage-kyc/', views.pilotage_kyc, name='pilotage_kyc'),
                   path('daterev_ppe/', views.daterev_ppe, name='daterev_ppe'),
-                  path('export_csv_anom_ppe/', views.export_csv_anom_ppe, name='export_csv_anom_ppe'),
                   path('export_ppe/', views.export_ppe, name='export_ppe'),
                   path('export_csv_scoring_ppe/', views.export_csv_scoring_ppe, name='export_csv_scoring_ppe'),
                   path('export_csv_pm/', views.export_csv_pm, name='export_csv_pm'),
@@ -70,7 +66,8 @@ urlpatterns = [
                   path('export_scoring/', views.export_csv_scoring, name='export_scoring'),
 
                   path('export_csv_pp/', views.export_csv_pp, name='export_csv_pp'),
-                  path('export_csv_anom/', views.export_csv_anom, name='export_csv_anom'),
+                  path('export_taux_completude/', views.export_taux_completude_agence, name='export_taux_completude'),
+                  path('export_taux_completude_agent/', views.export_taux_completude_agent, name='export_taux_completude_agent'),
                   path('agent_stock/', agent_stock, name='agent_stock'),
                   path('export_agents_excel/', views.export_agents_excel, name='export_agents_excel'),
                   path('export_agents_excel_s/', views.export_agents_excel_s, name='export_agents_excel_s'),
@@ -95,7 +92,6 @@ urlpatterns = [
                   path('logout/', logout_user, name="logout"),
     path('admin/', admin.site.urls),
     path('modify-pw/', ChangePasswordView.as_view(), name='modify-pw'),
-        #path('modify-pw/<int:user_id>/', reset_user_password_b, name='modify-pw'),
 
     path("perso/profil/", profil, name="profil"),
       path("user_statistics/", user_statistics_view, name="user_statistics"),
@@ -109,10 +105,18 @@ path('daterev-reminder/', views.daterev_reminder, name='daterev_reminder'),
 path('daterev-reminder/send/', views.send_daterev_reminders, name='send_daterev_reminders'),
 path('daterev-reminder/test-smtp/', views.test_smtp_config, name='test_smtp_config'),
 path('daterev-reminder/export/', views.export_daterev_excel, name='export_daterev_excel'),
+path('audit/', audit_views.audit_view, name='audit'),
+path('audit/export/', audit_views.export_audit_excel, name='export_audit_excel'),
 path('bulk-upload/', views.bulk_user_upload, name='bulk_user_upload'),
 path('download-template/', views.download_excel_template, name='download_csv_template'),
-    path('i18n/', include('django.conf.urls.i18n')),  # bascule de langue (set_language)
+    path('i18n/', include('django.conf.urls.i18n')),                                    
     path('trade/', include('kyc.urls')),
 
-    path('accounts/', include('django.contrib.auth.urls'))
-         ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('accounts/', include('django.contrib.auth.urls')),
+
+                                                                      
+                                                                             
+                                                                              
+                                                          
+    re_path(r'^media/(?P<path>.*)$', views.serve_protected_media, name='protected_media'),
+         ]

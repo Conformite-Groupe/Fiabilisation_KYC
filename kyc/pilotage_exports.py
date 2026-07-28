@@ -13,7 +13,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.utils import timezone
 
-# ─── ReportLab ────────────────────────────────────────────────────────────────
+                                                                                
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
@@ -31,19 +31,19 @@ from reportlab.graphics.charts.piecharts import Pie
 from reportlab.pdfgen import canvas as pdfcanvas
 from reportlab.lib.utils import ImageReader
 
-# ─── python-pptx ──────────────────────────────────────────────────────────────
+                                                                                
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
 
-# ─── Palette BOA ──────────────────────────────────────────────────────────────
-BOA_GREEN       = colors.HexColor("#00965E")   # Vert BOA officiel
-BOA_GREEN_LIGHT = colors.HexColor("#E8F5E9")   # Fond vert clair
+                                                                                
+BOA_GREEN       = colors.HexColor("#00965E")                      
+BOA_GREEN_LIGHT = colors.HexColor("#E8F5E9")                    
 BOA_GREEN_MED   = colors.HexColor("#81C784")
 BOA_DARK        = colors.HexColor("#0f172a")
-BOA_BLUE        = colors.HexColor("#1B2A4A")   # Bleu marine BOA
-BOA_BLUE_LIGHT  = colors.HexColor("#2563eb")   # Bleu accent
+BOA_BLUE        = colors.HexColor("#1B2A4A")                    
+BOA_BLUE_LIGHT  = colors.HexColor("#2563eb")                
 BOA_SLATE       = colors.HexColor("#64748b")
 BOA_RED         = colors.HexColor("#ef4444")
 BOA_RED_LIGHT   = colors.HexColor("#fee2e2")
@@ -53,24 +53,24 @@ BOA_WHITE       = colors.white
 BOA_GRAY        = colors.HexColor("#f1f5f9")
 BOA_BORDER      = colors.HexColor("#e2e8f0")
 
-# ─── Palette PPTX — Charte BOA officielle ────────────────────────────────────
-PPTX_GREEN       = RGBColor(0x00, 0x96, 0x5E)   # Vert BOA        #00965E
-PPTX_GREEN_DEEP  = RGBColor(0x00, 0x6B, 0x42)   # Vert sombre     #006B42
-PPTX_GREEN_SOFT  = RGBColor(0xE8, 0xF5, 0xEE)   # Vert très pâle  #E8F5EE
-PPTX_DARK        = RGBColor(0x1B, 0x2A, 0x4A)   # Marine BOA      #1B2A4A
-PPTX_DARK_DEEP   = RGBColor(0x0F, 0x17, 0x2A)   # Marine profond  #0F172A
-PPTX_RED         = RGBColor(0xEF, 0x44, 0x44)   # Rouge alerte
-PPTX_RED_SOFT    = RGBColor(0xFF, 0xEB, 0xEB)   # Rouge très pâle
-PPTX_AMBER       = RGBColor(0xF5, 0x9E, 0x0B)   # Ambre attention
-PPTX_AMBER_SOFT  = RGBColor(0xFE, 0xF3, 0xC7)   # Ambre très pâle
-PPTX_SLATE       = RGBColor(0x64, 0x74, 0x8B)   # Gris ardoise
-PPTX_GRAY        = RGBColor(0xE2, 0xE8, 0xF0)   # Gris clair border
-PPTX_GRAY_BG     = RGBColor(0xF8, 0xFA, 0xFC)   # Fond très clair
-PPTX_GRAY_TEXT   = RGBColor(0x94, 0xA3, 0xB8)   # Texte secondaire
+                                                                               
+PPTX_GREEN       = RGBColor(0x00, 0x96, 0x5E)                            
+PPTX_GREEN_DEEP  = RGBColor(0x00, 0x6B, 0x42)                            
+PPTX_GREEN_SOFT  = RGBColor(0xE8, 0xF5, 0xEE)                            
+PPTX_DARK        = RGBColor(0x1B, 0x2A, 0x4A)                            
+PPTX_DARK_DEEP   = RGBColor(0x0F, 0x17, 0x2A)                            
+PPTX_RED         = RGBColor(0xEF, 0x44, 0x44)                 
+PPTX_RED_SOFT    = RGBColor(0xFF, 0xEB, 0xEB)                    
+PPTX_AMBER       = RGBColor(0xF5, 0x9E, 0x0B)                    
+PPTX_AMBER_SOFT  = RGBColor(0xFE, 0xF3, 0xC7)                    
+PPTX_SLATE       = RGBColor(0x64, 0x74, 0x8B)                 
+PPTX_GRAY        = RGBColor(0xE2, 0xE8, 0xF0)                      
+PPTX_GRAY_BG     = RGBColor(0xF8, 0xFA, 0xFC)                    
+PPTX_GRAY_TEXT   = RGBColor(0x94, 0xA3, 0xB8)                     
 PPTX_WHITE       = RGBColor(0xFF, 0xFF, 0xFF)
-PPTX_GREEN_LIGHT = RGBColor(0xBB, 0xF7, 0xD0)   # Vert clair accent
-PPTX_GREEN_PALE  = RGBColor(0xDC, 0xFC, 0xE7)   # Vert pâle décoratif
-PPTX_GOLD        = RGBColor(0xF5, 0xC5, 0x18)   # Or accent premium
+PPTX_GREEN_LIGHT = RGBColor(0xBB, 0xF7, 0xD0)                      
+PPTX_GREEN_PALE  = RGBColor(0xDC, 0xFC, 0xE7)                        
+PPTX_GOLD        = RGBColor(0xF5, 0xC5, 0x18)                      
 
 LOGO_PATH = os.path.join(settings.MEDIA_ROOT, "images", "boa_logo.png")
 
@@ -82,29 +82,21 @@ def _logo_path():
 
 
 def _rate_color(rate, threshold):
-    """Retourne la couleur en fonction du taux."""
+    """Retourne la couleur en fonction du taux (vert ou rouge uniquement)."""
     if rate is None:
         return BOA_SLATE
-    if rate < threshold:
-        return BOA_RED
-    if rate < threshold + 5:
-        return BOA_AMBER
-    return BOA_GREEN
+    return BOA_RED if rate < threshold else BOA_GREEN
 
 
 def _rate_color_pptx(rate, threshold):
     if rate is None:
         return PPTX_SLATE
-    if rate < threshold:
-        return PPTX_RED
-    if rate < threshold + 5:
-        return PPTX_AMBER
-    return PPTX_GREEN
+    return PPTX_RED if rate < threshold else PPTX_GREEN
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  MINI-BARRE DE PROGRESSION (Flowable ReportLab)
-# ═══════════════════════════════════════════════════════════════════════════════
+                                                                                 
+                                                 
+                                                                                 
 
 class RateBar(Flowable):
     """Petite barre de progression colorée pour les tableaux."""
@@ -121,10 +113,10 @@ class RateBar(Flowable):
         fill_pct = min(max(rate, 0), 100) / 100
         bar_color = _rate_color(self.rate, self.threshold)
 
-        # Fond gris
+                   
         c.setFillColor(BOA_GRAY)
         c.roundRect(0, 0, self.width, self.height, 3, fill=1, stroke=0)
-        # Barre colorée
+                       
         c.setFillColor(bar_color)
         c.roundRect(0, 0, self.width * fill_pct, self.height, 3, fill=1, stroke=0)
 
@@ -145,9 +137,9 @@ class SetSectionTitle(Flowable):
         return 0, 0
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  STYLES COMMUNS
-# ═══════════════════════════════════════════════════════════════════════════════
+                                                                                 
+                 
+                                                                                 
 
 def _build_pdf_styles():
     base = getSampleStyleSheet()
@@ -246,9 +238,9 @@ def _build_pdf_styles():
     return styles
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  GRAPHIQUE BARRES HORIZONTALES (ReportLab)
-# ═══════════════════════════════════════════════════════════════════════════════
+                                                                                 
+                                            
+                                                                                 
 
 def _build_completeness_bar_chart(rows, threshold, max_items=15):
     """Construit un HorizontalBarChart ReportLab pour la complétude."""
@@ -282,7 +274,7 @@ def _build_completeness_bar_chart(rows, threshold, max_items=15):
     bc.valueAxis.labels.fontName = "Helvetica"
     bc.bars[0].strokeColor = None
 
-    # Affichage des taux à côté des barres
+                                          
     bc.barLabelFormat = '%0.1f%%'
     bc.barLabels.fontName = "Helvetica-Bold"
     bc.barLabels.fontSize = 6
@@ -292,13 +284,13 @@ def _build_completeness_bar_chart(rows, threshold, max_items=15):
     bc.barLabels.dx = 4
     bc.barLabels.nudge = 4
 
-    # Colorer chaque barre individuellement selon le seuil
+                                                          
     for i, rate in enumerate(values):
         bc.bars[0, i].fillColor = _rate_color(rate, threshold)
 
     drawing.add(bc)
 
-    # Ligne de seuil verticale
+                              
     seuil_x = bc.x + (threshold / 100) * bc.width
     line = Line(seuil_x, bc.y, seuil_x, bc.y + bc.height,
                 strokeColor=BOA_RED, strokeWidth=1, strokeDashArray=[3, 3])
@@ -312,23 +304,38 @@ def _build_quality_bar_chart(rows, threshold, max_items=15):
     if not rows:
         return None
 
-    items = rows[:max_items]
-    labels = [f"{r['type']} - {r['rule_name'][:20]}" for r in items]
+    import textwrap
+
+                                                                                 
+    rows_sorted = sorted(rows, key=lambda r: (r.get("rate") is None, r.get("rate") or 0))
+    items = rows_sorted[:max_items]
+
+    def _wrap_label(r):
+                                                                                 
+                                                                                 
+        full = f"{r['type']} - {r['rule_name']}"
+        parts = textwrap.wrap(full, width=42)
+        if len(parts) > 2:
+            parts = parts[:2]
+            parts[1] = parts[1][:39].rstrip() + "…"
+        return "\n".join(parts) if parts else full
+
+    labels = [_wrap_label(r) for r in items]
     values = [r["rate"] if r["rate"] is not None else 0 for r in items]
     n = len(items)
 
-    chart_height = max(120, n * 18 + 40)
+    chart_height = max(140, n * 24 + 40)
     chart_width = 480
 
     drawing = Drawing(chart_width, chart_height)
     bc = HorizontalBarChart()
-    bc.x = 160
+    bc.x = 205                                                             
     bc.y = 20
-    bc.width = 260
+    bc.width = 210
     bc.height = chart_height - 40
     bc.data = [values]
     bc.categoryAxis.categoryNames = labels
-    bc.categoryAxis.labels.fontSize = 7
+    bc.categoryAxis.labels.fontSize = 6.5
     bc.categoryAxis.labels.fontName = "Helvetica"
     bc.categoryAxis.labels.dx = -4
     bc.categoryAxis.labels.textAnchor = "end"
@@ -339,7 +346,7 @@ def _build_quality_bar_chart(rows, threshold, max_items=15):
     bc.valueAxis.labels.fontName = "Helvetica"
     bc.bars[0].strokeColor = None
 
-    # Affichage des taux à côté des barres
+                                          
     bc.barLabelFormat = '%0.1f%%'
     bc.barLabels.fontName = "Helvetica-Bold"
     bc.barLabels.fontSize = 6
@@ -349,7 +356,7 @@ def _build_quality_bar_chart(rows, threshold, max_items=15):
     bc.barLabels.dx = 4
     bc.barLabels.nudge = 4
 
-    # Colorer chaque barre individuellement selon le seuil
+                                                          
     for i, rate in enumerate(values):
         bc.bars[0, i].fillColor = _rate_color(rate, threshold)
 
@@ -363,9 +370,9 @@ def _build_quality_bar_chart(rows, threshold, max_items=15):
     return drawing
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  EN-TÊTE / PIED DE PAGE PDF
-# ═══════════════════════════════════════════════════════════════════════════════
+                                                                                 
+                             
+                                                                                 
 
 class _HeaderFooterCanvas(pdfcanvas.Canvas):
     """
@@ -397,24 +404,24 @@ class _HeaderFooterCanvas(pdfcanvas.Canvas):
 
     def _draw_header_footer(self, num_pages):
         w, h = A4
-        pn = self._pageNumber  # numéro de page courant
+        pn = self._pageNumber                          
 
-        # ═══════════════════════════════════════════
-        # EN-TÊTE (à partir de la page 2)
-        # ═══════════════════════════════════════════
+                                                     
+                                         
+                                                     
         if pn > 1:
             self.saveState()
             HEADER_H = 1.3 * cm
 
-            # ── Bandeau gauche vert BOA (titre rapport) ──
+                                                           
             self.setFillColor(BOA_GREEN)
             self.rect(0, h - HEADER_H, w * 0.55, HEADER_H, fill=1, stroke=0)
 
-            # ── Bandeau droite bleu marine BOA (titre de section) ──
+                                                                     
             self.setFillColor(BOA_BLUE)
             self.rect(w * 0.55, h - HEADER_H, w * 0.45, HEADER_H, fill=1, stroke=0)
 
-            # ── Logo BOA en haut à droite (dans bandeau bleu) ──
+                                                                 
             logo = _logo_path()
             if logo:
                 try:
@@ -430,12 +437,12 @@ class _HeaderFooterCanvas(pdfcanvas.Canvas):
                 except Exception:
                     pass
             else:
-                # Fallback texte si pas de logo
+                                               
                 self.setFillColor(BOA_WHITE)
                 self.setFont("Helvetica-Bold", 7)
                 self.drawRightString(w - 0.4 * cm, h - HEADER_H + 0.55 * cm, "BOA GROUP")
 
-            # ── Titre rapport (bandeau vert gauche) ──
+                                                       
             self.setFillColor(BOA_WHITE)
             self.setFont("Helvetica-Bold", 8)
             self.drawString(0.5 * cm, h - HEADER_H + 0.70 * cm,
@@ -444,12 +451,12 @@ class _HeaderFooterCanvas(pdfcanvas.Canvas):
             self.drawString(0.5 * cm, h - HEADER_H + 0.35 * cm,
                             f"Périmètre : {self._scope_label}  |  Seuil : {self._threshold:.1f}%")
 
-            # ── Titre de section (bandeau bleu, haut à droite) ──
+                                                                  
             section_title = getattr(self, "_current_section_title", "")
             if section_title:
                 self.setFillColor(BOA_WHITE)
                 self.setFont("Helvetica-Bold", 8)
-                # Centré verticalement et horizontalement dans le bandeau bleu (hors zone logo)
+                                                                                               
                 self.drawCentredString(
                     w * 0.55 + (w * 0.45 - 3.5 * cm) / 2,
                     h - HEADER_H + 0.55 * cm,
@@ -458,18 +465,18 @@ class _HeaderFooterCanvas(pdfcanvas.Canvas):
 
             self.restoreState()
 
-        # ═══════════════════════════════════════════
-        # PIED DE PAGE (toutes les pages sauf page 1)
-        # ═══════════════════════════════════════════
+                                                     
+                                                     
+                                                     
         if pn > 1:
             self.saveState()
             FOOTER_H = 0.9 * cm
 
-            # Fond marine
+                         
             self.setFillColor(BOA_BLUE)
             self.rect(0, 0, w, FOOTER_H, fill=1, stroke=0)
 
-            # Ligne de séparation verte
+                                       
             self.setStrokeColor(BOA_GREEN)
             self.setLineWidth(1.5)
             self.line(0, FOOTER_H, w, FOOTER_H)
@@ -484,7 +491,7 @@ class _HeaderFooterCanvas(pdfcanvas.Canvas):
                 f"Rapport généré automatiquement le {self._date_str} — Ne pas diffuser sans autorisation"
             )
 
-            # Numéro de page (haut à droite du footer)
+                                                      
             self.setFont("Helvetica-Bold", 8)
             self.setFillColor(BOA_GREEN_MED)
             self.drawRightString(w - 0.5 * cm, 0.32 * cm,
@@ -493,11 +500,11 @@ class _HeaderFooterCanvas(pdfcanvas.Canvas):
             self.restoreState()
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  EXPORT PDF
-# ═══════════════════════════════════════════════════════════════════════════════
+                                                                                 
+             
+                                                                                 
 
-# ── Titres par numéro de page (pour le bandeau haut à droite) ──────────────
+                                                                             
 _PDF_PAGE_TITLES = {
     2: "SOMMAIRE",
     3: "SYNTHÈSE KPI",
@@ -525,14 +532,14 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
     buffer = io.BytesIO()
     w, h = A4
 
-    # ── Document ──
+                    
     doc = BaseDocTemplate(
         buffer,
         pagesize=A4,
         leftMargin=1.5 * cm,
         rightMargin=1.5 * cm,
-        topMargin=2.2 * cm,   # marge haute augmentée pour l'en-tête
-        bottomMargin=1.8 * cm,  # marge basse augmentée pour le pied
+        topMargin=2.2 * cm,                                         
+        bottomMargin=1.8 * cm,                                      
     )
 
     frame_normal = Frame(
@@ -542,7 +549,7 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
         id="normal",
     )
 
-    # Page de couverture (sans marges)
+                                      
     frame_cover = Frame(0, 0, w, h, id="cover", leftPadding=0, rightPadding=0,
                         topPadding=0, bottomPadding=0)
 
@@ -554,20 +561,20 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
 
     story = []
 
-    # ═══════════════════════════════════════════════════════
-    # PAGE 1 : COUVERTURE
-    # ═══════════════════════════════════════════════════════
+                                                             
+                         
+                                                             
 
     class CoverPage(Flowable):
         def draw(self):
             cnv = self.canv
             pw, ph = A4
 
-            # Fond Vert BOA (haut 55%)
+                                      
             cnv.setFillColor(BOA_GREEN)
             cnv.rect(0, ph * 0.45, pw, ph * 0.55, fill=1, stroke=0)
 
-            # Triangle décoratif (via polygon)
+                                              
             cnv.setFillColor(colors.HexColor("#166534"))
             path = cnv.beginPath()
             path.moveTo(0, ph * 0.45)
@@ -576,7 +583,7 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
             path.close()
             cnv.drawPath(path, fill=1, stroke=0)
 
-            # ── Logo BOA en haut à droite sur la couverture ──
+                                                               
             logo = _logo_path()
             if logo:
                 try:
@@ -591,43 +598,43 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
                     cnv.setFont("Helvetica-Bold", 9)
                     cnv.drawRightString(pw - 0.5 * cm, ph - 1.0 * cm, "BOA GROUP")
 
-            # Titre principal
+                             
             cnv.setFillColor(BOA_WHITE)
             cnv.setFont("Helvetica-Bold", 28)
             cnv.drawString(1.5 * cm, ph * 0.67, "Rapport de Pilotage")
             cnv.setFont("Helvetica-Bold", 28)
             cnv.drawString(1.5 * cm, ph * 0.62, "KYC")
 
-            # Ligne décorative
+                              
             cnv.setStrokeColor(BOA_GREEN_MED)
             cnv.setLineWidth(2)
             cnv.line(1.5 * cm, ph * 0.59, 12 * cm, ph * 0.59)
 
-            # Sous-titre
+                        
             cnv.setFont("Helvetica", 12)
             cnv.setFillColor(BOA_GREEN_MED)
             cnv.drawString(1.5 * cm, ph * 0.555,
                          "Analyse de la Completude et de la Qualite des Donnees")
 
-            # Carte blanche avec bordure douce pour les informations
+                                                                    
             cnv.setFillColor(BOA_WHITE)
             cnv.setStrokeColor(BOA_BORDER)
             cnv.setLineWidth(1)
             cnv.roundRect(1.5 * cm, ph * 0.18, pw - 3 * cm, ph * 0.16, 8, fill=1, stroke=1)
 
-            # Disposition horizontale moderne en 3 colonnes
+                                                           
             cols = [
                 ("Filiale", scope_label, 2.5 * cm),
                 ("Seuil d'analyse", f"{threshold:.1f}%", 8.5 * cm),
                 ("Date de génération", date_str, 14.2 * cm),
             ]
             for label, value, col_x in cols:
-                # Label moderne
+                               
                 cnv.setFillColor(BOA_SLATE)
                 cnv.setFont("Helvetica-Bold", 7)
                 cnv.drawString(col_x, ph * 0.27, label.upper())
 
-                # Valeur en bleu BOA
+                                    
                 cnv.setFillColor(BOA_BLUE)
                 cnv.setFont("Helvetica-Bold", 11)
                 cnv.drawString(col_x, ph * 0.27 - 0.5 * cm, value)
@@ -641,9 +648,9 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
     story.append(NextPageTemplate("normal"))
     story.append(PageBreak())
 
-    # ═══════════════════════════════════════════════════════
-    # PAGE 2 : SOMMAIRE
-    # ═══════════════════════════════════════════════════════
+                                                             
+                       
+                                                             
 
     story.append(Spacer(1, 0.5 * cm))
     story.append(SetSectionTitle("SOMMAIRE"))
@@ -665,7 +672,7 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
     ]
 
     for num, titre, desc, page_num in toc_entries:
-        # Ligne d'entrée
+                        
         entry_data = [[
             Paragraph(
                 f'<font color="#1B2A4A"><b>{num}</b></font>',
@@ -702,16 +709,16 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
 
     story.append(PageBreak())
 
-    # ═══════════════════════════════════════════════════════
-    # PAGE 3 : SYNTHÈSE KPI
-    # ═══════════════════════════════════════════════════════
+                                                             
+                           
+                                                             
     story.append(SetSectionTitle("SYNTHÈSE DES INDICATEURS CLÉS"))
 
-    # Titre section
+                   
     story.append(_section_header("📊  Synthèse des Indicateurs Clés", styles))
     story.append(Spacer(1, 0.4 * cm))
 
-    # Tableau 4 KPIs
+                    
     comp_rate = summary.get("completeness_rate")
     qual_rate = summary.get("quality_rate")
     low_comp = summary.get("low_completeness_count", 0)
@@ -732,8 +739,6 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
             return BOA_GRAY
         if rate < threshold:
             return BOA_RED_LIGHT
-        if rate < threshold + 5:
-            return BOA_AMBER_LIGHT
         return BOA_GREEN_LIGHT
 
     kpi_data = [[
@@ -764,14 +769,14 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
     story.append(kpi_table)
     story.append(Spacer(1, 0.6 * cm))
 
-    # ─── Graphique complétude ──────────────────────────────
+                                                             
     if completeness_rows:
         story.append(Paragraph("Taux de complétude par champ", styles["chart_title"]))
         chart = _build_completeness_bar_chart(completeness_rows, threshold)
         if chart:
             story.append(chart)
         story.append(Spacer(1, 0.3 * cm))
-        # Légende
+                 
         legend_data = [["■ Sous le seuil", "■ Proche du seuil", "■ Conforme", "– – Seuil"]]
         leg = Table(legend_data, colWidths=[3.5 * cm, 3.5 * cm, 3.5 * cm, 3.5 * cm])
         leg.setStyle(TableStyle([
@@ -786,14 +791,14 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
         story.append(leg)
         story.append(Spacer(1, 0.6 * cm))
 
-    # ─── Graphique qualité ────────────────────────────────
+                                                            
     if quality_rows:
         story.append(Paragraph("Taux de conformité par règle qualité", styles["chart_title"]))
         chart_q = _build_quality_bar_chart(quality_rows, threshold)
         if chart_q:
             story.append(chart_q)
         story.append(Spacer(1, 0.3 * cm))
-        # Légende Qualité
+                         
         legend_data = [["■ Sous le seuil", "■ Proche du seuil", "■ Conforme", "– – Seuil"]]
         leg_q = Table(legend_data, colWidths=[3.5 * cm, 3.5 * cm, 3.5 * cm, 3.5 * cm])
         leg_q.setStyle(TableStyle([
@@ -810,9 +815,9 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
 
     story.append(PageBreak())
 
-    # ═══════════════════════════════════════════════════════
-    # PAGE 4 : TABLEAU COMPLÉTUDE
-    # ═══════════════════════════════════════════════════════
+                                                             
+                                 
+                                                             
     story.append(SetSectionTitle("DÉTAIL COMPLÉTUDE"))
 
     story.append(_section_header("📋  Détail Complétude — Champs sous seuil", styles))
@@ -824,7 +829,7 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
     else:
         story.append(Paragraph("✓ Aucun champ n'est sous le seuil défini.", styles["body"]))
 
-    # Tous les champs (résumé complet sur page séparée)
+                                                       
     if completeness_rows:
         story.append(PageBreak())
         story.append(SetSectionTitle("VUE D'ENSEMBLE COMPLÉTUDE"))
@@ -834,9 +839,9 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
 
     story.append(PageBreak())
 
-    # ═══════════════════════════════════════════════════════
-    # PAGE 6 : TABLEAU QUALITÉ
-    # ═══════════════════════════════════════════════════════
+                                                             
+                              
+                                                             
     story.append(SetSectionTitle("DÉTAIL QUALITÉ"))
 
     story.append(_section_header("🔍  Détail Qualité — Règles sous seuil", styles))
@@ -855,7 +860,7 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
         story.append(Spacer(1, 0.4 * cm))
         story.append(_build_quality_table(quality_rows, threshold, styles, full=True))
 
-    # ── Build avec canvas personnalisé (en-tête + pied + logo) ──
+                                                                  
     def _make_canvas(*args, **kwargs):
         return _HeaderFooterCanvas(
             *args,
@@ -878,7 +883,7 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
     return response
 
 
-# ─── Helpers pour le PDF ──────────────────────────────────────────────────────
+                                                                                
 
 import re
 
@@ -903,7 +908,7 @@ def _rate_badge(rate, threshold, styles):
         return Paragraph("—", styles["td_right"])
     color = _rate_color(rate, threshold)
     color_hex = color.hexval() if hasattr(color, 'hexval') else "#64748b"
-    # Utiliser Paragraph avec couleur inline
+                                            
     rate_str = f"{rate:.1f}%"
     style = ParagraphStyle(
         "badge", fontName="Helvetica-Bold", fontSize=8,
@@ -940,12 +945,12 @@ def _build_completeness_table(rows, threshold, styles, scope_label, full=False):
 
     t = Table(table_data, colWidths=col_widths, repeatRows=1)
     style = TableStyle([
-        # En-tête
+                 
         ("BACKGROUND", (0, 0), (-1, 0), BOA_GREEN),
         ("TEXTCOLOR", (0, 0), (-1, 0), BOA_WHITE),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, 0), 7),
-        # Corps
+               
         ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
         ("FONTSIZE", (0, 1), (-1, -1), 7),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BOA_WHITE, BOA_GRAY]),
@@ -958,7 +963,7 @@ def _build_completeness_table(rows, threshold, styles, scope_label, full=False):
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ])
 
-    # Colorer les lignes sous seuil
+                                   
     for i, row in enumerate(rows[:max_rows], start=1):
         if row.get("is_below_threshold"):
             style.add("BACKGROUND", (0, i), (-1, i), colors.HexColor("#fff5f5"))
@@ -1020,9 +1025,9 @@ def _build_quality_table(rows, threshold, styles, full=False):
     return t
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  EXPORT PPTX — Style fidèle au rapport BOA exemple
-# ═══════════════════════════════════════════════════════════════════════════════
+                                                                                 
+                                                    
+                                                                                 
 
 def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
                          notations_list=None, notation_kpis=None, filiale_rates=None):
@@ -1048,7 +1053,7 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
     prs.slide_width  = Inches(10)
     prs.slide_height = Inches(5.625)
 
-    # ── Découpage PP / PM ─────────────────────────────────────────────────────
+                                                                                
     comp_pp = [r for r in completeness_rows if r.get("type") == "PP"]
     comp_pm = [r for r in completeness_rows if r.get("type") == "PM"]
     qual_pp = [r for r in quality_rows if r.get("type") == "PP"]
@@ -1056,7 +1061,7 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
 
     has_notation = bool(notation_kpis and notation_kpis.get("total_notations"))
 
-    # ── Sommaire ──────────────────────────────────────────────────────────────
+                                                                                
     toc = [
         ("I",   "Complétude des données"),
         ("II",  "Qualité des données"),
@@ -1064,13 +1069,13 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
     if has_notation:
         toc.append(("III", "Notation des agents"))
 
-    # ── Slide 1 : Couverture ──────────────────────────────────────────────────
+                                                                                
     _bx_cover(prs, scope_label, mois_str)
 
-    # ── Slide 2 : Sommaire ────────────────────────────────────────────────────
+                                                                                
     _bx_sommaire(prs, toc)
 
-    # ═══════════════════ I — COMPLÉTUDE ═══════════════════
+                                                            
     s = _bx_section(prs, "I", "COMPLÉTUDE DES DONNÉES")
     _bx_kpi_triple(
         s, "COMPLÉTUDE DES DONNÉES",
@@ -1088,45 +1093,69 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
         label_max=22,
     )
 
-    # I.b — Complétude globale par filiale (périmètre groupe)
+                                                             
     if scope == "groupe" and filiale_rates:
         s = _bx_section(prs, "I", "COMPLÉTUDE — TAUX GLOBAL PAR FILIALE")
         _bx_sublabel(s, "TAUX DE COMPLÉTUDE PAR FILIALE (GLOBAL · PP · PM)")
         _bx_filiale_rates_chart(s, filiale_rates, "comp_global", "comp_pp", "comp_pm", threshold)
 
-    # ═══════════════════ II — QUALITÉ ═══════════════════
-    s = _bx_section(prs, "II", "QUALITÉ DES DONNÉES")
-    _bx_kpi_triple(
-        s, "QUALITÉ DES DONNÉES",
-        ("Global", summary.get("quality_rate"), True),
-        ("PP — Particuliers", summary.get("quality_rate_pp"), True),
-        ("PM — Entreprises", summary.get("quality_rate_pm"), True),
-        threshold,
-        footer_left=f"{summary.get('low_quality_count', 0)} règle(s) sous {threshold:.0f}%",
-        footer_right="",
-    )
-    _bx_dual_charts(
-        s, threshold,
-        qual_pp, qual_pm, "rate", "rule_name",
-        "Conformité par règle — Particuliers (PP)", "Conformité par règle — Entreprises (PM)",
-        label_max=200,
-    )
+                                                          
+                                                                             
+                                                           
+    CHUNK = 10
 
-    # II.b — Qualité globale par filiale (périmètre groupe)
+    def _worst_first(rows):
+        return sorted(rows, key=lambda r: (r.get("rate") is None, r.get("rate") or 0))
+
+    def _chunks(rows):
+        rows = _worst_first(rows)
+        return [rows[i:i + CHUNK] for i in range(0, len(rows), CHUNK)] or [[]]
+
+    pp_chunks = _chunks(qual_pp)
+    pm_chunks = _chunks(qual_pm)
+    n_qual_slides = max(len(pp_chunks), len(pm_chunks))
+
+    for idx in range(n_qual_slides):
+        part = f" ({idx + 1}/{n_qual_slides})" if n_qual_slides > 1 else ""
+        s = _bx_section(prs, "II", "QUALITÉ DES DONNÉES" + part)
+                                                                         
+        if idx == 0:
+            _bx_kpi_triple(
+                s, "QUALITÉ DES DONNÉES",
+                ("Global", summary.get("quality_rate"), True),
+                ("PP — Particuliers", summary.get("quality_rate_pp"), True),
+                ("PM — Entreprises", summary.get("quality_rate_pm"), True),
+                threshold,
+                footer_left=f"{summary.get('low_quality_count', 0)} règle(s) sous {threshold:.0f}%",
+                footer_right="",
+            )
+        pp_c = pp_chunks[idx] if idx < len(pp_chunks) else []
+        pm_c = pm_chunks[idx] if idx < len(pm_chunks) else []
+        suff_pp = f" — bloc {idx + 1}/{len(pp_chunks)}" if len(pp_chunks) > 1 else ""
+        suff_pm = f" — bloc {idx + 1}/{len(pm_chunks)}" if len(pm_chunks) > 1 else ""
+        _bx_dual_charts(
+            s, threshold,
+            pp_c, pm_c, "rate", "rule_name",
+            f"Conformité par règle — Particuliers (PP){suff_pp}",
+            f"Conformité par règle — Entreprises (PM){suff_pm}",
+            label_max=200,
+        )
+
+                                                           
     if scope == "groupe" and filiale_rates:
         s = _bx_section(prs, "II", "QUALITÉ — TAUX GLOBAL PAR FILIALE")
         _bx_sublabel(s, "TAUX DE QUALITÉ PAR FILIALE (GLOBAL · PP · PM)")
         _bx_filiale_rates_chart(s, filiale_rates, "qual_global", "qual_pp", "qual_pm", threshold)
 
-    # ═══════════════════ III — NOTATION ═══════════════════
+                                                            
     if has_notation:
         s = _bx_section(prs, "III", "NOTATION DES AGENTS")
         _bx_notation(s, notation_kpis, notations_list or [], scope=scope)
 
-    # ── Slide final ───────────────────────────────────────────────────────────
+                                                                                
     _bx_end(prs, scope_label, mois_str)
 
-    # ── Build ─────────────────────────────────────────────────────────────────
+                                                                                
     buf = io.BytesIO()
     prs.save(buf)
     buf.seek(0)
@@ -1145,25 +1174,25 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
     return response
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  THÈME BOA — palette & primitives
-# ═══════════════════════════════════════════════════════════════════════════════
+                                                                                 
+                                   
+                                                                                 
 
-BX_GREEN      = RGBColor(0x00, 0x9A, 0x56)   # Vert BOA principal
-BX_GREEN_BRT  = RGBColor(0x00, 0xC0, 0x60)   # Vert vif (cercles couverture)
-BX_GREEN_PALE = RGBColor(0xC8, 0xE6, 0xC9)   # Vert pâle décoratif
-BX_GREEN_SUB  = RGBColor(0xC8, 0xF0, 0xD8)   # Vert clair sous-titre
-BX_NAVY       = RGBColor(0x1B, 0x2A, 0x4A)   # Marine BOA
-BX_BODY       = RGBColor(0x33, 0x33, 0x33)   # Corps de texte
-BX_MUTED      = RGBColor(0x66, 0x66, 0x66)   # Texte secondaire
-BX_FOOT       = RGBColor(0x88, 0x88, 0x88)   # Pied de page
-BX_CARD       = RGBColor(0xF5, 0xF5, 0xF5)   # Fond carte
-BX_DIVIDER    = RGBColor(0xE0, 0xE0, 0xE0)   # Filets
-BX_TRACK      = RGBColor(0xEC, 0xEF, 0xF1)   # Piste de barre/anneau
+BX_GREEN      = RGBColor(0x00, 0x9A, 0x56)                       
+BX_GREEN_BRT  = RGBColor(0x00, 0xC0, 0x60)                                  
+BX_GREEN_PALE = RGBColor(0xC8, 0xE6, 0xC9)                        
+BX_GREEN_SUB  = RGBColor(0xC8, 0xF0, 0xD8)                          
+BX_NAVY       = RGBColor(0x1B, 0x2A, 0x4A)               
+BX_BODY       = RGBColor(0x33, 0x33, 0x33)                   
+BX_MUTED      = RGBColor(0x66, 0x66, 0x66)                     
+BX_FOOT       = RGBColor(0x88, 0x88, 0x88)                 
+BX_CARD       = RGBColor(0xF5, 0xF5, 0xF5)               
+BX_DIVIDER    = RGBColor(0xE0, 0xE0, 0xE0)           
+BX_TRACK      = RGBColor(0xEC, 0xEF, 0xF1)                          
 BX_WHITE      = RGBColor(0xFF, 0xFF, 0xFF)
-BX_RED        = RGBColor(0xD3, 0x2F, 0x2F)   # Rouge alerte
-BX_AMBER      = RGBColor(0xF5, 0xA6, 0x23)   # Ambre attention
-BX_CYAN       = RGBColor(0x29, 0xAB, 0xE2)   # Cyan accent
+BX_RED        = RGBColor(0xD3, 0x2F, 0x2F)                 
+BX_AMBER      = RGBColor(0xF5, 0xA6, 0x23)                    
+BX_CYAN       = RGBColor(0x29, 0xAB, 0xE2)                
 
 _FONT = "Calibri"
 _FOOTER_TXT = "Conformité BOA Group | Pôle Projet"
@@ -1272,7 +1301,7 @@ def _bx_logo(slide):
             return
         except Exception:
             pass
-    # Repli : boîte marine dessinée
+                                   
     _bx_rect(slide, 7.45, 0.0, 2.55, 0.62, BX_NAVY)
     _bx_text(slide, 7.55, 0.06, 2.4, 0.5, "BANK OF AFRICA\nBMCE GROUP", 9, BX_WHITE,
              bold=True, align=None)
@@ -1312,9 +1341,9 @@ def _bx_sublabel(slide, text, top=0.82):
     _bx_rect(slide, 0.4, top + 0.3, 9.2, 0.035, BX_GREEN)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  THÈME BOA — slides composées
-# ═══════════════════════════════════════════════════════════════════════════════
+                                                                                 
+                               
+                                                                                 
 
 def _bx_cover(prs, scope_label, mois_str):
     from pptx.util import Inches
@@ -1408,7 +1437,7 @@ def _bx_donut(slide, l, t, sz, rate, threshold, title):
     for pt in pts:
         pt.format.line.fill.background()
 
-    # Pourcentage centré + titre sous l'anneau
+                                              
     _bx_text(slide, l, t + sz / 2 - 0.32, sz, 0.6,
              f"{r:.1f}%", 26, color, bold=True,
              align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
@@ -1443,7 +1472,7 @@ def _bx_hbar_chart(slide, rows, threshold, value_key, label_key, type_key=None,
         vals.append(round(float(rate), 1))
         colors.append(_bx_rate_color(rate, threshold))
 
-    cats.reverse(); vals.reverse(); colors.reverse()  # 1er en haut
+    cats.reverse(); vals.reverse(); colors.reverse()               
 
     cd = CategoryChartData()
     cd.categories = cats
@@ -1534,7 +1563,7 @@ def _bx_table(slide, headers, rows_data, col_fracs, source_rows, threshold, rate
         tbl.rows[i].height = Inches(row_h)
 
     right_cols = {n_cols - 1, n_cols - 2}
-    # En-tête
+             
     for j, h in enumerate(headers):
         c = tbl.cell(0, j)
         c.text = h
@@ -1699,7 +1728,7 @@ def _bx_notation(slide, kpis, notations_list, scope="groupe"):
     colors = [gcolor[g] for g in labels]
 
     if scope == "filiale":
-        # Périmètre filiale : seulement la répartition par type (anneau centré)
+                                                                               
         _bx_text(slide, 0.4, 2.6, 9.2, 0.3, "RÉPARTITION PAR TYPE D'ÉVALUATION",
                  11, BX_GREEN, bold=True, anchor=MSO_ANCHOR.MIDDLE)
         if values:
@@ -1718,7 +1747,7 @@ def _bx_notation(slide, kpis, notations_list, scope="groupe"):
             _bx_text(slide, 0.4, 3.6, 9.2, 0.4, "Aucune notation.", 12, BX_MUTED)
         return
 
-    # Périmètre groupe : barres par filiale (avec chiffres) + anneau
+                                                                    
     _bx_text(slide, 0.4, 2.55, 4.45, 0.28, "Notations par filiale", 10, BX_NAVY,
              bold=True, anchor=MSO_ANCHOR.MIDDLE)
     _bx_text(slide, 5.15, 2.55, 4.45, 0.28, "Répartition par type d'évaluation",
@@ -1774,7 +1803,7 @@ def _bx_stacked_col(slide, l, t, w, h, categories, series, data_labels=False):
     if data_labels:
         plot.has_data_labels = True
         dl = plot.data_labels
-        dl.number_format = '0;-0;'   # masque les valeurs nulles
+        dl.number_format = '0;-0;'                              
         dl.number_format_is_linked = False
         dl.font.size = Pt(8)
         dl.font.bold = True
@@ -1852,7 +1881,7 @@ def _bx_grouped_col(slide, l, t, w, h, categories, series, vmax=105, font_sz=8):
         sr.format.line.fill.background()
     plot.has_data_labels = True
     dl = plot.data_labels
-    dl.number_format = '0"%";;'   # entier + %, masque les nuls
+    dl.number_format = '0"%";;'                                
     dl.number_format_is_linked = False
     dl.position = XL_LABEL_POSITION.OUTSIDE_END
     dl.font.size = Pt(font_sz)

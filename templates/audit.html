@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+
+{% block content %}
+<style>
+    @import url('/static/vendor/css/plus_jakarta.css');
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #f8fafc;
+        background-image:
+            radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%);
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    }
+
+    .audit-row {
+        transition: all 0.2s ease;
+    }
+
+    .audit-row:hover {
+        background-color: #ffffff;
+    }
+
+    .audit-input {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.9rem;
+        padding: 0.6rem 0.9rem;
+        font-size: 11px;
+        font-weight: 700;
+        color: #0f172a;
+        background: #fff;
+        width: 100%;
+    }
+
+    .audit-input:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, .12);
+    }
+
+    .audit-label {
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .2em;
+        color: #94a3b8;
+        margin-bottom: .35rem;
+        display: block;
+    }
+</style>
+
+<div class="min-h-screen py-10 px-4 lg:px-8 max-w-[1600px] mx-auto space-y-8">
+
+    
+    <header class="glass-panel rounded-[2.5rem] p-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-6">
+            <div class="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-2xl">
+                <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path stroke-width="2" d="M9 12l2 2 4-4" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase">
+                    {{ "Piste d'"|t }}<span class="text-emerald-500 font-light">{{ "Audit"|t }}</span>
+                </h1>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-2">
+                    {{ "Tracabilite des connexions, habilitations et actions sensibles"|t }}
+                </p>
+                {% if scope_filiale %}
+                <p class="text-[9px] font-black text-emerald-600 uppercase tracking-[0.25em] mt-2">
+                    {{ "Perimetre"|t }} : {{ scope_filiale }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-3">
+            <a href="{% url 'export_audit_excel' %}{% if querystring %}?{{ querystring }}{% endif %}"
+                class="flex items-center gap-2 px-5 py-3 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2"
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span class="text-[10px] font-black uppercase tracking-widest">{{ "Exporter Excel"|t }}</span>
+            </a>
+        </div>
+    </header>
+
+    
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-panel rounded-3xl p-5">
+            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">{{ "Evenements"|t }}</p>
+            <p class="text-3xl font-black text-slate-900 mt-2">{{ stats.total }}</p>
+        </div>
+        <div class="glass-panel rounded-3xl p-5">
+            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">{{ "Connexions"|t }}</p>
+            <p class="text-3xl font-black text-emerald-600 mt-2">{{ stats.connexions }}</p>
+        </div>
+        <div class="glass-panel rounded-3xl p-5">
+            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">{{ "Aujourd'hui"|t }}</p>
+            <p class="text-3xl font-black text-blue-600 mt-2">{{ stats.aujourdhui }}</p>
+        </div>
+        <div class="glass-panel rounded-3xl p-5">
+            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">{{ "Incidents / echecs"|t }}</p>
+            <p class="text-3xl font-black text-red-600 mt-2">{{ stats.incidents }}</p>
+        </div>
+    </div>
+
+    
+    <form method="get" class="glass-panel rounded-[2rem] p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-7 gap-4 items-end">
+            <div class="xl:col-span-2">
+                <label class="audit-label">{{ "Recherche"|t }}</label>
+                <input type="text" name="q" value="{{ f_q }}" class="audit-input"
+                    placeholder="{{ 'Acteur, action, cible, IP...'|t }}">
+            </div>
+            <div>
+                <label class="audit-label">{{ "Categorie"|t }}</label>
+                <select name="category" class="audit-input">
+                    <option value="">{{ "Toutes"|t }}</option>
+                    {% for code, label in categories %}
+                    <option value="{{ code }}" {% if f_category == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="audit-label">{{ "Acteur"|t }}</label>
+                <select name="acteur" class="audit-input">
+                    <option value="">{{ "Tous"|t }}</option>
+                    {% for a in acteurs %}
+                    <option value="{{ a }}" {% if f_acteur == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="audit-label">{{ "Filiale"|t }}</label>
+                {% if scope_filiale %}
+                <input type="text" class="audit-input bg-slate-50" value="{{ scope_filiale }}" disabled>
+                {% else %}
+                <select name="filiale" class="audit-input">
+                    <option value="">{{ "Toutes"|t }}</option>
+                    {% for f in filiales %}
+                    <option value="{{ f }}" {% if f_filiale == f %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+            </div>
+            <div>
+                <label class="audit-label">{{ "Du"|t }}</label>
+                <input type="date" name="date_from" value="{{ f_date_from }}" class="audit-input">
+            </div>
+            <div>
+                <label class="audit-label">{{ "Au"|t }}</label>
+                <input type="date" name="date_to" value="{{ f_date_to }}" class="audit-input">
+            </div>
+            <div>
+                <label class="audit-label">{{ "Statut"|t }}</label>
+                <select name="status" class="audit-input">
+                    <option value="">{{ "Tous"|t }}</option>
+                    <option value="ok" {% if f_status == 'ok' %}selected{% endif %}>{{ "Succes"|t }}</option>
+                    <option value="ko" {% if f_status == 'ko' %}selected{% endif %}>{{ "Echec"|t }}</option>
+                </select>
+            </div>
+            <div class="flex gap-2 xl:col-span-2">
+                <button type="submit"
+                    class="flex-1 px-5 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
+                    {{ "Filtrer"|t }}
+                </button>
+                <a href="{% url 'audit' %}"
+                    class="flex-1 text-center px-5 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all">
+                    {{ "Reinitialiser"|t }}
+                </a>
+            </div>
+        </div>
+    </form>
+
+    
+    <div class="glass-panel rounded-[2rem] overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-900 text-white">
+                        <th class="text-[10px] font-black uppercase tracking-[0.2em] py-4 px-5">{{ "Horodatage"|t }}</th>
+                        <th class="text-[10px] font-black uppercase tracking-[0.2em] py-4 px-5">{{ "Categorie"|t }}</th>
+                        <th class="text-[10px] font-black uppercase tracking-[0.2em] py-4 px-5">{{ "Acteur"|t }}</th>
+                        <th class="text-[10px] font-black uppercase tracking-[0.2em] py-4 px-5">{{ "Action"|t }}</th>
+                        <th class="text-[10px] font-black uppercase tracking-[0.2em] py-4 px-5">{{ "Cible"|t }}</th>
+                        <th class="text-[10px] font-black uppercase tracking-[0.2em] py-4 px-5">{{ "Details"|t }}</th>
+                        <th class="text-[10px] font-black uppercase tracking-[0.2em] py-4 px-5">{{ "Origine"|t }}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white/60">
+                    {% for r in rows %}
+                    <tr class="audit-row">
+                        <td class="px-5 py-4 whitespace-nowrap">
+                            <div class="text-xs font-black text-slate-900">{{ r.dt|date:"d/m/Y" }}</div>
+                            <div class="text-[10px] text-slate-400 font-bold">{{ r.dt|date:"H:i:s" }}</div>
+                        </td>
+                        <td class="px-5 py-4">
+                            <span
+                                class="inline-flex items-center gap-2 px-3 py-1.5 {{ r.cat_bg }} {{ r.cat_text }} border {{ r.cat_border }} text-[9px] font-black rounded-lg uppercase tracking-widest whitespace-nowrap">
+                                {{ r.category_label }}
+                            </span>
+                        </td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-[10px] font-black text-emerald-400 shrink-0">
+                                    {{ r.initials }}
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-black text-slate-900">{{ r.user_label }}</span>
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                        {{ r.organe }} &middot; {{ r.filiale }}
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center gap-2">
+                                {% if r.success %}
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                {% else %}
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
+                                {% endif %}
+                                <span class="text-xs font-bold text-slate-800">{{ r.action }}</span>
+                            </div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                IP {{ r.ip }}
+                            </div>
+                        </td>
+                        <td class="px-5 py-4">
+                            <span class="text-[11px] font-black text-slate-700">{{ r.target }}</span>
+                        </td>
+                        <td class="px-5 py-4">
+                            <div class="text-[11px] text-slate-600 leading-relaxed max-w-md">{{ r.details }}</div>
+                        </td>
+                        <td class="px-5 py-4">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{{ r.source }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-8 py-24 text-center">
+                            <div class="flex flex-col items-center gap-4 opacity-30">
+                                <svg class="w-16 h-16 text-slate-300" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-width="1.5"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <div class="text-sm font-black uppercase tracking-[0.3em]">
+                                    {{ "Aucun evenement pour ces criteres"|t }}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+        <div class="flex items-center justify-between gap-4 px-6 py-5 border-t border-slate-100 bg-white/60">
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                {{ "Page"|t }} {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            </span>
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+                    class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50">
+                    {{ "Precedent"|t }}
+                </a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+                    class="px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800">
+                    {{ "Suivant"|t }}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

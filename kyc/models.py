@@ -142,6 +142,38 @@ class DataQualityRule(models.Model):
     def __str__(self):
         return f"{self.name} [{self.applicability}]"
 
+    @property
+    def rule_number(self):
+        if hasattr(self, '_rule_number') and self._rule_number is not None:
+            return self._rule_number
+        rule_map = get_rule_number_map()
+        return rule_map.get((self.name or '').strip(), self.id)
+
+def get_rule_number_map():
+    """
+    Retourne un dictionnaire { nom_regle.strip(): numero_unique }.
+    Les règles sont numérotées de façon unique selon leur intitulé (name).
+    Deux règles ayant le même intitulé ont exactement le même numéro unique,
+    même si elles s'appliquent à des filiales différentes.
+    L'ordre d'attribution (1, 2, 3...) est basé sur le min(id) de chaque intitulé.
+    """
+    from django.db.models import Min
+    rule_names = (
+        DataQualityRule.objects
+        .values('name')
+        .annotate(min_id=Min('id'))
+        .order_by('min_id')
+    )
+    mapping = {}
+    idx = 1
+    for item in rule_names:
+        name = (item['name'] or '').strip()
+        if name and name not in mapping:
+            mapping[name] = idx
+            idx += 1
+    return mapping
+
+
 class DataQualityCondition(models.Model):
     rule = models.ForeignKey(DataQualityRule, on_delete=models.CASCADE, related_name='conditions')
     field_name = models.CharField(max_length=100, choices=DATA_QUALITY_FIELD_CHOICES)
@@ -161,7 +193,7 @@ class DataQualityCondition(models.Model):
 class DataQualityRuleAudit(models.Model):
     rule_name = models.CharField(max_length=200)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    action = models.CharField(max_length=50) # CREATION, MODIFICATION, SUPPRESSION
+    action = models.CharField(max_length=50)                                      
     details = models.TextField(blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
@@ -170,35 +202,15 @@ class DataQualityRuleAudit(models.Model):
 
 
 Filiales = (
-    ('BOA NE', 'BOA NE'),
-    ('BOA CI', 'BOA CI'),
-    ('BOA TG', 'BOA TG'),
-    ('BOA SN', 'BOA SN'),
-    ('BOA ML', 'BOA ML'),
-    ('BOA BF', 'BOA BF'),
     ('BOA BJ', 'BOA BJ'),
-    ('BOA RDC', 'RDC'),
-    ('LCB', 'LCB'),
-    ('BCB', 'BCB'),
-    ('BOA MR', 'BOA MR'),
-    ('BOA MG', 'BOA MG'),
-    ('BOA UG', 'BOA UG'),
-    ('BOA TZ', 'BOA TZ'),
-    ('BOA RW', 'BOA RW'),
-    ('BOA KE', 'BOA KE'),
-    ('BOA FR', 'BOA FR'),
-    ('BOA KM', 'BOA KM'),
-    ('BOA GH', 'BOA GH'),
-    ('BOA Group', 'BOA Group'),
 )
-
 
 class FilialeModuleConfig(models.Model):
     filiale = models.CharField(max_length=15, choices=Filiales, unique=True, verbose_name="Filiale/Pays")
     screening_kyc_paye_active = models.BooleanField(default=False, verbose_name="Module Screening KYC PAYE actif")
     daterev_reminder_paye_active = models.BooleanField(
-        default=False, verbose_name="Module Rappels DATEREV PAYE actif",
-        help_text="Si décoché, les chargés de cette filiale ne reçoivent pas les rappels DATEREV automatiques.")
+        default=False, verbose_name="Module Rappels Scoring PAYE actif",
+        help_text="Si décoché, les chargés de cette filiale ne reçoivent pas les rappels Scoring automatiques.")
 
     class Meta:
         verbose_name = "Configuration Module Filiale"
@@ -250,9 +262,9 @@ class KycFieldVisibilityConfig(models.Model):
     display_fields = models.JSONField(blank=True, default=list)
     filiales = models.JSONField(blank=True, default=list)
     field_sources = models.JSONField(blank=True, default=dict)
-    # Intitules metier des champs Kyc_pp / Kyc_pm ({champ: intitule}), utilises par
-    # le module Screening KYC ID (onglet Sources par champ) pour presenter et
-    # rapprocher la bonne information extraite des documents.
+                                                                                   
+                                                                             
+                                                             
     field_labels = models.JSONField(blank=True, default=dict)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -319,8 +331,8 @@ class KycDocumentExtraction(models.Model):
         return f"{self.get_document_type_display()} - {reference}"
 
 
-# Champs des modeles KYC pouvant contenir un nom / prenom (equivalence configurable en admin).
-# NB : CLIENT est un numero (identifiant) et ne doit pas servir au rapprochement par nom.
+                                                                                              
+                                                                                         
 KYC_PP_NAME_FIELD_CHOICES = (
     ('INTITULE_COMPTE', "INTITULE_COMPTE (Nom & Prenom)"),
     ('EMPLOYEUR', "EMPLOYEUR (Employeur)"),
@@ -335,19 +347,19 @@ KYC_PM_NAME_FIELD_CHOICES = (
 class KycDocumentMatchSettings(models.Model):
     name = models.CharField(max_length=80, default="Parametrage standard", unique=True)
 
-    # ── Poids Personnes Physiques (PP) — NUMID (n° identification nationale) = 100 % ──
+                                                                                        
     pp_fullname_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="PP · Poids nom & prenom")
     pp_birth_date_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="PP · Poids date de naissance")
     pp_birth_place_weight = models.PositiveSmallIntegerField(default=15, validators=[MaxValueValidator(100)], verbose_name="PP · Poids lieu de naissance")
     pp_birth_country_weight = models.PositiveSmallIntegerField(default=15, validators=[MaxValueValidator(100)], verbose_name="PP · Poids pays de naissance")
 
-    # ── Poids Personnes Morales (PM) — RCSNO (registre commerce) = 100 % ──
+                                                                            
     pm_fullname_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="PM · Poids raison sociale")
     pm_fiscal_weight = models.PositiveSmallIntegerField(default=35, validators=[MaxValueValidator(100)], verbose_name="PM · Poids numero fiscal")
     pm_address_weight = models.PositiveSmallIntegerField(default=15, validators=[MaxValueValidator(100)], verbose_name="PM · Poids adresse sociale")
     pm_country_weight = models.PositiveSmallIntegerField(default=15, validators=[MaxValueValidator(100)], verbose_name="PM · Poids pays de creation (PAYS_JUR)")
 
-    # equivalence nom & prenom / raison sociale du document dans les modeles KYC
+                                                                                
     pp_fullname_field = models.CharField(max_length=50, choices=KYC_PP_NAME_FIELD_CHOICES, default="INTITULE_COMPTE",
                                          verbose_name="Champ nom & prenom (KYC PP)")
     pm_fullname_field = models.CharField(max_length=50, choices=KYC_PM_NAME_FIELD_CHOICES, default="INTITULE_COMPTE",
@@ -615,6 +627,96 @@ class KycScreeningAccess(models.Model):
         return {p: getattr(row, p) for p in cls.ALL_PERMS}
 
 
+class SidebarAccess(models.Model):
+    from accounts.models import Organe as _ORGANE_CHOICES
+    organe = models.CharField(max_length=50, choices=_ORGANE_CHOICES, unique=True,
+                              verbose_name="Organe")
+    dashboard = models.BooleanField(default=True, verbose_name="Tableau de bord")
+    agents_notes = models.BooleanField(default=False, verbose_name="Agents notes")
+    champs_non_renseignes = models.BooleanField(default=True, verbose_name="Champs non-renseignes")
+    clients_anomalie = models.BooleanField(default=True, verbose_name="Clients en anomalie")
+    scoring_clients = models.BooleanField(default=True, verbose_name="Scoring clients")
+    screening_kyc = models.BooleanField(default=True, verbose_name="Screening KYC ID")
+    nouvelle_notation = models.BooleanField(default=False, verbose_name="Nouvelle notation")
+    historique_notation = models.BooleanField(default=False, verbose_name="Historique notation")
+    ppe = models.BooleanField(default=False, verbose_name="PPE")
+    comptes_specifiques = models.BooleanField(default=False, verbose_name="Comptes specifiques")
+    parametrage_utilisateurs = models.BooleanField(default=False, verbose_name="Parametrage utilisateurs")
+    regles_qualite = models.BooleanField(default=False, verbose_name="Regles de qualite")
+    champs_kyc = models.BooleanField(default=False, verbose_name="Champs KYC")
+    documents_screening = models.BooleanField(default=False, verbose_name="Documents Screening KYC ID")
+    rappels_scoring = models.BooleanField(default=False, verbose_name="Rappels Scoring")
+    pilotage = models.BooleanField(default=False, verbose_name="Pilotage")
+    audit = models.BooleanField(default=False, verbose_name="Audit")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    ALL_PERMS = (
+        "dashboard", "agents_notes", "champs_non_renseignes", "clients_anomalie",
+        "scoring_clients", "screening_kyc", "nouvelle_notation", "historique_notation",
+        "ppe", "comptes_specifiques", "parametrage_utilisateurs", "regles_qualite",
+        "champs_kyc", "documents_screening", "rappels_scoring", "pilotage", "audit",
+    )
+
+    class Meta:
+        verbose_name = "Acces sidebar (par organe)"
+        verbose_name_plural = "Acces sidebar (par organe)"
+        ordering = ["organe"]
+
+    def __str__(self):
+        return self.organe
+
+    @classmethod
+    def legacy_perms_for_organe(cls, organe):
+        user_stat = ["Directeur Agence", "Chargé Client"]
+        user_stat += ["Chargé Client"]
+        notation_org = ["Contrôle Permanent", "PASS"]
+        notation_org += ["Contrôle Permanent"]
+        conformite_org = ["Conformité", "Conformité Groupe", "PASS"]
+        conformite_org += ["Conformité", "Conformité Groupe"]
+        admin_org = ["PASS", "DSI", "Conformité", "Qualité", "Contrôle Permanent",
+                     "Conformité Groupe", "Contrôle Permanent Groupe"]
+        admin_org += ["Conformité", "Qualité", "Contrôle Permanent",
+                      "Conformité Groupe", "Contrôle Permanent Groupe"]
+        return {
+            "dashboard": True,
+            "agents_notes": organe not in user_stat,
+            "champs_non_renseignes": True,
+            "clients_anomalie": True,
+            "scoring_clients": True,
+            "screening_kyc": True,
+            "nouvelle_notation": organe in notation_org,
+            "historique_notation": organe in notation_org,
+            "ppe": organe in conformite_org,
+            "comptes_specifiques": organe in conformite_org,
+            "parametrage_utilisateurs": organe in ["PASS", "DSI"],
+            "regles_qualite": organe == "PASS",
+            "champs_kyc": organe == "PASS",
+            "documents_screening": organe == "PASS",
+            "rappels_scoring": organe == "PASS",
+            "pilotage": organe in admin_org,
+            "audit": organe in admin_org,
+        }
+
+    @classmethod
+    def perms_for(cls, user):
+        if user and getattr(user, "is_superuser", False):
+            return {p: True for p in cls.ALL_PERMS}
+        organe = getattr(user, "organe", "") if user and getattr(user, "is_authenticated", False) else ""
+        row = None
+        if organe:
+            row = cls.objects.filter(organe=organe).first()
+            if row is None:
+                try:
+                    mojibake_organe = organe.encode("utf-8").decode("cp1252")
+                except UnicodeError:
+                    mojibake_organe = organe
+                if mojibake_organe != organe:
+                    row = cls.objects.filter(organe=mojibake_organe).first()
+        if row is None:
+            return cls.legacy_perms_for_organe(organe)
+        return {p: getattr(row, p) for p in cls.ALL_PERMS}
+
+
 class KycMatchDecision(models.Model):
     """Decision de validation d'une correspondance document <-> client KYC.
     Superpose un statut persistant (tracable) sur le resultat de rapprochement."""
@@ -677,7 +779,7 @@ class Notation(models.Model):
     agent = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notations")
     note = models.CharField(choices=NoteChoices, default="Bien", max_length=15)
     flux_stock = models.CharField(choices=FS, max_length=15, default="")
-    # Nouveau champ ajouté ici :
+                                
     recommandation = models.TextField(blank=True, null=True)
     date_notation = models.DateTimeField(default=timezone.now)
     note_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -739,13 +841,13 @@ class Kyc_pm(models.Model):
     PAYS_JUR = models.CharField(blank=True, max_length=200)
 
     class Meta:
-        # Même index de scope que Kyc_pp (filtres filiale/agence/expl) + index
-        # DATEREV/RISQUE pour les filtres période et les KPI de /clients_scorer.
+                                                                              
+                                                                                
         indexes = [
             models.Index(fields=["FILIALE", "AGENCE", "EXPL"], name="kyc_pm_scope_idx"),
             models.Index(fields=["DATEREV"], name="kyc_pm_daterev_idx"),
             models.Index(fields=["RISQUE"], name="kyc_pm_risque_idx"),
-            # Filtres exacts des pages /non_resid_pm et /devise_pm
+                                                                  
             models.Index(fields=["RESID"], name="kyc_pm_resid_idx"),
             models.Index(fields=["DEVISE"], name="kyc_pm_devise_idx"),
         ]
@@ -784,15 +886,15 @@ class Kyc_pp(models.Model):
     LIEU_DELIVRANCE_CIN = models.CharField(blank=True, max_length=200)
 
     class Meta:
-        # Accélère les filtrages par scope (filiale/agence/expl) omniprésents
-        # dans l'évaluation des règles qualité et le batch compute_quality_rates.
+                                                                             
+                                                                                 
         indexes = [
             models.Index(fields=["FILIALE", "AGENCE", "EXPL"], name="kyc_pp_scope_idx"),
-            # Filtres période (DATEREV < / entre bornes) et KPI scoré/non scoré
-            # de /clients_scorer.
+                                                                               
+                                 
             models.Index(fields=["DATEREV"], name="kyc_pp_daterev_idx"),
             models.Index(fields=["RISQUE"], name="kyc_pp_risque_idx"),
-            # Filtres exacts des pages /ppe, /non_resid et /devise
+                                                                  
             models.Index(fields=["PPE"], name="kyc_pp_ppe_idx"),
             models.Index(fields=["RESID"], name="kyc_pp_resid_idx"),
             models.Index(fields=["DEVISE"], name="kyc_pp_devise_idx"),
@@ -801,25 +903,11 @@ class Kyc_pp(models.Model):
     def __str__(self):
         return f"{self.CLIENT} - {self.FILIALE}"
 
-#lass Filiale(models.Model):
-#   code = models.CharField(blank=True,max_length=5, unique=True)
+                            
+                                                                 
 
-#   def __str__(self):
-#       return self.code
-
-class Anomalie(models.Model):
-    FILIALE = models.CharField(blank=True,max_length=200)
-    AGENCE = models.CharField(blank=True,max_length=200)
-    LIB_AGENCE = models.CharField(blank=True,max_length=50)
-    EXPL = models.CharField(blank=True,max_length=200)
-    CLIENT = models.CharField(blank=True,max_length=200)
-    ANOMALIE_AGE = models.CharField(blank=True,max_length=200)
-    ANOMALIE_DATE_EER = models.CharField(blank=True,max_length=200)
-    ANOMALIE_CIN = models.CharField(blank=True,max_length=200)
-    PPE = models.CharField(blank=True,max_length=200)
-
-    def __str__(self):
-        return f"{self.CLIENT} - {self.FILIALE}"
+                      
+                        
 
 class TauxEvolution(models.Model):
     filiale = models.CharField(blank=True,max_length=10)
@@ -834,10 +922,10 @@ class TauxEvolution(models.Model):
     class Meta:
         ordering = ['filiale', 'expl', 'date']
         indexes = [
-            # Max(date) est exécuté à CHAQUE requête dashboard (version du cache) :
-            # sans index c'est un scan complet de la table à chaque affichage.
+                                                                                   
+                                                                              
             models.Index(fields=["date"], name="tauxevo_date_idx"),
-            # Filtres (flux_stock, filiale, expl) de la vue statistiques.
+                                                                         
             models.Index(fields=["filiale", "flux_stock", "expl"], name="tauxevo_scope_idx"),
         ]
     def __str__(self):
@@ -855,7 +943,7 @@ class TauxEvolution_filiale(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        # filter(filiale).order_by(date) + Max(date) des vues dashboard.
+                                                                        
         indexes = [
             models.Index(fields=["filiale", "date"], name="tauxevofil_scope_idx"),
             models.Index(fields=["date"], name="tauxevofil_date_idx"),
@@ -884,10 +972,10 @@ class TauxQualite(models.Model):
     filiale = models.CharField(max_length=50, null=True, blank=True)
     agence = models.CharField(max_length=50, null=True, blank=True)
     expl = models.CharField(max_length=50, null=True, blank=True)
-    applicability = models.CharField(max_length=2)  # 'PP' ou 'PM'
-    # 'stock' = taux sur toute la base (comportement historique) ;
-    # 'flux' = taux restreint aux clients dont DATOUV tombe dans la fenêtre
-    # configurée (QualityFluxConfig : veille ou mois précédent).
+    applicability = models.CharField(max_length=2)                
+                                                                  
+                                                                           
+                                                                
     flux_stock = models.CharField(max_length=5, choices=FLUX_STOCK_CHOICES, default="stock")
     rate = models.FloatField(default=0)
     ok_count = models.IntegerField(default=0)
@@ -896,7 +984,7 @@ class TauxQualite(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        # Un seul enregistrement par scope + typologie + stock/flux + jour.
+                                                                           
         constraints = [
             models.UniqueConstraint(
                 fields=["filiale", "agence", "expl", "applicability", "flux_stock", "date"],
@@ -969,7 +1057,7 @@ class DATEREV(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     avatar = models.ImageField(default='default.jpg', upload_to='profile_avatars/')
-    updated_at = models.DateTimeField(auto_now=True)  # ← ajouté
+    updated_at = models.DateTimeField(auto_now=True)            
 
     def __str__(self):
         return f'{self.user.username} Profile'
@@ -1002,7 +1090,7 @@ class EmailReminderConfig(models.Model):
         ('monthly', 'Mensuel'),
     ]
 
-    # ── SMTP ──────────────────────────────────────────────
+                                                            
     smtp_host     = models.CharField(max_length=200, default='smtp.gmail.com', verbose_name='Serveur SMTP')
     smtp_port     = models.IntegerField(default=587, verbose_name='Port SMTP')
     smtp_user     = models.EmailField(verbose_name='Utilisateur SMTP')
@@ -1012,12 +1100,12 @@ class EmailReminderConfig(models.Model):
     from_email    = models.EmailField(verbose_name='Email expéditeur')
     from_name     = models.CharField(max_length=100, default='KYC Portal BOA', verbose_name='Nom expéditeur')
 
-    # ── Paramètres rappel ─────────────────────────────────
+                                                            
     frequency    = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default='manual', verbose_name='Fréquence')
-    days_before  = models.IntegerField(default=30, verbose_name='Jours avant expiration', help_text='Inclure les clients dont la DATEREV expire dans ce nombre de jours')
+    days_before  = models.IntegerField(default=30, verbose_name='Jours avant expiration', help_text='Inclure les clients dont la date de revue (Scoring) expire dans ce nombre de jours')
     active       = models.BooleanField(default=True, verbose_name='Actif')
 
-    # ── Supervision : destinataires du rapport quotidien (OK / erreurs) ──
+                                                                           
     notify_emails = models.TextField(
         blank=True, default='', verbose_name="Emails de supervision (rapport quotidien)",
         help_text="Destinataires du rapport d'exécution des tâches quotidiennes, séparés par des virgules / points-virgules / sauts de ligne.")
@@ -1026,8 +1114,8 @@ class EmailReminderConfig(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Configuration Rappel DATEREV"
-        verbose_name_plural = "Configurations Rappel DATEREV"
+        verbose_name = "Configuration Rappel Scoring"
+        verbose_name_plural = "Configurations Rappel Scoring"
 
     def __str__(self):
         return f"SMTP {self.smtp_host}:{self.smtp_port} — {self.get_frequency_display()}"

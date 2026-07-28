@@ -9,7 +9,7 @@
 
 <div id="wrap" class="bg-white oe_structure oe_empty"  >
     <section class="bg-white">
-  <!-- Static sidebar for desktop -->
+  
         <div class="mt-8 md:pl-64 flex flex-col">
 
                 <main class="flex-1">
@@ -55,15 +55,15 @@
                                 <br>
 
 <div class="p-6">
-  <!-- Titre -->
+  
 
-  <!-- Formulaire de filtres -->
-<!-- Formulaire de filtres -->
+  
+
 
 <form method="get" class="bg-gray-100 p-4 rounded-xl shadow-md w-full max-w-2xl mx-auto mb-6">
   <div class="flex flex-wrap gap-6 items-end justify-center">
 
-    <!-- Filiale : visible uniquement pour les contrôleurs -->
+    
     {% if user.organe in users_groupe %}
       <div class="flex flex-col">
 
@@ -93,7 +93,7 @@
           {% endfor %}
         </select>
           </div>
-          <!-- Bouton Rechercher -->
+          
     <div class="flex items-end">
       <button type="submit" class="nav-link-active hover:nav-link-active text-white text-sm font-semibold px-5 py-2 rounded-md transition duration-200 shadow">
         {{ "Rechercher"|t }}
@@ -101,7 +101,7 @@
     </div>
     {% endif %}
 
-    <!-- Agence : visible pour les profils autorisés avec filtrage dynamique -->
+    
     {% if user.organe in users_filiale %}
     <div class="flex flex-col">
 
@@ -122,7 +122,7 @@
           {% endfor %}
         </select>
           </div>
-          <!-- Bouton Rechercher -->
+          
     <div class="flex items-end">
       <button type="submit" class="nav-link-active hover:nav-link-active text-white text-sm font-semibold px-5 py-2 rounded-md transition duration-200 shadow">
         {{ "Rechercher"|t }}
@@ -142,7 +142,7 @@
           {% endfor %}
         </select>
           </div>
-          <!-- Bouton Rechercher -->
+          
     <div class="flex items-end">
       <button type="submit" class="nav-link-active hover:nav-link-active text-white text-sm font-semibold px-5 py-2 rounded-md transition duration-200 shadow">
         {{ "Rechercher"|t }}
@@ -161,13 +161,13 @@
 
 <div class="mb-2 text-orange-600 font-semibold tracking-tight  ">{{ donnees|length }} client(s) trouvé(s)</div>
 
-<!-- Scroll synchronisé en haut -->
+
 
 
   {% if donnees %}
 
 
-<!-- Conteneur principal avec overflow -->
+
 <div id="scrollContainer" class="overflow-x-auto overflow-y-auto max-h-[400px] relative">
 <table class="min-w-[1200px] text-xs text-center border border-gray-300">
   <thead class="sticky top-0 nav-link-active text-white z-10">
@@ -233,7 +233,7 @@
               </div>
                         </div>
                       </div>
-                      <!-- /End replace -->
+                      
                     </div>
                   </div>
                 </main>

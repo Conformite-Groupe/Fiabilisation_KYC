@@ -32,9 +32,9 @@ class Command(BaseCommand):
                                  "Chaque worker traite un sous-ensemble disjoint des agents.")
 
     def handle(self, *args, **options):
-        from accounts.models import ProfileV  # import tardif (évite les cycles)
+        from accounts.models import ProfileV                                    
 
-        # Trimestre courant par filiale (une config unique par filiale)
+                                                                       
         trimestre_par_filiale = {}
         for cfg in AppreciationConfig.objects.filter(active=True).exclude(filiale=""):
             trimestre_par_filiale[cfg.filiale.strip().upper()] = current_trimestre(cfg.date_demarrage)
@@ -49,7 +49,7 @@ class Command(BaseCommand):
 
         filiale_filter = options.get("filiale")
 
-        # ── 1. Univers des agents : (filiale, expl) présents dans TauxEvolution flux ──
+                                                                                        
         evo_qs = TauxEvolution.objects.filter(flux_stock="F").exclude(expl="")
         if filiale_filter:
             evo_qs = evo_qs.filter(filiale=filiale_filter)
@@ -59,8 +59,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Aucun agent (TauxEvolution flux) trouvé."))
             return
 
-        # --slice i/N : répartit les agents (triés) en N sous-ensembles disjoints
-        # via un pas (stride), comme warm_ui_caches. Permet N workers parallèles.
+                                                                                 
+                                                                                 
         try:
             slice_idx, slice_total = (int(x) for x in options["slice"].split("/"))
         except (ValueError, AttributeError):
@@ -74,7 +74,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Aucun agent pour ce slice."))
             return
 
-        # ── 2. Taux d'évolution flux (moyenne PP + PM, dernier point) ──
+                                                                         
         def taux_evolution_agent(fil, expl):
             vals = []
             for pp in ("P", "M"):
@@ -85,7 +85,7 @@ class Command(BaseCommand):
                     vals.append(rec.taux)
             return round(sum(vals) / len(vals), 1) if vals else None
 
-        # ── 3. Notation flux la plus récente par agent (filiale, code_expl) ──
+                                                                               
         notes = Notation.objects.filter(flux_stock="Flux")
         latest = notes.values("agent").annotate(d=Max("date_notation"))
         latest_dates = {n["agent"]: n["d"] for n in latest}
@@ -93,13 +93,13 @@ class Command(BaseCommand):
         for n in notes.filter(date_notation__in=latest_dates.values()).select_related("agent"):
             if latest_dates.get(n.agent_id) == n.date_notation:
                 notation_by_agentid[n.agent_id] = n.note
-        # index (filiale_upper, code_expl_upper) -> (ProfileV, note)
+                                                                    
         profile_idx = {}
         for p in ProfileV.objects.exclude(code_expl="").exclude(code_expl__isnull=True):
             key = ((p.filiale or "").strip().upper(), (p.code_expl or "").strip().upper())
             profile_idx[key] = p
 
-        # ── 4. Taux de qualité par agent (conformité des règles, scopé filiale+expl) ──
+                                                                                        
         from kyc.views import evaluate_data_quality_rule
         rules = list(DataQualityRule.objects.filter(active=True))
 
@@ -110,21 +110,21 @@ class Command(BaseCommand):
                 tot += stat.get("total", 0)
                 ok += stat.get("ok_count", 0)
             if tot == 0:
-                # Aucune donnée qualité pour cet agent -> taux par défaut 100 %
+                                                                               
                 return 100.0
-            # Arrondi à l'entier inférieur (floor) pour ne pas surévaluer / rater de client
+                                                                                           
             import math
             rate = math.floor(100.0 * ok / tot)
-            # La moindre non-conformité (même infime) plafonne à 99 % : seul un
-            # agent parfait (0 anomalie) atteint 100 %.
+                                                                               
+                                                       
             if ok < tot:
                 rate = min(rate, 99)
             return float(rate)
 
-        # ── 5. Calcul (lectures seules, la partie longue) ──
-        # Les écritures sont différées à la fin : sur SQLite, un seul écrivain à
-        # la fois est possible ; on garde donc la fenêtre d'écriture minimale
-        # pour que les workers parallèles (--slice) ne se bloquent pas entre eux.
+                                                             
+                                                                                
+                                                                             
+                                                                                 
         rows = []
         for fil, expl in agents:
             trimestre = trimestre_for(fil)
@@ -151,7 +151,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  {fil} / {expl} (T{trimestre}): évo={te} qual={tq} "
                                   f"note={note or '—'} -> {appr_q} / {appr_g}")
 
-        # ── 6. Stockage (rafale courte, retente si la base est verrouillée) ──
+                                                                               
         import time
         from django.db import transaction
         from django.db.utils import OperationalError

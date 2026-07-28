@@ -13,20 +13,20 @@ class Command(BaseCommand):
         csv_file = kwargs['bulk_users']
         User = get_user_model()
 
-        # Détection automatique de l'encodage
+                                             
         with open(csv_file, 'rb') as f:
             result = chardet.detect(f.read())
         encoding = result['encoding']
 
-        # Lecture du fichier CSV avec l'encodage détecté
+                                                        
         with open(csv_file, mode='r', encoding=encoding) as file:
             reader = csv.DictReader(file, delimiter=';')
             users_created = 0
 
             for row in reader:
-                # Récupération des données
+                                          
                 email = row.get('email')
-                username = row.get('username') or email  # Utilise l'email comme username si username est vide
+                username = row.get('username') or email                                                       
                 first_name = row.get('first_name')
                 last_name = row.get('last_name')
                 agence = row.get('code_agence')
@@ -36,12 +36,12 @@ class Command(BaseCommand):
                 téléphone = row.get('téléphone')
                 password1 = row.get('password1')
 
-                # Validation des données
+                                        
                 if not email or not password1:
                     self.stdout.write(self.style.WARNING(f"Utilisateur ignoré. Email ou mot de passe manquant pour l'entrée : {row}"))
                     continue
 
-                # Créez l'utilisateur avec les champs personnalisés
+                                                                   
                 user, created = User.objects.get_or_create(
                     email=email,
                     defaults={
@@ -57,7 +57,7 @@ class Command(BaseCommand):
                 )
                 
                 if created:
-                    user.set_password(password1)  # Définit le mot de passe
+                    user.set_password(password1)                           
                     user.save()
                     users_created += 1
 

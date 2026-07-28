@@ -5,7 +5,7 @@
 {% block content %}
 <div class="min-h-screen px-4 pb-8 pt-1 lg:px-8 lg:pt-2 space-y-6 max-w-[1700px] mx-auto">
 
-    <!-- ═══════════════════════ EN-TÊTE ═══════════════════════ -->
+    
     <header class="glass-panel page-header">
         <div class="flex items-center gap-4">
             <div class="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shrink-0">
@@ -22,7 +22,7 @@
                 </p>
             </div>
         </div>
-        <!-- Boutons export rapide (utilisent la sélection courante) -->
+        
         <div class="flex flex-wrap gap-2 items-center">
             <button type="button" onclick="applyReportConfig('excel')"
                 class="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-700 px-4 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800 transition-all shadow-sm">
@@ -42,10 +42,10 @@
         </div>
     </header>
 
-    <!-- ═══════════════════════ FILTRES ═══════════════════════ -->
+    
     <form method="get" class="relative z-10 p-4 lg:p-6 mb-4" id="mainFilterForm">
         <div class="flex flex-wrap items-end justify-center gap-4 lg:gap-5">
-            <!-- Type de rapport -->
+            
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -53,8 +53,9 @@
                 </label>
                 <div class="relative">
                     <select name="scope" id="scopeSelect"
-                        class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer"
-                        onchange="handleScopeChange(this.value)">
+                        class="appearance-none block w-full pl-4 pr-10 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-slate-50"
+                        onchange="handleScopeChange(this.value)"
+                        {% if not can_group %}disabled title="{{ "Réservé aux profils Groupe"|t }}"{% endif %}>
                         <option value="filiale" {% if scope == "filiale" %}selected{% endif %}>Rapport {{ "Filiale"|t }}</option>
                         {% if can_group %}
                         <option value="groupe" {% if scope == "groupe" %}selected{% endif %}>{{ "Rapport Groupe"|t }}</option>
@@ -65,7 +66,7 @@
                     </div>
                 </div>
             </div>
-            <!-- Filiale (désactivée si scope=groupe) -->
+            
             <div class="w-full md:w-40 lg:w-48 relative group">
                 <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600" id="filialeLabel">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
@@ -84,16 +85,17 @@
                     </div>
                 </div>
             </div>
-            <!-- Seuil -->
-            <div class="w-full md:w-32 lg:w-40 relative group">
-                <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            
+            <div class="w-full md:w-48 lg:w-56 relative group">
+                <label class="flex items-center gap-1.5 whitespace-nowrap text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                     {{ "Seuil (%)"|t }}
+                    <span class="normal-case font-semibold text-slate-400 tracking-normal">· {{ "Par défaut 90%"|t }}</span>
                 </label>
                 <input type="number" min="0" max="100" step="0.1" name="threshold" id="thresholdInput" value="{{ threshold|floatformat:1 }}"
                     class="block w-full pl-4 pr-3 py-3 text-xs font-bold text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300">
             </div>
-            <!-- Bouton -->
+            
             <div class="flex items-end mt-4 lg:mt-0">
                 <button type="submit" class="group relative w-32 h-10 overflow-hidden rounded-xl nav-link-active text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2">
                     <div class="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300 ease-out"></div>
@@ -102,7 +104,7 @@
                 </button>
             </div>
         </div>
-        <!-- Bandeau informatif en mode Groupe -->
+        
         {% if scope == "groupe" %}
         <div class="mt-3 flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
             <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -111,10 +113,10 @@
         {% endif %}
     </form>
 
-    <!-- ═══════════════════════ NAVIGATION PAR ONGLETS (ALPINE.JS) ═══════════════════════ -->
+    
     <div x-data="{ activeTab: 'completeness' }" class="flex flex-col gap-6">
         
-        <!-- Navbar des Onglets (Style Pill inspiré de l'évolution filiale stock/flux) -->
+        
         <div class="flex">
             <div class="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200/50 shadow-inner">
                 <button type="button" @click="activeTab = 'completeness'"
@@ -135,7 +137,7 @@
             </div>
         </div>
 
-        <!-- ═══════════════════════ ONGLET COMPLETUDE ═══════════════════════ -->
+        
         <div x-show="activeTab === 'completeness'" class="space-y-6"
             x-transition:enter="transition ease-out duration-300 transform"
             x-transition:enter-start="opacity-0 translate-y-3"
@@ -143,14 +145,14 @@
             x-transition:leave="transition ease-in duration-150 transform"
             x-transition:leave-start="opacity-100 translate-y-0"
             x-transition:leave-end="opacity-0 translate-y-3">
-            <!-- KPI Complétude -->
+            
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-3 bg-slate-950 flex items-center gap-3">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
                     <p class="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-300">{{ "Complétude des Données"|t }}</p>
                 </div>
                 <div class="grid grid-cols-3 divide-x divide-slate-100 p-0">
-                    <!-- Global -->
+                    
                     <div class="p-5 text-center">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Global"|t }}</p>
                         <p class="text-4xl font-black {% if summary.completeness_rate is not None and summary.completeness_rate < threshold %}text-red-600{% else %}text-slate-900{% endif %}">
@@ -160,7 +162,7 @@
                             <div class="h-full rounded-full {% if summary.completeness_rate is not None and summary.completeness_rate < threshold %}bg-red-500{% else %}bg-emerald-500{% endif %}" style="width: {{ summary.completeness_rate|floatformat:0|default:0 }}%"></div>
                         </div>
                     </div>
-                    <!-- PP -->
+                    
                     <div class="p-5 text-center {% if summary.completeness_rate_pp is not None and summary.completeness_rate_pp < threshold %}bg-red-50{% endif %}">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PP — Particuliers"|t }}</p>
                         <p class="text-3xl font-black {% if summary.completeness_rate_pp is not None and summary.completeness_rate_pp < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
@@ -170,7 +172,7 @@
                             <div class="h-full rounded-full {% if summary.completeness_rate_pp is not None and summary.completeness_rate_pp < threshold %}bg-red-400{% else %}bg-emerald-400{% endif %}" style="width: {{ summary.completeness_rate_pp|floatformat:0|default:0 }}%"></div>
                         </div>
                     </div>
-                    <!-- PM -->
+                    
                     <div class="p-5 text-center {% if summary.completeness_rate_pm is not None and summary.completeness_rate_pm < threshold %}bg-red-50{% endif %}">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PM — Entreprises"|t }}</p>
                         <p class="text-3xl font-black {% if summary.completeness_rate_pm is not None and summary.completeness_rate_pm < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
@@ -189,9 +191,9 @@
                 </div>
             </div>
 
-            <!-- Graphiques Complétude -->
+            
             <section class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <!-- Graphique Complétude PP -->
+                
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
                         <div>
@@ -208,7 +210,7 @@
                         <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500 inline-block"></span> {{ "Sous seuil"|t }}</span>
                     </div>
                 </div>
-                <!-- Graphique Complétude PM -->
+                
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
                         <div>
@@ -221,13 +223,13 @@
                         <canvas id="chartCompletenesspm"></canvas>
                     </div>
                     <div class="px-4 pb-3 flex items-center gap-4 text-[9px] font-bold uppercase tracking-widest">
-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500 inline-block"></span> {{ "Conforme"|t }}</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-emerald-500 inline-block"></span> {{ "Conforme"|t }}</span>
                         <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500 inline-block"></span> {{ "Sous seuil"|t }}</span>
                     </div>
                 </div>
             </section>
 
-            <!-- Config Rapport Complétude -->
+            
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" x-data="{ open: false }">
                 <div class="px-5 py-4 bg-gradient-to-r from-slate-900 to-emerald-900 flex items-center justify-between cursor-pointer" @click="open = !open">
                     <div>
@@ -265,14 +267,14 @@
                         </div>
                     </div>
                     <div class="px-5 py-4 bg-slate-50 flex gap-3 flex-wrap">
-                        <button type="button" onclick="applyReportConfig('pdf')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-600 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-700 transition-all shadow">{{ "📊 Générer PDF"|t }}</button>
-                        <button type="button" onclick="applyReportConfig('pptx')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-500 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-amber-600 transition-all shadow">{{ "💻 Générer PPTX"|t }}</button>
-                        <button type="button" onclick="applyReportConfig('excel')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-emerald-700 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800 transition-all shadow">{{ "📈 Générer Excel"|t }}</button>
+                        <button type="button" onclick="applyReportConfig('pdf')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-600 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-700 transition-all shadow">{{ "Générer PDF"|t }}</button>
+                        <button type="button" onclick="applyReportConfig('pptx')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-500 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-amber-600 transition-all shadow">{{ "Générer PPTX"|t }}</button>
+                        <button type="button" onclick="applyReportConfig('excel')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-emerald-700 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800 transition-all shadow">{{ "Générer Excel"|t }}</button>
                     </div>
                 </div>
             </section>
 
-            <!-- Tableau Complétude -->
+            
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-4 bg-slate-950 text-white flex items-center justify-between">
                     <div>
@@ -330,7 +332,7 @@
             </section>
         </div>
 
-        <!-- ═══════════════════════ ONGLET QUALITE ═══════════════════════ -->
+        
         <div x-show="activeTab === 'quality'" class="space-y-6"
             x-transition:enter="transition ease-out duration-300 transform"
             x-transition:enter-start="opacity-0 translate-y-3"
@@ -339,14 +341,14 @@
             x-transition:leave-start="opacity-100 translate-y-0"
             x-transition:leave-end="opacity-0 translate-y-3"
             style="display: none;">
-            <!-- KPI Qualité -->
+            
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-3 bg-slate-950 flex items-center gap-3">
                     <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
                     <p class="text-[10px] font-black uppercase tracking-[0.3em] text-amber-300">{{ "Qualité des Données"|t }}</p>
                 </div>
                 <div class="grid grid-cols-3 divide-x divide-slate-100 p-0">
-                    <!-- Global -->
+                    
                     <div class="p-5 text-center">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Global"|t }}</p>
                         <p class="text-4xl font-black {% if summary.quality_rate is not None and summary.quality_rate < threshold %}text-red-600{% else %}text-slate-900{% endif %}">
@@ -356,7 +358,7 @@
                             <div class="h-full rounded-full {% if summary.quality_rate is not None and summary.quality_rate < threshold %}bg-red-500{% else %}bg-emerald-500{% endif %}" style="width: {{ summary.quality_rate|floatformat:0|default:0 }}%"></div>
                         </div>
                     </div>
-                    <!-- PP -->
+                    
                     <div class="p-5 text-center {% if summary.quality_rate_pp is not None and summary.quality_rate_pp < threshold %}bg-red-50{% endif %}">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PP — Particuliers"|t }}</p>
                         <p class="text-3xl font-black {% if summary.quality_rate_pp is not None and summary.quality_rate_pp < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
@@ -366,7 +368,7 @@
                             <div class="h-full rounded-full {% if summary.quality_rate_pp is not None and summary.quality_rate_pp < threshold %}bg-red-400{% else %}bg-emerald-400{% endif %}" style="width: {{ summary.quality_rate_pp|floatformat:0|default:0 }}%"></div>
                         </div>
                     </div>
-                    <!-- PM -->
+                    
                     <div class="p-5 text-center {% if summary.quality_rate_pm is not None and summary.quality_rate_pm < threshold %}bg-red-50{% endif %}">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PM — Entreprises"|t }}</p>
                         <p class="text-3xl font-black {% if summary.quality_rate_pm is not None and summary.quality_rate_pm < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
@@ -385,35 +387,10 @@
                 </div>
             </div>
 
-            <!-- Graphiques Qualité -->
-            <section class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <!-- Graphique Qualité PP -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
-                        <div>
-                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300">{{ "Qualité PP"|t }}</p>
-                            <h2 class="text-sm font-black text-white">{{ "Conformité par règle — Particuliers"|t }}</h2>
-                        </div>
-                    </div>
-                    <div class="p-4" style="height: 300px; position: relative;">
-                        <canvas id="chartQualitypp"></canvas>
-                    </div>
-                </div>
-                <!-- Graphique Qualité PM -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
-                        <div>
-                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-amber-300">{{ "Qualité PM"|t }}</p>
-                            <h2 class="text-sm font-black text-white">{{ "Conformité par règle — Entreprises"|t }}</h2>
-                        </div>
-                    </div>
-                    <div class="p-4" style="height: 300px; position: relative;">
-                        <canvas id="chartQualitypm"></canvas>
-                    </div>
-                </div>
-            </section>
+            
+            <section id="qualityCharts" class="grid grid-cols-1 gap-6 lg:grid-cols-2"></section>
 
-            <!-- Config Rapport Qualité -->
+            
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" x-data="{ open: false }">
                 <div class="px-5 py-4 bg-gradient-to-r from-slate-900 to-amber-950 flex items-center justify-between cursor-pointer" @click="open = !open">
                     <div>
@@ -444,14 +421,14 @@
                         </div>
                     </div>
                     <div class="px-5 py-4 bg-slate-50 flex gap-3 flex-wrap">
-                        <button type="button" onclick="applyReportConfig('pdf')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-600 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-700 transition-all shadow">{{ "📊 Générer PDF"|t }}</button>
-                        <button type="button" onclick="applyReportConfig('pptx')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-500 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-amber-600 transition-all shadow">{{ "💻 Générer PPTX"|t }}</button>
-                        <button type="button" onclick="applyReportConfig('excel')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-emerald-700 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800 transition-all shadow">{{ "📈 Générer Excel"|t }}</button>
+                        <button type="button" onclick="applyReportConfig('pdf')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-600 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-700 transition-all shadow">{{ "Générer PDF"|t }}</button>
+                        <button type="button" onclick="applyReportConfig('pptx')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-red-500 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-amber-600 transition-all shadow">{{ "Générer PPTX"|t }}</button>
+                        <button type="button" onclick="applyReportConfig('excel')" class="inline-flex items-center gap-2 h-10 rounded-xl bg-emerald-700 px-5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-emerald-800 transition-all shadow">{{ "Générer Excel"|t }}</button>
                     </div>
                 </div>
             </section>
 
-            <!-- Tableau Qualité -->
+            
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-4 bg-slate-950 text-white flex items-center justify-between">
                     <div>
@@ -515,7 +492,7 @@
             </section>
         </div>
 
-        <!-- ═══════════════════════ ONGLET NOTATION ═══════════════════════ -->
+        
         <div x-show="activeTab === 'notation'" class="space-y-6"
             x-transition:enter="transition ease-out duration-300 transform"
             x-transition:enter-start="opacity-0 translate-y-3"
@@ -524,26 +501,26 @@
             x-transition:leave-start="opacity-100 translate-y-0"
             x-transition:leave-end="opacity-0 translate-y-3"
             style="display: none;">
-            <!-- KPIs Notation -->
+            
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-3 bg-slate-950 flex items-center gap-3">
                     <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
                     <p class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">{{ "Performance des agents notés"|t }}</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 p-0">
-                    <!-- Agents Notés -->
+                    
                     <div class="p-5 text-center">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Agents évalués"|t }}</p>
                         <p class="text-4xl font-black text-slate-900">{{ notation_kpis.total_agents }}</p>
                         <span class="text-[9px] font-bold text-slate-400">{{ "Portefeuille unique"|t }}</span>
                     </div>
-                    <!-- Nombre d'évaluations -->
+                    
                     <div class="p-5 text-center">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Total évaluations"|t }}</p>
                         <p class="text-4xl font-black text-indigo-600">{{ notation_kpis.total_notations }}</p>
                         <span class="text-[9px] font-bold text-slate-400">{{ "Historique complet"|t }}</span>
                     </div>
-                    <!-- Taux d'excellence -->
+                    
                     <div class="p-5 text-center">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Taux d'excellence"|t }}</p>
                         <p class="text-4xl font-black text-emerald-600">{{ notation_kpis.excellence_rate|floatformat:1 }}%</p>
@@ -554,9 +531,9 @@
                 </div>
             </div>
 
-            <!-- Graphiques Notation -->
+            
             <section class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <!-- Répartition des notes par filiale -->
+                
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
                         <div>
@@ -568,7 +545,7 @@
                         <canvas id="chartNotationByFiliale"></canvas>
                     </div>
                 </div>
-                <!-- Répartition globale des notes -->
+                
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
                         <div>
@@ -582,7 +559,7 @@
                 </div>
             </section>
 
-            <!-- Tableau Historique des notations -->
+            
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-5 py-4 bg-slate-950 text-white flex items-center justify-between">
                     <div>
@@ -734,11 +711,59 @@ function makeHBar(canvasId, labels, values, colors, subtitle) {
     });
 }
 
+// Titres traduits pour les panneaux qualité générés dynamiquement.
+const QUAL_TITLES = {
+    PP: "{{ 'Conformité par règle — Particuliers'|t|escapejs }}",
+    PM: "{{ 'Conformité par règle — Entreprises'|t|escapejs }}",
+};
+const QUAL_EMPTY = "{{ 'Aucune donnée disponible'|t|escapejs }}";
+
+// Découpe les règles en blocs de 10 max et crée un panneau (carte + graphe)
+// par bloc, pour PP comme pour PM.
+function renderQualityCharts(containerId, kind, labels, values, colors) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const CHUNK = 10;
+    const accent = kind === 'PP' ? 'text-emerald-300' : 'text-amber-300';
+    const title = QUAL_TITLES[kind];
+
+    if (!labels.length) {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden';
+        card.innerHTML =
+            '<div class="px-5 py-4 bg-slate-950"><p class="text-[9px] font-black uppercase tracking-[0.25em] ' + accent + '">Qualité ' + kind + '</p>' +
+            '<h2 class="text-sm font-black text-white">' + title + '</h2></div>' +
+            '<div class="flex items-center justify-center" style="height:120px"><span class="text-[10px] text-slate-300 font-black uppercase">' + QUAL_EMPTY + '</span></div>';
+        container.appendChild(card);
+        return;
+    }
+
+    const nChunks = Math.ceil(labels.length / CHUNK);
+    for (let i = 0; i < nChunks; i++) {
+        const l = labels.slice(i * CHUNK, (i + 1) * CHUNK);
+        const v = values.slice(i * CHUNK, (i + 1) * CHUNK);
+        const c = colors.slice(i * CHUNK, (i + 1) * CHUNK);
+        const suffix = nChunks > 1 ? ' (' + (i + 1) + '/' + nChunks + ')' : '';
+        const canvasId = 'chartQuality' + kind + '_' + i;
+        // Hauteur proportionnelle au nombre de barres pour garder les libellés lisibles.
+        const height = Math.max(160, l.length * 30 + 24);
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden';
+        card.innerHTML =
+            '<div class="px-5 py-4 bg-slate-950 flex items-center justify-between">' +
+            '<div><p class="text-[9px] font-black uppercase tracking-[0.25em] ' + accent + '">Qualité ' + kind + suffix + '</p>' +
+            '<h2 class="text-sm font-black text-white">' + title + '</h2></div></div>' +
+            '<div class="p-4" style="height:' + height + 'px; position:relative;"><canvas id="' + canvasId + '"></canvas></div>';
+        container.appendChild(card);
+        makeHBar(canvasId, l, v, c);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     makeHBar('chartCompletenesspp', chartData.comp_pp_labels, chartData.comp_pp_values, chartData.comp_pp_colors);
     makeHBar('chartCompletenesspm', chartData.comp_pm_labels, chartData.comp_pm_values, chartData.comp_pm_colors);
-    makeHBar('chartQualitypp',      chartData.qual_pp_labels, chartData.qual_pp_values, chartData.qual_pp_colors);
-    makeHBar('chartQualitypm',      chartData.qual_pm_labels, chartData.qual_pm_values, chartData.qual_pm_colors);
+    renderQualityCharts('qualityCharts', 'PP', chartData.qual_pp_labels, chartData.qual_pp_values, chartData.qual_pp_colors);
+    renderQualityCharts('qualityCharts', 'PM', chartData.qual_pm_labels, chartData.qual_pm_values, chartData.qual_pm_colors);
 
     // ── Graphiques de notation ─────────────────────────────────────────────
     const overallLabels = JSON.parse('{{ chart_notation_overall_labels|to_json|escapejs }}');

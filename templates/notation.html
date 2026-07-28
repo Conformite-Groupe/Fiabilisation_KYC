@@ -47,7 +47,7 @@
                 </div>
             </div>
 
-            <div class="p-5 space-y-6"> {# A. RECHERCHE DE L'AGENT #}
+            <div class="p-5 space-y-6"> 
                 <form method="post" class="space-y-2">
                     {% csrf_token %}
                     <div class="space-y-1">
@@ -71,7 +71,7 @@
                     </div>
                 </form>
 
-                {# B. INFORMATIONS AGENT TROUVÉ #}
+                
                 {% if agent %}
                 <div class="animate-in fade-in slide-in-from-top-2 duration-300">
                     <div
@@ -96,8 +96,8 @@
                         </div>
                     </div>
 
-                    {# C. FORMULAIRE DE NOTATION #}
-                    {# C. FORMULAIRE DE NOTATION #}
+                    
+                    
                     <form method="post" class="space-y-4 mt-5">
                         {% csrf_token %}
                         <div class="hidden">{{ form.agent }}</div>
@@ -139,7 +139,7 @@
                 </div>
                 {% endif %}
 
-                {# MESSAGE D'ERREUR #}
+                
                 {% if error_message %}
                 <div class="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2">
                     <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">

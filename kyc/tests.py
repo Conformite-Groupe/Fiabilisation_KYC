@@ -1,4 +1,6 @@
-from django.test import TestCase
+import os
+
+from django.test import TestCase, override_settings
 from kyc.models import KycDocumentType
 from kyc.document_extraction import detect_document_type, learn_document_keywords
 
@@ -39,7 +41,7 @@ class KycDocumentTypeAutoLearningTest(TestCase):
         self.assertEqual(doc_type, "")
 
     def test_document_classification_by_keywords_country_specific(self):
-        # Create a Senegal-specific document type with code "facture_eau"
+                                                                         
         sn_water_bill = KycDocumentType.objects.create(
             code="facture_eau",
             label="Facture d'eau du Sénégal",
@@ -47,7 +49,7 @@ class KycDocumentTypeAutoLearningTest(TestCase):
             min_score=2.0,
             filiale="BOA SN"
         )
-        # Create an Ivory Coast-specific document type with code "facture_eau"
+                                                                              
         ci_water_bill = KycDocumentType.objects.create(
             code="facture_eau",
             label="Facture d'eau de Côte d'Ivoire",
@@ -56,16 +58,16 @@ class KycDocumentTypeAutoLearningTest(TestCase):
             filiale="BOA CI"
         )
 
-        # Test detection for user from BOA SN
+                                             
         text_sn = "FACTURE SDE SENEGAL POUR LE CLIENT"
         doc_type = detect_document_type(text_sn, "invoice.pdf", filiale="BOA SN")
         self.assertEqual(doc_type, "facture_eau")
 
-        # Verify it selects the SN one if we query for that specific type (this is checked in views)
+                                                                                                    
         resolved_dt_sn = KycDocumentType.objects.filter(code=doc_type, filiale="BOA SN").first()
         self.assertEqual(resolved_dt_sn.label, "Facture d'eau du Sénégal")
 
-        # Test detection for user from BOA CI
+                                             
         text_ci = "FACTURE SODECI DE COTE D'IVOIRE"
         doc_type_ci = detect_document_type(text_ci, "invoice.pdf", filiale="BOA CI")
         self.assertEqual(doc_type_ci, "facture_eau")
@@ -102,7 +104,7 @@ class KycDocumentTypeAutoLearningTest(TestCase):
         keywords_list = sn_water_bill.get_keyword_list()
         self.assertIn("SENELEC", keywords_list)
         
-        # Verify the global one wasn't touched
+                                              
         self.water_bill.refresh_from_db()
         global_keywords_list = self.water_bill.get_keyword_list()
         self.assertNotIn("SENELEC", global_keywords_list)
@@ -113,7 +115,7 @@ from kyc.views import _build_kyc_pm_document_matches
 
 class KycPmMatchingTest(TestCase):
     def setUp(self):
-        # Create a corporate client
+                                   
         self.pm_client = Kyc_pm.objects.create(
             CLIENT="BOA H HOLDING",
             RCSNO="RCS-DK-2026-B-1234",
@@ -125,7 +127,7 @@ class KycPmMatchingTest(TestCase):
         )
         
     def test_pm_matching_by_rcs(self):
-        # Create a document extraction record matching the RCS
+                                                              
         doc = KycDocumentExtraction.objects.create(
             document_type="registre_commerce",
             original_filename="rc.pdf",
@@ -144,7 +146,7 @@ class KycPmMatchingTest(TestCase):
         self.assertEqual(summary["clients_matched"], 1)
         
     def test_pm_matching_by_nif(self):
-        # Create a document extraction record matching the NIF
+                                                              
         doc = KycDocumentExtraction.objects.create(
             document_type="nif_cert",
             original_filename="nif.pdf",
@@ -175,7 +177,7 @@ class KycDocumentFieldSourcesTest(TestCase):
             DATNAIS="1990-01-01",
             PAYNAIS="SENEGAL",
             FILIALE="BOA SN",
-            ADRESSE="",  # Keep empty to trigger a suggestion and keep match from being skipped
+            ADRESSE="",                                                                        
         )
 
     def test_field_source_filtering_in_matching(self):
@@ -192,8 +194,8 @@ class KycDocumentFieldSourcesTest(TestCase):
             original_filename="cni.pdf",
             client_type="pp",
             numero_document="123456789",
-            date_naissance="1991-01-01",  # triggers DATNAIS modification action, which should be filtered out
-            adresse="Dakar, Senegal",  # triggers ADRESSE suggestion (complete)
+            date_naissance="1991-01-01",                                                                      
+            adresse="Dakar, Senegal",                                          
         )
 
         matches, summary = _build_kyc_pp_document_matches(KycDocumentExtraction.objects.filter(pk=doc.pk))
@@ -203,9 +205,9 @@ class KycDocumentFieldSourcesTest(TestCase):
             self.assertNotEqual(sug["field"], "DATNAIS")
 
         actions = _build_kyc_pp_match_action_items(match)
-        # Verify ADRESSE complete action is present
+                                                   
         self.assertTrue(any(act["field"] == "ADRESSE" for act in actions))
-        # Verify DATNAIS modify action is NOT present
+                                                     
         self.assertFalse(any(act["field"] == "DATNAIS" for act in actions))
 
     def test_field_source_matching_when_type_matches(self):
@@ -223,14 +225,14 @@ class KycDocumentFieldSourcesTest(TestCase):
             client_type="pp",
             numero_document="123456789",
             date_naissance="1991-01-01",
-            adresse="Dakar, Senegal",  # triggers ADRESSE suggestion (complete)
+            adresse="Dakar, Senegal",                                          
         )
 
         matches, summary = _build_kyc_pp_document_matches(KycDocumentExtraction.objects.filter(pk=doc.pk))
         self.assertEqual(len(matches), 1)
         match = matches[0]
         actions = _build_kyc_pp_match_action_items(match)
-        # Verify DATNAIS modify action is present (since document is a passeport)
+                                                                                 
         has_datnais = any(act["field"] == "DATNAIS" for act in actions)
         self.assertTrue(has_datnais)
 
@@ -241,11 +243,11 @@ class KycDocumentFieldSourcesTest(TestCase):
         user = User.objects.create_user(username="testgroupuser", password="password", filiale="BOA Group")
         self.client.login(username="testgroupuser", password="password")
 
-        # Let's create an existing specific config for BOA SN and BOA CI
+                                                                        
         KycFieldVisibilityConfig.objects.create(client_type="pp", filiales=["BOA SN"], field_sources={"ADRESSE": "facture_eau"})
         KycFieldVisibilityConfig.objects.create(client_type="pp", filiales=["BOA CI"], field_sources={"ADRESSE": "facture_electricite"})
 
-        # Now post to save new sources with apply_to_all_filiales=1
+                                                                   
         post_data = {
             "action": "save_document_field_sources",
             "apply_to_all_filiales": "1",
@@ -254,9 +256,9 @@ class KycDocumentFieldSourcesTest(TestCase):
         }
         
         response = self.client.post(reverse("kyc:document_extraction"), post_data)
-        self.assertEqual(response.status_code, 302)  # Should redirect
+        self.assertEqual(response.status_code, 302)                   
 
-        # Verify that ALL configurations (both global and specific BOA SN / BOA CI configs) have been updated with the new field sources!
+                                                                                                                                         
         configs = KycFieldVisibilityConfig.objects.filter(client_type="pp")
         self.assertTrue(configs.count() >= 3)
         for config in configs:
@@ -270,7 +272,7 @@ class KycDocumentFieldSourcesTest(TestCase):
         user = User.objects.create_user(username="testgroupuser2", password="password", filiale="BOA Group")
         self.client.login(username="testgroupuser2", password="password")
 
-        # Create a visibility config for BOA SN with ONLY CLIENT and NUMID display fields (omitting DATNAIS, ADRESSE, etc.)
+                                                                                                                           
         KycFieldVisibilityConfig.objects.create(
             client_type="pp",
             filiales=["BOA SN"],
@@ -281,11 +283,11 @@ class KycDocumentFieldSourcesTest(TestCase):
         response = self.client.get(reverse("kyc:document_extraction") + "?filiale=BOA SN")
         self.assertEqual(response.status_code, 200)
 
-        # Get 'document_field_source_sections' from context
+                                                           
         sections = response.context["document_field_source_sections"]
         pp_section = next(sec for sec in sections if sec["client_type"] == "pp")
         
-        # Extracted fields should only map to CLIENT and NUMID
+                                                              
         fields_names = [f[0] for f in pp_section["fields"]]
         self.assertIn("CLIENT", fields_names)
         self.assertIn("NUMID", fields_names)
@@ -354,7 +356,7 @@ class DataQualityRuleViewsTest(TestCase):
         rules = response.context['rules']
         self.assertTrue(any(item['rule'].id == self.rule.id for item in rules))
         
-        # Verify that only the user's filiale is listed in the badges/summary
+                                                                             
         rule_item = next(item for item in rules if item['rule'].id == self.rule.id)
         self.assertEqual(rule_item['filiales_summary']['display'], "BOA SN")
         self.assertEqual(rule_item['filiales_summary']['visible'], ["BOA SN"])
@@ -467,3 +469,130 @@ class DataQualityRuleViewsTest(TestCase):
         self.assertIn('Comptes_non_resid_PM_incomplets', export_response['Content-Disposition'])
 
 
+
+
+class ProtectedMediaAccessTest(TestCase):
+    """E-2 : les documents KYC televerses ne doivent jamais etre servis sans controle."""
+
+    def setUp(self):
+        import tempfile
+        from django.contrib.auth import get_user_model
+        from kyc.models import KycDocumentExtraction
+
+        User = get_user_model()
+        self.media_dir = tempfile.mkdtemp()
+        self.override = override_settings(MEDIA_ROOT=self.media_dir)
+        self.override.enable()
+        self.addCleanup(self.override.disable)
+
+        os.makedirs(os.path.join(self.media_dir, "images"))
+        os.makedirs(os.path.join(self.media_dir, "document_extraction"))
+        with open(os.path.join(self.media_dir, "images", "logo.png"), "wb") as f:
+            f.write(b"PNG-LOGO")
+        with open(os.path.join(self.media_dir, "document_extraction", "cni.pdf"), "wb") as f:
+            f.write(b"%PDF-SECRET")
+                                                                      
+        self.outside = os.path.join(os.path.dirname(self.media_dir), "secret_outside.txt")
+        with open(self.outside, "w") as f:
+            f.write("SECRET")
+        self.addCleanup(lambda: os.path.exists(self.outside) and os.remove(self.outside))
+
+        self.uploader = User.objects.create_user(
+            username="uploader@boa.local", password="MotDePasseTest2026!",
+            organe="Chargé Client", filiale="BOA SN")
+        self.same_filiale = User.objects.create_user(
+            username="collegue@boa.local", password="MotDePasseTest2026!",
+            organe="Chargé Client", filiale="BOA SN")
+        self.other_filiale = User.objects.create_user(
+            username="etranger@boa.local", password="MotDePasseTest2026!",
+            organe="Chargé Client", filiale="BOA CI")
+
+        KycDocumentExtraction.objects.create(
+            document_type="piece_identite",
+            uploaded_file="document_extraction/cni.pdf",
+            original_filename="cni.pdf",
+            uploaded_by=self.uploader,
+        )
+
+    def test_branding_reste_public(self):
+        """Le logo doit rester accessible : il s'affiche sur les pages sans session."""
+        response = self.client.get("/media/images/logo.png")
+        self.assertEqual(response.status_code, 200)
+
+    def test_document_kyc_refuse_a_anonyme(self):
+        response = self.client.get("/media/document_extraction/cni.pdf")
+        self.assertIn(response.status_code, (301, 302))
+        self.assertIn("login", response["Location"])
+
+    def test_document_kyc_refuse_hors_filiale(self):
+        self.client.force_login(self.other_filiale)
+        response = self.client.get("/media/document_extraction/cni.pdf")
+        self.assertEqual(response.status_code, 403)
+
+    def test_document_kyc_autorise_pour_le_deposant(self):
+        self.client.force_login(self.uploader)
+        response = self.client.get("/media/document_extraction/cni.pdf")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment", response["Content-Disposition"])
+
+    def test_document_kyc_autorise_meme_filiale(self):
+        self.client.force_login(self.same_filiale)
+        response = self.client.get("/media/document_extraction/cni.pdf")
+        self.assertEqual(response.status_code, 200)
+
+    def test_traversee_de_repertoire_bloquee(self):
+        self.client.force_login(self.uploader)
+        response = self.client.get("/media/document_extraction/../../secret_outside.txt")
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_fichier_orphelin_refuse(self):
+        """Un fichier sans enregistrement en base n'est servi a personne."""
+        with open(os.path.join(self.media_dir, "document_extraction", "orphelin.pdf"), "wb") as f:
+            f.write(b"%PDF")
+        self.client.force_login(self.uploader)
+        response = self.client.get("/media/document_extraction/orphelin.pdf")
+        self.assertEqual(response.status_code, 403)
+
+
+class PasswordValidationOnResetTest(TestCase):
+    """M-2 : ResetPasswordForm doit appliquer les AUTH_PASSWORD_VALIDATORS."""
+
+    def test_mot_de_passe_trivial_refuse(self):
+        from kyc.forms import ResetPasswordForm
+        form = ResetPasswordForm(data={"new_password": "1234", "confirm_password": "1234"})
+        self.assertFalse(form.is_valid())
+
+    def test_mot_de_passe_tout_numerique_refuse(self):
+        from kyc.forms import ResetPasswordForm
+        form = ResetPasswordForm(data={"new_password": "9081726354", "confirm_password": "9081726354"})
+        self.assertFalse(form.is_valid())
+
+    def test_mot_de_passe_robuste_accepte(self):
+        from kyc.forms import ResetPasswordForm
+        form = ResetPasswordForm(data={"new_password": "Tr#sB0nMdp2026", "confirm_password": "Tr#sB0nMdp2026"})
+        self.assertTrue(form.is_valid(), form.errors)
+
+
+class UploadedDocumentTypeValidationTest(TestCase):
+    """M-3 : validation extension + signature binaire des fichiers televerses."""
+
+    def _fichier(self, nom, contenu):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return SimpleUploadedFile(nom, contenu)
+
+    def test_pdf_valide_accepte(self):
+        from kyc.views import _validate_uploaded_document
+        self.assertIsNone(_validate_uploaded_document(self._fichier("cni.pdf", b"%PDF-1.4 ...")))
+
+    def test_extension_interdite_refusee(self):
+        from kyc.views import _validate_uploaded_document
+        self.assertIsNotNone(_validate_uploaded_document(self._fichier("payload.html", b"<script>alert(1)</script>")))
+
+    def test_html_renomme_en_pdf_refuse(self):
+        """Un fichier HTML renomme .pdf est bloque par la signature binaire."""
+        from kyc.views import _validate_uploaded_document
+        self.assertIsNotNone(_validate_uploaded_document(self._fichier("faux.pdf", b"<html><body>x</body></html>")))
+
+    def test_png_valide_accepte(self):
+        from kyc.views import _validate_uploaded_document
+        self.assertIsNone(_validate_uploaded_document(self._fichier("photo.png", b"\x89PNG\r\n\x1a\n rest")))

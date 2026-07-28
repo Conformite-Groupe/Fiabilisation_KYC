@@ -147,18 +147,7 @@
                 </div>
                 {% endif %}
 
-                <div class="w-full md:w-32 lg:w-40 relative group">
-                    <label class="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-emerald-600">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        {{ "Date Ouverture"|t }}
-                    </label>
-                    <input type="text"
-                           name="datouv"
-                           value="{{ request.GET.datouv|default:'' }}"
-                           placeholder="{{ 'AAAA-mm-jj'|t }}"
-                           class="block w-full px-4 py-3 text-xs text-slate-700 bg-white/70 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:border-emerald-300 hover:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all duration-300"
-                           maxlength="10">
-                </div>
+                {% include "includes/datouv_period_filter.html" %}
 
                 <div class="flex gap-3 w-full lg:w-auto mt-4 lg:mt-0 items-end">
                     <button type="submit" class="group relative flex-1 lg:w-32 h-[42px] overflow-hidden rounded-xl nav-link-active text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2">

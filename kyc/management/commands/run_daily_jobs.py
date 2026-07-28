@@ -46,8 +46,8 @@ class Command(BaseCommand):
 
         from kyc.models import EmailReminderConfig
 
-        # Console Windows en cp1252 : les caractères non représentables (dont le
-        # « � » issu des sorties workers) feraient planter self.stdout.write.
+                                                                                
+                                                                             
         for _stream in (_sys.stdout, _sys.stderr):
             try:
                 _stream.reconfigure(encoding="utf-8", errors="replace")
@@ -77,7 +77,7 @@ class Command(BaseCommand):
                                 "detail": f"{type(e).__name__}: {e}", "duration": dur, "trace": tb[-1500:]})
                 self.stderr.write(f"[ÉCHEC] {label} ({dur}s) : {e}")
 
-        # ── 0. Scripts d'importation (sous-processus, exécutés en premier) ────
+                                                                                
         import os
         import subprocess
         import sys as _sys
@@ -98,10 +98,10 @@ class Command(BaseCommand):
                 raise RuntimeError(f"code retour {proc.returncode} — {tail[:200]}")
             return (tail[:200] or "Terminé.")
 
-        # ── 0a. Worker OCR documents (processus DÉTACHÉ, non bloquant) ────────
-        # Lancé en tout premier : la fonction retourne immédiatement après le spawn,
-        # le worker vit ensuite indépendamment des autres jobs (un échec du worker
-        # n'affecte pas la suite, et inversement). Garde anti-doublon par fichier PID.
+                                                                                
+                                                                                    
+                                                                                  
+                                                                                      
         def _ocr_worker():
             pid_file = os.path.join(str(settings.BASE_DIR), "ocr_worker.pid")
             if os.path.exists(pid_file):
@@ -112,7 +112,7 @@ class Command(BaseCommand):
                     if str(pid).encode() in (check.stdout or b""):
                         return f"Worker OCR déjà actif (PID {pid}) — rien à faire."
                 except Exception:
-                    pass  # PID illisible ou tasklist indisponible : on relance.
+                    pass                                                        
             log_handle = open(os.path.join(str(settings.BASE_DIR), "ocr_worker.log"), "ab")
             creationflags = 0
             if os.name == "nt":
@@ -132,16 +132,16 @@ class Command(BaseCommand):
         run("import_premier", "Importation évolution filiales (import_premier.py)", lambda: _run_script("import_premier.py"))
         run("import_taux", "Importation taux agents (import_taux_agent.py)", lambda: _run_script("import_taux_agent.py"))
 
-        # ── Lanceur parallèle : N sous-processus manage.py <cmd> --slice i/N ──
-        # Même stratégie que scripts/warm_ui_caches_fast.ps1 : chaque worker
-        # traite un sous-ensemble disjoint (stride) et le cache/la BDD agrègent.
-        # Les commandes étant incrémentales (elles ne recalculent que ce qui
-        # manque), les slices en échec (MemoryError...) sont rejoués UN PAR UN
-        # en séquentiel : la reprise ne re-paye pas ce qui a déjà réussi.
+                                                                                
+                                                                            
+                                                                                
+                                                                            
+                                                                              
+                                                                         
         parallel_workers = max(1, options.get("parallel_workers") or 6)
 
-        # Les workers doivent écrire en UTF-8 (sinon leur propre console cp1252
-        # remplace les accents par « � » qu'on ne peut plus réafficher ici).
+                                                                               
+                                                                            
         child_env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
 
         def _run_sliced(command, extra_args=()):
@@ -170,10 +170,10 @@ class Command(BaseCommand):
                     return False, f"{label} (code {proc.returncode} — {tail[:120]})", ""
                 return True, "", tail
 
-            # Compatibilité : si la commande installée ne connaît pas encore
-            # --slice (version pas déployée partout), on bascule en exécution
-            # simple mono-processus au lieu d'échouer N fois. Le test se fait
-            # sur la sortie de --help (rapide, ne lance aucun calcul).
+                                                                            
+                                                                             
+                                                                             
+                                                                      
             help_proc = subprocess.run(
                 [_sys.executable, "manage.py", command, "--help"],
                 cwd=str(settings.BASE_DIR), capture_output=True,
@@ -196,8 +196,8 @@ class Command(BaseCommand):
                 else:
                     failed_slices.append((i, err))
 
-            # Reprise séquentielle des slices en échec (un seul processus à la
-            # fois -> pression mémoire minimale).
+                                                                              
+                                                 
             retried_errors = []
             for i, first_err in failed_slices:
                 self.stdout.write(f"  Reprise séquentielle du slice {i}/{workers} après : {first_err}")
@@ -214,24 +214,24 @@ class Command(BaseCommand):
             note = f", {len(failed_slices)} slice(s) repris en séquentiel" if failed_slices else ""
             return f"{workers} workers parallèles{note}. {last_line[:150]}"
 
-        # ── 1a. Taux de qualité complets (TOUS les scopes, parallèle) ─────────
-        # À faire AVANT le warm : les dashboards (statistiques) lisent la table
-        # TauxQualite. compute_quality_rates couvre tous les scopes actifs alors
-        # que warm_ui_caches ne calcule que les ~20 scopes représentatifs.
+                                                                                
+                                                                               
+                                                                                
+                                                                          
         run("quality", "Calcul des taux de qualité (compute_quality_rates, parallèle)",
             lambda: _run_sliced("compute_quality_rates"))
 
-        # ── 1b. Préchauffe des caches (workers parallèles) ────────────────────
-        # --skip-snapshot : la table TauxQualite vient d'être remplie par
-        # compute_quality_rates (tous les scopes), inutile de la recalculer.
+                                                                                
+                                                                         
+                                                                            
         run("warm", "Préchauffe des caches (warm_ui_caches, parallèle)",
             lambda: _run_sliced("warm_ui_caches", ("--skip-snapshot",)))
 
-        # ── 2. Appréciations globales (workers parallèles, slice par agent) ───
+                                                                                
         run("appreciation", "Calcul des appréciations globales (parallèle)",
             lambda: _run_sliced("compute_appreciation_globale"))
 
-        # ── 3. Rappels DATEREV (filiales payées) ──────────────────────────────
+                                                                                
         daterev_filiale = (options.get("daterev_filiale") or "").strip()
 
         def _daterev():
@@ -239,8 +239,8 @@ class Command(BaseCommand):
             cfg = EmailReminderConfig.objects.filter(active=True).order_by("-updated_at").first()
             if not cfg:
                 return "Aucune configuration SMTP active — envoi ignoré."
-            # Respect de la fréquence configurée (l'envoi manuel via l'interface
-            # n'est pas concerné : il passe directement par send_daterev_reminders_core).
+                                                                                
+                                                                                         
             today = timezone.localdate()
             freq = (cfg.frequency or "manual").lower()
             if freq == "manual":
@@ -261,7 +261,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("=== Traitements quotidiens terminés ===")
                           if all_ok else self.style.ERROR("=== Traitements quotidiens : DES ERREURS ==="))
 
-        # ── Rapport email ─────────────────────────────────────────────────────
+                                                                                
         if options.get("no_mail"):
             return
         try:

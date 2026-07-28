@@ -5,14 +5,14 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Fiabilisation_kyc.settings")
 django.setup()
 
-from kyc.models import Agents   # Adapter selon ton projet
+from kyc.models import Agents                             
 
 
 chemin_base = r"C:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2025\Plateforme notatio kyc v2\data"
 
 
 def import_agents_from_folder(folder_path):
-    # On filtre uniquement les fichiers agents_XX.csv
+                                                     
     csv_files = [
         f for f in os.listdir(folder_path)
         if f.lower().startswith("agents_") and f.lower().endswith(".csv")
@@ -41,11 +41,11 @@ def import_agents_from_folder(folder_path):
                 nom = row.get("NOM", "").strip()
                 email = row.get("EMAIL", "").strip()
 
-                # Pas d'insert si EXPL manquant
+                                               
                 if not expl:
                     continue
 
-                # Éviter les doublons (expl + filiale)
+                                                      
                 if Agents.objects.filter(expl=expl, filiale=filiale).exists():
                     continue
 
@@ -60,7 +60,7 @@ def import_agents_from_folder(folder_path):
 
                 agents_to_create.append(agent)
 
-            # Insertion en masse
+                                
             if agents_to_create:
                 Agents.objects.bulk_create(agents_to_create)
                 print(f"   ✓ {len(agents_to_create)} agents importés")

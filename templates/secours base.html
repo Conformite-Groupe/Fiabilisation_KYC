@@ -37,11 +37,11 @@
 
                         </div>
 
-						<!-- Primary Navbar items -->
+						
 
-					<!-- Secondary Navbar items -->
+					
 
-					<!-- Mobile menu button -->
+					
 					<div class="md:hidden flex items-center" >
 
 
@@ -59,7 +59,7 @@
 				    	</button>
 					</div>
 	    		</div>
-			<!-- mobile menu -->
+			
 
             </div>
     </nav>
@@ -69,13 +69,13 @@
     {% with current_name=request.resolver_match.url_name %}
     {% if current_name != "accueil" %}
               <div class="md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-            <!-- Sidebar component, swap this element with another sidebar if you like -->
+            
             <div class="flex-1 flex flex-col min-h-0 nav-link-active">
               <div class="flex items-center h-16 flex-shrink-0 px-4 ">
               </div>
               <div class="flex-1 flex flex-col overflow-y-auto">
                 <nav class="flex-1 px-2 py-4 space-y-1">
-                  <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:nav-link-active hover:text-white" -->
+                  
 
 
                    {% if user.organe not in user_stat %}
@@ -96,7 +96,7 @@
                   </a>
 
                   <a href="/non_anom" class="{% if current_name == 'non_anom' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-                    <!-- Heroicon name: outline/folder -->
+                    
                     <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
@@ -104,7 +104,7 @@
                   </a>
 
               <a href="/statistiques" class="{% if current_name == 'statistiques' or current_name == 'statistiques_stock' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white tracking-normal hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
-                    <!-- Heroicon name: outline/chart-bar -->
+                    
                     <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
@@ -112,7 +112,7 @@
                   </a>
                         {% if user.organe == "Contrôle Permanent" %}
                       <a href="/notation" class="{% if current_name == 'notation' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm  rounded-md">
-                    <!-- Heroicon name: outline/folder -->
+                    
                     <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" />
                       </svg>
@@ -120,7 +120,7 @@
                   </a>
 
                        <a href="/historique" class="{% if current_name == 'historique' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white tracking-normal hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
-                    <!-- Heroicon name: outline/chart-bar -->
+                    
                     <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" />
 </svg>
@@ -133,20 +133,20 @@
 
                 {% if user.organe == "Conformité" or user.organe == "Conformité Groupe" %}
 
-                            <!-- Menu Conformité -->
+                            
 <div x-data="{ open: false }" class="relative">
-    <!-- Bouton principal -->
+    
     <button @click="open = !open"
         class="w-full flex items-center justify-between px-2 py-2 text-sm font-medium text-white rounded-md hover:bg-cyan-800 transition">
         <span class="flex items-center">
-            <!-- Icône dossier -->
+            
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M3 7h4l2-2h8l2 2h4v12H3V7z" />
             </svg>
             Conformité
         </span>
-        <!-- Flèche -->
+        
         <svg :class="{'rotate-180': open}" class="h-5 w-5 transform transition-transform text-white"
              xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -154,12 +154,12 @@
         </svg>
     </button>
 
-    <!-- Sous-menu -->
+    
     <div x-show="open" x-cloak @click.away="open = false"
          x-transition.opacity.duration.150ms
          class="mt-1 ml-4 space-y-1">
 
-        <!-- Scoring -->
+        
         <a href="{% url 'scoring' %}"
            @click.prevent="open = false; $nextTick(() => window.location.href = $el.getAttribute('href'))"
            class="{% if current_name == 'scoring' or current_name == 'sans_classe' %}bg-cyan-800{% endif %} flex items-center px-2 py-2 text-sm rounded-md text-white hover:bg-cyan-700 transition">
@@ -171,7 +171,7 @@
             Scoring
         </a>
 
-        <!-- PPE -->
+        
         <a href="{% url 'ppe' %}"
            @click.prevent="open = false; $nextTick(() => window.location.href = $el.getAttribute('href'))"
            class="{% if current_name == 'ppe' or current_name == 'daterev_ppe' %}bg-cyan-800{% endif %} flex items-center px-2 py-2 text-sm rounded-md text-white hover:bg-cyan-700 transition">
@@ -183,7 +183,7 @@
             PPE
         </a>
 
-        <!-- Comptes spécifiques -->
+        
         <a href="{% url 'devise' %}"
            @click.prevent="open = false; $nextTick(() => window.location.href = $el.getAttribute('href'))"
            class="{% if current_name in 'devise devise_pm non_resid non_resid_pm' %}bg-cyan-800{% endif %} flex items-center px-2 py-2 text-sm rounded-md text-white hover:bg-cyan-700 transition">
@@ -201,7 +201,7 @@
               {% if user.organe != "PASS" %}
 
                     <a href="{% url 'profil' %}" class="{% if current_name == 'profil' or current_name == 'modify-pw' %}bg-cyan-800{% endif %} hover:scale-105 transition-transform duration-200  text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
-                      <!-- Heroicon name: outline/users -->
+                      
                       <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                       </svg>
@@ -214,7 +214,7 @@
                      {% if user.organe == "PASS" %}
 
                        <a href="/user_list" class="{% if current_name == 'user_list' or current_name == 'register' or current_name == 'edit_user' or current_name == 'reset_user_password' or current_name == 'user_statistics' %}bg-cyan-800{% endif %}  hover:scale-105 transition-transform duration-200  text-white tracking-normal   hover:text-white group flex items-center px-2 py-2 text-sm   rounded-md">
-                    <!-- Heroicon name: outline/users -->
+                    
 
                     <svg class="text-white group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 0 15 0m-15 0a7.5 7.5 0 1 1 15 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077 1.41-.513m14.095-5.13 1.41-.513M5.106 17.785l1.15-.964m11.49-9.642 1.149-.964M7.501 19.795l.75-1.3m7.5-12.99.75-1.3m-6.063 16.658.26-1.477m2.605-14.772.26-1.477m0 17.726-.26-1.477M10.698 4.614l-.26-1.477M16.5 19.794l-.75-1.299M7.5 4.205 12 12m6.894 5.785-1.149-.964M6.256 7.178l-1.15-.964m15.352 8.864-1.41-.513M4.954 9.435l-1.41-.514M12.002 12l-3.75 6.495" />

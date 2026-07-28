@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 
 import os
 import environ
-# Build paths inside the project like this: os.path .join(BASE_DIR, ...)
+                                                                        
 from pathlib import Path
 
 import kyc
@@ -22,13 +22,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env.read_env(env_file=str(BASE_DIR / "Fiabilisation_kyc" / ".env"))
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
+                                                              
+                                                                        
 
-# SECURITY WARNING: keep the secret key used in production secret!
+                                                                  
 SECRET_KEY = '1nd+ac&2^q)078cepqux_zl+^yz*!^qs08-bsmzo@5ag1rs85i'
 
-# SECURITY WARNING: don't run with debug turned on in production!
+                                                                 
 DEBUG = True
 ALLOWED_HOSTS = ['127.0.0.1', '10.170.82.20', 'localhost', '0.0.0.0', 'kyc.of.africa']
 
@@ -38,7 +38,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 ]
 
-# Application definition
+                        
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -91,8 +91,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Fiabilisation_kyc.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/1.11/ref/settings/#databases
+          
+                                                                
 
 DATABASES = {
     'default': {
@@ -107,8 +107,8 @@ DATABASES = {
     }
 }
 
-# Password validation
-# https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
+                     
+                                                                               
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -120,8 +120,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/1.11/topics/i18n/
+                      
+                                                     
 
 LANGUAGE_CODE = 'fr-fr'
 
@@ -133,14 +133,14 @@ USE_L10N = True
 
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.11/howto/static-files/
+                                        
+                                                            
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static'
 
 LOGOUT_REDIRECT_URL = "/"
-LOGIN_URL = '/'  # L'URL de votre page de connexion
+LOGIN_URL = '/'                                    
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
@@ -151,7 +151,7 @@ INTERNAL_IPS = [
     "127.0.0.1", "10.170.82.20", "0.0.0.0"
 ]
 
-# Specify your base template file
+                                 
 DFS_BASE_TEMPLATE = 'base.html'
 DFS_CURRENCY_LOCALE = 'fr_fr'
 

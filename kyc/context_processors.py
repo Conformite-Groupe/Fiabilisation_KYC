@@ -1,4 +1,4 @@
-# core/context_processors.py
+                            
 from kyc.models import Notation
 from django.db.models import Max
 from django.conf import settings
@@ -33,11 +33,11 @@ def notation(request):
     user = request.user
     notes = Notation.objects.filter(flux_stock='Flux')
 
-    # 1. On initialise la variable notation
+                                           
     latest_notes = notes.values('agent').annotate(latest_date=Max('date_notation'))
     notation_queryset = notes.filter(date_notation__in=[n['latest_date'] for n in latest_notes])
 
-    # 2. On vérifie si l'utilisateur est connecté AVANT d'accéder à .organe
+                                                                           
     if user.is_authenticated:
         if user.organe == "Chargé Client":
             notation_queryset = notation_queryset.filter(agent__filiale=user.filiale, agent__code_expl=user.code_expl)
@@ -47,8 +47,8 @@ def notation(request):
         elif user.organe not in ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone", "PASS", "GUEST"]:
             notation_queryset = notation_queryset.filter(agent__filiale=user.filiale)
     else:
-        # Si l'utilisateur n'est pas connecté, on renvoie un queryset vide
-        # ou les notations par défaut pour éviter l'erreur.
+                                                                          
+                                                           
         notation_queryset = notation_queryset.none()
 
     return {'notation': notation_queryset}
@@ -132,7 +132,7 @@ def kyc_display_fields_processor(request):
         if filiale:
             filiale = filiale.strip()
 
-    # 1. PP display fields
+                          
     pp_config = None
     if filiale:
         filiale_configs = [c for c in KycFieldVisibilityConfig.objects.filter(client_type='pp') if filiale in (c.filiales or [])]
@@ -151,7 +151,7 @@ def kyc_display_fields_processor(request):
 
     kyc_pp_display_fields = [f for f in KYC_PP_FIELD_LABELS if f[0] in pp_fields]
 
-    # 2. PM display fields
+                          
     pm_config = None
     if filiale:
         filiale_configs = [c for c in KycFieldVisibilityConfig.objects.filter(client_type='pm') if filiale in (c.filiales or [])]
@@ -188,5 +188,13 @@ def module_screening_processor(request):
             if config and config.screening_kyc_paye_active:
                 active = True
     return {'module_screening_kyc_paye_enabled': active}
+
+
+def sidebar_access_processor(request):
+    from kyc.models import SidebarAccess
+
+    if not request.user.is_authenticated:
+        return {'sidebar_access': {p: False for p in SidebarAccess.ALL_PERMS}}
+    return {'sidebar_access': SidebarAccess.perms_for(request.user)}
 
 

@@ -1,17 +1,17 @@
 import sys
 import os
-# Add current directory to sys.path
+                                   
 sys.path.append(os.getcwd())
 
 import django
 
-# Setup Django environment
+                          
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Fiabilisation_kyc.settings")
 django.setup()
 
 from kyc.pilotage_exports import export_pilotage_pptx
 
-# Mock data
+           
 scope_data = {
     "scope": "groupe",
     "selected_filiale": ""
@@ -38,7 +38,7 @@ response = export_pilotage_pptx(scope_data, summary, completeness_rows, quality_
 print("Response content type:", response['Content-Type'])
 print("Response disposition:", response['Content-Disposition'])
 
-# Write response content to a test PPTX file
+                                            
 output_path = "scratch/test_output.pptx"
 with open(output_path, "wb") as f:
     f.write(response.content)

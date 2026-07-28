@@ -1,5 +1,3 @@
-﻿
-
 #####-----------------------IMPORTATION DES LIBRAIRIES-------------###########
       
 cat("###############################################\n")
@@ -7,6 +5,9 @@ cat("######### P3 - FIABILISATION DES DONNEES KYC \n")
 cat("######### ETAPE 1/3: CHAMPS A FIABILISER\n")
 cat("##############################################\n")
 
+options(warn = -1)
+
+suppressPackageStartupMessages({
 library(kableExtra)
 library(officer)
 library(flextable)
@@ -27,19 +28,25 @@ library(readr)
 library(stringi)
 library(data.table)
 
-#####-----------------------####-------------###########
-chemin="C://Users//mamsylla//OneDrive - BANK OF AFRICA (1)//data//"
+})
 
+#####-----------------------CONFIG ET FONCTIONS-------------###########
+chemin="C://Fiabilisation KYC//R//"
+chemin2="C://KYC_Filiales//"
+chemin_7z <- '"C://Program Files//7-Zip//7z.exe"'
 #####-----------------------####-------------###########
 
 #####--------------DATES ( à modifier en prod) ------###########
 #
-  #premier_jour_mois_courant <- floor_date(Sys.Date(), "month")
+  #premier_jour_mois_courant <- floor_date(premier_jour_mois_precedent, "month")
   #premier_jour_mois_precedent <- premier_jour_mois_courant %m-% months(1)
 
- premier_jour_mois_courant <- "2026-06-01"
- premier_jour_mois_precedent <- "2026-05-01"
+ #premier_jour_mois_courant <- "2026-07-01"
+ #premier_jour_mois_precedent <- "2026-06-01"
+#
+ # premier_jour_mois_courant <- premier_jour_mois_precedent
 
+ # premier_jour_mois_precedent <- premier_jour_mois_precedent-1
 
 
   date_limite <- as.Date("2024/10/01") %m-% months(3)
@@ -49,9 +56,6 @@ chemin="C://Users//mamsylla//OneDrive - BANK OF AFRICA (1)//data//"
 #####-----------------------####-------------###########
 
 prerequis=read.csv2(paste(sep="",chemin,"prerequis.csv"),header=F)
-
-  premier_jour_mois_courant <- as.character(floor_date(Sys.Date(), "month"))
-  premier_jour_mois_precedent <- as.character(as.Date(premier_jour_mois_courant) %m-% months(1))
 
 colnames(prerequis)=c("infos","argument","LIB_ETUDIANT","LIB_MINEUR")
 
@@ -65,7 +69,7 @@ trimestre_actuel=as.character(prerequis[1,2])
 inc=c("")
 
 
-  pp_fields <- c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU")
+  pp_fields <- c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU","PAYS_RESID")
   pm_fields <- c("CODAPE","AGEC","CAPITAL","CA","RESULTAT","RCSNO","ORIGINE_REVENU","TEL")
  
 for (r in filiale) {
@@ -117,6 +121,25 @@ remove_spaces <- function(x) {
   return(x)
 }
 
+# Classe de caracteres "espace" a normaliser : tabulation, espace ordinaire,
+# insecable (U+00A0), insecable etroit (U+202F), espace chiffre (U+2007).
+# Caracteres litteraux et non echappements \x{...} : PCRE refuse ces derniers
+# quand la chaine traitee n'est pas marquee UTF-8 (cas des exports Latin-1).
+ESPACES_PARASITES <- paste0("[\t ", intToUtf8(160), intToUtf8(8239), intToUtf8(8199), "]+")
+
+# Colonnes a NE PAS charger, par filiale. Elles sont ecartees des la lecture
+# (drop de fread) : elles n'occupent donc jamais de memoire. Une colonne listee
+# ici mais absente de l'export est simplement signalee, sans erreur.
+COLONNES_IGNOREES <- list(
+  MG = c("INTITULE_COMPTE", "LIEU_DELIVRANCE_CIN", "BOITE_POSTALE", "CONSENT_BIC")
+)
+
+# Au-dela de ce seuil, read_csv2_big lit le CSV en NB_TRANCHES morceaux
+# (mono-thread) au lieu d'une seule passe. Augmenter NB_TRANCHES si la session
+# R meurt encore avec une violation d'acces 0xC0000005.
+SEUIL_DECOUPAGE_GO <- 1
+NB_TRANCHES <- 4
+
 # Nettoyage des espaces (début/fin + multiples)
 clean_spaces <- function(x) {
   x <- ifelse(is.na(x), "", as.character(x))
@@ -129,7 +152,7 @@ clean_spaces <- function(x) {
     }
     x <- x2
   }
-  x <- gsub("[ 	]+", " ", x, useBytes = TRUE)
+  x <- gsub(ESPACES_PARASITES, " ", x, perl = TRUE)
   trimws(x)
 }
 
@@ -145,22 +168,6 @@ pad_agence5 <- function(x) {
   x
 }
 
-# Nettoyage + marquage des valeurs "rep" par colonne (vectorise)
-clean_and_mark_anomalies <- function(df, start_col = 4) {
-  if (is.null(df) || ncol(df) < start_col) return(df)
-  # Trim leading/trailing spaces on all character columns
-  df[] <- lapply(df, function(x) if (is.character(x)) trimws(x) else x)
-  cols <- start_col:ncol(df)
-  df[cols] <- Map(function(x, nm) {
-    x[is.na(x)] <- ""
-    rep_idx <- is_rep(x)
-    if (any(rep_idx, na.rm = TRUE)) {
-      x[rep_idx] <- paste("ANOMALIE", nm)
-    }
-    x
-  }, df[cols], names(df)[cols])
-  df
-}
 
 # Compte le nombre de champs vides sur une liste de colonnes
 count_empty_fields <- function(df, fields) {
@@ -224,16 +231,6 @@ bind_results <- function(results, template) {
   do.call("rbind", results)
 }
 
-empty_anomalies_pp <- function(pp_ne) {
-  template <- pp_ne[0, , drop = FALSE]
-  template$AGE <- numeric(0)
-  template$ANOMALIE_AGE <- character(0)
-  template$AGE_EER <- numeric(0)
-  template$ANOMALIE_DATE_EER <- character(0)
-  template$AGE_CIN <- numeric(0)
-  template$ANOMALIE_CIN <- character(0)
-  template
-}
 
 reset_row_names <- function(data) {
   if (is.data.frame(data)) row.names(data) <- NULL
@@ -321,45 +318,10 @@ apply_status_style <- function(wb, sheet, data, value_col,
   invisible(NULL)
 }
 
-# Calcule le taux de completude min(PP, PM) par agent (vectorise)
-compute_app_flux <- function(taux_pp, taux_pm,
-                             agent_col = "Agents", taux_col = "Taux.de.fiabilisation") {
-  if (is.null(taux_pp)) taux_pp <- data.frame()
-  if (is.null(taux_pm)) taux_pm <- data.frame()
-
-  if (nrow(taux_pp) == 0 && nrow(taux_pm) == 0) {
-    return(data.frame(Agents = character(0), Taux_Completude = numeric(0)))
-  }
-
-  agents <- unique(c(taux_pp[[agent_col]], taux_pm[[agent_col]]))
-
-  pp_vals <- if (nrow(taux_pp) > 0) {
-    setNames(as.numeric(gsub("%", "", taux_pp[[taux_col]])), taux_pp[[agent_col]])
-  } else {
-    setNames(numeric(0), character(0))
-  }
-
-  pm_vals <- if (nrow(taux_pm) > 0) {
-    setNames(as.numeric(gsub("%", "", taux_pm[[taux_col]])), taux_pm[[agent_col]])
-  } else {
-    setNames(numeric(0), character(0))
-  }
-
-  pp_aligned <- pp_vals[agents]
-  pm_aligned <- pm_vals[agents]
-
-  min_vals <- ifelse(is.na(pp_aligned), pm_aligned,
-                     ifelse(is.na(pm_aligned), pp_aligned, pmin(pp_aligned, pm_aligned)))
-
-  data.frame(Agents = agents, Taux_Completude = unname(min_vals), stringsAsFactors = FALSE)
-}
 
 
 
-is_rep <- function(x) {
 
-    (grepl("XX", x) & nchar(x)==2)  | (grepl("RAS", x) & nchar(x)==3)  | (grepl("R.A.S.", x) & nchar(x)==6) | (grepl("R.A.S", x) & nchar(x)==5) | nchar(x)==1
-}
 
 # Fonction pour nettoyer les noms de colonnes (BOM et mauvais encodage)
 clean_colnames <- function(data) {
@@ -485,9 +447,11 @@ read_csv2_auto <- function(path, ...) {
 # - multi-thread, strip.white natif (espaces parasites dans les colonnes)
 # - cache .rds : les relances du script rechargent en quelques secondes
 # - type.convert reproduit le typage de read.csv2 (dec = ",")
-read_csv2_big <- function(path, cache = TRUE) {
+read_csv2_big <- function(path, cache = TRUE, drop = NULL) {
   t0 <- Sys.time()
-  rds <- paste0(path, ".rds")
+  # Le cache depend des colonnes ignorees : suffixe distinct pour ne pas
+  # recharger un cache complet quand on demande une lecture allegee (ou l'inverse).
+  rds <- paste0(path, if (length(drop)) "-drop" else "", ".rds")
   if (cache && file.exists(rds) && file.mtime(rds) >= file.mtime(path)) {
     message("[read_csv2_big] Lecture depuis le cache: ", basename(rds))
     df <- readRDS(rds)
@@ -508,14 +472,31 @@ read_csv2_big <- function(path, cache = TRUE) {
   # fill = Inf : certaines lignes ont des champs en trop (";" dans un libellé),
   # sans cela fread s'arrête en cours de fichier (lecture TRONQUEE silencieuse).
   # Le warning "Stopped early" est donc traité comme un échec.
-  fread_try <- function(q) {
+  fread_try <- function(q, skip = 0L, nrows = Inf, col_names = NULL, nthread = NULL,
+                        dropcols = NULL) {
     stopped <- FALSE
+    args <- list(path, sep = ";", dec = ",", quote = q,
+                 colClasses = "character", encoding = enc_fread,
+                 strip.white = TRUE, fill = Inf, blank.lines.skip = TRUE,
+                 showProgress = TRUE, data.table = TRUE, nrows = nrows)
+    if (!is.null(nthread)) args$nThread <- nthread
+    # drop par INDICE et non par nom : en mode tranche les colonnes sortent en
+    # V1, V2, ... (header = FALSE), un drop par nom ne matcherait rien.
+    if (length(dropcols)) args$drop <- dropcols
+    if (!is.null(col_names)) {
+      # Tranche : on saute l'en-tete + les lignes deja lues (sinon la 1re ligne
+      # de donnees servirait d'en-tete et la tranche perdrait une ligne).
+      # NE PAS passer col.names ici : cela figerait le nombre de colonnes et
+      # les lignes ayant des champs en trop (";" dans un libelle) deborderaient
+      # sur une NOUVELLE LIGNE au lieu de creer des colonnes V4, V5...
+      # Les colonnes sortent donc en V1, V2, ... et sont renommees apres le
+      # recollage, ce qui reproduit exactement la lecture en une passe.
+      args$skip <- skip + 1L
+      args$header <- FALSE
+    }
     df <- withCallingHandlers(
       tryCatch(
-        data.table::fread(path, sep = ";", dec = ",", quote = q,
-                          colClasses = "character", encoding = enc_fread,
-                          strip.white = TRUE, fill = Inf, blank.lines.skip = TRUE,
-                          showProgress = TRUE, data.table = FALSE),
+        do.call(data.table::fread, args),
         error = function(e) {
           message("[read_csv2_big] fread (quote=", deparse(q), ") a echoue: ",
                   conditionMessage(e))
@@ -535,23 +516,6 @@ read_csv2_big <- function(path, cache = TRUE) {
     df
   }
 
-  # quote="" en premier : les exports bancaires ont des guillemets mal appariés
-  # qui font dérailler le parsing quoté (fichier lu en 1 seule colonne)
-  df <- fread_try("")
-  if (is.null(df) || ncol(df) < 2) {
-    message("[read_csv2_big] Nouvel essai avec quote standard ...")
-    df <- fread_try("\"")
-    if (!is.null(df) && ncol(df) < 2) df <- NULL
-  }
-  # Dernier recours : ancienne lecture lente
-  if (is.null(df)) {
-    message("[read_csv2_big] ATTENTION: bascule sur read_csv2_auto (LENT, plusieurs minutes)")
-    return(read_csv2_auto(path))
-  }
-
-  message("[read_csv2_big] fread OK: ", nrow(df), " lignes en ",
-          round(difftime(Sys.time(), t0, units = "secs")), "s. Typage...")
-
   # Répare les octets invalides (fichiers UTF-8 contenant des restes Latin-1),
   # enlève les guillemets et espaces résiduels, puis retype comme read.csv2.
   # validEnc (test C rapide) évite de convertir chaque chaîne : seules les
@@ -563,14 +527,176 @@ read_csv2_big <- function(path, cache = TRUE) {
     }
     x
   }
-  df[] <- lapply(df, function(x) {
-    x <- fix_utf8(x)
-    if (any(grepl('"', x, fixed = TRUE))) {
-      x <- trimws(gsub('"', "", x, fixed = TRUE))
+
+  # Nettoyage colonne par colonne PAR REFERENCE (data.table::set).
+  # Un "df[] <- lapply(df, ...)" dupliquerait tout le tableau en memoire : sur
+  # 3 Go de CSV (soit >10 Go une fois en RAM) cela suffit a faire crasher R
+  # avec une violation d'acces 0xC0000005. Ici une seule colonne est en double
+  # a un instant donne, et l'ancienne est liberee immediatement.
+  # retype = FALSE pour les tranches : le type.convert final se fait une seule
+  # fois sur le tableau recolle (sinon deux tranches peuvent recevoir des types
+  # differents selon leur contenu, et le rbind echoue ou coerce en silence).
+  clean_dt <- function(df, retype = TRUE) {
+    for (j in seq_len(ncol(df))) {
+      x <- df[[j]]
+      x <- fix_utf8(x)
+      if (any(grepl('"', x, fixed = TRUE))) {
+        x <- gsub('"', "", x, fixed = TRUE)
+      }
+      # Espaces parasites de l'export : tabulations, espaces insecables et
+      # suites d'espaces internes -> un seul espace, puis trim.
+      x <- gsub(ESPACES_PARASITES, " ", x, perl = TRUE)
+      x <- trimws(x)
+      if (retype) x <- type.convert(x, as.is = TRUE, dec = ",")
+      data.table::set(df, j = j, value = x)
+      rm(x)
+      if (j %% 10 == 0) gc(verbose = FALSE)
     }
-    type.convert(x, as.is = TRUE, dec = ",")
-  })
-  names(df) <- trimws(gsub('"', "", fix_utf8(names(df)), fixed = TRUE))
+    gc(verbose = FALSE)
+    data.table::setnames(df, trimws(gsub('"', "", fix_utf8(names(df)), fixed = TRUE)))
+    df
+  }
+
+  taille_go <- file.size(path) / 1024^3
+
+  # ---- Colonnes a ignorer : resolution des noms en INDICES ----
+  # Faite sur l'en-tete reel du fichier : une colonne absente de cet export est
+  # simplement signalee et ignoree (pas d'erreur), et le drop est ensuite
+  # utilisable aussi bien en lecture directe qu'en mode tranche.
+  drop_idx <- NULL
+  entete_all <- NULL
+  if (length(drop)) {
+    entete_all <- fread_try("", nrows = 0L)
+    if (is.null(entete_all) || ncol(entete_all) < 2) entete_all <- fread_try("\"", nrows = 0L)
+    if (!is.null(entete_all)) {
+      noms_reels <- trimws(gsub('"', "", names(entete_all), fixed = TRUE))
+      drop_idx <- which(toupper(noms_reels) %in% toupper(drop))
+      absentes <- setdiff(toupper(drop), toupper(noms_reels))
+      if (length(absentes)) {
+        message("[read_csv2_big] Colonnes a ignorer absentes du fichier: ",
+                paste(absentes, collapse = ", "))
+      }
+      if (length(drop_idx)) {
+        message("[read_csv2_big] Colonnes ignorees (non chargees): ",
+                paste(noms_reels[drop_idx], collapse = ", "))
+      } else {
+        drop_idx <- NULL
+      }
+    }
+  }
+
+  if (taille_go <= SEUIL_DECOUPAGE_GO) {
+    # ---- Lecture en une seule passe (fichiers "normaux") ----
+    # quote="" en premier : les exports bancaires ont des guillemets mal apparies
+    # qui font derailler le parsing quote (fichier lu en 1 seule colonne)
+    df <- fread_try("", dropcols = drop_idx)
+    if (is.null(df) || ncol(df) < 2) {
+      message("[read_csv2_big] Nouvel essai avec quote standard ...")
+      df <- fread_try("\"", dropcols = drop_idx)
+      if (!is.null(df) && ncol(df) < 2) df <- NULL
+    }
+    if (is.null(df)) {
+      message("[read_csv2_big] ATTENTION: bascule sur read_csv2_auto (LENT, plusieurs minutes)")
+      return(read_csv2_auto(path))
+    }
+    message("[read_csv2_big] fread OK: ", nrow(df), " lignes en ",
+            round(difftime(Sys.time(), t0, units = "secs")), "s. Typage...")
+    df <- clean_dt(df, retype = TRUE)
+
+  } else {
+    # ---- Lecture par tranches (fichiers > SEUIL_DECOUPAGE_GO) ----
+    # Chaque tranche est lue puis nettoyee avant de passer a la suivante : le
+    # pic memoire du nettoyage porte sur 1/N du fichier au lieu du tout.
+    # nThread = 1 : le parsing multi-thread de fread sur fichier malforme
+    # (champs en trop, guillemets mal apparies) est une cause connue de crash
+    # 0xC0000005 ; la lecture est plus lente mais ne tue pas la session.
+    message("[read_csv2_big] Fichier de ", round(taille_go, 2),
+            " Go > ", SEUIL_DECOUPAGE_GO, " Go : lecture en ",
+            NB_TRANCHES, " tranches, mono-thread.")
+
+    # En-tete APRES drop : col_names doit decrire les colonnes reellement lues,
+    # puisque les tranches sortent en V1, V2, ... et sont renommees dessus.
+    entete <- fread_try("", nrows = 0L, dropcols = drop_idx)
+    if (is.null(entete) || ncol(entete) < 2) {
+      entete <- fread_try("\"", nrows = 0L, dropcols = drop_idx)
+    }
+    if (is.null(entete) || ncol(entete) < 2) {
+      message("[read_csv2_big] ATTENTION: en-tete illisible, bascule sur read_csv2_auto")
+      return(read_csv2_auto(path))
+    }
+    col_names <- names(entete)
+    quote_ok <- ""
+
+    # Taille de tranche ESTIMEE a partir de la longueur moyenne des 1000
+    # premieres lignes. Volontairement pas de comptage exact prealable : un
+    # fread de comptage sur fichier malforme s'arrete tot et sous-compte, ce
+    # qui tronquerait les donnees en silence. La boucle ci-dessous lit donc
+    # jusqu'a epuisement reel du fichier ; l'estimation ne joue que sur le
+    # nombre de tranches, jamais sur l'exhaustivite.
+    ech <- readLines(path, n = 1000L, warn = FALSE)
+    oct_par_ligne <- max(1, mean(nchar(ech, type = "bytes") + 1))
+    n_estime <- max(1, ceiling(file.size(path) / oct_par_ligne))
+    par_tranche <- max(1L, as.integer(ceiling(n_estime / NB_TRANCHES)))
+    message("[read_csv2_big] ~", n_estime, " lignes estimees -> ",
+            par_tranche, " par tranche")
+
+    morceaux <- list()
+    i <- 0L
+    repeat {
+      i <- i + 1L
+      saut <- (i - 1L) * par_tranche
+      message("[read_csv2_big] Tranche ", i, " (a partir de la ligne ",
+              saut + 1L, ") ...")
+      tr <- fread_try(quote_ok, skip = saut, nrows = par_tranche,
+                      col_names = col_names, nthread = 1L, dropcols = drop_idx)
+      if (is.null(tr)) {
+        message("[read_csv2_big] Tranche ", i, " illisible, bascule sur read_csv2_auto")
+        return(read_csv2_auto(path))
+      }
+      if (nrow(tr) == 0L) break          # fin de fichier atteinte
+      morceaux[[length(morceaux) + 1L]] <- clean_dt(tr, retype = FALSE)
+      lu <- nrow(tr)
+      rm(tr); gc(verbose = FALSE)
+      if (lu < par_tranche) break        # derniere tranche (incomplete)
+    }
+
+    message("[read_csv2_big] Recollage des ", length(morceaux), " tranches ...")
+    # use.names = TRUE sur des noms positionnels (V1, V2, ...) : les tranches
+    # n'ayant pas de ligne malformee ont moins de colonnes, fill = TRUE complete
+    # alors par NA, comme le ferait la lecture en une passe.
+    df <- data.table::rbindlist(morceaux, use.names = TRUE, fill = TRUE)
+    rm(morceaux); gc(verbose = FALSE)
+
+    # Restitution des vrais noms de colonnes ; les colonnes surnumeraires
+    # (champs en trop) gardent leur nom positionnel V4, V5, ... comme en une passe.
+    n_nommees <- min(length(col_names), ncol(df))
+    if (n_nommees > 0L) {
+      data.table::setnames(df, seq_len(n_nommees), col_names[seq_len(n_nommees)])
+    }
+
+    # Les NA presents ici ne peuvent venir que du fill de rbindlist (colonnes
+    # surnumeraires absentes de certaines tranches) : le typage n'a pas encore
+    # eu lieu, donc un champ vide du CSV vaut "" et non NA. On restitue "",
+    # ce que produit la lecture en une passe.
+    for (j in seq_len(ncol(df))) {
+      x <- df[[j]]
+      if (is.character(x) && anyNA(x)) {
+        x[is.na(x)] <- ""
+        data.table::set(df, j = j, value = x)
+      }
+    }
+
+    # Typage final, une seule fois, sur le tableau complet
+    for (j in seq_len(ncol(df))) {
+      data.table::set(df, j = j,
+                      value = type.convert(df[[j]], as.is = TRUE, dec = ","))
+      if (j %% 10 == 0) gc(verbose = FALSE)
+    }
+    gc(verbose = FALSE)
+    message("[read_csv2_big] Recollage OK: ", nrow(df), " lignes")
+  }
+
+  data.table::setDF(df)   # par reference : pas de copie
 
   if (cache) {
     message("[read_csv2_big] Ecriture du cache ", basename(rds), " ...")
@@ -583,6 +709,132 @@ read_csv2_big <- function(path, cache = TRUE) {
   df
 }
 
+
+# Agrege les lignes partageant le meme CLIENT en une seule ligne.
+# Pour chaque colonne : valeurs distinctes non vides, separees par une virgule.
+#   CLIENT 42 | TEL "0102"  | VILLE "DAKAR"   ->  CLIENT 42 | TEL "0102,0304"
+#   CLIENT 42 | TEL "0304"  | VILLE "DAKAR"       VILLE "DAKAR"
+# Les colonnes constantes a l'interieur de chaque groupe gardent leur type
+# d'origine (numerique, date...) ; seules celles reellement fusionnees passent
+# en texte, sinon un "1,2" issu de deux valeurs 1 et 2 serait relu comme le
+# nombre 1,2 (dec = ",") et corromprait la donnee.
+agreger_par_client <- function(df, cle = "CLIENT") {
+  if (is.null(df) || !(cle %in% names(df)) || nrow(df) == 0) return(df)
+
+  ordre <- names(df)
+  data.table::setDT(df)
+
+  n_doublons <- sum(duplicated(df[[cle]]))
+  if (n_doublons == 0L) {
+    message("[agreger_par_client] Aucun ", cle, " en double : rien a agreger.")
+    data.table::setDF(df)
+    return(df)
+  }
+  message("[agreger_par_client] ", n_doublons, " ligne(s) en double sur ", cle,
+          " -> agregation ...")
+
+  cols <- setdiff(names(df), cle)
+
+  # 1 seule passe groupee pour savoir quelles colonnes varient dans un groupe
+  nu <- df[, lapply(.SD, data.table::uniqueN), by = c(cle), .SDcols = cols]
+  varie <- vapply(cols, function(cn) any(nu[[cn]] > 1L), logical(1))
+  rm(nu); gc(verbose = FALSE)
+
+  cols_fusion <- cols[varie]
+  cols_stables <- cols[!varie]
+  message("[agreger_par_client] ", length(cols_fusion),
+          " colonne(s) fusionnee(s) en texte",
+          if (length(cols_fusion)) paste0(" : ", paste(cols_fusion, collapse = ", ")) else "")
+
+  fusionner <- function(x) {
+    v <- trimws(as.character(x))
+    v <- unique(v[!is.na(v) & nzchar(v)])
+    if (length(v) == 0L) "" else paste(v, collapse = ",")
+  }
+
+  # Colonnes stables : on garde la 1re valeur (donc le type d'origine)
+  res <- df[, lapply(.SD, data.table::first), by = c(cle), .SDcols = cols_stables]
+  if (length(cols_fusion)) {
+    res_f <- df[, lapply(.SD, fusionner), by = c(cle), .SDcols = cols_fusion]
+    res <- merge(res, res_f, by = cle, sort = FALSE)
+    rm(res_f); gc(verbose = FALSE)
+  }
+
+  data.table::setcolorder(res, intersect(ordre, names(res)))
+  data.table::setDF(res)
+  message("[agreger_par_client] ", nrow(df), " lignes -> ", nrow(res),
+          " (", cle, " uniques)")
+  res
+}
+
+# Regroupe les lignes partageant le meme CLIENT en une seule ligne.
+# Pour chaque colonne : valeurs distinctes non vides, separees par une virgule.
+#   - une seule valeur distincte  -> la valeur telle quelle (type d'origine conserve)
+#   - plusieurs valeurs           -> "VAL1,VAL2" (la colonne devient character)
+#   - aucune valeur non vide      -> "" (ou NA si la colonne n'est pas character)
+# L'ordre d'apparition des CLIENT est conserve (by=, et non keyby= qui trierait).
+#   - colonnes de date_cols     -> la date la PLUS ANCIENNE (pas de concatenation),
+#                                  reformatee en JJ/MM/AAAA pour rester lisible
+#                                  par le dmy() applique plus loin dans le script.
+agreger_doublons <- function(df, cle = "CLIENT", date_cols = "DATOUV") {
+  if (is.null(df) || nrow(df) == 0 || !(cle %in% names(df))) return(df)
+
+  n_avant <- nrow(df)
+  n_cles  <- data.table::uniqueN(df[[cle]])
+  if (n_cles == n_avant) {
+    message("[agreger_doublons] Aucun ", cle, " en double (", n_avant, " lignes)")
+    return(df)
+  }
+
+  message("[agreger_doublons] ", n_avant - n_cles, " ligne(s) en trop sur ",
+          n_avant, " : regroupement sur ", n_cles, " ", cle, " uniques ...")
+
+  ordre_cols <- names(df)
+  dt <- data.table::as.data.table(df)
+
+  # Fusion TOUJOURS en character : data.table impose un type homogene par
+  # colonne entre les groupes, or un groupe sans doublon rendrait le type
+  # d'origine et un groupe avec doublons du texte -> erreur de type.
+  fusion <- function(x) {
+    x <- as.character(x)
+    u <- unique(x[!is.na(x) & trimws(x) != ""])
+    if (length(u) == 0L) return("")
+    paste(u, collapse = ",")
+  }
+
+  res <- dt[, lapply(.SD, fusion), by = c(cle)]
+
+  # Dates : on ne concatene pas, on garde la PLUS ANCIENNE ouverture du client.
+  # Recalcul sur dt (valeurs d'origine) et non sur res, dont la colonne contient
+  # deja les dates concatenees par fusion().
+  for (dc in intersect(date_cols, names(res))) {
+    agg <- dt[, .(..min_d = {
+      d <- parse_date_any(get(dc))
+      if (all(is.na(d))) NA_character_ else format(min(d, na.rm = TRUE), "%d/%m/%Y")
+    }), by = c(cle)]
+    # Jointure sur la cle : ne depend pas de l'ordre des lignes.
+    idx <- match(res[[cle]], agg[[cle]])
+    val <- agg$..min_d[idx]
+    val[is.na(val)] <- ""
+    data.table::set(res, j = dc, value = val)
+  }
+
+  # Retour au type d'origine pour les colonnes qui n'ont finalement subi aucune
+  # concatenation : sans cela, des colonnes numeriques (CA, CAPITAL...)
+  # deviendraient du texte pour toute la filiale.
+  for (nm in setdiff(names(res), cle)) {
+    if (!is.character(df[[nm]]) && !any(grepl(",", res[[nm]], fixed = TRUE))) {
+      data.table::set(res, j = nm,
+                      value = type.convert(res[[nm]], as.is = TRUE))
+    }
+  }
+
+  data.table::setcolorder(res, intersect(ordre_cols, names(res)))
+  data.table::setDF(res)
+
+  message("[agreger_doublons] Termine : ", nrow(res), " lignes")
+  res
+}
 
 # Excel sheet names must be <= 31 chars and avoid special chars.
 safe_sheet_name <- function(name, max_len = 31) {
@@ -640,9 +892,6 @@ lowStyle <- createStyle(halign = "left",
 fgFill = "#D90A0A"
 )
 
-  anomStyle <- createStyle(halign = "left",
-fgFill = "#FFB65D"
-)
 
 ## Initiation des tableaux
 
@@ -729,9 +978,17 @@ detect_encoding <- function(path, n = 100000) {
 # ============================
 # read_csv2_big : lecture rapide fread (multi-thread) + cache .rds,
 # gère encodage, espaces parasites, guillemets ; fallback read_csv2_auto
-pm_stock <- read_csv2_big(chemin_pm)
+cols_ignorees <- COLONNES_IGNOREES[[fil]]   # NULL si la filiale n'en declare pas
 
+pm_stock <- read_csv2_big(chemin_pm, drop = cols_ignorees)
 
+# Un meme CLIENT peut apparaitre sur plusieurs lignes : on les regroupe des le
+# depart, en concatenant par une virgule les valeurs differentes de chaque colonne.
+pm_stock <- agreger_doublons(pm_stock, "CLIENT")
+
+dates_triees <- sort(unique(dmy(pm_stock$DATOUV)), decreasing = TRUE)
+premier_jour_mois_courant <- dates_triees[1]+1
+premier_jour_mois_precedent <- dates_triees[1]
 
 
 ## Traitement des PM
@@ -876,7 +1133,7 @@ if (!file.exists(chemin_pp)) {
 # Import du CSV
 # read_csv2_big : lecture rapide fread (multi-thread) + cache .rds,
 # gère encodage, espaces parasites, guillemets ; fallback read_csv2_auto
-pp_stock <- read_csv2_big(chemin_pp)
+pp_stock <- read_csv2_big(chemin_pp, drop = cols_ignorees)
 
 # Vérification
 
@@ -927,12 +1184,6 @@ if ("LIB_AGENCE" %in% names(pp_stock)) {
    colnames(pp_stock)[which(names(pp_stock)=="LIB_AGENCE")] <- "AGENCELIB"
 }
 
-     # Sous-ensemble utile pour enrichir les anomalies
-
-   ppe_stock <- pp_stock[, c("AGENCE", "AGENCELIB", "CLIENT", "PPE")]
-    
-
-     ppe_stock=ppe_stock[ppe_stock$PPE=="O",]
   
 
     
@@ -1039,7 +1290,7 @@ if ("LIB_AGENCE" %in% names(pp_stock)) {
 
       if (length(fichiers_a_archiver)!=0) {
           repertoire=paste0(chemin,fil,"//",fichiers_a_archiver)
-      zipr(paste0(chemin,fil,"//Archives","//Archives ",fil," _ ",Sys.Date(),".zip"), repertoire)
+      zipr(paste0(chemin,fil,"//Archives","//Archives ",fil," _ ",premier_jour_mois_precedent,".zip"), repertoire)
 
           unlink(repertoire, recursive = TRUE)
           }
@@ -1086,7 +1337,7 @@ taux_function_pp=function(x) {
 
             n_expl_s=expl[expl$PAYNAIS %in% inc  | is.na(expl$PAYNAIS)=="TRUE" | expl$PROFESSION %in% inc  | is.na(expl$PROFESSION)=="TRUE"
                     | expl$SALAIRE %in% inc  | is.na(expl$SALAIRE)=="TRUE" | expl$CODAPE %in% inc  | is.na(expl$CODAPE)=="TRUE" 
-                    | expl$TEL %in% inc  | is.na(expl$TEL)=="TRUE" | expl$ADRESSE %in% inc  | is.na(expl$ADRESSE) | expl$NUMID %in% inc  | is.na(expl$NUMID)=="TRUE" | expl$DATNAIS %in% inc  | is.na(expl$DATNAIS)=="TRUE" | expl$DATVALID %in% inc  | is.na(expl$DATVALID)=="TRUE" | expl$ORIGINE_REV %in% inc  | is.na(expl$ORIGINE_REV)=="TRUE"  ,]
+                    | expl$TEL %in% inc  | is.na(expl$TEL)=="TRUE" | expl$ADRESSE %in% inc  | is.na(expl$ADRESSE) | expl$NUMID %in% inc  | is.na(expl$NUMID)=="TRUE" | expl$DATNAIS %in% inc  | is.na(expl$DATNAIS)=="TRUE" | expl$DATVALID %in% inc  | is.na(expl$DATVALID)=="TRUE" | expl$ORIGINE_REV %in% inc  | is.na(expl$ORIGINE_REV)=="TRUE" | expl$PAYS_RESID %in% inc  | is.na(expl$PAYS_RESID)=="TRUE"  ,]
             n_cons=length(unique(n_expl_s$CLIENT))  
             
                 a=field_completion_rate(expl, "PAYNAIS", inc)
@@ -1099,8 +1350,9 @@ taux_function_pp=function(x) {
                 h=field_completion_rate(expl, "DATNAIS", inc)
                 i=field_completion_rate(expl, "DATVALID", inc)
                 j=field_completion_rate(expl, "ORIGINE_REVENU", inc)
+                k=field_completion_rate(expl, "PAYS_RESID", inc)
 
-                taux=min_rate(a,b,c,d,e,f,g,h,i,j)
+                taux=min_rate(a,b,c,d,e,f,g,h,i,j,k)
                 appreciation=get_appreciation(taux, Faible, Moyen)
 
                 #if (taux_rat<0) {
@@ -1120,13 +1372,14 @@ taux_function_pp=function(x) {
                 datnais=format_percent(h)
                 datvalid=format_percent(i)
                 origine=format_percent(j)
+                pays_resid=format_percent(k)
 
 
               if (exploitant=="agent") {
-                    etat_expls=data.frame(Agents=x,`Nbre clients concernés`=n_cons,`Lieu de Naissance`=lieu_naiss, Profession =profession, Codape=codape, Revenu = revenu, NIN=nin, TEL=tel,Adresse=adresse,DATNAIS=datnais, DATVALID=datvalid, Origine_Revenu=origine, `Taux de fiabilisation`=taux, Appréciation=appreciation) # ##, `Taux à rattrapper`=taux_ratt)
+                    etat_expls=data.frame(Agents=x,`Nbre clients concernés`=n_cons,`Lieu de Naissance`=lieu_naiss, Profession =profession, Codape=codape, Revenu = revenu, NIN=nin, TEL=tel,Adresse=adresse,DATNAIS=datnais, DATVALID=datvalid, Origine_Revenu=origine, Pays_Residence=pays_resid, `Taux de fiabilisation`=taux, Appréciation=appreciation) # ##, `Taux à rattrapper`=taux_ratt)
             
               } else {
-                    etat_expls=data.frame(Agence=x,`Nbre clients concernés`=n_cons,`Lieu de Naissance`=lieu_naiss, Profession =profession, Codape=codape, Revenu = revenu, NIN=nin, TEL=tel,Adresse=adresse,DATNAIS=datnais, DATVALID=datvalid, Origine_Revenu=origine, `Taux de fiabilisation`=taux, Appréciation=appreciation) # ##, `Taux à rattrapper`=taux_ratt)
+                    etat_expls=data.frame(Agence=x,`Nbre clients concernés`=n_cons,`Lieu de Naissance`=lieu_naiss, Profession =profession, Codape=codape, Revenu = revenu, NIN=nin, TEL=tel,Adresse=adresse,DATNAIS=datnais, DATVALID=datvalid, Origine_Revenu=origine, Pays_Residence=pays_resid, `Taux de fiabilisation`=taux, Appréciation=appreciation) # ##, `Taux à rattrapper`=taux_ratt)
 
               }
 
@@ -1233,8 +1486,6 @@ taux_function_pp=function(x) {
 
 
 
-            pp_ne <- clean_and_mark_anomalies(pp_ne, start_col = 4)
-            pm_ne <- clean_and_mark_anomalies(pm_ne, start_col = 4)
 
 
             if (exists("pp_ne")=="TRUE" & exists("pm_ne")=="TRUE") {
@@ -1273,6 +1524,7 @@ taux_function_pp=function(x) {
         h=field_completion_rate(pp_ne, "DATNAIS", inc)
         i=field_completion_rate(pp_ne, "DATVALID", inc)
         j=field_completion_rate(pp_ne, "ORIGINE_REVENU", inc)
+        k=field_completion_rate(pp_ne, "PAYS_RESID", inc)
         
 
 
@@ -1292,7 +1544,7 @@ taux_function_pp=function(x) {
 
        
        
-        champs=c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU")
+        champs=c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU","PAYS_RESID")
 
         taux=compute_taux(pp_ne, champs)
         appreciation=get_appreciation(taux, Faible, Moyen)
@@ -1309,18 +1561,19 @@ taux_function_pp=function(x) {
         datnais=format_percent(h)
         datvalid=format_percent(i)
         origine=format_percent(j)
+        pays_resid=format_percent(k)
 
 
 
        
-        etat_pp_nes=data.frame(`Lieu de Naissance` = lieu_naiss, Profession = profession,Codape=codape, Revenu = revenu, NIN = nin, TEL=tel, Adresse=adresse,DATNAIS=datnais,DATVALID=datvalid, ORIGINE_REV=origine, `Taux de fiabilisation` =taux, Appréciation=appreciation, `Taux à rattrapper` = taux_ratt)
+        etat_pp_nes=data.frame(`Lieu de Naissance` = lieu_naiss, Profession = profession,Codape=codape, Revenu = revenu, NIN = nin, TEL=tel, Adresse=adresse,DATNAIS=datnais,DATVALID=datvalid, ORIGINE_REV=origine, PAYS_RESID=pays_resid, `Taux de fiabilisation` =taux, Appréciation=appreciation, `Taux à rattrapper` = taux_ratt)
             pp=etat_pp_nes[,c(ncol(etat_pp_nes),ncol(etat_pp_nes)-1,ncol(etat_pp_nes)-2)]
             pp_t=data.frame(A="",V="")
             
             colnames(pp_t)=c(paste(fil),"")
             pp_t[1,]=c("PM","PP")
-            pp_t[2,2]=c(pp[1,c(3)])
-            pp_t[3,2]=c(pp[1,c(2)])
+            pp_t[2,2]=etat_pp_nes$Taux.de.fiabilisation[1]
+            pp_t[3,2]=etat_pp_nes$Appréciation[1]
             
             rownames(pp_t)=c("","Taux de fiabilisation","Appréciation")
             ## Statistique a l'échelle filiale (PM)
@@ -1382,7 +1635,7 @@ taux_function_pp=function(x) {
             exploitant="agence"
             
 
-            etat_expl=data.frame(Agence="",`Nbre clients concernés`="",`Lieu de Naissance`="", Profession = "",Codape="", Revenu = "", NIN="", Tel="",Adresse="",DATNAIS="", DATVALID="", ORIGINE_REV="", `Taux de fiabilisation`="", Appréciation="") # ##, `Taux à rattrapper`="")
+            etat_expl=data.frame(Agence="",`Nbre clients concernés`="",`Lieu de Naissance`="", Profession = "",Codape="", Revenu = "", NIN="", Tel="",Adresse="",DATNAIS="", DATVALID="", ORIGINE_REV="", PAYS_RESID="", `Taux de fiabilisation`="", Appréciation="") # ##, `Taux à rattrapper`="")
              taux_filiale = lapply(agents,taux_function_pp)
             
             taux_filiale_t=bind_results(taux_filiale, etat_expl)
@@ -1441,8 +1694,6 @@ taux_function_pp=function(x) {
             pm_ne$EXPL[is_alphanumeric(pm_ne$EXPL)=="FALSE"]=paste("DIR_AGENCE_",pm_ne$AGENCE[is_alphanumeric(pm_ne$EXPL)=="FALSE"],sep="")
 
 
-            pp_ne <- clean_and_mark_anomalies(pp_ne, start_col = 4)
-            pm_ne <- clean_and_mark_anomalies(pm_ne, start_col = 4)
 
 
             if (exists("pp_ne")=="TRUE" & exists("pm_ne")=="TRUE") {
@@ -1497,6 +1748,7 @@ taux_function_pp=function(x) {
         h=field_completion_rate(pp_ne, "DATNAIS", inc)
         i=field_completion_rate(pp_ne, "DATVALID", inc)
         j=field_completion_rate(pp_ne, "ORIGINE_REVENU", inc)
+        k=field_completion_rate(pp_ne, "PAYS_RESID", inc)
 
         T=length(c(a,b,c,d,e,f,g,h,i,j))
         
@@ -1514,7 +1766,7 @@ taux_function_pp=function(x) {
 
        
        
-        champs=c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU")
+        champs=c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU","PAYS_RESID")
 
         taux=compute_taux(pp_ne, champs)
         appreciation=get_appreciation(taux, Faible, Moyen)
@@ -1531,17 +1783,18 @@ taux_function_pp=function(x) {
         datnais=format_percent(h)
         datvalid=format_percent(i)
         origine=format_percent(j)
+        pays_resid=format_percent(k)
 
 
 
-        etat_pp_nes=data.frame(`Lieu de Naissance` = lieu_naiss, Profession = profession,Codape=codape, Revenu = revenu, NIN = nin, TEL=tel, Adresse=adresse,DATNAIS=datnais, DATVALID=datvalid,ORIGINE_REV=origine, `Taux de fiabilisation` =taux, Appréciation=appreciation, `Taux à rattrapper` = taux_ratt)
+        etat_pp_nes=data.frame(`Lieu de Naissance` = lieu_naiss, Profession = profession,Codape=codape, Revenu = revenu, NIN = nin, TEL=tel, Adresse=adresse,DATNAIS=datnais, DATVALID=datvalid,ORIGINE_REV=origine, PAYS_RESID=pays_resid, `Taux de fiabilisation` =taux, Appréciation=appreciation, `Taux à rattrapper` = taux_ratt)
         pp=etat_pp_nes[,c(ncol(etat_pp_nes),ncol(etat_pp_nes)-1,ncol(etat_pp_nes)-2)]
         pp_t=data.frame(A="",V="")
             
             colnames(pp_t)=c(paste(fil),"")
             pp_t[1,]=c("PM","PP")
-            pp_t[2,2]=c(pp[1,c(3)])
-            pp_t[3,2]=c(pp[1,c(2)])
+            pp_t[2,2]=etat_pp_nes$Taux.de.fiabilisation[1]
+            pp_t[3,2]=etat_pp_nes$Appréciation[1]
             
             rownames(pp_t)=c("","Taux de fiabilisation","Appréciation")
             
@@ -1610,7 +1863,7 @@ taux_function_pp=function(x) {
             
             agents=unique(pp_ne$AGENCE)            
             
-            etat_expl=data.frame(Agence="",`Nbre clients concernés`="", `Lieu de Naissance`= "", Profession = "",Codape="", Revenu = "", NIN= "",  Tel="" ,Adresse="",DATNAIS="", DATVALID="",  ORIGINE_REV="",`Taux de fiabilisation`="", Appréciation="") # ##, `Taux à rattrapper`="")
+            etat_expl=data.frame(Agence="",`Nbre clients concernés`="", `Lieu de Naissance`= "", Profession = "",Codape="", Revenu = "", NIN= "",  Tel="" ,Adresse="",DATNAIS="", DATVALID="",  ORIGINE_REV="", PAYS_RESID="",`Taux de fiabilisation`="", Appréciation="") # ##, `Taux à rattrapper`="")
              taux_filiale = lapply(agents,taux_function_pp)
 
             taux_filiale_t_stock=bind_results(taux_filiale, etat_expl)
@@ -1674,7 +1927,7 @@ taux_function_pp=function(x) {
             
 
                              
-            apply_status_style(wb, "Flux PP", taux_filiale_t, value_col = 14)
+            apply_status_style(wb, "Flux PP", taux_filiale_t, value_col = 15)
             
             ### Sheet Flux PM
             addWorksheet(wb,"Flux PM")
@@ -1705,7 +1958,7 @@ taux_function_pp=function(x) {
             addStyle(wb,"Stock PP",headerStyle,cols=1:k, rows=1)
             
 
-            apply_status_style(wb, "Stock PP", taux_filiale_t_stock, value_col = 14)
+            apply_status_style(wb, "Stock PP", taux_filiale_t_stock, value_col = 15)
             
             ### Sheet Stock PM
             addWorksheet(wb,"Stock PM")
@@ -1776,37 +2029,8 @@ if (file.exists(paste0(chemin,fil,"//suivi_fiabilisation.txt"))) {
 
 
 
-if (file.exists(paste0(chemin,fil,"//suivi_anomalie.txt"))) {
-      suivi_anomalie=read.csv2(paste0(chemin,fil,"//suivi_anomalie.txt"), dec=",")
-    if (colnames(suivi_anomalie)[1]=="X"){
-      suivi_anomalie=suivi_anomalie[,-1]
-    }
-} else {
-   suivi_anomalie=c()
-}
 
 
-
-    suivi_anomalie=as.data.frame(lapply(suivi_anomalie, remove_spaces))
-
-
-if (file.exists(paste0(chemin,"//note_groupe.csv"))) {
-      note_groupe=read.csv2(paste0(chemin,"//note_groupe.csv"))
-    if (colnames(note_groupe)[1]=="X"){
-      note_groupe=note_groupe[,-1]
-    }
-} else {
-   note_groupe=c()
-}
-
-if (file.exists(paste0(chemin,"//note_groupe_stock.csv"))) {
-      note_groupe_stock=read.csv2(paste0(chemin,"//note_groupe_stock.csv"))
-    if (colnames(note_groupe_stock)[1]=="X"){
-      note_groupe_stock=note_groupe_stock[,-1]
-    }
-} else {
-   note_groupe_stock=c()
-}
 
 
 
@@ -1822,8 +2046,6 @@ if (file.exists(paste0(chemin,"//note_groupe_stock.csv"))) {
    repertoire=file.path(chemin,fil,"Contrôle de qualité","Contrôle qualité Stock")
    dir.create(repertoire)
 
-   repertoire=file.path(chemin,fil,"Anomalies par agence")
-   dir.create(repertoire)
 
 
    tableau_suivi=data.frame(Flux=c("","Taux de fiabilisation","Appréciation"))
@@ -1876,8 +2098,6 @@ if (file.exists(paste0(chemin,"//note_groupe_stock.csv"))) {
 
 
 
-        pp_ne <- clean_and_mark_anomalies(pp_ne, start_col = 4)
-        pm_ne <- clean_and_mark_anomalies(pm_ne, start_col = 4)
 
 
         if (exists("pp_ne")=="TRUE" & exists("pm_ne")=="TRUE") {
@@ -1912,6 +2132,7 @@ pm_ne_f=pm_ne
         h=field_completion_rate(pp_ne, "DATNAIS", inc)
         i=field_completion_rate(pp_ne, "DATVALID", inc)
         j=field_completion_rate(pp_ne, "ORIGINE_REVENU", inc)
+        k=field_completion_rate(pp_ne, "PAYS_RESID", inc)
 
         T=length(c(a,b,c,d,e,f,g,h,i,j))
         
@@ -1931,7 +2152,7 @@ pm_ne_f=pm_ne
 
       
        
-        champs=c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU")
+        champs=c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU","PAYS_RESID")
 
         taux=compute_taux(pp_ne, champs)
         appreciation=get_appreciation(taux, Faible, Moyen)
@@ -1947,16 +2168,17 @@ pm_ne_f=pm_ne
         datnais=format_percent(h)
         datvalid=format_percent(i)
         origine=format_percent(j)
+        pays_resid=format_percent(k)
 
        
-        etat_pp_nes=data.frame(`Lieu de Naissance` = lieu_naiss, Profession = profession,Codape=codape, Revenu = revenu, NIN = nin, TEL=tel, Adresse=adresse,DATNAIS=datnais,DATVALID=datvalid, ORIGINE_REV=origine, `Taux de fiabilisation` =taux, Appréciation=appreciation)##`Taux à rattrapper` = taux_ratt)
+        etat_pp_nes=data.frame(`Lieu de Naissance` = lieu_naiss, Profession = profession,Codape=codape, Revenu = revenu, NIN = nin, TEL=tel, Adresse=adresse,DATNAIS=datnais,DATVALID=datvalid, ORIGINE_REV=origine, PAYS_RESID=pays_resid, `Taux de fiabilisation` =taux, Appréciation=appreciation)##`Taux à rattrapper` = taux_ratt)
         pp=etat_pp_nes[,c(ncol(etat_pp_nes),ncol(etat_pp_nes)-1,ncol(etat_pp_nes)-2)]
         pp_t=data.frame(A="",V="")
 
         colnames(pp_t)=c(paste(fil),"")
         pp_t[1,]=c("PM","PP")
-        pp_t[2,2]=c(pp[1,c(3)])
-        pp_t[3,2]=c(pp[1,c(2)])
+        pp_t[2,2]=etat_pp_nes$Taux.de.fiabilisation[1]
+        pp_t[3,2]=etat_pp_nes$Appréciation[1]
 
         rownames(pp_t)=c("","Taux de fiabilisation","Appréciation")
         ## Statistique a l'échelle filiale (PM)
@@ -2028,14 +2250,14 @@ if (nrow(pm_ne)!=0) {
         agents_flux_pm=unique(pm_ne$EXPL[grepl("[[:alnum:]]", pm_ne$EXPL)=="TRUE"])
 
 
-        etat_expl=data.frame(Agents="",`Nbre clients concernés`="",`Lieu de Naissance`="", Profession ="", Codape="", Revenu = "", NIN="", TEL="",Adresse="",DATNAIS="", DATVALID="", ORIGINE_REV="", `Taux de fiabilisation`="", Appréciation="") # ##, `Taux à rattrapper`=taux_ratt)
+        etat_expl=data.frame(Agents="",`Nbre clients concernés`="",`Lieu de Naissance`="", Profession ="", Codape="", Revenu = "", NIN="", TEL="",Adresse="",DATNAIS="", DATVALID="", ORIGINE_REV="", PAYS_RESID="", `Taux de fiabilisation`="", Appréciation="") # ##, `Taux à rattrapper`=taux_ratt)
         taux_filiale = lapply(agents, taux_function_pp )
         
         taux_filiale_t=bind_results(taux_filiale, etat_expl)
         taux_filiale_t=taux_filiale_t[-which(taux_filiale_t$NIN==""),]
         
 
-        taux_completude_pp = data.frame(Agents=taux_filiale_t$Agents, Taux=taux_filiale_t$Taux.de.fiabilisation, Date=Sys.Date(), flux_stock=rep("F", nrow(taux_filiale_t)), pp_pm=rep("P", nrow(taux_filiale_t)))
+        taux_completude_pp = data.frame(Agents=taux_filiale_t$Agents, Taux=taux_filiale_t$Taux.de.fiabilisation, Date=premier_jour_mois_precedent, flux_stock=rep("F", nrow(taux_filiale_t)), pp_pm=rep("P", nrow(taux_filiale_t)))
 
 
 
@@ -2055,290 +2277,6 @@ if (nrow(pm_ne)!=0) {
 
 
 
-       cat("###############################################\n")
-      cat("######### TRAITEMENT DES ANOMALIES \n")
-      cat("##############################################\n")
-
-
-
-          stock="n"
-
-
-
-
-
-anom_pp= function(x) {
-
-          expl=pp_ne[pp_ne$EXPL==x,]
-          expl$DATNAIS=dmy(expl$DATNAIS)
-          expl$DATOUV=dmy(expl$DATOUV)
-          expl$DATVALID=dmy(expl$DATVALID)
-
-
-          expl$'AGE'=difftime(Sys.Date(),expl$DATNAIS,units = "weeks") / 52.143
-          expl$AGE=gsub(" week", "", expl$AGE)
-
-          expl$ANOMALIE_AGE=""
-          expl$AGE_EER=""
-
-          expl$ANOMALIE_DATE_EER=""
-
-          expl$AGE_CIN=""
-
-          ##########
-
-          expl$AGE_EER=difftime(expl$DATOUV,expl$DATNAIS,units = "weeks") / 52.143
-
-          expl$AGE_EER=gsub(" week", "", expl$AGE_EER)
-            expl$AGE_EER=floor(as.numeric( expl$AGE_EER))
-
-          expl$'AGE_CIN'=difftime(Sys.Date(),expl$DATVALID,units = "weeks") / 52.143
-          expl$AGE_CIN=gsub(" week", "", expl$AGE_CIN)
-
-           expl$AGE_CIN=floor(as.numeric( expl$AGE_CIN))
-
-
-
-
-          mineur_lib <- prerequis$LIB_MINEUR[prerequis$infos==fil]
-          if (length(mineur_lib) > 0 && !is.na(mineur_lib) && mineur_lib != "") {
-              expl$ANOMALIE_AGE[expl$AGE>=21 & expl$PROFESSION == mineur_lib]="ANOMALIE - Mineur de plus de 21 ans"
-          }
-
-          etudiant_lib <- prerequis$LIB_ETUDIANT[prerequis$infos==fil]
-          if (length(etudiant_lib) > 0 && !is.na(etudiant_lib) && etudiant_lib != "") {
-             expl$ANOMALIE_AGE[expl$AGE>=30 & expl$PROFESSION == etudiant_lib]="ANOMALIE - Etudiant de plus de 30 ans"
-          }
-
-          expl$ANOMALIE_DATE_EER[expl$AGE_EER<0]="ANOMALIE - Date EER antérieure à la date de naissance"
-
-           expl$ANOMALIE_CIN[expl$AGE_CIN>0]="ANOMALIE - Document d'identité expiré"
-           expl$ANOMALIE_CIN[expl$AGE_CIN<=0]=""
-
-
-          colnames(anomalies_pp_t)=colnames(expl)
-
-          anomalies_pp_t=rbind(expl,anomalies_pp_t)
-  
-     }          
-   cat("###############################################\n")
-      cat("######### DEBUT ANOMALIES PP (1/2) \n")
-      cat("##############################################\n")
-
-
-        anomalies_pp_t=empty_anomalies_pp(pp_ne)
-        anomalies_pp=lapply(agents,anom_pp)
-        anomalies_pp=do.call("rbind",anomalies_pp)
-        if (is.null(anomalies_pp)) {
-            anomalies_pp <- empty_anomalies_pp(pp_ne)
-        } else {
-            anomalies_pp <- anomalies_pp[!is.na(anomalies_pp$CLIENT) & anomalies_pp$CLIENT != "", , drop = FALSE]
-        }
-        
-     cat("###############################################\n")
-      cat("######### DEBUT ANOMALIES PP (2/2) \n")
-      cat("##############################################\n")
-        col_anom_risque=which(names(anomalies_pp) == "RISQUE")
-        col_anom_datouv=which(names(anomalies_pp) == "DATOUV")
-        anomalies_pp=anomalies_pp[,-c(col_anom_risque,col_anom_datouv)]
-        anomalies_pp_t= anomalies_pp %>%
-                        filter(if_any(everything(), ~ !is.na(.) & grepl("ANOMALIE", as.character(.), ignore.case = TRUE)))
-
-    agence_flux=unique(anomalies_pp_t$AGENCE)
-
-
-    function_anom_agent=function(i){
-
-        agence_i=anomalies_pp[anomalies_pp$EXPL==i,]
-        agence_i=agence_i[,-c(1:3)]
-
-        agence_i_anomalies=as.matrix(agence_i)
-        n_anorm_i= sum(grepl("ANOMALIE",agence_i_anomalies, ignore.case=T))
-
-        l=ncol(agence_i)-6
-        agence_i=agence_i[,c(1:l)]
-        total=ncol(agence_i)*nrow(agence_i) - length(which(agence_i==""))
-        taux_ano_i=floor(100*(1-n_anorm_i/total))
-        taux_anomalie_i=paste(taux_ano_i,"%",sep="")
-        anomalie_agent_i=c(i,taux_anomalie_i)
-        anomalie_agent=rbind(anomalie_agent,anomalie_agent_i)
-        }
-
-        anomalie_agent=data.frame(AGENT="",TAUX_NON_ANOMALIE="")
-        wb_anom_agents=createWorkbook()
-        addWorksheet(wb_anom_agents,paste("Tx non anomalie BOA_",fil))
-        addWorksheet(wb_anom_agents,paste("Tx non anomalie agences_flux"))
-        addWorksheet(wb_anom_agents,paste("Tx non anomalie agences_stock"))
-        addWorksheet(wb_anom_agents,paste("Tx non anomalie agents_flux"))
-        addWorksheet(wb_anom_agents,paste("Tx non anomalie agents_stock"))
-
-
-        taux_agences=matrix(,ncol=2)
-        for(x in unique(pp_ne$AGENCE)) {
-          
-
-                    anomalie_agent=data.frame(AGENT="",TAUX_NON_ANOMALIE="")
-                    agence=anomalies_pp_t[anomalies_pp_t$AGENCE==x,]
-                    if (nrow(agence!=0)) {
-
-
-                        ### Anomalies par agents et par agence
-
-
-                        agents_anom=unique(agence$EXPL)
-
-                        anomalie_agent_t=lapply(agents_anom,function_anom_agent)
-
-                        anomalie_agent=do.call("rbind",anomalie_agent_t)
-
-                        anomalie_agent=anomalie_agent[!anomalie_agent$AGENT=="",]
-
-
-
-                        writeData(wb_anom_agents,paste("Tx non anomalie agents_flux"), x=anomalie_agent, startRow=1, startCol=1)
-                        addStyle(wb_anom_agents,paste("Tx non anomalie agents_flux"), headerStyle, cols=1:ncol(anomalie_agent), rows=1)
-
-                     
-                  
-                        expl=anomalies_pp[anomalies_pp$AGENCE==x,]
-
-                        expl=expl[,-c(1:3)]
-
-                        expl_anomalies=as.matrix(expl)
-                        n_anorm_i= sum(grepl("ANOMALIE",expl_anomalies, ignore.case=T))
-
-                        l=ncol(expl)-6
-                        expl=expl[,c(1:l)]
-
-                        total=ncol(expl)*nrow(expl) - length(which(expl==""))
-                        taux_anomalie=floor(100*(1-n_anorm_i/total))
-
-                                
-                        taux_anomalie=paste(taux_anomalie,"%",sep="")
-
-                         t1=c(paste("Agence",x, sep=" "),"Pourcentage")
-                         t2=c("Taux de non anomalie", taux_anomalie)
-
-                         taux_anomalie_t=as.data.frame(rbind(t1,t2))
-                         colnames(taux_anomalie_t)=taux_anomalie_t[1,]
-                         taux_anomalie_t=taux_anomalie_t[-1,]
-                         
-                     
-                         taux_agences_i=c(paste0("Agence ",x),taux_anomalie)
-
-                         taux_agences=rbind(taux_agences,taux_agences_i)
-                         
-                        taux_agences=as.data.frame(taux_agences)
-                        colnames(taux_agences)=c("Agences","Taux de non anomalies_Flux")
-
-                          ###### Taux Anomalie par agent
-
-                        wb_agence=createWorkbook()
-                        wb_anom_agence=createWorkbook()
-                        wb_anom_agence_s=createWorkbook()
-
-                  
-
-
-                        colnames(taux_anomalie_t)[1]= paste("FLUX AGENCE",x)
-                        colnames(anomalie_agent)[2]="TAUX_NON_ANOMALIE"
-                        sheet_non_anom <- unique_sheet_name(wb_anom_agence, paste0(x,"_Taux de non anomalie"))
-                        sheet_anom_flux <- unique_sheet_name(wb_agence, paste0(x,"_Anomalies flux"))
-                        addWorksheet(wb_anom_agence, sheet_non_anom)
-                        # addWorksheet(wb_agence,paste0("RECAP AGENTS"))
-                        addWorksheet(wb_agence, sheet_anom_flux)
-
-
-
-                        writeData(wb_agence, sheet_anom_flux, x=agence, startRow=1, startCol=1)
-                        addStyle(wb_agence, sheet_anom_flux, headerStyle, cols=1:ncol(agence), rows=1)
-
-                        writeData(wb_anom_agence, sheet_non_anom, x=taux_anomalie_t, startRow=1, startCol=1)
-
-                        writeData(wb_anom_agence, sheet_non_anom, x=anomalie_agent, startRow=1, startCol=5)
-                        
-                            saveWorkbook(wb_anom_agence, paste(sep="",paste(chemin,fil,"//Anomalies par agence//",sep=""),"Agence_",paste(x)," flux.xlsx"), overwrite=T)
-
-                            saveWorkbook(wb_agence, paste(sep="",paste(chemin,fil,"//Contrôle de qualité//Contrôle qualité Flux//",sep=""),"Agence_",paste(x),".xlsx"), overwrite=T)
-                          
-                       }
-
-                     
-                       
-                  }
-
-             taux_agences=taux_agences[-1,]
-             writeData(wb_anom_agents,paste("Tx non anomalie agences_flux"), x=taux_agences, startRow=1, startCol=1)
-             addStyle(wb_anom_agents,paste("Tx non anomalie agences_flux"), headerStyle, cols=1:ncol(taux_agences), rows=1)
-
-
-      
-          #aux_agences=matrix(,ncol=2)
-          #gents=unique(pp_ne$AGENCE)#("[[:alnum:]]", pp_ne$EXPL)=="TRUE"])
-          #apply(agents,anomalie_agence)
-        
-                     
-    agents_anom=unique(anomalies_pp_t$EXPL)
-    agents_anom=agents_anom[!is.na(agents_anom) & agents_anom!=""]
-    anomalie_agent=data.frame(AGENT="",TAUX_NON_ANOMALIE="")
-    anomalie_agent_t=lapply(agents_anom,function_anom_agent)
-    anomalie_agent=do.call("rbind",anomalie_agent_t)
-    anomalie_agent=reset_row_names(anomalie_agent)
-    anomalie_agent=anomalie_agent[!anomalie_agent$AGENT=="",]
-    anomalie_agent=reset_row_names(anomalie_agent)
-
-       cat("###############################################\n")
-      cat("######### FIN ANOMALIES PP \n")
-      cat("##############################################\n")
-
-    if (is.null(anomalie_agent)=="FALSE") {
-         colnames(anomalie_agent)[1]="Agents"
-         wb_agence_anomalie_flux=createWorkbook()
-         addWorksheet(wb_agence_anomalie_flux,"Appréciation")
-         writeData(wb_agence_anomalie_flux,"Appréciation", x=anomalie_agent, startRow=1, startCol=1)
-         addStyle(wb_agence_anomalie_flux,"Appréciation",headerStyle, cols=1:ncol(anomalie_agent), rows=1)
-         saveWorkbook(wb_agence_anomalie_flux, paste(sep="",paste(chemin,fil,"//Contrôle de qualité//Contrôle qualité Flux//",sep=""),"Contrôle de non-anomalie par agent_Flux",".xlsx"), overwrite=T)
-    
-       writeData(wb_anom_agents,paste("Tx non anomalie agents_flux"), x=anomalie_agent, startRow=1, startCol=1)
-       addStyle(wb_anom_agents,paste("Tx non anomalie agents_flux"), headerStyle, cols=1:ncol(anomalie_agent), rows=1)
-
-    } else {
-       anomalie_agent
-    }
-  
-  
-   ## Taux non anomalie des agents flux
-
-
-           cat("###############################################\n")
-           cat("#########Début du taux d'agence 1\n")
-           cat("##############################################\n")
-
-
-        if (nrow(anomalies_pp)!=0) {
-            anomalies_pp=reset_row_names(anomalies_pp)
-            expl=reset_row_names(anomalies_pp)
-
-            expl=expl[,-c(1:3)]
-            expl=reset_row_names(expl)
-            expl_anomalies=as.matrix(expl)
-            n_anorm_i= sum(grepl("ANOMALIE",expl_anomalies, ignore.case=T))
-            l=ncol(expl)-6
-            expl=expl[,c(1:l)]
-            expl=reset_row_names(expl)
-            total=ncol(expl)*nrow(expl) - length(which(expl==""))
-            taux_anomalie=floor(100*(1-n_anorm_i/total))      
-            taux_anomalie=unname(paste(taux_anomalie,"%",sep=""))
-            taux_anomalie_fil=data.frame(FLUX="",TAUX_NON_ANOMALIE=taux_anomalie, stringsAsFactors=FALSE)
-            taux_anomalie_fil_flux=reset_row_names(taux_anomalie_fil)            
-
-        writeData(wb_anom_agents,paste("Tx non anomalie BOA_",fil), x=taux_anomalie_fil_flux, startRow=1, startCol=1)
-        addStyle(wb_anom_agents,paste("Tx non anomalie BOA_",fil), headerStyle, cols=1:ncol(taux_anomalie_fil_flux), rows=1)
-         
-        }
-                   cat("###############################################\n")
-           cat("#########Début du taux d'agence 2 \n")
-           cat("##############################################\n")
                   
            ## PM
         exploitant="agent"
@@ -2352,188 +2290,9 @@ anom_pp= function(x) {
         taux_filiale_pm=taux_filiale_pm[-which(taux_filiale_pm$RCSNO==""),]
 
 
-        taux_completude_pm = data.frame(Agents=taux_filiale_pm$Agents, Taux=taux_filiale_pm$Taux.de.fiabilisation, Date=Sys.Date(), flux_stock=rep("F", nrow(taux_filiale_pm)), pp_pm=rep("M", nrow(taux_filiale_pm)))
+        taux_completude_pm = data.frame(Agents=taux_filiale_pm$Agents, Taux=taux_filiale_pm$Taux.de.fiabilisation, Date=premier_jour_mois_precedent, flux_stock=rep("F", nrow(taux_filiale_pm)), pp_pm=rep("M", nrow(taux_filiale_pm)))
 
 
-          #### les taux d'appréciation
-
-
-          cat("###############################################\n")
-           cat("#########Début du taux d'agence 3 \n")
-           cat("##############################################\n")
-
-
-        #### les taux d'appréciation PM et PP combinés min(Txp,Txm)
-
-        app_flux <- compute_app_flux(taux_filiale_t, taux_filiale_pm)
-        app_flux <- app_flux[!(is.na(app_flux$Agents) | app_flux$Agents==""),]
-
-        
-         if ((is.null(str(anomalie_agent$AGENT))=="TRUE")) {
-          anomalie_agent=data.frame(Agents=anomalies_pp$EXPL, TAUX_NON_ANOMALIE=rep("100%",length(anomalies_pp$EXPL)))
-
-      }
-
-
-        taux_app_flux=app_flux
-
-        wb_anomalies_fliale=createWorkbook()
-       
-       
-        taux_app_flux=left_join(taux_app_flux,anomalie_agent,by="Agents")
-
-        taux_app_flux=taux_app_flux[,-4]
-
-        taux_app_flux=left_join(taux_app_flux,cp_flux,by="Agents")
-
-        taux_app_flux$TAUX_NON_ANOMALIE=as.numeric(gsub("%","",taux_app_flux$TAUX_NON_ANOMALIE))
-
-        taux_app_flux$Note_1=""
-
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE<=80 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Très bien"]="Insatisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE<=80 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Bien"]="Insatisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE<=80 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Moyen"]="Insatisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE<=80 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Passable"]="Insatisfaisant"
-
-
-        taux_app_flux$Note_1[(taux_app_flux$TAUX_NON_ANOMALIE<100 & taux_app_flux$TAUX_NON_ANOMALIE>80) & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Très bien"]="Satisfaisant"
-        taux_app_flux$Note_1[(taux_app_flux$TAUX_NON_ANOMALIE<100 & taux_app_flux$TAUX_NON_ANOMALIE>80) & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Bien"]="Satisfaisant"
-        taux_app_flux$Note_1[(taux_app_flux$TAUX_NON_ANOMALIE<100 & taux_app_flux$TAUX_NON_ANOMALIE>80) & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Moyen"]="Insatisfaisant"
-        taux_app_flux$Note_1[(taux_app_flux$TAUX_NON_ANOMALIE<100 & taux_app_flux$TAUX_NON_ANOMALIE>80) & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Passable"]="Insatisfaisant"
-
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE==100 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Très bien"]="Très satisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE==100 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Bien"]="Satisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE==100 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Moyen"]="Satisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE==100 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Passable"]="Insatisfaisant"
-
-
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE<=80 & (is.na(taux_app_flux$NOTE_CONTROLE_PERMANANT)=="TRUE" | taux_app_flux$NOTE_CONTROLE_PERMANANT=="")]="Insatisfaisant"
-
-        taux_app_flux$Note_1[(taux_app_flux$TAUX_NON_ANOMALIE < 100 & taux_app_flux$TAUX_NON_ANOMALIE > 80) & (is.na(taux_app_flux$NOTE_CONTROLE_PERMANANT)=="TRUE" | taux_app_flux$NOTE_CONTROLE_PERMANANT=="") ]="Satisfaisant"
-
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE==100 & (is.na(taux_app_flux$NOTE_CONTROLE_PERMANANT)=="TRUE" | taux_app_flux$NOTE_CONTROLE_PERMANANT=="")]="Très satisfaisant"
-
-
-        note_cp=data.frame(NOTE_CONTROLE_PERMANANT=taux_app_flux$NOTE_CONTROLE_PERMANANT)
-        note_cp$NOTE_CONTROLE_PERMANANT[is.na(note_cp$NOTE_CONTROLE_PERMANANT)]=0
-
-        note_cp[note_cp$NOTE_CONTROLE_PERMANANT=="Très bien"]=4
-        note_cp[note_cp$NOTE_CONTROLE_PERMANANT=="Bien"]=3
-        note_cp[note_cp$NOTE_CONTROLE_PERMANANT=="Moyen"]=2
-        note_cp[note_cp$NOTE_CONTROLE_PERMANANT=="Passable"]=1
-
-        note_filiale_fll=mean((note_cp$NOTE_CONTROLE_PERMANANT), na.rm=FALSE)
-
-        note_finale=data.frame(Filiale=fil, Notation=note_filiale_fll, Date=ymd(Sys.Date()))
-        note_groupe=rbind(note_finale,note_groupe)
-
-        write.csv2(note_groupe,paste0(chemin,"note_groupe.csv"))
-
-       ## Note Finale
-
-         if (trimestre_actuel=="1") {
-
-          taux_app_flux$Appreciation_Globale=""
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=5 & taux_app_flux$Note_1=="Très satisfaisant"]="Faible++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=5 & taux_app_flux$Note_1=="Satisfaisant"]="Faible+"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=5 & taux_app_flux$Note_1=="Insatisfaisant"]="Faible-"
-
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>5 & taux_app_flux$Taux_Completude <=30) & taux_app_flux$Note_1=="Très satisfaisant"]="Moyen++"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>5 & taux_app_flux$Taux_Completude <=30) & taux_app_flux$Note_1=="Satisfaisant"]="Moyen+"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>5 & taux_app_flux$Taux_Completude <=30) & taux_app_flux$Note_1=="Insatisfaisant"]="Moyen-"
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>30 & taux_app_flux$Note_1=="Très satisfaisant"]="Bon++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>30 & taux_app_flux$Note_1=="Satisfaisant"]="Bon+"
-           taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>30 & taux_app_flux$Note_1=="Insatisfaisant"]="Bon-"
-         }
-
-           if (trimestre_actuel=="2") {
-
-          taux_app_flux$Appreciation_Globale=""
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=30 & taux_app_flux$Note_1=="Très satisfaisant"]="Faible++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=30 & taux_app_flux$Note_1=="Satisfaisant"]="Faible+"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=30 & taux_app_flux$Note_1=="Insatisfaisant"]="Faible-"
-
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>30 & taux_app_flux$Taux_Completude <=60) & taux_app_flux$Note_1=="Très satisfaisant"]="Moyen++"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>30 & taux_app_flux$Taux_Completude <=60) & taux_app_flux$Note_1=="Satisfaisant"]="Moyen+"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>30 & taux_app_flux$Taux_Completude <=60) & taux_app_flux$Note_1=="Insatisfaisant"]="Moyen-"
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>60 & taux_app_flux$Note_1=="Très satisfaisant"]="Bon++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>60 & taux_app_flux$Note_1=="Satisfaisant"]="Bon+"
-           taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>60 & taux_app_flux$Note_1=="Insatisfaisant"]="Bon-"
-         }
-
-           if (trimestre_actuel=="3") {
-
-          taux_app_flux$Appreciation_Globale=""
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=60 & taux_app_flux$Note_1=="Très satisfaisant"]="Faible++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=60 & taux_app_flux$Note_1=="Satisfaisant"]="Faible+"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=60 & taux_app_flux$Note_1=="Insatisfaisant"]="Faible-"
-
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>60 & taux_app_flux$Taux_Completude <=90) & taux_app_flux$Note_1=="Très satisfaisant"]="Moyen++"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>60 & taux_app_flux$Taux_Completude <=90) & taux_app_flux$Note_1=="Satisfaisant"]="Moyen+"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>60 & taux_app_flux$Taux_Completude <=90) & taux_app_flux$Note_1=="Insatisfaisant"]="Moyen-"
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>90 & taux_app_flux$Note_1=="Très satisfaisant"]="Bon++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>90 & taux_app_flux$Note_1=="Satisfaisant"]="Bon+"
-           taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>90 & taux_app_flux$Note_1=="Insatisfaisant"]="Bon-"
-         }
-
-           if (trimestre_actuel=="4") {
-
-          taux_app_flux$Appreciation_Globale=""
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=65 & taux_app_flux$Note_1=="Très satisfaisant"]="Faible++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=65 & taux_app_flux$Note_1=="Satisfaisant"]="Faible+"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=65 & taux_app_flux$Note_1=="Insatisfaisant"]="Faible-"
-
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>55 & taux_app_flux$Taux_Completude <=95) & taux_app_flux$Note_1=="Très satisfaisant"]="Moyen++"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>65 & taux_app_flux$Taux_Completude <=95) & taux_app_flux$Note_1=="Satisfaisant"]="Moyen+"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>65 & taux_app_flux$Taux_Completude <=95) & taux_app_flux$Note_1=="Insatisfaisant"]="Moyen-"
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>95 & taux_app_flux$Note_1=="Très satisfaisant"]="Bon++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>95 & taux_app_flux$Note_1=="Satisfaisant"]="Bon+"
-           taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>95 & taux_app_flux$Note_1=="Insatisfaisant"]="Bon-"
-         }
-
-
-        taux_app_flux=taux_app_flux[,-5]
-        taux_app_flux$Taux_Completude=paste(taux_app_flux$Taux_Completude,"%")
-        taux_app_flux$TAUX_NON_ANOMALIE=paste(taux_app_flux$TAUX_NON_ANOMALIE,"%")
-
-         taux_app_flux$Mesure=""
-
-         taux_app_flux$Mesure[taux_app_flux$Appreciation_Globale=="Faible++" | taux_app_flux$Appreciation_Globale=="Faible+" | taux_app_flux$Appreciation_Globale=="Moyen++" 
-                                          |taux_app_flux$Appreciation_Globale=="Faible+"]="Demande d’explication et décote sur le bonus si motif infondé"
-
-        taux_app_flux$Mesure[taux_app_flux$Appreciation_Globale=="Faible-" | taux_app_flux$Appreciation_Globale=="Moyen-" | taux_app_flux$Appreciation_Globale=="Bon-"] = "Demande d’explication avec sanction forte et décote sur le bonus si motif infondé"
-
-        taux_app_flux$Mesure[taux_app_flux$Appreciation_Globale=="Bon++" | taux_app_flux$Appreciation_Globale=="Bon+"] = "Impact positif sur le bonus"
-
-        taux_app_flux=taux_app_flux[taux_app_flux$Mesure!="",]
-
-        colnames(taux_app_flux)=c("Agents","Taux de complétude","Taux de non-anomalie","Note Contrôle Permanent","Appréciation Globale","Mesures de sanctions")
-              
-         wb_note_flux=createWorkbook()
-         addWorksheet(wb_note_flux,"Appréciation")
-         writeData(wb_note_flux,"Appréciation", x=taux_app_flux, startRow=1, startCol=1)
-         addStyle(wb_note_flux,"Appréciation",headerStyle, cols=1:ncol(taux_app_flux), rows=1)  
-         saveWorkbook(wb_note_flux, paste(sep="",paste(chemin,fil,"//Contrôle de qualité//Contrôle qualité Flux//",sep=""),"Notation des agents_Flux",".xlsx"), overwrite=T)
-               
-               
-       addWorksheet(wb_anomalies_fliale,"Appréciation agents_flux")
-                        writeData(wb_anomalies_fliale,"Appréciation agents_flux", x=taux_app_flux, startRow=1, startCol=1)
-                               addStyle(wb_anomalies_fliale,"Appréciation agents_flux",headerStyle, cols=1:ncol(taux_app_flux), rows=1)
-
-
- 
-   
-
- 
-     rm(taux_app_flux)
 
   
      
@@ -2570,8 +2329,6 @@ anom_pp= function(x) {
           pm_ne$EXPL[is_alphanumeric(pm_ne$EXPL)=="FALSE"]=paste("DIR_AGENCE_",pm_ne$AGENCE[is_alphanumeric(pm_ne$EXPL)=="FALSE"],sep="")
 
 
-          pp_ne <- clean_and_mark_anomalies(pp_ne, start_col = 4)
-          pm_ne <- clean_and_mark_anomalies(pm_ne, start_col = 4)
 
 
           if (exists("pp_ne")=="TRUE" & exists("pm_ne")=="TRUE") {
@@ -2626,6 +2383,7 @@ anom_pp= function(x) {
         h=field_completion_rate(pp_ne, "DATNAIS", inc)
         i=field_completion_rate(pp_ne, "DATVALID", inc)
         j=field_completion_rate(pp_ne, "ORIGINE_REVENU", inc)
+        k=field_completion_rate(pp_ne, "PAYS_RESID", inc)
 
         T=length(c(a,b,c,d,e,f,g,h,i,j))
         
@@ -2642,7 +2400,7 @@ anom_pp= function(x) {
       # 
       
        
-        champs=c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU")
+        champs=c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU","PAYS_RESID")
 
         taux=compute_taux(pp_ne, champs)
         appreciation=get_appreciation(taux, Faible, Moyen)
@@ -2658,18 +2416,19 @@ anom_pp= function(x) {
         datnais=format_percent(h)
         datvalid=format_percent(i)
         origine=format_percent(j)
+        pays_resid=format_percent(k)
 
 
 
        
-        etat_pp_nes=data.frame(`Lieu de Naissance` = lieu_naiss, Profession = profession,Codape=codape, Revenu = revenu, NIN = nin, TEL=tel, Adresse=adresse,DATNAIS=datnais,DATVALID=datvalid, ORIGINE_REV=origine, `Taux de fiabilisation` =taux, Appréciation=appreciation)##`Taux à rattrapper` = taux_ratt)
+        etat_pp_nes=data.frame(`Lieu de Naissance` = lieu_naiss, Profession = profession,Codape=codape, Revenu = revenu, NIN = nin, TEL=tel, Adresse=adresse,DATNAIS=datnais,DATVALID=datvalid, ORIGINE_REV=origine, PAYS_RESID=pays_resid, `Taux de fiabilisation` =taux, Appréciation=appreciation)##`Taux à rattrapper` = taux_ratt)
         pp=etat_pp_nes[,c(ncol(etat_pp_nes),ncol(etat_pp_nes)-1,ncol(etat_pp_nes)-2)]
         pp_t=data.frame(A="",V="")
 
         colnames(pp_t)=c(paste(fil),"")
         pp_t[1,]=c("PM","PP")
-        pp_t[2,2]=c(pp[1,c(3)])
-        pp_t[3,2]=c(pp[1,c(2)])
+        pp_t[2,2]=etat_pp_nes$Taux.de.fiabilisation[1]
+        pp_t[3,2]=etat_pp_nes$Appréciation[1]
 
         rownames(pp_t)=c("","Taux de fiabilisation","Appréciation")
 
@@ -2729,277 +2488,15 @@ anom_pp= function(x) {
         agents_stock_pm=unique(pm_ne$EXPL[grepl("[[:alnum:]]", pm_ne$EXPL)=="TRUE"])
 
         
-        etat_expl=data.frame(Agents="",`Nbre clients concernés`="",`Lieu de Naissance`="", Profession ="", Codape="", Revenu = "", NIN="", TEL="",Adresse="",DATNAIS="", DATVALID="", ORIGINE_REV="", `Taux de fiabilisation`="", Appréciation="") # ##, `Taux à rattrapper`=taux_ratt)
+        etat_expl=data.frame(Agents="",`Nbre clients concernés`="",`Lieu de Naissance`="", Profession ="", Codape="", Revenu = "", NIN="", TEL="",Adresse="",DATNAIS="", DATVALID="", ORIGINE_REV="", PAYS_RESID="", `Taux de fiabilisation`="", Appréciation="") # ##, `Taux à rattrapper`=taux_ratt)
         taux_filiale = lapply(agents,taux_function_pp)
 
         taux_filiale_t_stock=bind_results(taux_filiale, etat_expl)
         taux_filiale_t_stock=taux_filiale_t_stock[-which(taux_filiale_t_stock$NIN==""),]
 
-        taux_completude_stock_pp = data.frame(Agents=taux_filiale_t_stock$Agents, Taux=taux_filiale_t_stock$Taux.de.fiabilisation, Date=rep(Sys.Date(),nrow(taux_filiale_t_stock)), flux_stock=rep("S", nrow(taux_filiale_t_stock)), pp_pm=rep("P", nrow(taux_filiale_t_stock)))
+        taux_completude_stock_pp = data.frame(Agents=taux_filiale_t_stock$Agents, Taux=taux_filiale_t_stock$Taux.de.fiabilisation, Date=rep(premier_jour_mois_precedent,nrow(taux_filiale_t_stock)), flux_stock=rep("S", nrow(taux_filiale_t_stock)), pp_pm=rep("P", nrow(taux_filiale_t_stock)))
 
 
-        ########## Anomalies par agent
-               
-        anomalies_pp_t=empty_anomalies_pp(pp_ne)
-        anomalies_pp=lapply(agents,anom_pp)
-
-        anomalies_pp=do.call("rbind",anomalies_pp)
-        if (is.null(anomalies_pp)) {
-            anomalies_pp <- empty_anomalies_pp(pp_ne)
-        } else {
-            anomalies_pp <- anomalies_pp[!is.na(anomalies_pp$CLIENT) & anomalies_pp$CLIENT != "", , drop = FALSE]
-        }
-
-
-      # Les agents avec les clients en anomalie
-        anomalies_pp_t= anomalies_pp %>%
-                        filter(if_any(everything(), ~ !is.na(.) & grepl("ANOMALIE", as.character(.), fixed = TRUE)))
-
-        les_anomalies=data.frame(AGENCE=anomalies_pp_t$AGENCE, EXPL=anomalies_pp_t$EXPL, CLIENT=anomalies_pp_t$CLIENT, CODAPE=anomalies_pp_t$CODAPE, 
-                                 IDP=anomalies_pp_t$IDP, ANOMALIE_AGE=anomalies_pp_t$ANOMALIE_AGE, ANOMALIE_DATE_EER=anomalies_pp_t$ANOMALIE_DATE_EER, ANOMALIE_CIN=anomalies_pp_t$ANOMALIE_CIN)
-
-        idx_ppe <- match(les_anomalies$CLIENT, ppe_stock$CLIENT)
-        les_anomalies$AGENCELIB <- ppe_stock$AGENCELIB[idx_ppe]
-        les_anomalies$PPE <- ppe_stock$PPE[idx_ppe]
-
-        if ("AGENCE" %in% names(les_anomalies)) {
-            les_anomalies$AGENCE <- pad_agence5(les_anomalies$AGENCE)
-        }
-        
-
-    les_anomalies$AGENCE <- sprintf("%05d", as.integer(les_anomalies$AGENCE))
-    a=which(colnames(les_anomalies)=="AGENCELIB")
-
-    les_anomalies=les_anomalies[,-a]
-    les_anomalies[les_anomalies=="NA"]=""
-    les_anomalies[is.na(les_anomalies)]=""
-
-
-    les_anomalies= les_anomalies[les_anomalies$ANOMALIE_AGE != "" | les_anomalies$ANOMALIE_DATE_EER != "" | les_anomalies$ANOMALIE_CIN != "" , ]
-   
-    agences_pm= unique(data.frame(AGENCE=pm_stock$AGENCE, AGENCELIB=pm_stock$AGENCELIB))
-    agences_pm$AGENCE <- sprintf("%05d", as.integer(agences_pm$AGENCE))
-
-    
-    agences_pp= unique(data.frame(AGENCE=pp_stock$AGENCE, AGENCELIB=pp_stock$AGENCELIB))
-    agences_pp$AGENCE <- sprintf("%05d", as.integer(agences_pp$AGENCE))
-
-    agences= unique(rbind(agences_pm, agences_pp))
-
-    les_anomalies_final = left_join(les_anomalies, agences, by = "AGENCE") 
-    write.csv2(les_anomalies_final, paste(sep="",chemin,fil,"//data//anomalies_",fil,".csv"), row.names = FALSE,  quote = TRUE)
-
-        #anomalies_pp_t=data.frame(AGENCE=anomalies_pp$AGENCE, EXPL=anomalies_pp$EXPL, CLIENT=anomalies_pp$CLIENT, DATNAIS=anomalies_pp$DATNAIS,DATE_EER=anomalies_pp$DATOUV,PROFESSION=anomalies_pp$PROFESSION,AGE=anomalies_pp$AGE,
-         #                 ANOMALIE_AGE=anomalies_pp$ANOMALIE_AGE,AGE_EER=anomalies_pp$AGE_EER,ANOMALIE_DATE_EER=anomalies_pp$ANOMALIE_DATE_EER,DATVALID_CIN=anomalies_pp$DATVALID,ANOMALIE_CIN=anomalies_pp$ANOMALIE_CIN)
-
-        agence_stock=unique(anomalies_pp_t$AGENCE)
-
-
-        agents_anom=unique(anomalies_pp_t$EXPL)
-        agents_anom=agents_anom[!is.na(agents_anom) & agents_anom!=""]
-        anomalie_agent=data.frame(AGENT="",TAUX_NON_ANOMALIE="")
-
-        anomalie_agent_t=lapply(agents_anom,function_anom_agent)
-
-        anomalie_agent=do.call("rbind",anomalie_agent_t)
-        anomalie_agent=reset_row_names(anomalie_agent)
-
-        anomalie_agent=anomalie_agent[!anomalie_agent$AGENT=="",]
-        anomalie_agent=reset_row_names(anomalie_agent)
-
-        wb_agence_anomalie_stock=createWorkbook()
-        addWorksheet(wb_agence_anomalie_stock,"Appréciation")
-        writeData(wb_agence_anomalie_stock,"Appréciation", x=anomalie_agent, startRow=1, startCol=1)    
-
-        addStyle(wb_agence_anomalie_stock,"Appréciation",headerStyle, cols=1:ncol(anomalie_agent), rows=1)
-        saveWorkbook(wb_agence_anomalie_stock, paste(sep="",paste(chemin,fil,"//Contrôle de qualité//Contrôle qualité Stock//",sep=""),"Contrôle de non-anomalie par agent_Stock",".xlsx"), overwrite=T)
-  
-        ## Taux non anomalie des agents stock
-        
-        agent_s=unique(pp_ne$EXPL)
-
-        diff_agent=setdiff(agent_s, anomalie_agent$AGENT)
-
-        if (length(diff_agent)!=0) {
-
-          diff_agent_tab= data.frame(AGENT=diff_agent,TAUX_NON_ANOMALIE=rep("100%",length(diff_agent)))
-            anomalie_agent=rbind(anomalie_agent,diff_agent_tab)
-        }
-        
-        
-        anomalie_agent_stock=anomalie_agent
- 
-        writeData(wb_anom_agents,paste("Tx non anomalie agents_stock"), x=anomalie_agent_stock, startRow=1, startCol=1)
-                        addStyle(wb_anom_agents,paste("Tx non anomalie agents_stock"), headerStyle, cols=1:ncol(anomalie_agent), rows=1)
-           
-        if (nrow(anomalies_pp)!=0) {
-          
-          
-                        anomalies_pp=reset_row_names(anomalies_pp)
-                        expl=reset_row_names(anomalies_pp)
-
-                        expl=expl[,-c(1:3)]
-                        expl=reset_row_names(expl)
-
-                        expl_anomalies=as.matrix(expl)
-                        n_anorm_i= sum(grepl("ANOMALIE",expl_anomalies, ignore.case=T))
-
-                        l=ncol(expl)-6
-                        expl=expl[,c(1:l)]
-                        expl=reset_row_names(expl)
-
-                        total=ncol(expl)*nrow(expl) - length(which(expl==""))
-                        taux_anomalie=floor(100*(1-n_anorm_i/total))
-
-                                
-                        taux_anomalie=unname(paste(taux_anomalie,"%",sep=""))
-
-                         
-                     
-
-                         taux_anomalie_fil=data.frame(STOCK="",TAUX_NON_ANOMALIE=taux_anomalie, stringsAsFactors=FALSE)
-                         taux_anomalie_fil_stock=reset_row_names(taux_anomalie_fil)
-
-        }
-                    
-
-
-        writeData(wb_anom_agents,paste("Tx non anomalie BOA_",fil), x=taux_anomalie_fil_stock, startRow=4, startCol=1)
-        addStyle(wb_anom_agents,paste("Tx non anomalie BOA_",fil), headerStyle, cols=1:ncol(taux_anomalie_fil_stock), rows=4)
-
-
-   ### Anomalies par agence
-          
-    
-            agents=unique(pp_ne$AGENCE)#("[[:alnum:]]", pp_ne$EXPL)=="TRUE"])
-
-            anomalie_agent=data.frame(AGENT="",TAUX_NON_ANOMALIE="")
-        
-           taux_agences=matrix(,ncol=2)
-
-           for(x in unique(pp_ne$AGENCE)) {
-
-                     anomalie_agent=data.frame(AGENT="",TAUX_NON_ANOMALIE="")
-
-                    agence=anomalies_pp_t[anomalies_pp_t$AGENCE==x,]
-                  
-
-
-                    if (nrow(agence!=0)) {
-
-
-                        ### Anomalies par agents et par agence
-
-
-                        agents_anom=unique(agence$EXPL)
-
-                        anomalie_agent_t=lapply(agents_anom,function_anom_agent)
-
-                        anomalie_agent=do.call("rbind",anomalie_agent_t)
-
-                        anomalie_agent=anomalie_agent[!anomalie_agent$AGENT=="",]
-
-
-
-                        writeData(wb_anom_agents,paste("Tx non anomalie agents_stock"), x=anomalie_agent, startRow=1, startCol=1)
-                        addStyle(wb_anom_agents,paste("Tx non anomalie agents_stock"), headerStyle, cols=1:ncol(anomalie_agent), rows=1)
-
-                        n_anorm=length(which(agence$ANOMALIE_AGE!="")) + length(which(agence$ANOMALIE_DATE_EER!="")) + length(which(agence$ANOMALIE_CIN!=""))
-
-                  
-                        expl=anomalies_pp[anomalies_pp$AGENCE==x,]
-
-                        expl=expl[,-c(1:3)]
-
-                        expl_anomalies=as.matrix(expl)
-                        n_anorm_i= sum(grepl("ANOMALIE",expl_anomalies, ignore.case=T))
-
-                        l=ncol(expl)-6
-                        expl=expl[,c(1:l)]
-
-                        total=ncol(expl)*nrow(expl) - length(which(expl==""))
-                        taux_anomalie=floor(100*(1-n_anorm_i/total))
-
-                                
-                        taux_anomalie=paste(taux_anomalie,"%",sep="")
-
-                         t1=c(paste("Agence",x, sep=" "),"Pourcentage")
-                         t2=c("Taux de non anomalie", taux_anomalie)
-
-                         taux_anomalie_t=as.data.frame(rbind(t1,t2))
-                         colnames(taux_anomalie_t)=taux_anomalie_t[1,]
-                         taux_anomalie_t=taux_anomalie_t[-1,]
-                         
-                     
-                         taux_agences_i=c(paste0("Agence ",x),taux_anomalie)
-
-                         taux_agences=rbind(taux_agences,taux_agences_i)
-                         
-                        taux_agences=as.data.frame(taux_agences)
-
-
-
-                          ###### Taux Anomalie par agent
-
-                         wb_agence=createWorkbook()
-                         wb_anom_agence=createWorkbook()
-                          wb_anom_agence_s=createWorkbook()
-
-                    
-
-                  
-                          
-                        colnames(taux_anomalie_t)[1]= paste("STOCK AGENCE",x)
-
-                        colnames(anomalie_agent)[2]="TAUX_NON_ANOMALIE"
-                        sheet_non_anom_s <- unique_sheet_name(wb_anom_agence_s, paste0(x,"_Taux de non anomalie"))
-                        sheet_anom_stock <- unique_sheet_name(wb_agence, paste0(x,"_Anomalies stock"))
-                        addWorksheet(wb_anom_agence_s, sheet_non_anom_s)
-
-
-                                        # addWorksheet(wb_agence,paste0("RECAP AGENCE ",x))
-                        # addWorksheet(wb_agence,paste0("RECAP AGENTS"))
-                        addWorksheet(wb_agence, sheet_anom_stock)
-
-
-
-                        writeData(wb_agence, sheet_anom_stock, x=agence, startRow=1, startCol=1)
-                        addStyle(wb_agence, sheet_anom_stock, headerStyle, cols=1:ncol(agence), rows=1)
-
-                        writeData(wb_anom_agence_s, sheet_non_anom_s, x=taux_anomalie_t, startRow=4, startCol=1)
-                        
-
-                        writeData(wb_anom_agence_s, sheet_non_anom_s, x=anomalie_agent, startRow=1, startCol=8)
-                    
-                                    
-                               
-                          
-                            saveWorkbook(wb_anom_agence_s, paste(sep="",paste(chemin,fil,"//Anomalies par agence//",sep=""),"Agence_",paste(x)," stock.xlsx"), overwrite=T)
-
-                                    saveWorkbook(wb_agence, paste(sep="",paste(chemin,fil,"//Contrôle de qualité//Contrôle qualité Stock//",sep=""),"Agence_",paste(x),".xlsx"), overwrite=T)
-
-                            
-                       }
-
-                     
-                       
-                  }
-         
-
-        taux_agences=as.data.frame(taux_agences)
-        colnames(taux_agences)=c("Agences","Taux d'anomalies - Stock")
-
-        taux_agences=taux_agences[-1,]
-
-        writeData(wb_anom_agents,paste("Tx non anomalie agences_stock"), x=taux_agences, startRow=1, startCol=1)
-        addStyle(wb_anom_agents,paste("Tx non anomalie agences_stock"), headerStyle, cols=1:ncol(taux_agences), rows=1)
-
-
-        writeData(wb_anom_agents,paste("Tx non anomalie agents_stock"), x=anomalie_agent, startRow=1, startCol=1)
-        addStyle(wb_anom_agents,paste("Tx non anomalie agents_stock"), headerStyle, cols=1:ncol(anomalie_agent), rows=1)
-
-
-       saveWorkbook(wb_anom_agents, paste(sep="",paste(chemin,fil,sep=""),"//Taux de non-anomalie BOA_",fil,".xlsx"), overwrite=T)
 
                 ## PM
 
@@ -3014,7 +2511,7 @@ anom_pp= function(x) {
       
 
       
-        taux_completude_stock_pm = data.frame(Agents=taux_filiale_pm_stock$Agents, Taux=taux_filiale_pm_stock$Taux.de.fiabilisation, Date=Sys.Date(), flux_stock=rep("F", nrow(taux_filiale_pm_stock)), pp_pm=rep("M", nrow(taux_filiale_pm_stock)))
+        taux_completude_stock_pm = data.frame(Agents=taux_filiale_pm_stock$Agents, Taux=taux_filiale_pm_stock$Taux.de.fiabilisation, Date=premier_jour_mois_precedent, flux_stock=rep("S", nrow(taux_filiale_pm_stock)), pp_pm=rep("M", nrow(taux_filiale_pm_stock)))
 
 
 
@@ -3025,206 +2522,6 @@ anom_pp= function(x) {
          write.csv2(taux_completude, paste(sep="",chemin,fil,"taux_",fil,".csv"), row.names=F)
 
 
-          #### les taux d'appréciation
-
-              #### les taux d'appréciation PM et PP combinés min(Txp,Txm)
-
-
-                 #### les taux d'appréciation PM et PP combinés min(Txp,Txm)
-
-        app_flux <- compute_app_flux(taux_filiale_t_stock, taux_filiale_pm_stock)
-        app_flux <- app_flux[!(is.na(app_flux$Agents) | app_flux$Agents==""),]
-
-        taux_app_flux=app_flux
-
-
-              rm(taux_app_flux)
-
-              
-
-        taux_app_flux=data.frame(Agents=taux_filiale_t_stock$Agents,Taux_Completude=taux_filiale_t_stock$Taux.de.fiabilisation)
-
-        colnames(anomalie_agent_stock)[1]="Agents"
-
-         if ((is.null(str(anomalie_agent_stock$AGENT))=="TRUE")) {
-          anomalie_agent=data.frame(Agents=anomalies_pp$EXPL, TAUX_NON_ANOMALIE=rep("100%",length(anomalies_pp$EXPL)))
-
-      }
-
-
-
-        taux_app_flux=left_join(taux_app_flux,anomalie_agent_stock,by="Agents")
-
-        taux_app_flux=taux_app_flux[,-4]
-
-        taux_app_flux=left_join(taux_app_flux,cp_flux,by="Agents")
-
-        taux_app_flux$TAUX_NON_ANOMALIE=as.numeric(gsub("%","",taux_app_flux$TAUX_NON_ANOMALIE))
-
-        taux_app_flux$Note_1=""
-
- 
-
-
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE<=80 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Très bien"]="Insatisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE<=80 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Bien"]="Insatisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE<=80 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Moyen"]="Insatisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE<=80 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Passable"]="Insatisfaisant"
-
-
-        taux_app_flux$Note_1[(taux_app_flux$TAUX_NON_ANOMALIE<100 & taux_app_flux$TAUX_NON_ANOMALIE>80) & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Très bien"]="Satisfaisant"
-        taux_app_flux$Note_1[(taux_app_flux$TAUX_NON_ANOMALIE<100 & taux_app_flux$TAUX_NON_ANOMALIE>80) & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Bien"]="Satisfaisant"
-        taux_app_flux$Note_1[(taux_app_flux$TAUX_NON_ANOMALIE<100 & taux_app_flux$TAUX_NON_ANOMALIE>80) & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Moyen"]="Insatisfaisant"
-        taux_app_flux$Note_1[(taux_app_flux$TAUX_NON_ANOMALIE<100 & taux_app_flux$TAUX_NON_ANOMALIE>80) & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Passable"]="Insatisfaisant"
-
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE==100 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Très bien"]="Très satisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE==100 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Bien"]="Satisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE==100 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Moyen"]="Satisfaisant"
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE==100 & taux_app_flux$NOTE_CONTROLE_PERMANANT=="Passable"]="Insatisfaisant"
-
-
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE<=80 & (is.na(taux_app_flux$NOTE_CONTROLE_PERMANANT)=="TRUE" | taux_app_flux$NOTE_CONTROLE_PERMANANT=="")]="Insatisfaisant"
-
-        taux_app_flux$Note_1[(taux_app_flux$TAUX_NON_ANOMALIE < 100 & taux_app_flux$TAUX_NON_ANOMALIE > 80) & (is.na(taux_app_flux$NOTE_CONTROLE_PERMANANT)=="TRUE" | taux_app_flux$NOTE_CONTROLE_PERMANANT=="") ]="Satisfaisant"
-
-        taux_app_flux$Note_1[taux_app_flux$TAUX_NON_ANOMALIE==100 & (is.na(taux_app_flux$NOTE_CONTROLE_PERMANANT)=="TRUE" | taux_app_flux$NOTE_CONTROLE_PERMANANT=="")]="Très satisfaisant"
-
-       
-        note_cp=data.frame(NOTE_CONTROLE_PERMANANT=taux_app_flux$NOTE_CONTROLE_PERMANANT)
-        note_cp$NOTE_CONTROLE_PERMANANT[is.na(note_cp$NOTE_CONTROLE_PERMANANT)]=0
-
-        note_cp[note_cp$NOTE_CONTROLE_PERMANANT=="Très bien"]=4
-        note_cp[note_cp$NOTE_CONTROLE_PERMANANT=="Bien"]=3
-        note_cp[note_cp$NOTE_CONTROLE_PERMANANT=="Moyen"]=2
-        note_cp[note_cp$NOTE_CONTROLE_PERMANANT=="Passable"]=1
-
-        note_filiale_fll=mean((note_cp$NOTE_CONTROLE_PERMANANT), na.rm=FALSE)
-
-        note_finale=data.frame(Filiale=fil, Notation=note_filiale_fll, Date=Sys.Date())
-        note_groupe_stock=rbind(note_finale,note_groupe_stock)
-
-        write.csv2(note_groupe,paste0(chemin,"note_groupe_stock.csv"))
-       ## Note Finale
-
-         if (trimestre_actuel=="1") {
-
-          taux_app_flux$Appreciation_Globale=""
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=5 & taux_app_flux$Note_1=="Très satisfaisant"]="Faible++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=5 & taux_app_flux$Note_1=="Satisfaisant"]="Faible+"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=5 & taux_app_flux$Note_1=="Insatisfaisant"]="Faible-"
-
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>5 & taux_app_flux$Taux_Completude <=30) & taux_app_flux$Note_1=="Très satisfaisant"]="Moyen++"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>5 & taux_app_flux$Taux_Completude <=30) & taux_app_flux$Note_1=="Satisfaisant"]="Moyen+"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>5 & taux_app_flux$Taux_Completude <=30) & taux_app_flux$Note_1=="Insatisfaisant"]="Moyen-"
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>30 & taux_app_flux$Note_1=="Très satisfaisant"]="Bon++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>30 & taux_app_flux$Note_1=="Satisfaisant"]="Bon+"
-           taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>30 & taux_app_flux$Note_1=="Insatisfaisant"]="Bon-"
-         }
-
-           if (trimestre_actuel=="2") {
-
-          taux_app_flux$Appreciation_Globale=""
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=30 & taux_app_flux$Note_1=="Très satisfaisant"]="Faible++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=30 & taux_app_flux$Note_1=="Satisfaisant"]="Faible+"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=30 & taux_app_flux$Note_1=="Insatisfaisant"]="Faible-"
-
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>30 & taux_app_flux$Taux_Completude <=60) & taux_app_flux$Note_1=="Très satisfaisant"]="Moyen++"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>30 & taux_app_flux$Taux_Completude <=60) & taux_app_flux$Note_1=="Satisfaisant"]="Moyen+"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>30 & taux_app_flux$Taux_Completude <=60) & taux_app_flux$Note_1=="Insatisfaisant"]="Moyen-"
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>60 & taux_app_flux$Note_1=="Très satisfaisant"]="Bon++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>60 & taux_app_flux$Note_1=="Satisfaisant"]="Bon+"
-           taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>60 & taux_app_flux$Note_1=="Insatisfaisant"]="Bon-"
-         }
-
-           if (trimestre_actuel=="3") {
-
-          taux_app_flux$Appreciation_Globale=""
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=60 & taux_app_flux$Note_1=="Très satisfaisant"]="Faible++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=60 & taux_app_flux$Note_1=="Satisfaisant"]="Faible+"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=60 & taux_app_flux$Note_1=="Insatisfaisant"]="Faible-"
-
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>60 & taux_app_flux$Taux_Completude <=90) & taux_app_flux$Note_1=="Très satisfaisant"]="Moyen++"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>60 & taux_app_flux$Taux_Completude <=90) & taux_app_flux$Note_1=="Satisfaisant"]="Moyen+"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>60 & taux_app_flux$Taux_Completude <=90) & taux_app_flux$Note_1=="Insatisfaisant"]="Moyen-"
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>90 & taux_app_flux$Note_1=="Très satisfaisant"]="Bon++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>90 & taux_app_flux$Note_1=="Satisfaisant"]="Bon+"
-           taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>90 & taux_app_flux$Note_1=="Insatisfaisant"]="Bon-"
-         }
-
-           if (trimestre_actuel=="4") {
-
-          taux_app_flux$Appreciation_Globale=""
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=65 & taux_app_flux$Note_1=="Très satisfaisant"]="Faible++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=65 & taux_app_flux$Note_1=="Satisfaisant"]="Faible+"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude<=65 & taux_app_flux$Note_1=="Insatisfaisant"]="Faible-"
-
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>55 & taux_app_flux$Taux_Completude <=95) & taux_app_flux$Note_1=="Très satisfaisant"]="Moyen++"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>65 & taux_app_flux$Taux_Completude <=95) & taux_app_flux$Note_1=="Satisfaisant"]="Moyen+"
-          taux_app_flux$Appreciation_Globale[(taux_app_flux$Taux_Completude>65 & taux_app_flux$Taux_Completude <=95) & taux_app_flux$Note_1=="Insatisfaisant"]="Moyen-"
-
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>95 & taux_app_flux$Note_1=="Très satisfaisant"]="Bon++"
-          taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>95 & taux_app_flux$Note_1=="Satisfaisant"]="Bon+"
-           taux_app_flux$Appreciation_Globale[taux_app_flux$Taux_Completude>95 & taux_app_flux$Note_1=="Insatisfaisant"]="Bon-"
-         }
-
-
-        taux_app_flux=taux_app_flux[,-5]
-        taux_app_flux$Taux_Completude=paste(taux_app_flux$Taux_Completude,"%")
-        taux_app_flux$TAUX_NON_ANOMALIE=paste(taux_app_flux$TAUX_NON_ANOMALIE,"%")
-
-         taux_app_flux$Mesure=""
-
-         taux_app_flux$Mesure[taux_app_flux$Appreciation_Globale=="Faible++" | taux_app_flux$Appreciation_Globale=="Faible+" | taux_app_flux$Appreciation_Globale=="Moyen++" 
-                                          |taux_app_flux$Appreciation_Globale=="Faible+"]="Demande d’explication et décote sur le bonus si motif infondé"
-
-        taux_app_flux$Mesure[taux_app_flux$Appreciation_Globale=="Faible-" | taux_app_flux$Appreciation_Globale=="Moyen-" | taux_app_flux$Appreciation_Globale=="Bon-"] = "Demande d’explication avec sanction forte et décote sur le bonus si motif infondé"
-
-        taux_app_flux$Mesure[taux_app_flux$Appreciation_Globale=="Bon++" | taux_app_flux$Appreciation_Globale=="Bon+"] = "Impact positif sur le bonus"
-
-        taux_app_flux=taux_app_flux[taux_app_flux$Mesure!="",]
-
-        colnames(taux_app_flux)=c("Agents","Taux de complétude","Taux de non-anomalie","Note Contrôle Permanent","Appréciation Globale","Mesures de sanctions")
-  
-       
-              
-                 wb_note_flux=createWorkbook()
-                 addWorksheet(wb_note_flux,"Appréciation")
-                 writeData(wb_note_flux,"Appréciation", x=taux_app_flux, startRow=1, startCol=1)
-
-                  
-                      
-
-                 addStyle(wb_note_flux,"Appréciation",headerStyle, cols=1:ncol(taux_app_flux), rows=1)
-
-
-
-                    
-                 saveWorkbook(wb_note_flux, paste(sep="",paste(chemin,fil,"//Contrôle de qualité//Contrôle qualité Stock//",sep=""),"Notation des agents_Stock",".xlsx"), overwrite=T)
-               
-
-
-
-
-       addWorksheet(wb_anomalies_fliale,"Appréciation agents_stock")
-       writeData(wb_anomalies_fliale,"Appréciation agents_stock", x=taux_app_flux, startRow=1, startCol=1)
-
-       addStyle(wb_anomalies_fliale,"Appréciation agents_stock",headerStyle, cols=1:ncol(taux_app_flux), rows=1)
-
-       saveWorkbook(wb_anomalies_fliale, paste(sep="",paste(chemin,fil,sep=""),"//Appréciation globale BOA_",fil,".xlsx"), overwrite=T)
-
-
-
-
-  
-
-    rm(taux_app_flux)
 
         ### Creation du fichier Excel de suivi
         wb=createWorkbook()
@@ -3285,7 +2582,7 @@ k=ncol(tableau_suivi)
         lowStyle <- createStyle(halign = "right",
         fgFill = "#D90A0A"
         )
-        apply_status_style(wb, "Flux PP", taux_filiale_t, value_col = 14)
+        apply_status_style(wb, "Flux PP", taux_filiale_t, value_col = 15)
 
 
       ### Recap Sheet Flux PP
@@ -3300,7 +2597,7 @@ k=ncol(tableau_suivi)
         addStyle(wb_recap,"Agent Flux PP",headerStyle,cols=1:k, rows=1)
 
 
-        apply_status_style(wb_recap, "Agent Flux PP", taux_filiale_t, value_col = 14)
+        apply_status_style(wb_recap, "Agent Flux PP", taux_filiale_t, value_col = 15)
 
 
 
@@ -3373,7 +2670,7 @@ k=ncol(tableau_suivi)
         fgFill = "#D90A0A"
         )
 
-        apply_status_style(wb, "Stock PP", taux_filiale_t_stock, value_col = 14)
+        apply_status_style(wb, "Stock PP", taux_filiale_t_stock, value_col = 15)
 
           ### Recap Sheet Stock PP
         addWorksheet(wb_recap,"Agent Stock PP")
@@ -3401,7 +2698,7 @@ k=ncol(tableau_suivi)
         fgFill = "#D90A0A"
         )
 
-        apply_status_style(wb_recap, "Agent Stock PP", taux_filiale_t_stock, value_col = 14)
+        apply_status_style(wb_recap, "Agent Stock PP", taux_filiale_t_stock, value_col = 15)
 
          ### Sheet Stock PM
         addWorksheet(wb,"Stock PM")
@@ -3484,6 +2781,8 @@ k=ncol(tableau_suivi)
       
           suivi_fiabilisation_out <- suivi_fiabilisation
           suivi_fiabilisation_out$Date <- format(suivi_fiabilisation_out$Date, "%d/%m/%Y")
+          suivi_fiabilisation_out =unique(suivi_fiabilisation_out)
+
 
           write.csv2(suivi_fiabilisation_out, paste0(chemin,fil,"//suivi_fiabilisation.txt"))
           
@@ -3493,234 +2792,43 @@ k=ncol(tableau_suivi)
           
 
 
-  ## les graphiques Anomalies
-  suivi_anomalie_i=as.data.frame(cbind(taux_anomalie_fil_flux[,2],taux_anomalie_fil_stock[,2],as.Date(premier_jour_mois_courant)-1))
-  colnames(suivi_anomalie_i)=c("Flux PP","Stock PP","Date")
-  suivi_anomalie_i$Date=as.Date(as.numeric(suivi_anomalie_i$Date))
 
-  suivi_anomalie$Date=parse_date_any(suivi_anomalie$Date)
-       
-  colnames(suivi_anomalie)=c("Flux PP","Stock PP","Date")
-  suivi_anomalie=rbind(suivi_anomalie,suivi_anomalie_i)
 
 
-  suivi_anomalie_out <- suivi_anomalie
-  suivi_anomalie_out$Date <- format(suivi_anomalie_out$Date, "%d/%m/%Y")
-  write.csv2(suivi_anomalie_out, paste0(chemin,fil,"//suivi_anomalie.txt"))
-  write.csv2(suivi_anomalie_out, paste0(chemin,fil,"//data//suivi_anomalie_",fil,".csv"), row.names=FALSE)
+     ## Les taux de complétude par agent flux et stock
+     # Calcul direct depuis les tableaux déjà en mémoire (taux_completude_*),
+     # sans relire le classeur "Rapport des taux de complétude par agent" (lent).
 
-     ppt<-on_slide(ppt,7)
-           # Les statistiques sur les taux de fiabilisation par agents 
-
-
-          agent_stock_pp=read_excel(paste0(chemin,fil,"//Rapport des taux de complétude par agent de BOA_",fil,".xlsx"), sheet=3)
-          agent_stock_pm=read_excel(paste0(chemin,fil,"//Rapport des taux de complétude par agent de BOA_",fil,".xlsx"), sheet=4)
-
-
-            breaks <- c(0, 50,60, 80, 100)
-
-            ### Taux de complétude des agents PP
-            inter_pp = as.numeric(gsub("%","", agent_stock_pp$Taux.de.fiabilisation))
-                
-
-            x_cut_pp <- cut(inter_pp, breaks = breaks, include.lowest = TRUE, right = TRUE,
-                        labels = c("[0, 50%]", "]50% , 60%]","]60% , 80%]", "]80% , 100%]"))
-
-                       
-            t_fiabilisation=paste0(floor(100*(table(x_cut_pp)/length(x_cut_pp))),"%")
-
-            labels = c("[0, 50%]", "]50% , 60%]","]60% , 80%]", "]80% , 100%]")
-
-            fiab_pp=as.data.frame(rbind(labels,t_fiabilisation))
-            colnames(fiab_pp)=fiab_pp[1,]
-            fiab_pp=fiab_pp[-1,]
-            rownames(fiab_pp)="Taux fiabilisation PP"
-
-
-
-
-            ### Taux de complétude des agents PM
-
-                   inter_pm = as.numeric(gsub("%","", agent_stock_pm$Taux.de.fiabilisation))
-                
-
-            x_cut_pm <- cut(inter_pm, breaks = breaks, include.lowest = TRUE, right = TRUE,
-                        labels = c("[0, 50%]", "]50% , 60%]","]60% , 80%]", "]80% , 100%]"))
-
-                       
-            t_fiabilisation_pm=paste0(floor(100*(table(x_cut_pm)/length(x_cut_pm))),"%")
-
-            labels = c("[0, 50%]", "]50% , 60%]","]60% , 80%]", "]80% , 100%]")
-
-            fiab_pm=as.data.frame(rbind(labels,t_fiabilisation_pm))
-            colnames(fiab_pm)=fiab_pm[1,]
-            fiab_pm=fiab_pm[-1,]
-            rownames(fiab_pm)="Taux fiabilisation PM"
-
-
-           taux_compl=rbind(fiab_pp,fiab_pm)
-            taux_compl=cbind(c("Taux fiabilisation PP","Taux fiabilisation PM"),taux_compl)
-            colnames(taux_compl)[1]="Taux"
-          
-          
-          rm(tableau)
-          tableau=flextable(taux_compl)
-          tableau=autofit(tableau,add_h=0,add_w=0)
-          tableau=color(tableau,color="white", part="header")
-          tableau=bg(tableau,bg=vert_fonce, part = "header")
-          tableau=fontsize(tableau,size=10)
-          tableau=fontsize(tableau,size=10,part="header")
-          tableau= align(tableau, align = "center")
-          tableau=theme_booktabs(tableau)
-
-          loc_51=ph_location(left=0.5,top=1.85)
-
-          ppt<-ph_with(ppt,tableau,location=loc_51)
-
-
-
-
-         taux_anom=read_excel(paste0(chemin,fil,"//Taux de non-anomalie BOA_",fil,".xlsx"), sheet=5)
-
-
-            breaks <- c(0, 50,60, 80, 100)
-
-            ### Taux de complétude des agents PP
-            anom_pp = as.numeric(gsub("%","", taux_anom$TAUX_NON_ANOMALIE))
-                
-
-            x_cut_pp_anom <- cut(anom_pp, breaks = breaks, include.lowest = TRUE, right = TRUE,
-                        labels = c("[0, 50%]", "]50% , 60%]","]60% , 80%]", "]80% , 100%]"))
-
-                       
-            t_anom=paste0(floor(100*(table(x_cut_pp_anom)/length(x_cut_pp_anom))),"%")
-
-            labels = c("[0, 50%]", "]50% , 60%]","]60% , 80%]", "]80% , 100%]")
-
-            anom_pp=as.data.frame(rbind(labels,t_anom))
-            colnames(anom_pp)=anom_pp[1,]
-            anom_pp=anom_pp[-1,]
-            rownames(anom_pp)="Taux non_anomalie PP"
-            anom_pp=cbind(c("Taux nnon-anomalie PP"),anom_pp)
-
-            colnames(anom_pp)[1]="Taux"
-
-
-
-          rm(tableau)
-          tableau=flextable(anom_pp)
-          tableau=autofit(tableau,add_h=0,add_w=0)
-          tableau=color(tableau,color="white", part="header")
-          tableau=bg(tableau,bg=vert_fonce, part = "header")
-          tableau=fontsize(tableau,size=10)
-          tableau=fontsize(tableau,size=10,part="header")
-          tableau= align(tableau, align = "center")
-          tableau=theme_booktabs(tableau)
-
-          loc_52=ph_location(left=0.5,top=3.9)
-
-          ppt<-ph_with(ppt,tableau,location=loc_52)
-
-
-
-
-          notation_fil=notation[notation$Filiale==paste0("BOA ",fil),]
-
-          notation_fil=cbind(notation_fil$Filiale,notation_fil$Insuffisant,notation_fil$Passable,notation_fil$Bien,notation_fil$`Très Bien`)
-
-          colnames(notation_fil)=c("Filiale","Insuffisant","Passable","Bien","Très Bien")
-          notation_fil=as.data.frame((notation_fil))
-
-
-          rm(tableau)
-          tableau=flextable(notation_fil)
-          tableau=autofit(tableau,add_h=0,add_w=0)
-          tableau=color(tableau,color="white", part="header")
-          tableau=bg(tableau,bg=vert_fonce, part = "header")
-          tableau=fontsize(tableau,size=10)
-          tableau=fontsize(tableau,size=10,part="header")
-          tableau= align(tableau, align = "center")
-          tableau=theme_booktabs(tableau)
-
-          loc_53=ph_location(left=0.5,top=5.7)
-
-          ppt<-ph_with(ppt,tableau,location=loc_53)
-
-
-
-     
-
-
-          par_5= fpar(ftext(paste0("Les comptes faisant objet d'interdit crédit et débit ne sont pas intégrés dans les comptes à fiabiliser et sont au nombre de ",nrow((non_fiab))), fp_text(color = "black",font.size = 14, font.family="Times New Roman")))
-          loc_5=ph_location(left=1.5,top=6.5,width=11,height=1)
-
-          ppt<-ph_with(ppt,par_5,location=loc_5)
-
-
-
-
-          print(ppt,target=paste(chemin,fil,"//Rapport fiabilisation KYC BOA ",fil," _ ",format(Sys.Date(),"%B %Y"),".pptx",sep=""))
-
-
-                dossier_a_supprimer <- paste0(chemin,fil,"//Anomalies par agence")
-
-          unlink(dossier_a_supprimer, recursive = TRUE)
-
-
-     ## Les taux de complétudepar agent flux et stock
-
-          flux_pp=read_excel(paste0(chemin,fil,"//Rapport des taux de complétude par agent de BOA_",fil,".xlsx"), sheet=1)
-
-          flux_pp=data.frame(Agents=flux_pp$Agents,Taux=flux_pp$Taux.de.fiabilisation,Date=rep(Sys.Date(),nrow(flux_pp)), flux_stock=rep("F",nrow(flux_pp)), pp_pm=rep("P",nrow(flux_pp)))
-
-          flux_pm=read_excel(paste0(chemin,fil,"//Rapport des taux de complétude par agent de BOA_",fil,".xlsx"), sheet=2)
-          flux_pm=data.frame(Agents=flux_pm$Agents,Taux=flux_pm$Taux.de.fiabilisation,Date=rep(Sys.Date(),nrow(flux_pm)), flux_stock=rep("F",nrow(flux_pm)), pp_pm=rep("M",nrow(flux_pm)))
-
-
-          stock_pp=read_excel(paste0(chemin,fil,"//Rapport des taux de complétude par agent de BOA_",fil,".xlsx"), sheet=3)
-          stock_pp=data.frame(Agents=stock_pp$Agents,Taux=stock_pp$Taux.de.fiabilisation,Date=rep(Sys.Date(),nrow(stock_pp)), flux_stock=rep("S",nrow(stock_pp)), pp_pm=rep("P",nrow(stock_pp)))
-
-          stock_pm=read_excel(paste0(chemin,fil,"//Rapport des taux de complétude par agent de BOA_",fil,".xlsx"), sheet=4)
-          stock_pm=data.frame(Agents=stock_pm$Agents,Taux=stock_pm$Taux.de.fiabilisation,Date=rep(Sys.Date(),nrow(stock_pm)), flux_stock=rep("S",nrow(stock_pm)), pp_pm=rep("M",nrow(stock_pm)))
-
-          write.csv2(rbind(flux_pp,flux_pm,stock_pp,stock_pm), paste0(chemin,fil,"//data//taux_",fil,".csv"), row.names=FALSE)
+          write.csv2(rbind(taux_completude_pp, taux_completude_pm, taux_completude_stock_pp, taux_completude_stock_pm),
+                     paste0(chemin,fil,"//data//taux_",fil,".csv"), row.names=FALSE)
 
 
           
-      # Fichiers à archiver (sans chemins absolus)
-      fichiers_a_archiver <- unique(zone$ZONE)
-      
-      repertoire=paste0(chemin,fil,"//",fichiers_a_archiver)
-
-
-      repertoire <- repertoire[dir.exists(repertoire)]
-
-
-      zipr(paste0(chemin,fil,"//Rapports Fiabilisation KYC BOA ",fil," _ ",format(Sys.Date() %m-% months(1), "%B %Y"),".zip"), repertoire)
 
      data_dir <- paste0(chemin, fil, "//data//")
 
-fichiers_kyc <- c(
-  paste0("anomalies_",fil,".csv"),
-  paste0("taux_",fil,".csv"),
-  paste0("suivi_fiabilisation_",fil,".csv"),
-  paste0("suivi_anomalie_",fil,".csv"),
-  paste0("scoring_",fil,".csv"),
-  paste0("agents_",fil,".csv"),
-  paste0("pp_",fil,"_STOCK_F.csv"),
-  paste0("pm_",fil,"_STOCK_F.csv")
+dossier_A <- paste0(chemin,fil,"//data//")
+dossier_B <- "C://Fiabilisation KYC//Python//data//"
+
+
+fichiers <- c(
+  paste0("taux_", fil, ".csv"),
+  paste0("suivi_fiabilisation_", fil, ".csv"),
+  paste0("scoring_", fil, ".csv"),
+  paste0("agents_", fil, ".csv"),
+  paste0("pp_", fil, "_STOCK_F.csv"),
+  paste0("pm_", fil, "_STOCK_F.csv"),
+  paste0("pp_", fil, "_STOCK.csv"),
+  paste0("pm_", fil, "_STOCK.csv")
 )
 
-fichiers_kyc_exist <- fichiers_kyc[file.exists(file.path(data_dir, fichiers_kyc))]
-zip_kyc <- paste0(data_dir, "KYC_", fil, "_", Sys.Date(), ".zip")
+# 3. Construire les chemins complets
+chemins_sources <- file.path(dossier_A, fichiers)
+chemins_destinations <- file.path(dossier_B, fichiers)
 
-if (length(fichiers_kyc_exist) > 0) {
-  if (file.exists(zip_kyc)) unlink(zip_kyc)
-  zipr(zip_kyc, files = fichiers_kyc_exist, root = data_dir)
-} else {
-  message("Aucun fichier KYC a zipper dans: ", data_dir)
-}
-
+# 4. Copier les fichiers
+# Utilisation de 'overwrite = TRUE' si vous voulez remplacer les fichiers existants dans B
+file.copy(from = chemins_sources, to = chemins_destinations, overwrite = TRUE)
 
 
 
@@ -3736,5 +2844,3 @@ for (fil in filiale){
     }
   )
 }
-
-

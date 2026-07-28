@@ -241,8 +241,8 @@
                         </p>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div class="rounded-xl bg-white border border-sky-100 p-3">
-                                <p class="text-[9px] font-black uppercase tracking-widest text-sky-700">{{ "Import multiple"|t }}</p>
-                                <p class="text-[10px] font-bold text-gray-600 mt-1">{{ "Jusqu'a"|t }} <span class="font-black text-gray-800">{{ upload_max_files }} {{ "fichiers"|t }}</span> {{ "par envoi (PDF, JPG, PNG, TIFF, TXT)."|t }}</p>
+                                <p class="text-[9px] font-black uppercase tracking-widest text-sky-700">{{ "Import unique"|t }}</p>
+                                <p class="text-[10px] font-bold text-gray-600 mt-1">{{ "Taille maximale"|t }} <span class="font-black text-gray-800">{{ single_file_max_mb }} {{ "Mo par fichier"|t }}</span>. {{ "Formats acceptes :"|t }} <span class="font-black text-gray-800">PDF, JPG, PNG, TIFF, TXT</span>.</p>
                             </div>
                             <div class="rounded-xl bg-white border border-sky-100 p-3">
                                 <p class="text-[9px] font-black uppercase tracking-widest text-sky-700">{{ "Archive ZIP"|t }}</p>
@@ -383,7 +383,7 @@
             </div>
             {% endif %}
 
-            {# ---- Progression OCR du lot (worker manage.py process_document_ocr) ---- #}
+            
             <div id="ocr-progress-panel" data-batch="{{ uploaded_batch }}"
                 data-status-url="{% url 'document_extraction_ocr_status' %}"
                 class="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-4 hidden">
@@ -484,7 +484,8 @@
                         {% endif %}
                     </div>
                     <div class="min-w-[180px] text-right">
-                        <p class="mb-1 text-[9px] font-black uppercase tracking-widest text-emerald-700">{{ selected_match_job.get_status_display }}</p>
+                        <p id="matchJobStatusLabel" data-label-completed="{{ 'Termine'|t }}" data-label-failed="{{ 'Echec'|t }}"
+                            class="mb-1 text-[9px] font-black uppercase tracking-widest text-emerald-700">{{ selected_match_job.get_status_display }}</p>
                         <p id="matchJobPercent" class="text-lg font-black text-emerald-800">{{ selected_match_job.progress_percent }}%</p>
                         <p id="matchJobCount" class="text-[9px] font-black uppercase tracking-widest text-emerald-600">
                             {{ selected_match_job.progress_current }} / {{ selected_match_job.progress_total }}</p>
@@ -609,7 +610,11 @@
                     </thead>
                     <tbody>
                         {% for job in recent_match_jobs %}
-                        <tr class="text-slate-700 transition-colors hover:bg-emerald-50">
+                        <tr class="text-slate-700 transition-colors hover:bg-emerald-50"
+                            data-match-job-row data-job-status="{{ job.status }}"
+                            data-status-url="{% url 'document_extraction_match_job_status' job.pk %}"
+                            data-label-completed="{{ 'Termine'|t }}" data-label-failed="{{ 'Echec'|t }}"
+                            data-label-running="{{ 'En cours'|t }}" data-label-view="{{ 'Voir resultats'|t }}">
                             <td class="border-t border-slate-100 px-4 py-3 align-middle">
                                 <p class="max-w-[520px] truncate text-[11px] font-black text-slate-800"
                                     title="{{ job.scope_params.import_batch|default:'Tous les lots' }}">
@@ -618,7 +623,7 @@
                                 <p class="mt-0.5 text-[9px] font-black uppercase tracking-widest text-slate-400">{{ job.created_at|date:"d/m/Y H:i" }}</p>
                             </td>
                             <td class="border-t border-slate-100 px-4 py-3 text-center align-middle">
-                                <span
+                                <span data-job-badge
                                     class="inline-flex rounded border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest {% if job.status  ==  'completed' %}border-emerald-100 bg-emerald-50 text-emerald-800{% elif job.status  ==  'failed' %}border-red-100 bg-red-50 text-red-700{% else %}border-amber-100 bg-amber-50 text-amber-800{% endif %}">
                                     {{ job.get_status_display }}
                                 </span>
@@ -626,13 +631,13 @@
                             <td class="border-t border-slate-100 px-4 py-3 align-middle">
                                 <div class="flex items-center gap-3">
                                     <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                        <div class="h-full rounded-full bg-emerald-700"
+                                        <div data-job-bar class="h-full rounded-full bg-emerald-700 transition-all duration-500"
                                             style="width: {{ job.progress_percent }}%"></div>
                                     </div>
-                                    <span class="w-16 shrink-0 text-right text-[9px] font-black text-slate-400 whitespace-nowrap">{{ job.progress_current }} / {{ job.progress_total }}</span>
+                                    <span data-job-count class="w-16 shrink-0 text-right text-[9px] font-black text-slate-400 whitespace-nowrap">{{ job.progress_current }} / {{ job.progress_total }}</span>
                                 </div>
                             </td>
-                            <td class="border-t border-slate-100 px-4 py-3 text-right align-middle">
+                            <td data-job-action class="border-t border-slate-100 px-4 py-3 text-right align-middle">
                                 {% if job.status  ==  'completed' %}
                                 <a href="{{ job.result_url }}"
                                     class="inline-flex h-8 items-center rounded-lg bg-emerald-700 px-3 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-800">
@@ -1170,7 +1175,7 @@
             </div>
         </div>
         <div class="p-6 space-y-6">
-            <!-- Selecteur de filiale -->
+            
             <div class="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
                 {% if is_group_user %}
                 <form method="get" action="{% url 'document_extraction' %}#sources"
@@ -1971,6 +1976,7 @@
         const barNode = document.getElementById("matchJobBar");
         const actionsNode = document.getElementById("matchJobResultActions");
         const resultLink = document.getElementById("matchJobResultLink");
+        const statusLabelNode = document.getElementById("matchJobStatusLabel");
 
         const pollMatchJob = async () => {
             try {
@@ -1985,6 +1991,7 @@
 
                 if (data.status === "completed") {
                     if (messageNode) messageNode.textContent = "Rapprochement termine";
+                    if (statusLabelNode) statusLabelNode.textContent = statusLabelNode.dataset.labelCompleted;
                     if (percentNode) percentNode.textContent = "100%";
                     if (barNode) barNode.style.width = "100%";
                     if (resultLink && data.result_url) resultLink.href = data.result_url;
@@ -1993,6 +2000,7 @@
                 }
                 if (data.status === "failed") {
                     if (messageNode) messageNode.textContent = data.error || "Echec du rapprochement";
+                    if (statusLabelNode) statusLabelNode.textContent = statusLabelNode.dataset.labelFailed;
                     return;
                 }
             } catch (error) {
@@ -2067,6 +2075,68 @@
 
         setMatchButtonEnabled(false);
         pollOcr();
+    }
+
+    // ---- Rafraichissement live des lignes du tableau Suivi (statuts des rapprochements) ----
+    const activeJobRows = Array.from(document.querySelectorAll("[data-match-job-row]"))
+        .filter((row) => row.dataset.jobStatus === "pending" || row.dataset.jobStatus === "running");
+    if (activeJobRows.length) {
+        const applyJobRowState = (row, data) => {
+            const badge = row.querySelector("[data-job-badge]");
+            const bar = row.querySelector("[data-job-bar]");
+            const count = row.querySelector("[data-job-count]");
+            const action = row.querySelector("[data-job-action]");
+            const percent = Number.parseInt(data.percent || "0", 10);
+
+            if (bar) bar.style.width = `${data.status === "completed" ? 100 : percent}%`;
+            if (count) count.textContent = `${data.current || 0} / ${data.total || 0}`;
+
+            if (data.status === "completed") {
+                row.dataset.jobStatus = "completed";
+                if (badge) {
+                    badge.className = "inline-flex rounded border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest border-emerald-100 bg-emerald-50 text-emerald-800";
+                    badge.textContent = row.dataset.labelCompleted;
+                }
+                if (action && data.result_url) {
+                    const link = document.createElement("a");
+                    link.href = data.result_url;
+                    link.className = "inline-flex h-8 items-center rounded-lg bg-emerald-700 px-3 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-800";
+                    link.textContent = row.dataset.labelView;
+                    action.replaceChildren(link);
+                }
+            } else if (data.status === "failed") {
+                row.dataset.jobStatus = "failed";
+                if (badge) {
+                    badge.className = "inline-flex rounded border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest border-red-100 bg-red-50 text-red-700";
+                    badge.textContent = row.dataset.labelFailed;
+                }
+                if (action) {
+                    const label = document.createElement("span");
+                    label.className = "text-[9px] font-black uppercase tracking-widest text-red-600";
+                    label.textContent = row.dataset.labelFailed;
+                    action.replaceChildren(label);
+                }
+            }
+        };
+
+        const pollJobRows = async () => {
+            const pending = activeJobRows.filter(
+                (row) => row.dataset.jobStatus === "pending" || row.dataset.jobStatus === "running"
+            );
+            if (!pending.length) return;
+            await Promise.all(pending.map(async (row) => {
+                try {
+                    const response = await fetch(row.dataset.statusUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+                    if (!response.ok) return;
+                    applyJobRowState(row, await response.json());
+                } catch (error) {
+                    /* reessaye au prochain cycle */
+                }
+            }));
+            window.setTimeout(pollJobRows, 3000);
+        };
+
+        pollJobRows();
     }
 </script>
 {% endblock %}

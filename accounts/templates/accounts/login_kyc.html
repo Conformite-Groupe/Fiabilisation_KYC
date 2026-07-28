@@ -422,7 +422,7 @@
 
 <body>
 
-    <!-- Sélecteur de langue FR / EN -->
+    
     <form action="{% url 'set_language' %}" method="post" class="lang-switch">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -432,25 +432,25 @@
             class="lang-btn {% if LANGUAGE_CODE|slice:':2' == 'en' %}active{% endif %}">{{ "EN"|t }}</button>
     </form>
 
-    <!-- Cercles décoratifs -->
+    
     <div class="deco-circle dc1"></div>
     <div class="deco-circle dc2"></div>
     <div class="deco-circle dc3"></div>
 
     <div style="display:flex; flex-direction:column; align-items:center; position:relative; z-index:10; width:100%;">
 
-        <!-- Card -->
+        
         <div class="login-card">
 
-            <!-- Logo -->
+            
             <div class="logo-zone">
                 <img src="/media/images/boa.png" alt="Bank of Africa">
             </div>
 
-            <!-- Barre verte -->
+            
             <div class="green-bar"></div>
 
-            <!-- Formulaire -->
+            
             <div class="form-zone">
 
                 <div class="version-chip">
@@ -475,7 +475,7 @@
                     </div>
                     {% endif %}
 
-                    <!-- Identifiant -->
+                    
                     <div class="f-group">
                         <label class="f-label" for="email">{{ "Identifiant"|t }}</label>
                         <div class="f-wrap">
@@ -492,7 +492,7 @@
                         </div>
                     </div>
 
-                    <!-- Mot de passe -->
+                    
                     <div class="f-group">
                         <label class="f-label" for="password">{{ "Mot de passe"|t }}</label>
                         <div class="f-wrap">
@@ -521,7 +521,7 @@
                         </div>
                     </div>
 
-                    <!-- Bouton -->
+                    
                     <button type="submit" class="btn-login">
                         {{ "Se connecter"|t }}
                         <span class="btn-arr">
@@ -537,7 +537,7 @@
             </div>
         </div>
 
-        <!-- Footer -->
+        
         <div class="footer">
             <p>© <span id="year"></span> {{ "Compliance Group · BOA Holding"|t }}</p>
             <a href="mailto:safkyc@boaholding.com">{{ "Assistance technique"|t }}</a>

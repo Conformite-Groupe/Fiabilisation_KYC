@@ -283,6 +283,8 @@
                 </div>
             </div>
 
+            {% include "includes/datouv_period_filter.html" %}
+
             <div class="flex gap-3 w-full lg:w-auto h-full items-end mt-4 lg:mt-0">
                 <button type="submit" class="group relative flex-1 lg:w-32 h-10 overflow-hidden rounded-xl nav-link-active text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2">
                     <div class="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300 ease-out"></div>
@@ -299,9 +301,9 @@
         </div>
     </form>
 
-    <!-- KPI Section -->
+    
     <div class="flex flex-wrap justify-center gap-4 mb-6 relative z-10">
-        <!-- KPI Total Scored -->
+        
         <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-emerald-500">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
@@ -323,7 +325,7 @@
             </div>
         </div>
 
-        <!-- KPI Taux Scoring -->
+        
         <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-blue-500">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
@@ -345,7 +347,7 @@
             </div>
         </div>
 
-        <!-- KPI Non Scored -->
+        
         <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-amber-500">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
@@ -374,7 +376,7 @@
             </div>
         </div>
 
-        <!-- KPI Non Scored Overdue -->
+        
         <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-red-500">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
@@ -429,6 +431,9 @@
                     <tr class="sticky top-0 z-50">
                         <th
                             class="px-1 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">
+                            {{ "Filiale"|t }}</th>
+                        <th
+                            class="px-1 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">
                             {{ "Agence"|t }}</th>
                         <th
                             class="px-1 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">
@@ -450,6 +455,11 @@
                             {{ "Risque"|t }}</th>
                     </tr>
                     <tr class="bg-slate-900/90">
+                        <th class="px-1 py-2 bg-slate-900">
+                            <input form="filterForm" name="col_filiale" value="{{ request.GET.col_filiale|default:'' }}"
+                                placeholder="{{ 'Filtre'|t }}"
+                                class="w-full min-w-[56px] px-1.5 py-1 text-[9px] text-slate-900 bg-white/90 rounded border border-slate-300" />
+                        </th>
                         <th class="px-1 py-2 bg-slate-900">
                             <input form="filterForm" name="col_agence" value="{{ request.GET.col_agence|default:'' }}"
                                 placeholder="{{ 'Filtre'|t }}"
@@ -490,6 +500,7 @@
                 <tbody class="divide-y divide-gray-100 bg-white text-center">
                     {% for item in donnees.object_list %}
                     <tr class="group {% cycle 'bg-white' 'bg-gray-50/50' %} hover:bg-green-50 transition-colors">
+                        <td class="px-1 py-1 text-gray-500 whitespace-nowrap">{{ item.FILIALE|default:"-" }}</td>
                         <td class="px-1 py-1 text-gray-500 whitespace-nowrap">{{ item.AGENCE }}</td>
                         <td class="px-1 py-1 text-gray-500 whitespace-nowrap">{{ item.LIB_AGENCE }}</td>
                         <td

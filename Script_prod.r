@@ -29,8 +29,9 @@ library(stringi)
 library(data.table)
 
 })
-#####-----------------------####-------------###########
-chemin="C://Fiabilisation KYC//R//"
+
+#####-----------------------CONFIG ET FONCTIONS-------------###########
+chemin <- "C://Users//mamsylla//OneDrive - BANK OF AFRICA (1)//data//"
 chemin2="C://KYC_Filiales//"
 chemin_7z <- '"C://Program Files//7-Zip//7z.exe"'
 #####-----------------------####-------------###########
@@ -40,8 +41,8 @@ chemin_7z <- '"C://Program Files//7-Zip//7z.exe"'
   #premier_jour_mois_courant <- floor_date(premier_jour_mois_precedent, "month")
   #premier_jour_mois_precedent <- premier_jour_mois_courant %m-% months(1)
 
- #premier_jour_mois_courant <- "2026-06-01"
- #premier_jour_mois_precedent <- "2026-05-01"
+ premier_jour_mois_courant <- "2026-06-01"
+ premier_jour_mois_precedent <- "2026-05-01"
 
  # premier_jour_mois_courant <- premier_jour_mois_precedent
 
@@ -120,6 +121,25 @@ remove_spaces <- function(x) {
   return(x)
 }
 
+# Classe de caracteres "espace" a normaliser : tabulation, espace ordinaire,
+# insecable (U+00A0), insecable etroit (U+202F), espace chiffre (U+2007).
+# Caracteres litteraux et non echappements \x{...} : PCRE refuse ces derniers
+# quand la chaine traitee n'est pas marquee UTF-8 (cas des exports Latin-1).
+ESPACES_PARASITES <- paste0("[\t ", intToUtf8(160), intToUtf8(8239), intToUtf8(8199), "]+")
+
+# Colonnes a NE PAS charger, par filiale. Elles sont ecartees des la lecture
+# (drop de fread) : elles n'occupent donc jamais de memoire. Une colonne listee
+# ici mais absente de l'export est simplement signalee, sans erreur.
+COLONNES_IGNOREES <- list(
+  MG = c("INTITULE_COMPTE", "LIEU_DELIVRANCE_CIN", "BOITE_POSTALE", "CONSENT_BIC")
+)
+
+# Au-dela de ce seuil, read_csv2_big lit le CSV en NB_TRANCHES morceaux
+# (mono-thread) au lieu d'une seule passe. Augmenter NB_TRANCHES si la session
+# R meurt encore avec une violation d'acces 0xC0000005.
+SEUIL_DECOUPAGE_GO <- 1
+NB_TRANCHES <- 4
+
 # Nettoyage des espaces (début/fin + multiples)
 clean_spaces <- function(x) {
   x <- ifelse(is.na(x), "", as.character(x))
@@ -132,7 +152,7 @@ clean_spaces <- function(x) {
     }
     x <- x2
   }
-  x <- gsub("[ 	]+", " ", x, useBytes = TRUE)
+  x <- gsub(ESPACES_PARASITES, " ", x, perl = TRUE)
   trimws(x)
 }
 
@@ -488,9 +508,11 @@ read_csv2_auto <- function(path, ...) {
 # - multi-thread, strip.white natif (espaces parasites dans les colonnes)
 # - cache .rds : les relances du script rechargent en quelques secondes
 # - type.convert reproduit le typage de read.csv2 (dec = ",")
-read_csv2_big <- function(path, cache = TRUE) {
+read_csv2_big <- function(path, cache = TRUE, drop = NULL) {
   t0 <- Sys.time()
-  rds <- paste0(path, ".rds")
+  # Le cache depend des colonnes ignorees : suffixe distinct pour ne pas
+  # recharger un cache complet quand on demande une lecture allegee (ou l'inverse).
+  rds <- paste0(path, if (length(drop)) "-drop" else "", ".rds")
   if (cache && file.exists(rds) && file.mtime(rds) >= file.mtime(path)) {
     message("[read_csv2_big] Lecture depuis le cache: ", basename(rds))
     df <- readRDS(rds)
@@ -511,14 +533,31 @@ read_csv2_big <- function(path, cache = TRUE) {
   # fill = Inf : certaines lignes ont des champs en trop (";" dans un libellé),
   # sans cela fread s'arrête en cours de fichier (lecture TRONQUEE silencieuse).
   # Le warning "Stopped early" est donc traité comme un échec.
-  fread_try <- function(q) {
+  fread_try <- function(q, skip = 0L, nrows = Inf, col_names = NULL, nthread = NULL,
+                        dropcols = NULL) {
     stopped <- FALSE
+    args <- list(path, sep = ";", dec = ",", quote = q,
+                 colClasses = "character", encoding = enc_fread,
+                 strip.white = TRUE, fill = Inf, blank.lines.skip = TRUE,
+                 showProgress = TRUE, data.table = TRUE, nrows = nrows)
+    if (!is.null(nthread)) args$nThread <- nthread
+    # drop par INDICE et non par nom : en mode tranche les colonnes sortent en
+    # V1, V2, ... (header = FALSE), un drop par nom ne matcherait rien.
+    if (length(dropcols)) args$drop <- dropcols
+    if (!is.null(col_names)) {
+      # Tranche : on saute l'en-tete + les lignes deja lues (sinon la 1re ligne
+      # de donnees servirait d'en-tete et la tranche perdrait une ligne).
+      # NE PAS passer col.names ici : cela figerait le nombre de colonnes et
+      # les lignes ayant des champs en trop (";" dans un libelle) deborderaient
+      # sur une NOUVELLE LIGNE au lieu de creer des colonnes V4, V5...
+      # Les colonnes sortent donc en V1, V2, ... et sont renommees apres le
+      # recollage, ce qui reproduit exactement la lecture en une passe.
+      args$skip <- skip + 1L
+      args$header <- FALSE
+    }
     df <- withCallingHandlers(
       tryCatch(
-        data.table::fread(path, sep = ";", dec = ",", quote = q,
-                          colClasses = "character", encoding = enc_fread,
-                          strip.white = TRUE, fill = Inf, blank.lines.skip = TRUE,
-                          showProgress = TRUE, data.table = FALSE),
+        do.call(data.table::fread, args),
         error = function(e) {
           message("[read_csv2_big] fread (quote=", deparse(q), ") a echoue: ",
                   conditionMessage(e))
@@ -538,23 +577,6 @@ read_csv2_big <- function(path, cache = TRUE) {
     df
   }
 
-  # quote="" en premier : les exports bancaires ont des guillemets mal appariés
-  # qui font dérailler le parsing quoté (fichier lu en 1 seule colonne)
-  df <- fread_try("")
-  if (is.null(df) || ncol(df) < 2) {
-    message("[read_csv2_big] Nouvel essai avec quote standard ...")
-    df <- fread_try("\"")
-    if (!is.null(df) && ncol(df) < 2) df <- NULL
-  }
-  # Dernier recours : ancienne lecture lente
-  if (is.null(df)) {
-    message("[read_csv2_big] ATTENTION: bascule sur read_csv2_auto (LENT, plusieurs minutes)")
-    return(read_csv2_auto(path))
-  }
-
-  message("[read_csv2_big] fread OK: ", nrow(df), " lignes en ",
-          round(difftime(Sys.time(), t0, units = "secs")), "s. Typage...")
-
   # Répare les octets invalides (fichiers UTF-8 contenant des restes Latin-1),
   # enlève les guillemets et espaces résiduels, puis retype comme read.csv2.
   # validEnc (test C rapide) évite de convertir chaque chaîne : seules les
@@ -566,14 +588,176 @@ read_csv2_big <- function(path, cache = TRUE) {
     }
     x
   }
-  df[] <- lapply(df, function(x) {
-    x <- fix_utf8(x)
-    if (any(grepl('"', x, fixed = TRUE))) {
-      x <- trimws(gsub('"', "", x, fixed = TRUE))
+
+  # Nettoyage colonne par colonne PAR REFERENCE (data.table::set).
+  # Un "df[] <- lapply(df, ...)" dupliquerait tout le tableau en memoire : sur
+  # 3 Go de CSV (soit >10 Go une fois en RAM) cela suffit a faire crasher R
+  # avec une violation d'acces 0xC0000005. Ici une seule colonne est en double
+  # a un instant donne, et l'ancienne est liberee immediatement.
+  # retype = FALSE pour les tranches : le type.convert final se fait une seule
+  # fois sur le tableau recolle (sinon deux tranches peuvent recevoir des types
+  # differents selon leur contenu, et le rbind echoue ou coerce en silence).
+  clean_dt <- function(df, retype = TRUE) {
+    for (j in seq_len(ncol(df))) {
+      x <- df[[j]]
+      x <- fix_utf8(x)
+      if (any(grepl('"', x, fixed = TRUE))) {
+        x <- gsub('"', "", x, fixed = TRUE)
+      }
+      # Espaces parasites de l'export : tabulations, espaces insecables et
+      # suites d'espaces internes -> un seul espace, puis trim.
+      x <- gsub(ESPACES_PARASITES, " ", x, perl = TRUE)
+      x <- trimws(x)
+      if (retype) x <- type.convert(x, as.is = TRUE, dec = ",")
+      data.table::set(df, j = j, value = x)
+      rm(x)
+      if (j %% 10 == 0) gc(verbose = FALSE)
     }
-    type.convert(x, as.is = TRUE, dec = ",")
-  })
-  names(df) <- trimws(gsub('"', "", fix_utf8(names(df)), fixed = TRUE))
+    gc(verbose = FALSE)
+    data.table::setnames(df, trimws(gsub('"', "", fix_utf8(names(df)), fixed = TRUE)))
+    df
+  }
+
+  taille_go <- file.size(path) / 1024^3
+
+  # ---- Colonnes a ignorer : resolution des noms en INDICES ----
+  # Faite sur l'en-tete reel du fichier : une colonne absente de cet export est
+  # simplement signalee et ignoree (pas d'erreur), et le drop est ensuite
+  # utilisable aussi bien en lecture directe qu'en mode tranche.
+  drop_idx <- NULL
+  entete_all <- NULL
+  if (length(drop)) {
+    entete_all <- fread_try("", nrows = 0L)
+    if (is.null(entete_all) || ncol(entete_all) < 2) entete_all <- fread_try("\"", nrows = 0L)
+    if (!is.null(entete_all)) {
+      noms_reels <- trimws(gsub('"', "", names(entete_all), fixed = TRUE))
+      drop_idx <- which(toupper(noms_reels) %in% toupper(drop))
+      absentes <- setdiff(toupper(drop), toupper(noms_reels))
+      if (length(absentes)) {
+        message("[read_csv2_big] Colonnes a ignorer absentes du fichier: ",
+                paste(absentes, collapse = ", "))
+      }
+      if (length(drop_idx)) {
+        message("[read_csv2_big] Colonnes ignorees (non chargees): ",
+                paste(noms_reels[drop_idx], collapse = ", "))
+      } else {
+        drop_idx <- NULL
+      }
+    }
+  }
+
+  if (taille_go <= SEUIL_DECOUPAGE_GO) {
+    # ---- Lecture en une seule passe (fichiers "normaux") ----
+    # quote="" en premier : les exports bancaires ont des guillemets mal apparies
+    # qui font derailler le parsing quote (fichier lu en 1 seule colonne)
+    df <- fread_try("", dropcols = drop_idx)
+    if (is.null(df) || ncol(df) < 2) {
+      message("[read_csv2_big] Nouvel essai avec quote standard ...")
+      df <- fread_try("\"", dropcols = drop_idx)
+      if (!is.null(df) && ncol(df) < 2) df <- NULL
+    }
+    if (is.null(df)) {
+      message("[read_csv2_big] ATTENTION: bascule sur read_csv2_auto (LENT, plusieurs minutes)")
+      return(read_csv2_auto(path))
+    }
+    message("[read_csv2_big] fread OK: ", nrow(df), " lignes en ",
+            round(difftime(Sys.time(), t0, units = "secs")), "s. Typage...")
+    df <- clean_dt(df, retype = TRUE)
+
+  } else {
+    # ---- Lecture par tranches (fichiers > SEUIL_DECOUPAGE_GO) ----
+    # Chaque tranche est lue puis nettoyee avant de passer a la suivante : le
+    # pic memoire du nettoyage porte sur 1/N du fichier au lieu du tout.
+    # nThread = 1 : le parsing multi-thread de fread sur fichier malforme
+    # (champs en trop, guillemets mal apparies) est une cause connue de crash
+    # 0xC0000005 ; la lecture est plus lente mais ne tue pas la session.
+    message("[read_csv2_big] Fichier de ", round(taille_go, 2),
+            " Go > ", SEUIL_DECOUPAGE_GO, " Go : lecture en ",
+            NB_TRANCHES, " tranches, mono-thread.")
+
+    # En-tete APRES drop : col_names doit decrire les colonnes reellement lues,
+    # puisque les tranches sortent en V1, V2, ... et sont renommees dessus.
+    entete <- fread_try("", nrows = 0L, dropcols = drop_idx)
+    if (is.null(entete) || ncol(entete) < 2) {
+      entete <- fread_try("\"", nrows = 0L, dropcols = drop_idx)
+    }
+    if (is.null(entete) || ncol(entete) < 2) {
+      message("[read_csv2_big] ATTENTION: en-tete illisible, bascule sur read_csv2_auto")
+      return(read_csv2_auto(path))
+    }
+    col_names <- names(entete)
+    quote_ok <- ""
+
+    # Taille de tranche ESTIMEE a partir de la longueur moyenne des 1000
+    # premieres lignes. Volontairement pas de comptage exact prealable : un
+    # fread de comptage sur fichier malforme s'arrete tot et sous-compte, ce
+    # qui tronquerait les donnees en silence. La boucle ci-dessous lit donc
+    # jusqu'a epuisement reel du fichier ; l'estimation ne joue que sur le
+    # nombre de tranches, jamais sur l'exhaustivite.
+    ech <- readLines(path, n = 1000L, warn = FALSE)
+    oct_par_ligne <- max(1, mean(nchar(ech, type = "bytes") + 1))
+    n_estime <- max(1, ceiling(file.size(path) / oct_par_ligne))
+    par_tranche <- max(1L, as.integer(ceiling(n_estime / NB_TRANCHES)))
+    message("[read_csv2_big] ~", n_estime, " lignes estimees -> ",
+            par_tranche, " par tranche")
+
+    morceaux <- list()
+    i <- 0L
+    repeat {
+      i <- i + 1L
+      saut <- (i - 1L) * par_tranche
+      message("[read_csv2_big] Tranche ", i, " (a partir de la ligne ",
+              saut + 1L, ") ...")
+      tr <- fread_try(quote_ok, skip = saut, nrows = par_tranche,
+                      col_names = col_names, nthread = 1L, dropcols = drop_idx)
+      if (is.null(tr)) {
+        message("[read_csv2_big] Tranche ", i, " illisible, bascule sur read_csv2_auto")
+        return(read_csv2_auto(path))
+      }
+      if (nrow(tr) == 0L) break          # fin de fichier atteinte
+      morceaux[[length(morceaux) + 1L]] <- clean_dt(tr, retype = FALSE)
+      lu <- nrow(tr)
+      rm(tr); gc(verbose = FALSE)
+      if (lu < par_tranche) break        # derniere tranche (incomplete)
+    }
+
+    message("[read_csv2_big] Recollage des ", length(morceaux), " tranches ...")
+    # use.names = TRUE sur des noms positionnels (V1, V2, ...) : les tranches
+    # n'ayant pas de ligne malformee ont moins de colonnes, fill = TRUE complete
+    # alors par NA, comme le ferait la lecture en une passe.
+    df <- data.table::rbindlist(morceaux, use.names = TRUE, fill = TRUE)
+    rm(morceaux); gc(verbose = FALSE)
+
+    # Restitution des vrais noms de colonnes ; les colonnes surnumeraires
+    # (champs en trop) gardent leur nom positionnel V4, V5, ... comme en une passe.
+    n_nommees <- min(length(col_names), ncol(df))
+    if (n_nommees > 0L) {
+      data.table::setnames(df, seq_len(n_nommees), col_names[seq_len(n_nommees)])
+    }
+
+    # Les NA presents ici ne peuvent venir que du fill de rbindlist (colonnes
+    # surnumeraires absentes de certaines tranches) : le typage n'a pas encore
+    # eu lieu, donc un champ vide du CSV vaut "" et non NA. On restitue "",
+    # ce que produit la lecture en une passe.
+    for (j in seq_len(ncol(df))) {
+      x <- df[[j]]
+      if (is.character(x) && anyNA(x)) {
+        x[is.na(x)] <- ""
+        data.table::set(df, j = j, value = x)
+      }
+    }
+
+    # Typage final, une seule fois, sur le tableau complet
+    for (j in seq_len(ncol(df))) {
+      data.table::set(df, j = j,
+                      value = type.convert(df[[j]], as.is = TRUE, dec = ","))
+      if (j %% 10 == 0) gc(verbose = FALSE)
+    }
+    gc(verbose = FALSE)
+    message("[read_csv2_big] Recollage OK: ", nrow(df), " lignes")
+  }
+
+  data.table::setDF(df)   # par reference : pas de copie
 
   if (cache) {
     message("[read_csv2_big] Ecriture du cache ", basename(rds), " ...")
@@ -586,6 +770,132 @@ read_csv2_big <- function(path, cache = TRUE) {
   df
 }
 
+
+# Agrege les lignes partageant le meme CLIENT en une seule ligne.
+# Pour chaque colonne : valeurs distinctes non vides, separees par une virgule.
+#   CLIENT 42 | TEL "0102"  | VILLE "DAKAR"   ->  CLIENT 42 | TEL "0102,0304"
+#   CLIENT 42 | TEL "0304"  | VILLE "DAKAR"       VILLE "DAKAR"
+# Les colonnes constantes a l'interieur de chaque groupe gardent leur type
+# d'origine (numerique, date...) ; seules celles reellement fusionnees passent
+# en texte, sinon un "1,2" issu de deux valeurs 1 et 2 serait relu comme le
+# nombre 1,2 (dec = ",") et corromprait la donnee.
+agreger_par_client <- function(df, cle = "CLIENT") {
+  if (is.null(df) || !(cle %in% names(df)) || nrow(df) == 0) return(df)
+
+  ordre <- names(df)
+  data.table::setDT(df)
+
+  n_doublons <- sum(duplicated(df[[cle]]))
+  if (n_doublons == 0L) {
+    message("[agreger_par_client] Aucun ", cle, " en double : rien a agreger.")
+    data.table::setDF(df)
+    return(df)
+  }
+  message("[agreger_par_client] ", n_doublons, " ligne(s) en double sur ", cle,
+          " -> agregation ...")
+
+  cols <- setdiff(names(df), cle)
+
+  # 1 seule passe groupee pour savoir quelles colonnes varient dans un groupe
+  nu <- df[, lapply(.SD, data.table::uniqueN), by = c(cle), .SDcols = cols]
+  varie <- vapply(cols, function(cn) any(nu[[cn]] > 1L), logical(1))
+  rm(nu); gc(verbose = FALSE)
+
+  cols_fusion <- cols[varie]
+  cols_stables <- cols[!varie]
+  message("[agreger_par_client] ", length(cols_fusion),
+          " colonne(s) fusionnee(s) en texte",
+          if (length(cols_fusion)) paste0(" : ", paste(cols_fusion, collapse = ", ")) else "")
+
+  fusionner <- function(x) {
+    v <- trimws(as.character(x))
+    v <- unique(v[!is.na(v) & nzchar(v)])
+    if (length(v) == 0L) "" else paste(v, collapse = ",")
+  }
+
+  # Colonnes stables : on garde la 1re valeur (donc le type d'origine)
+  res <- df[, lapply(.SD, data.table::first), by = c(cle), .SDcols = cols_stables]
+  if (length(cols_fusion)) {
+    res_f <- df[, lapply(.SD, fusionner), by = c(cle), .SDcols = cols_fusion]
+    res <- merge(res, res_f, by = cle, sort = FALSE)
+    rm(res_f); gc(verbose = FALSE)
+  }
+
+  data.table::setcolorder(res, intersect(ordre, names(res)))
+  data.table::setDF(res)
+  message("[agreger_par_client] ", nrow(df), " lignes -> ", nrow(res),
+          " (", cle, " uniques)")
+  res
+}
+
+# Regroupe les lignes partageant le meme CLIENT en une seule ligne.
+# Pour chaque colonne : valeurs distinctes non vides, separees par une virgule.
+#   - une seule valeur distincte  -> la valeur telle quelle (type d'origine conserve)
+#   - plusieurs valeurs           -> "VAL1,VAL2" (la colonne devient character)
+#   - aucune valeur non vide      -> "" (ou NA si la colonne n'est pas character)
+# L'ordre d'apparition des CLIENT est conserve (by=, et non keyby= qui trierait).
+#   - colonnes de date_cols     -> la date la PLUS ANCIENNE (pas de concatenation),
+#                                  reformatee en JJ/MM/AAAA pour rester lisible
+#                                  par le dmy() applique plus loin dans le script.
+agreger_doublons <- function(df, cle = "CLIENT", date_cols = "DATOUV") {
+  if (is.null(df) || nrow(df) == 0 || !(cle %in% names(df))) return(df)
+
+  n_avant <- nrow(df)
+  n_cles  <- data.table::uniqueN(df[[cle]])
+  if (n_cles == n_avant) {
+    message("[agreger_doublons] Aucun ", cle, " en double (", n_avant, " lignes)")
+    return(df)
+  }
+
+  message("[agreger_doublons] ", n_avant - n_cles, " ligne(s) en trop sur ",
+          n_avant, " : regroupement sur ", n_cles, " ", cle, " uniques ...")
+
+  ordre_cols <- names(df)
+  dt <- data.table::as.data.table(df)
+
+  # Fusion TOUJOURS en character : data.table impose un type homogene par
+  # colonne entre les groupes, or un groupe sans doublon rendrait le type
+  # d'origine et un groupe avec doublons du texte -> erreur de type.
+  fusion <- function(x) {
+    x <- as.character(x)
+    u <- unique(x[!is.na(x) & trimws(x) != ""])
+    if (length(u) == 0L) return("")
+    paste(u, collapse = ",")
+  }
+
+  res <- dt[, lapply(.SD, fusion), by = c(cle)]
+
+  # Dates : on ne concatene pas, on garde la PLUS ANCIENNE ouverture du client.
+  # Recalcul sur dt (valeurs d'origine) et non sur res, dont la colonne contient
+  # deja les dates concatenees par fusion().
+  for (dc in intersect(date_cols, names(res))) {
+    agg <- dt[, .(..min_d = {
+      d <- parse_date_any(get(dc))
+      if (all(is.na(d))) NA_character_ else format(min(d, na.rm = TRUE), "%d/%m/%Y")
+    }), by = c(cle)]
+    # Jointure sur la cle : ne depend pas de l'ordre des lignes.
+    idx <- match(res[[cle]], agg[[cle]])
+    val <- agg$..min_d[idx]
+    val[is.na(val)] <- ""
+    data.table::set(res, j = dc, value = val)
+  }
+
+  # Retour au type d'origine pour les colonnes qui n'ont finalement subi aucune
+  # concatenation : sans cela, des colonnes numeriques (CA, CAPITAL...)
+  # deviendraient du texte pour toute la filiale.
+  for (nm in setdiff(names(res), cle)) {
+    if (!is.character(df[[nm]]) && !any(grepl(",", res[[nm]], fixed = TRUE))) {
+      data.table::set(res, j = nm,
+                      value = type.convert(res[[nm]], as.is = TRUE))
+    }
+  }
+
+  data.table::setcolorder(res, intersect(ordre_cols, names(res)))
+  data.table::setDF(res)
+
+  message("[agreger_doublons] Termine : ", nrow(res), " lignes")
+  res
+}
 
 # Excel sheet names must be <= 31 chars and avoid special chars.
 safe_sheet_name <- function(name, max_len = 31) {
@@ -732,11 +1042,17 @@ detect_encoding <- function(path, n = 100000) {
 # ============================
 # read_csv2_big : lecture rapide fread (multi-thread) + cache .rds,
 # gère encodage, espaces parasites, guillemets ; fallback read_csv2_auto
-pm_stock <- read_csv2_big(chemin_pm)
+cols_ignorees <- COLONNES_IGNOREES[[fil]]   # NULL si la filiale n'en declare pas
+
+pm_stock <- read_csv2_big(chemin_pm, drop = cols_ignorees)
+
+# Un meme CLIENT peut apparaitre sur plusieurs lignes : on les regroupe des le
+# depart, en concatenant par une virgule les valeurs differentes de chaque colonne.
+pm_stock <- agreger_doublons(pm_stock, "CLIENT")
 
 dates_triees <- sort(unique(dmy(pm_stock$DATOUV)), decreasing = TRUE)
-premier_jour_mois_courant <- dates_triees[1]+1
-premier_jour_mois_precedent <- dates_triees[1]
+#premier_jour_mois_courant <- dates_triees[1]+1
+#premier_jour_mois_precedent <- dates_triees[1]
 
 
 ## Traitement des PM
@@ -881,7 +1197,7 @@ if (!file.exists(chemin_pp)) {
 # Import du CSV
 # read_csv2_big : lecture rapide fread (multi-thread) + cache .rds,
 # gère encodage, espaces parasites, guillemets ; fallback read_csv2_auto
-pp_stock <- read_csv2_big(chemin_pp)
+pp_stock <- read_csv2_big(chemin_pp, drop = cols_ignorees)
 
 # Vérification
 
@@ -3545,7 +3861,7 @@ k=ncol(tableau_suivi)
 dossier_A <- paste0(chemin,fil,"//data//")
 dossier_B <- "C://Fiabilisation KYC//Python//data//"
 
-# 2. Créer la liste des noms de fichiers avec votre variable 'fil'
+
 fichiers <- c(
   paste0("anomalies_", fil, ".csv"),
   paste0("taux_", fil, ".csv"),

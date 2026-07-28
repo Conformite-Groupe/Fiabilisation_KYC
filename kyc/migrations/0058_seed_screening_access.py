@@ -1,5 +1,5 @@
-# Seed des acces par defaut au module Screening KYC ID (/document-extraction).
-# Reproduit le comportement historique ; modifiable ensuite dans l'admin.
+                                                                              
+                                                                         
 
 from django.db import migrations
 

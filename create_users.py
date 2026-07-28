@@ -29,7 +29,7 @@ class Command(BaseCommand):
                 code_expl = row.get('code_expl')
                 password1 = row.get('password1')
 
-                # Créez l'utilisateur avec les champs personnalisés
+                                                                   
                 user, created = User.objects.get_or_create(
                     username=username,
                     defaults={
@@ -42,7 +42,7 @@ class Command(BaseCommand):
                     }
                 )
                 if created:
-                    user.set_password(password1)  # Définit le mot de passe
+                    user.set_password(password1)                           
                     user.save()
                     users_created += 1
 

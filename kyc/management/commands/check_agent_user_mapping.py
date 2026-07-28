@@ -21,11 +21,11 @@ class Command(BaseCommand):
                 )
                 return
 
-            # Total agents
+                          
             cursor.execute(f"SELECT COUNT(*) FROM {agent_table}")
             total_agents = cursor.fetchone()[0]
 
-            # Matched by email/username
+                                       
             cursor.execute(
                 f"""
                 SELECT COUNT(*) FROM {agent_table} a
@@ -36,7 +36,7 @@ class Command(BaseCommand):
             )
             matched_email = cursor.fetchone()[0]
 
-            # Matched by code_expl
+                                  
             cursor.execute(
                 f"""
                 SELECT COUNT(*) FROM {agent_table} a
@@ -46,7 +46,7 @@ class Command(BaseCommand):
             )
             matched_code = cursor.fetchone()[0]
 
-            # Unmatched (by email/username or code_expl)
+                                                        
             cursor.execute(
                 f"""
                 SELECT COUNT(*) FROM {agent_table} a

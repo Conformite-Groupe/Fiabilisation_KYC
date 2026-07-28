@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from accounts.models import ProfileV
 from kyc.models import Person, Notation, Profile, DataQualityRule, DataQualityCondition
 
@@ -51,7 +52,7 @@ class NotationForm(forms.ModelForm):
         model = Notation
         fields = ['agent', 'note', 'flux_stock', 'recommandation']
         widgets = {
-            'agent': forms.HiddenInput(),  # Masquer le champ agent, car il est prérempli
+            'agent': forms.HiddenInput(),                                                
 
             'note': forms.Select(attrs={
                 'class': ' border border-gray-300 rounded-lg shadow-lg'
@@ -62,7 +63,7 @@ class NotationForm(forms.ModelForm):
         }
 
 class DataQualityRuleForm(forms.ModelForm):
-    # Valeur sentinelle du select "Toutes les filiales" -> stockée en base comme "" (vide).
+                                                                                           
     ALL_FILIALES_SENTINEL = '__ALL__'
 
     filiale = forms.ChoiceField(
@@ -100,8 +101,8 @@ class DataQualityRuleForm(forms.ModelForm):
         current_filiales = self._parse_filiales(raw_current)
 
         choices = []
-        # "Toutes les filiales" proposé aux profils gérant plusieurs filiales (Groupe/PASS).
-        # Un utilisateur mono-filiale ne peut créer que pour sa propre filiale.
+                                                                                            
+                                                                               
         allow_all = len(concrete) != 1
         if allow_all:
             choices.append((self.ALL_FILIALES_SENTINEL, 'Toutes les filiales'))
@@ -110,8 +111,8 @@ class DataQualityRuleForm(forms.ModelForm):
 
         existing_values = {value for value, _ in choices}
         if len(current_filiales) > 1:
-            # Règle multi-filiales héritée : on préserve la valeur combinée telle quelle
-            # (elle reste modifiable vers une filiale unique pour différencier les seuils).
+                                                                                        
+                                                                                           
             label = ", ".join(current_filiales) + "  (multi — à scinder par filiale)"
             choices.append((raw_current, label))
             self.initial['filiale'] = raw_current
@@ -121,7 +122,7 @@ class DataQualityRuleForm(forms.ModelForm):
                 choices.append((cf, cf))
             self.initial['filiale'] = cf
         else:
-            # Règle sans filiale = toutes ; sinon (mono-filiale) présélection de la filiale.
+                                                                                            
             self.initial['filiale'] = self.ALL_FILIALES_SENTINEL if allow_all else (concrete[0] if concrete else '')
 
         self.fields['filiale'].choices = choices
@@ -148,13 +149,13 @@ class DataQualityRuleForm(forms.ModelForm):
 
     def clean_filiale(self):
         value = (self.cleaned_data.get('filiale') or '').strip()
-        # "Toutes les filiales" -> stocké vide (interprété comme global par l'évaluation)
+                                                                                         
         if value in ('', self.ALL_FILIALES_SENTINEL):
             return ''
-        # Valeur combinée héritée (|F1|F2|) préservée si non modifiée
+                                                                     
         if value.startswith('|') and value.endswith('|'):
             return value
-        # Filiale unique -> |FILIALE|
+                                     
         return self._serialize_filiales([value])
 
 class DataQualityConditionForm(forms.ModelForm):
@@ -189,20 +190,20 @@ class Utilisateur(UserCreationForm):
 
 class CustomUserCreationForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
-        # Récupérer l'utilisateur connecté depuis la vue
+                                                        
         current_user = kwargs.pop('current_user', None)
         super().__init__(*args, **kwargs)
 
-        # Si l'utilisateur connecté est DSI
+                                           
         if current_user and current_user.organe == "DSI":
-            # Forcer le champ filiale à la filiale du DSI
+                                                         
             self.fields['filiale'].initial = current_user.filiale
             self.fields['filiale'].widget.attrs['readonly'] = True
-            self.fields['filiale'].disabled = True  # empêche la modification
+            self.fields['filiale'].disabled = True                           
 
-        # Si l’utilisateur est autre (non PASS), on peut aussi restreindre des organes
+                                                                                      
         if current_user and current_user.organe != "PASS":
-            # Exemple : interdire de créer des utilisateurs avec organe "PASS"
+                                                                              
             self.fields['organe'].choices = [
                 (o, o) for o in dict(self.fields['organe'].choices).keys() if o != "PASS"
             ]
@@ -248,11 +249,11 @@ class CustomUserCreationForm(UserCreationForm):
 
 class UserEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
-        # ✅ On récupère l’utilisateur connecté avant d’appeler super()
+                                                                      
         current_user = kwargs.pop('current_user', None)
         super(UserEditForm, self).__init__(*args, **kwargs)
 
-        # ✅ Si l'utilisateur est DSI → filiale figée
+                                                    
         if current_user and current_user.organe == "DSI":
             self.fields['filiale'].disabled = True
             self.fields['filiale'].widget.attrs.update({
@@ -260,7 +261,7 @@ class UserEditForm(forms.ModelForm):
                 'class': self.fields['filiale'].widget.attrs.get('class', '') + ' bg-gray-100 cursor-not-allowed'
             })
 
-        # ✅ Si ce n’est ni PASS ni DSI → organe figé
+                                                    
         elif current_user and current_user.organe not in ["PASS", "DSI"]:
             self.fields['organe'].disabled = True
             self.fields['organe'].widget.attrs.update({
@@ -304,6 +305,12 @@ class ResetPasswordForm(forms.ModelForm):
 
         if new_password != confirm_password:
             raise forms.ValidationError("Les mots de passe ne correspondent pas.")
+
+                                                                          
+                                                                                
+                                                                             
+        if new_password:
+            validate_password(new_password, self.instance)
         return cleaned_data
 
 class ProfileForm(forms.ModelForm):

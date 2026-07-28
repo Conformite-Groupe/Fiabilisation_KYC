@@ -11,17 +11,17 @@ import django
 from django.db import transaction
 from django.db.models import Model
 
-# =====================================================
-# 1. CONFIG DJANGO
-# =====================================================
+                                                       
+                  
+                                                       
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Fiabilisation_kyc.settings")
 django.setup()
 
 from kyc.models import  TauxEvolution_filiale, Filiales as FILIALES_CHOICES
 
-# =====================================================
-# 2. PARAMETRES GLOBAUX
-# =====================================================
+                                                       
+                       
+                                                       
 
 CHEMIN_BASE = os.environ.get(
     "KYC_DATA_DIR",
@@ -41,9 +41,9 @@ BULK_SIZE_TAUX = 5000
 BULK_SIZE_TAUX_FILIALE = 500
 LOG_STEP = 100000
 
-# =====================================================
-# 3. LOGGING
-# =====================================================
+                                                       
+            
+                                                       
 def setup_logging():
     log_dir = os.path.join(os.getcwd(), "logs")
     os.makedirs(log_dir, exist_ok=True)
@@ -78,9 +78,9 @@ def setup_logging():
 
 logger = setup_logging()
 
-# =====================================================
-# 4. UTILS
-# =====================================================
+                                                       
+          
+                                                       
 def parse_date_multi(val):
     if not val or str(val).lower() in ("nan", "null", "", "none"):
         return None
@@ -138,7 +138,7 @@ def pick_value(row_norm, candidates):
     return ""
 
 try:
-    import chardet  # type: ignore
+    import chardet                
 except Exception:
     chardet = None
 
@@ -156,31 +156,31 @@ def detect_encoding(path):
 def resolve_path(pattern, code):
     return pattern.format(code=code)
 
-# =====================================================
-# 5. FILIALES DYNAMIQUES
-# =====================================================
+                                                       
+                        
+                                                       
 def build_filiales_codes(cli_filiales=None):
-    # priorité CLI
+                  
     if cli_filiales:
         parts = [p.strip() for p in cli_filiales.replace(";", ",").split(",")]
         return [p for p in parts if p]
 
-    # sinon variable d'environnement
+                                    
     override = os.environ.get("KYC_FILIALES")
     if override:
         parts = [p.strip() for p in override.replace(";", ",").split(",")]
         return [p for p in parts if p]
 
-    # fallback Django
+                     
     codes = []
     for val, _ in FILIALES_CHOICES:
         if val.startswith("BOA "):
             codes.append(val.replace("BOA ", "").strip())
     return codes
 
-# =====================================================
-# 8. IMPORT TAUX FILIALES
-# =====================================================
+                                                       
+                         
+                                                       
 def import_taux_filiales():
     logger.info("START TAUX_FILIALES")
     for code in FILIALES:
@@ -206,7 +206,7 @@ def import_taux_filiales():
                 reader.fieldnames = norm_fields
                 logger.debug(f"[{code}] taux_filiales encoding={encodings[0]} headers={norm_fields}")
 
-                # les en-têtes sont normalisés en MAJUSCULES
+                                                            
                 date_key = next((k for k in norm_fields if "DATE" in k), None)
                 flux_pm_key = next((k for k in norm_fields if "FLUX" in k and "PM" in k), None)
                 flux_pp_key = next((k for k in norm_fields if "FLUX" in k and "PP" in k), None)
@@ -261,9 +261,9 @@ def import_taux_filiales():
 
     logger.info("END TAUX_FILIALES")
 
-# =====================================================
-# 9. MAIN EXECUTION
-# =====================================================
+                                                       
+                   
+                                                       
 if __name__ == "__main__":
     try:
         parser = argparse.ArgumentParser(description="KYC import")
@@ -275,9 +275,9 @@ if __name__ == "__main__":
 
         args = parser.parse_args()
 
-        # ============================
-        # Override chemins
-        # ============================
+                                      
+                          
+                                      
         if args.data_dir:
             globals()["CHEMIN_BASE"] = args.data_dir
 
@@ -292,16 +292,16 @@ if __name__ == "__main__":
             if not args.taux_pattern:
                 globals()["TAUX_PATTERN"] = os.path.join(CHEMIN_BASE, "taux_{code}.csv")
 
-        # ============================
-        # FILIALES dynamiques
-        # ============================
+                                      
+                             
+                                      
         FILIALES = build_filiales_codes(args.filiales)
         logger.info(f"Filiales utilisées: {FILIALES}")
         logger.info(f"CHEMIN_BASE: {CHEMIN_BASE}")
 
-        # ============================
-        # FILTRAGE DES MODULES
-        # ============================
+                                      
+                              
+                                      
         only_raw = os.environ.get("KYC_ONLY", "").strip()
         only = []
         if only_raw:

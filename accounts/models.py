@@ -41,8 +41,8 @@ class ProfileV(AbstractUser):
 
     code_expl = models.CharField(blank=True, max_length=10, default="")
 
-    # Note : J'ai gardé le CharField pour 'agence' par compatibilité avec votre code existant,
-    # mais vous pourriez aussi le lier au modèle Agence via une ForeignKey.
+                                                                                              
+                                                                           
     agence = models.CharField(blank=True, max_length=100, default="")
 
     téléphone = models.CharField(max_length=20, default="")
@@ -53,7 +53,7 @@ class ProfileV(AbstractUser):
     def __str__(self):
         return f"{self.email} - {self.filiale} ({self.organe})"
 
-    # Compat: alias pour l'ancien modèle Agents
+                                               
     @property
     def expl(self):
         return self.code_expl
@@ -70,7 +70,7 @@ class Zone(models.Model):
      """Modèle pour définir les zones par filiale regroupant plusieurs agences"""
      directeur = models.EmailField( max_length=100, blank=True)
      zone = models.CharField(max_length=100, default="")
-     # Une zone possède plusieurs agences
+                                         
      agence = models.CharField(max_length=100, default="")
      filiale = models.CharField(choices=Filiales, max_length=10, default="BOA Group")
 
@@ -94,3 +94,65 @@ class UserLoginHistory(models.Model):
 
     def __str__(self):
         return f"{self.user_id} - {self.login_at:%Y-%m-%d %H:%M:%S}"
+
+
+class AuditEvent(models.Model):
+    """Journal d'audit central de la plateforme KYC.
+
+    Alimente l'onglet Administration > Audit : connexions, habilitations,
+    imports, mises a jour de donnees, parametrage et actions sensibles.
+    """
+
+    CAT_CONNEXION = "CONNEXION"
+    CAT_HABILITATION = "HABILITATION"
+    CAT_IMPORT = "IMPORT"
+    CAT_DONNEES = "DONNEES"
+    CAT_CONFIG = "CONFIG"
+    CAT_EXPORT = "EXPORT"
+    CAT_SCREENING = "SCREENING"
+    CAT_NOTATION = "NOTATION"
+    CAT_SECURITE = "SECURITE"
+
+    CATEGORIES = (
+        (CAT_CONNEXION, "Connexion"),
+        (CAT_HABILITATION, "Habilitation"),
+        (CAT_IMPORT, "Import de donnees"),
+        (CAT_DONNEES, "Mise a jour de donnees"),
+        (CAT_CONFIG, "Parametrage"),
+        (CAT_EXPORT, "Export"),
+        (CAT_SCREENING, "Screening KYC ID"),
+        (CAT_NOTATION, "Notation"),
+        (CAT_SECURITE, "Securite"),
+    )
+
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="audit_events",
+    )
+    username = models.CharField(max_length=150, blank=True, default="",
+                                help_text="Identifiant saisi (conserve meme si le compte est supprime).")
+    filiale = models.CharField(max_length=20, blank=True, default="")
+    organe = models.CharField(max_length=50, blank=True, default="")
+    category = models.CharField(max_length=20, choices=CATEGORIES, default=CAT_DONNEES, db_index=True)
+    action = models.CharField(max_length=120, default="")
+    target = models.CharField(max_length=255, blank=True, default="",
+                              help_text="Objet concerne (utilisateur, regle, lot, fichier...).")
+    details = models.TextField(blank=True, default="")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=255, blank=True, default="")
+    success = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("-timestamp",)
+        verbose_name = "Evenement d'audit"
+        verbose_name_plural = "Evenements d'audit"
+        indexes = [
+            models.Index(fields=("timestamp", "category")),
+            models.Index(fields=("user", "timestamp")),
+        ]
+
+    def __str__(self):
+        return f"{self.timestamp:%Y-%m-%d %H:%M:%S} - {self.category} - {self.action}"

@@ -26,7 +26,7 @@ django.setup()
 from kyc.models import Kyc_pm, Kyc_pp, Filiales as FILIALES_CHOICES
 
 
-# --- 1. CONFIGURATION ---
+                          
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_DATA_DIR = r"C:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2025\Plateforme notatio kyc v2\data"
 
@@ -43,12 +43,12 @@ IMPORT_METHOD = os.environ.get("KYC_IMPORT_METHOD", "auto").strip().lower()
 
 
 def build_filiales_codes():
-    # priorité à la variable d'environnement
+                                            
     override = os.environ.get("KYC_FILIALES")
     if override:
         return [part.strip() for part in override.replace(";", ",").split(",") if part.strip()]
 
-    # sinon, dérive les codes depuis les choix Filiales de kyc.models
+                                                                     
     codes = []
     for val, _ in FILIALES_CHOICES:
         if val.startswith("BOA "):
@@ -60,7 +60,7 @@ FILIALES = build_filiales_codes()
 KYC_ONLY = os.environ.get("KYC_ONLY", "all").strip().lower()
 
 
-# --- 2. LOGGING ---
+                    
 def setup_logging():
     log_dir = BASE_DIR / "logs"
     log_dir.mkdir(exist_ok=True)
@@ -88,7 +88,7 @@ def setup_logging():
 logger = setup_logging()
 
 
-# --- 3. REJETS ---
+                   
 def log_rejected_line(filename, line_num, error_msg):
     reject_file = Path(CHEMIN_BASE) / "lignes_ignorees.txt"
     reject_file.parent.mkdir(parents=True, exist_ok=True)
@@ -97,7 +97,7 @@ def log_rejected_line(filename, line_num, error_msg):
         f.write(f"[{timestamp}] Fichier: {filename} | Ligne: {line_num} | Erreur: {error_msg}\n")
 
 
-# --- 4. UTILITAIRES ---
+                        
 def normalize_header(name):
     return (name or "").replace("\ufeff", "").strip().upper()
 
@@ -143,8 +143,8 @@ FIELD_ALIASES = {
 
 NUMERIC_TEXT_FIELDS = {"CAPITAL", "CA", "RESULTAT"}
 
-# Champs date stockés en texte : normalisés en ISO 'YYYY-MM-DD' à l'import,
-# car les filtres (échéances de /clients_scorer notamment) comparent lexicalement.
+                                                                           
+                                                                                  
 DATE_TEXT_FIELDS = {"DATEREV"}
 
 _DATE_RE_ISO = re.compile(r"^(\d{4})[-/](\d{1,2})[-/](\d{1,2})")
@@ -261,7 +261,7 @@ def should_use_direct_insert():
     return is_mssql_database()
 
 
-# --- Retry deadlock (SQL Server erreur 1205) ---
+                                                 
 DEADLOCK_MAX_RETRIES = int(os.environ.get("KYC_DEADLOCK_RETRIES", "5"))
 
 
@@ -280,7 +280,7 @@ def run_with_deadlock_retry(func, description):
             if not is_deadlock_error(exc) or attempt >= DEADLOCK_MAX_RETRIES:
                 raise
             attempt += 1
-            # back-off exponentiel + jitter pour desynchroniser les processus
+                                                                             
             wait = min(2 ** attempt, 30) * 0.5 + random.uniform(0, 0.5)
             logger.warning(
                 f"Deadlock sur {description} (tentative {attempt}/{DEADLOCK_MAX_RETRIES}), "
@@ -289,7 +289,7 @@ def run_with_deadlock_retry(func, description):
             time.sleep(wait)
 
 
-# --- 5. INSERTION ---
+                      
 def build_insert_sql(model, columns):
     table = quoted_name(model._meta.db_table)
     column_sql = ", ".join(quoted_name(column) for column in columns)
@@ -385,7 +385,7 @@ def delete_filiale_rows(model, filiale_value):
     return run_with_deadlock_retry(_delete, f"DELETE {model._meta.db_table} ({filiale_value})")
 
 
-# --- 6. IMPORTATION ---
+                        
 def importer_csv_optimise(path, model, mapping, code_filiale):
     inserted = 0
     read_rows = 0
@@ -438,12 +438,12 @@ def importer_csv_optimise(path, model, mapping, code_filiale):
     return inserted
 
 
-# --- 7. MAPPINGS ---
+                     
 MAPPING_PM = build_model_mapping(Kyc_pm)
 MAPPING_PP = build_model_mapping(Kyc_pp)
 
 
-# --- 8. TRAITEMENT PAR FILIALE ---
+                                   
 def should_import(kind):
     if KYC_ONLY in {"", "all", "both", "*"}:
         return True
@@ -492,7 +492,7 @@ def traiter_filiale(code):
     return total
 
 
-# --- 9. MAIN ---
+                 
 if __name__ == "__main__":
     Path(CHEMIN_BASE).mkdir(parents=True, exist_ok=True)
     with open(Path(CHEMIN_BASE) / "lignes_ignorees.txt", "w", encoding="utf-8") as f:
@@ -507,10 +507,10 @@ if __name__ == "__main__":
         IMPORT_METHOD,
     )
 
-    # Ecritures sequentielles : evite les deadlocks SQL Server (les inserts
-    # sont deja en fast_executemany, le parallelisme n'apportait quasi rien
-    # cote base mais provoquait des etreintes fatales sur Kyc_pm/Kyc_pp).
-    # Basculer sur KYC_PARALLEL=1 pour revenir au traitement multi-processus.
+                                                                           
+                                                                           
+                                                                         
+                                                                             
     if os.environ.get("KYC_PARALLEL", "0") == "1" and len(FILIALES) > 1:
         workers = min(len(FILIALES), os.cpu_count() or 1)
         with ProcessPoolExecutor(max_workers=workers) as executor:

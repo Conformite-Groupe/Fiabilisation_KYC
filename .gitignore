@@ -18,6 +18,8 @@ local_settings.py
 # Secrets
 .env
 .env.*
+# ... sauf le modele de configuration, lui volontairement versionne
+!.env.example
 
 # Node / frontend
 node_modules/
@@ -47,3 +49,13 @@ Thumbs.db
 
 # Base de donnees
 *.sqlite3
+# Journaux WAL/SHM de SQLite : contiennent des pages de donnees reelles
+db.sqlite3-*
+
+# Caches applicatifs (agregats de donnees clients serialises)
+.django_cache/
+*.djcache
+
+# Journaux et fichiers de processus
+logs/
+*.pid

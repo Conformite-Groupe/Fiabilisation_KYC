@@ -4,7 +4,7 @@
 {% load l10n %}
 
 {% block content %}
-<!-- Premium Fonts & Styles -->
+
 <style>
     @import url('/static/vendor/css/outfit_plus_jakarta.css');
 
@@ -168,7 +168,7 @@
 
 <div class="min-h-screen px-4 pb-4 pt-0 lg:px-8 lg:pb-8 lg:pt-0 space-y-4 max-w-[1600px] mx-auto">
 
-    <!-- HEADER AREA -->
+    
     <header
         class="glass-panel rounded-none px-5 py-4 lg:px-6 lg:py-5 flex flex-col lg:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-4">
@@ -222,9 +222,9 @@
         {% endif %}
     </header>
 
-    <!-- STATISTICS GRID -->
+    
     <div class="flex flex-wrap justify-center gap-4">
-        <!-- Total Règles -->
+        
         <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-slate-900">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
@@ -246,7 +246,7 @@
             </div>
         </div>
 
-        <!-- Opérationnelles -->
+        
         <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-emerald-500">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
@@ -268,7 +268,7 @@
             </div>
         </div>
 
-        <!-- Score Global -->
+        
         <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-blue-500">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
@@ -290,7 +290,7 @@
             </div>
         </div>
 
-        <!-- Clients non conformes -->
+        
         <div class="glass-panel w-full sm:w-[48%] xl:w-64 2xl:w-72 rounded-2xl px-4 py-3 border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg border-red-500">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
@@ -313,7 +313,7 @@
         </div>
     </div>
 
-    <!-- FILTRES -->
+    
     <section class="relative z-10 px-4 pb-2 pt-4 lg:px-6 bg-transparent">
         <form method="get" class="flex flex-wrap items-end justify-center gap-3 lg:justify-start">
             {% if can_pick_filiale %}
@@ -371,14 +371,14 @@
         </form>
     </section>
 
-    <!-- RULES LISTING -->
+    
     <div class="space-y-6">
         <div class="flex items-center gap-4 px-4">
             <h2 class="text-sm font-black text-slate-400 uppercase tracking-[0.4em]">{{ "Bibliothèque des Règles"|t }}</h2>
             <div class="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent"></div>
         </div>
 
-        {# ── Mini navbar segmentée : Toutes / Particuliers (PP) / Entreprises (PM) ── #}
+        
         <div class="flex justify-center sm:justify-start px-4">
             <div id="ruleTabs" class="glass-panel inline-flex items-center gap-1 rounded-2xl bg-white/70 p-1.5 shadow-lg ring-1 ring-slate-100">
                 <button type="button" data-filter="all" aria-pressed="true"
@@ -411,7 +411,7 @@
                 class="rule-card glass-panel premium-card rounded-[2.5rem] overflow-hidden {% if not rule.active %}opacity-60 saturate-50{% endif %}">
                 <div class="p-6 lg:p-8 flex flex-col lg:flex-row gap-8">
 
-                    <!-- RULE CORE INFO -->
+                    
                     <div class="flex-1 space-y-6">
                         <div class="flex items-start justify-between">
                             <div class="flex items-center gap-5">
@@ -426,7 +426,7 @@
                                     </div>
                                     <span
                                         class="rule-number absolute -top-3 -left-3 w-8 h-8 bg-white border-4 border-slate-900 rounded-2xl flex items-center justify-center text-xs font-black text-slate-900 shadow-xl">
-                                        {{ rule.id }}
+                                        {{ item.rule_number|default:rule.rule_number }}
                                     </span>
                                 </div>
                                 <div>
@@ -535,10 +535,10 @@
                         {% endif %}
                     </div>
 
-                    <!-- RULE STATS SIDEBAR -->
+                    
                     <div class="w-full lg:w-80 space-y-3">
                         <div class="grid grid-cols-5 gap-3">
-                            <!-- Gauge Block (Left) -->
+                            
                             <div
                                 class="col-span-3 bg-slate-900 p-4 rounded-[2rem] shadow-2xl relative overflow-hidden group/gauge flex flex-col items-center justify-center">
                                 <div class="relative z-10 text-center">
@@ -563,7 +563,7 @@
                                 </div>
                             </div>
 
-                            <!-- Stats Vertical Block (Right) -->
+                            
                             <div class="col-span-2 flex flex-col gap-3">
                                 <div
                                     class="flex-1 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
@@ -632,13 +632,13 @@
     </div>
 </div>
 
-<!-- PREMIUM MODAL -->
+
 <div id="ruleModal"
     class="fixed inset-0 z-[100] hidden overflow-y-auto bg-slate-900/80 backdrop-blur-xl p-4 lg:p-12 animate-in fade-in duration-500">
     <div class="flex items-start justify-center min-h-full">
         <div
             class="relative w-full max-w-7xl bg-white rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden transform transition-all my-8 animate-in zoom-in-95 duration-500">
-            <!-- Modal Header -->
+            
             <div class="px-10 py-8 bg-slate-900 flex justify-between items-center">
                 <div class="flex items-center gap-4">
                     <div
@@ -664,7 +664,7 @@
             <form method="post" id="ruleForm" class="p-6 lg:p-8 premium-input premium-label">
                 {% csrf_token %}
                 <div id="modal_form_grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Left: Parameters -->
+                    
                     <div class="space-y-6">
                         <div class="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-6">
                             <div class="flex items-center gap-4 mb-2">
@@ -691,7 +691,7 @@
                         </div>
                     </div>
 
-                    <!-- Right: Logic Engine -->
+                    
                     <div id="conditions_column" class="space-y-6">
                         <div class="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 space-y-6">
                             <div class="flex items-center justify-between mb-2">
@@ -748,7 +748,7 @@
                     </div>
                 </div>
 
-                <!-- Modal Footer -->
+                
                 <div class="flex gap-4 justify-end mt-10 pt-8 border-t border-slate-100">
                     <button id="closeRuleModalFooter" type="button"
                         class="px-10 py-4 text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">{{ "Annuler"|t }}</button>

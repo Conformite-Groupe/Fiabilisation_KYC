@@ -32,7 +32,7 @@ def translate_term(value):
     en = _glossary_en().get(text.strip())
     if en:
         return en
-    # Repli : catalogue gettext (renvoie le texte inchangé si non traduit)
+                                                                          
     return translation.gettext(text)
 
 @register.filter

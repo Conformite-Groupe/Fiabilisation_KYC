@@ -4,34 +4,34 @@ import django
 from django.db import transaction
 import chardet
 
-# =====================================================
-# CONFIG DJANGO
-# =====================================================
+                                                       
+               
+                                                       
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Fiabilisation_kyc.settings")
 django.setup()
 
 from kyc.models import Agents
 
 
-# =====================================================
-# PARAMETRES
-# =====================================================
+                                                       
+            
+                                                       
 chemin_base = r"C:\Fiabilisation KYC\Python\data"
 BULK_SIZE = 5000
 
 
-# =====================================================
-# DETECTION ENCODAGE
-# =====================================================
+                                                       
+                    
+                                                       
 def detect_encoding(file_path):
     with open(file_path, "rb") as f:
         result = chardet.detect(f.read(100000))
         return result["encoding"]
 
 
-# =====================================================
-# IMPORT AGENTS
-# =====================================================
+                                                       
+               
+                                                       
 def import_agents_from_folder(folder_path):
 
     csv_files = [
@@ -77,12 +77,12 @@ def import_agents_from_folder(folder_path):
                 nom = (row.get("NOM") or "").strip()
                 email = (row.get("EMAIL") or "").strip()
 
-                # EXPL obligatoire
+                                  
                 if not expl:
                     total_skipped_expl += 1
                     continue
 
-                # doublon
+                         
                 if (expl, filiale) in existing_agents:
                     total_skipped_duplicate += 1
                     continue
@@ -120,9 +120,9 @@ def import_agents_from_folder(folder_path):
     print("==============================\n")
 
 
-# =====================================================
-# EXECUTION
-# =====================================================
+                                                       
+           
+                                                       
 if __name__ == "__main__":
 
     with transaction.atomic():

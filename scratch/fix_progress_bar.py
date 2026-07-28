@@ -5,7 +5,7 @@ file_path = r"c:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2
 with open(file_path, "r", encoding="utf-8") as f:
     content = f.read()
 
-# Replace Quality details progress bar bg-amber-500 with bg-red-500
+                                                                   
 target = 'bg-amber-500'
 if target in content:
     content = content.replace(target, 'bg-red-500')

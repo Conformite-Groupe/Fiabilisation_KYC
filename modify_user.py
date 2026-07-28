@@ -2,15 +2,15 @@ import os
 import csv
 import django
 
-# --- ÉTAPE 1 : INITIALISATION DE L'ENVIRONNEMENT ---
-# Remplacez "Fiabilisation_kyc.settings" par le nom exact de votre dossier de paramètres si différent
+                                                     
+                                                                                                     
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Fiabilisation_kyc.settings")
 django.setup()
 
-# --- ÉTAPE 2 : IMPORTS DJANGO (après django.setup()) ---
+                                                         
 from django.contrib.auth import get_user_model
-# --- CONFIGURATION DU CHEMIN ---
-# On utilise r"" pour que Windows accepte les antislashs \
+                                 
+                                                          
 CHEMIN_CSV = r"C:\Fiabilisation KYC\Python\Fiabilisation_kyc\kyc\management\modify_user.csv"
 
 def mettre_a_jour_utilisateurs():
@@ -27,7 +27,7 @@ def mettre_a_jour_utilisateurs():
             reader = csv.DictReader(file, delimiter=';', quotechar='"')
             
             for row in reader:
-                # Nettoyage des données
+                                       
                 data = {k.strip(): v.strip() for k, v in row.items() if k}
                 
                 username = data.get('username')
@@ -38,10 +38,10 @@ def mettre_a_jour_utilisateurs():
                     continue
 
                 try:
-                    # Recherche de l'utilisateur
+                                                
                     user = User.objects.get(username=username)
                     
-                    # Mise à jour
+                                 
                     user.agence = nouvelle_agence
                     user.code_expl = nouveau_code_expl
                     user.save(update_fields=['agence', 'code_expl'])
@@ -59,6 +59,6 @@ def mettre_a_jour_utilisateurs():
     except Exception as e:
         print(f"💥 Erreur : {str(e)}")
 
-# --- ÉTAPE 3 : EXÉCUTION ---
+                             
 if __name__ == "__main__":
     mettre_a_jour_utilisateurs()

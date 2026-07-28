@@ -33,22 +33,22 @@ def appreciation_qualite(taux_qualite, notation):
     if tq <= 80:
         return "Insatisfaisant"
 
-    if tq < 100:  # 80 < taux < 100
+    if tq < 100:                   
         if empty or note in ("Très Bien", "Bien"):
             return "Satisfaisant"
-        # Passable, Insuffisant
+                               
         return "Insatisfaisant"
 
-    # taux == 100 (>= 100)
+                          
     if empty or note == "Très Bien":
         return "Très satisfaisant"
     if note in ("Bien", "Passable"):
         return "Satisfaisant"
-    # Insuffisant
+                 
     return "Insatisfaisant"
 
 
-# Seuils du taux d'évolution par trimestre : (borne Faible, borne Moyen)
+                                                                        
 QUARTER_BANDS = {1: (5, 30), 2: (30, 60), 3: (60, 90), 4: (65, 95)}
 
 

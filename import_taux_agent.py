@@ -8,26 +8,26 @@ import argparse
 import django
 from django.db import transaction
 
-# =====================================================
-# 0. CONFIGURATION PERSONNALISABLE (MODIFIEZ ICI)
-# =====================================================
-# Chemin du dossier contenant tes fichiers CSV
+                                                       
+                                                 
+                                                       
+                                              
 DEFAULT_DATA_DIR = r"C:\Users\mamsylla\OneDrive - BANK OF AFRICA(1)\Documents\Projets\2025\Plateforme notatio kyc v2\data"
-# Liste des filiales par défaut (ex: ["SN", "CI", "BF"])
-# Laisser vide [] pour charger automatiquement toutes les filiales définies
-# dans kyc.models (source unique de vérité).
+                                                        
+                                                                           
+                                            
 DEFAULT_FILIALES = []
 
-# Modèle de nom de fichier (le {code} sera remplacé par SN, CI, etc.)
+                                                                     
 DEFAULT_TAUX_FILENAME = "taux_{code}.csv"
 
-# Taille du batch pour bulk_create
+                                  
 BULK_SIZE = 5000
 
-# =====================================================
-# 1. CONFIG DJANGO
-# =====================================================
-# Rend le script exécutable depuis n'importe quel dossier
+                                                       
+                  
+                                                       
+                                                         
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
@@ -37,9 +37,9 @@ django.setup()
 
 from kyc.models import TauxEvolution, Filiales as FILIALES_CHOICES
 
-# =====================================================
-# 2. LOGGING
-# =====================================================
+                                                       
+            
+                                                       
 def setup_logging():
     logger = logging.getLogger("KYC_IMPORT")
     logger.setLevel(logging.INFO)
@@ -54,9 +54,9 @@ def setup_logging():
 
 logger = setup_logging()
 
-# =====================================================
-# 3. UTILITAIRES
-# =====================================================
+                                                       
+                
+                                                       
 def normalize_header(name):
     return (name or "").strip().upper().replace("\ufeff", "")
 
@@ -97,28 +97,28 @@ def detect_encoding(path):
     except:
         return "utf-8"
 
-# =====================================================
-# 4. GESTION DES FILIALES
-# =====================================================
+                                                       
+                         
+                                                       
 def build_filiales_list(args_filiales):
-    # 1. Priorité à l'argument ligne de commande --filiales
+                                                           
     if args_filiales:
         return [f.strip().upper() for f in args_filiales.split(",")]
 
-    # 2. Sinon, utilise la liste définie en haut du script
+                                                          
     if DEFAULT_FILIALES:
         return [f.upper() for f in DEFAULT_FILIALES]
 
-    # 3. Fallback : dérive les codes depuis les choix Filiales de kyc.models
+                                                                            
     return [
         val.replace("BOA ", "").strip()
         for val, _ in FILIALES_CHOICES
         if val.startswith("BOA ")
     ]
 
-# =====================================================
-# 5. IMPORTATION DES TAUX
-# =====================================================
+                                                       
+                         
+                                                       
 def importer_taux(filiales, taux_pattern, clear=False):
     logger.info("===== DÉBUT IMPORT TAUX EVOLUTION =====")
 
@@ -130,7 +130,7 @@ def importer_taux(filiales, taux_pattern, clear=False):
             logger.warning(f"Fichier ignoré (introuvable) : {filepath}")
             continue
 
-        # Suppression préalable si demandé
+                                          
         if clear:
             deleted = TauxEvolution.objects.filter(filiale=nom_filiale).delete()[0]
             logger.info(f"{code} : {deleted} anciennes lignes supprimées")
@@ -148,7 +148,7 @@ def importer_taux(filiales, taux_pattern, clear=False):
                     continue
                 reader.fieldnames = [normalize_header(h) for h in reader.fieldnames]
 
-                # Mapping des colonnes possibles
+                                                
                 agent_cols = ["EXPL", "AGENT", "AGENTS", "CODE_EXPL", "CODE_AGENT"]
                 date_cols = ["DATE", "DATE_NOTATION", "DATEREV", "DATE_REV", "DATE_REVISION"]
                 taux_cols = ["TAUX", "TAUX_AGENT", "SCORE"]
@@ -174,7 +174,7 @@ def importer_taux(filiales, taux_pattern, clear=False):
                     if not agent or not date_val:
                         continue
 
-                    # Unicité pour éviter doublons dans le même fichier
+                                                                       
                     key = (agent, date_val, nom_filiale)
                     if key in unique_keys:
                         continue
@@ -191,14 +191,14 @@ def importer_taux(filiales, taux_pattern, clear=False):
                     )
                     objects_to_create.append(obj)
 
-                    # Batch insert pour performance
+                                                   
                     if len(objects_to_create) >= BULK_SIZE:
                         TauxEvolution.objects.bulk_create(objects_to_create)
                         inserted_count += len(objects_to_create)
                         objects_to_create.clear()
                         logger.info(f"{code} en cours... ({inserted_count} lignes)")
 
-                # Insertion du reliquat
+                                       
                 if objects_to_create:
                     TauxEvolution.objects.bulk_create(objects_to_create)
                     inserted_count += len(objects_to_create)
@@ -210,9 +210,9 @@ def importer_taux(filiales, taux_pattern, clear=False):
 
     logger.info("===== FIN DE L'IMPORT =====")
 
-# =====================================================
-# 6. EXECUTION
-# =====================================================
+                                                       
+              
+                                                       
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script d'importation des Taux d'Évolution KYC")
     parser.add_argument("--filiales", help="Codes filiales séparés par virgule (ex: SN,CI)")
@@ -220,26 +220,26 @@ if __name__ == "__main__":
     parser.add_argument("--clear", action="store_true", help="Vider la table pour les filiales avant l'import")
     args = parser.parse_args()
 
-    # Construction du pattern de chemin avec {code}
+                                                   
     final_pattern = os.path.join(args.data_dir, DEFAULT_TAUX_FILENAME)
 
-    # Détermination des filiales à traiter
+                                          
     target_filiales = build_filiales_list(args.filiales)
 
-    # Vérification des fichiers avant import
+                                            
     for code in target_filiales:
         test_path = final_pattern.format(code=code)
         if not os.path.exists(test_path):
             logger.warning(f"Fichier manquant pour {code} : {test_path}")
 
-    # Affichage récapitulatif
+                             
     print("-" * 50)
     logger.info(f"Dossier source  : {args.data_dir}")
     logger.info(f"Filiales cibles : {target_filiales}")
     logger.info(f"Action 'Clear'  : {'OUI' if args.clear else 'NON'}")
     print("-" * 50)
 
-    # Lancement de l'import
+                           
     importer_taux(
         filiales=target_filiales,
         taux_pattern=final_pattern,

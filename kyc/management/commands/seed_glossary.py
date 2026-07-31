@@ -624,7 +624,7 @@ GLOSSARY['pages_2026_07'] = {
     'Preparation': 'Preparation',
     'Prochaine Date Revue (*)': 'Next review date (*)',
     'Prochaine date revue': 'Next review date',
-    'Prochaine date revue (DATEREV)': 'Next review date (DATEREV)',
+    'Prochaine date revue (Scoring)': 'Next review date (DATEREV)',
     'Profession': 'Occupation',
     'Progression estimee': 'Estimated progress',
     'Précédent': 'Previous',

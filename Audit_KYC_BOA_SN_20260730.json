@@ -1,0 +1,5208 @@
+{
+ "filiale": {
+  "iso2": "SN",
+  "nom_regles": "BOA SN",
+  "pays": "Sénégal",
+  "libelle": "BOA SN"
+ },
+ "date_audit": "2026-07-30",
+ "source": {
+  "pp": {
+   "fichier": ".\\pp_SN_STOCK.csv",
+   "encodage": "utf-8-sig",
+   "lignes": 381480,
+   "colonnes": [
+    "AGENCE",
+    "AGENCELIB",
+    "EXPL",
+    "NOM",
+    "CLIENT",
+    "INTITULE_COMPTE",
+    "CODAPE",
+    "IDP",
+    "PAYNAIS",
+    "NOM_PAYS",
+    "DATNAIS",
+    "PROFESSION",
+    "ADRESSE",
+    "PAYS_RESID",
+    "NUMID",
+    "SALAIRE",
+    "RISQUE",
+    "ORIGINE_REVENU",
+    "DATOUV",
+    "DATVALID",
+    "TEL",
+    "PPE",
+    "DEVISE",
+    "RESID",
+    "BOITE_POSTALE",
+    "CODE_COUR",
+    "LIEU_DELIVRANCE_CIN",
+    "EMPLOYEUR",
+    "CONSENT_BIC",
+    "DATREV",
+    "V31"
+   ],
+   "lignes_anormales": 0,
+   "colonnes_fantomes": [],
+   "clients_uniques": 364447,
+   "clients_multi_lignes": 15036
+  },
+  "pm": {
+   "fichier": ".\\pm_SN_STOCK.csv",
+   "encodage": "utf-8-sig",
+   "lignes": 15674,
+   "colonnes": [
+    "AGENCE",
+    "AGENCELIB",
+    "EXPL",
+    "NOM_EXP",
+    "CLIENT",
+    "INTITULE_COMPTE",
+    "AGEC",
+    "CODAPE",
+    "IDM",
+    "RCSNO",
+    "CAPITAL",
+    "CA",
+    "RESULTAT",
+    "RISQUE",
+    "ORIGINE_REVENU",
+    "DATOUV",
+    "PAYS_JUR",
+    "TEL",
+    "DEVISE",
+    "RESID",
+    "ADRESSE_SOCIALE",
+    "BOITE_POSTALE",
+    "CODE_COUR",
+    "ACTIONNAIRE",
+    "MANDATAIRE",
+    "NUMERO_FISCAL",
+    "DATREV"
+   ],
+   "lignes_anormales": 0,
+   "colonnes_fantomes": [],
+   "clients_uniques": 15674,
+   "clients_multi_lignes": 0
+  }
+ },
+ "referentiel": {
+  "regles_totales": 54,
+  "regles_filiale": 28,
+  "champs_pp": [
+   "PAYNAIS",
+   "PROFESSION",
+   "SALAIRE",
+   "NUMID",
+   "CODAPE",
+   "TEL",
+   "DATNAIS",
+   "ADRESSE",
+   "DATVALID",
+   "ORIGINE_REVENU",
+   "PAYS_RESID"
+  ],
+  "champs_pm": [
+   "CODAPE",
+   "AGEC",
+   "CAPITAL",
+   "CA",
+   "RESULTAT",
+   "RCSNO",
+   "ORIGINE_REVENU",
+   "TEL"
+  ]
+ },
+ "completude": {
+  "pp": {
+   "n": 381480,
+   "taux_global": 99,
+   "appreciation": "Moyen",
+   "par_champ": {
+    "PAYNAIS": 100,
+    "PROFESSION": 100,
+    "SALAIRE": 91,
+    "NUMID": 99,
+    "CODAPE": 100,
+    "TEL": 98,
+    "DATNAIS": 100,
+    "ADRESSE": 99,
+    "DATVALID": 99,
+    "ORIGINE_REVENU": 99,
+    "PAYS_RESID": 100
+   },
+   "vides_par_champ": {
+    "PAYNAIS": 0,
+    "PROFESSION": 0,
+    "SALAIRE": 30608,
+    "NUMID": 9,
+    "CODAPE": 0,
+    "TEL": 6736,
+    "DATNAIS": 0,
+    "ADRESSE": 205,
+    "DATVALID": 366,
+    "ORIGINE_REVENU": 37,
+    "PAYS_RESID": 0
+   },
+   "champs_absents": [],
+   "clients_complets": 345077,
+   "part_clients_complets": 90.5
+  },
+  "pm": {
+   "n": 15674,
+   "taux_global": 82,
+   "appreciation": "Moyen",
+   "par_champ": {
+    "CODAPE": 99,
+    "AGEC": 99,
+    "CAPITAL": 75,
+    "CA": 86,
+    "RESULTAT": 13,
+    "RCSNO": 88,
+    "ORIGINE_REVENU": 99,
+    "TEL": 93
+   },
+   "vides_par_champ": {
+    "CODAPE": 52,
+    "AGEC": 3,
+    "CAPITAL": 3817,
+    "CA": 2181,
+    "RESULTAT": 13532,
+    "RCSNO": 1754,
+    "ORIGINE_REVENU": 3,
+    "TEL": 967
+   },
+   "champs_absents": [],
+   "clients_complets": 2062,
+   "part_clients_complets": 13.2
+  },
+  "pp_agences": [
+   {
+    "agence": "01013",
+    "libelle": "AGENCE DIASPORA",
+    "n": 2044,
+    "taux": 91
+   },
+   {
+    "agence": "01003",
+    "libelle": "CAF ZONE INDUSTRIELLE",
+    "n": 398,
+    "taux": 92
+   },
+   {
+    "agence": "01024",
+    "libelle": "CAF VDN",
+    "n": 105,
+    "taux": 93
+   },
+   {
+    "agence": "01000",
+    "libelle": "SIEGE BOA - SENEGAL",
+    "n": 2,
+    "taux": 95
+   },
+   {
+    "agence": "01002",
+    "libelle": "AGENCE ELITE",
+    "n": 1958,
+    "taux": 96
+   },
+   {
+    "agence": "01021",
+    "libelle": "AGENCE INDEPENDANCE",
+    "n": 18020,
+    "taux": 98
+   },
+   {
+    "agence": "01014",
+    "libelle": "AGENCE KEUR MASSAR",
+    "n": 12376,
+    "taux": 98
+   },
+   {
+    "agence": "01006",
+    "libelle": "AGENCE DE PIKINE",
+    "n": 12038,
+    "taux": 98
+   },
+   {
+    "agence": "04001",
+    "libelle": "AGENCE THIES",
+    "n": 11134,
+    "taux": 98
+   },
+   {
+    "agence": "01004",
+    "libelle": "AGENCE PARCELLES ASSAINIES",
+    "n": 9064,
+    "taux": 98
+   },
+   {
+    "agence": "02001",
+    "libelle": "AGENCE KAOLACK",
+    "n": 8316,
+    "taux": 98
+   },
+   {
+    "agence": "01009",
+    "libelle": "AGENCE BOURGUIBA",
+    "n": 8258,
+    "taux": 98
+   },
+   {
+    "agence": "13001",
+    "libelle": "AGENCE OUROSSOGUI",
+    "n": 8194,
+    "taux": 98
+   },
+   {
+    "agence": "01001",
+    "libelle": "AGENCE CENTRALE DAKAR",
+    "n": 7899,
+    "taux": 98
+   },
+   {
+    "agence": "01020",
+    "libelle": "AGENCE SEBIKOTANE",
+    "n": 7820,
+    "taux": 98
+   },
+   {
+    "agence": "01025",
+    "libelle": "AGENCE VDN",
+    "n": 7351,
+    "taux": 98
+   },
+   {
+    "agence": "01005",
+    "libelle": "AGENCE MALICK SY",
+    "n": 7149,
+    "taux": 98
+   },
+   {
+    "agence": "01028",
+    "libelle": "AGENCE YOFF",
+    "n": 7121,
+    "taux": 98
+   },
+   {
+    "agence": "01023",
+    "libelle": "AGENCE ZI PARTICULIER",
+    "n": 6536,
+    "taux": 98
+   },
+   {
+    "agence": "11001",
+    "libelle": "AGENCE DIOURBEL",
+    "n": 5064,
+    "taux": 98
+   },
+   {
+    "agence": "09004",
+    "libelle": "AGENCE SATTELITE NIANING",
+    "n": 4627,
+    "taux": 98
+   },
+   {
+    "agence": "09003",
+    "libelle": "AGENCE SATELLITE SALY CENTER",
+    "n": 3806,
+    "taux": 98
+   },
+   {
+    "agence": "01017",
+    "libelle": "AGENCE LAMINE GUEYE",
+    "n": 813,
+    "taux": 98
+   },
+   {
+    "agence": "01034",
+    "libelle": "AGENCE HAUT DE GAMME",
+    "n": 649,
+    "taux": 98
+   },
+   {
+    "agence": "04003",
+    "libelle": "AGENCE ICS-MBORO",
+    "n": 19637,
+    "taux": 99
+   },
+   {
+    "agence": "01011",
+    "libelle": "AGENCE THIAROYE",
+    "n": 12059,
+    "taux": 99
+   },
+   {
+    "agence": "09002",
+    "libelle": "AGENCE MBOUR",
+    "n": 11768,
+    "taux": 99
+   },
+   {
+    "agence": "01007",
+    "libelle": "AGENCE MERMOZ",
+    "n": 11604,
+    "taux": 99
+   },
+   {
+    "agence": "03001",
+    "libelle": "AGENCE ZIGUINCHOR",
+    "n": 10246,
+    "taux": 99
+   },
+   {
+    "agence": "01015",
+    "libelle": "AGENCE GRAND YOFF",
+    "n": 9826,
+    "taux": 99
+   },
+   {
+    "agence": "09001",
+    "libelle": "AGENCE SALY",
+    "n": 8552,
+    "taux": 99
+   },
+   {
+    "agence": "01016",
+    "libelle": "AGENCE SATELLITE HLM FASS",
+    "n": 8457,
+    "taux": 99
+   },
+   {
+    "agence": "01018",
+    "libelle": "AGENCE SATELLITE GOLF",
+    "n": 8414,
+    "taux": 99
+   },
+   {
+    "agence": "01027",
+    "libelle": "AGENCE RUFISQUE",
+    "n": 8395,
+    "taux": 99
+   },
+   {
+    "agence": "17002",
+    "libelle": "AGENCE TOUBA 2",
+    "n": 7610,
+    "taux": 99
+   },
+   {
+    "agence": "07001",
+    "libelle": "AGENCE LOUGA",
+    "n": 7535,
+    "taux": 99
+   },
+   {
+    "agence": "01019",
+    "libelle": "AGENCE SATELLITE PIKINE",
+    "n": 7516,
+    "taux": 99
+   },
+   {
+    "agence": "01008",
+    "libelle": "AGENCE HLM",
+    "n": 7424,
+    "taux": 99
+   },
+   {
+    "agence": "33001",
+    "libelle": "AGENCE KEDOUGOU",
+    "n": 7219,
+    "taux": 99
+   },
+   {
+    "agence": "04002",
+    "libelle": "AGENCE SATELLITE THIES",
+    "n": 7002,
+    "taux": 99
+   },
+   {
+    "agence": "01032",
+    "libelle": "AGENCE GUEDIAWAYE",
+    "n": 6963,
+    "taux": 99
+   },
+   {
+    "agence": "01029",
+    "libelle": "AGENCE FRONT DE TERRE",
+    "n": 6894,
+    "taux": 99
+   },
+   {
+    "agence": "08001",
+    "libelle": "AGENCE SAINT-LOUIS",
+    "n": 6395,
+    "taux": 99
+   },
+   {
+    "agence": "05001",
+    "libelle": "AGENCE TAMBACOUNDA",
+    "n": 6389,
+    "taux": 99
+   },
+   {
+    "agence": "01026",
+    "libelle": "AGENCE MBAO",
+    "n": 6236,
+    "taux": 99
+   },
+   {
+    "agence": "01022",
+    "libelle": "AGENCE NORD FOIRE",
+    "n": 5845,
+    "taux": 99
+   },
+   {
+    "agence": "01012",
+    "libelle": "AGENCE HANN MARISTE",
+    "n": 5747,
+    "taux": 99
+   },
+   {
+    "agence": "01035",
+    "libelle": "AGENCE DIOR",
+    "n": 5122,
+    "taux": 99
+   },
+   {
+    "agence": "06001",
+    "libelle": "AGENCE KOLDA",
+    "n": 4854,
+    "taux": 99
+   },
+   {
+    "agence": "01030",
+    "libelle": "AGENCE CENTENAIRE",
+    "n": 4489,
+    "taux": 99
+   },
+   {
+    "agence": "10001",
+    "libelle": "AGENCE RICHARD TOLL",
+    "n": 4132,
+    "taux": 99
+   },
+   {
+    "agence": "28001",
+    "libelle": "AGENCE KAFFRINE",
+    "n": 4119,
+    "taux": 99
+   },
+   {
+    "agence": "01031",
+    "libelle": "AGENCE COLOBANE",
+    "n": 3996,
+    "taux": 99
+   },
+   {
+    "agence": "42001",
+    "libelle": "AGENCE KIDIRA",
+    "n": 3150,
+    "taux": 99
+   },
+   {
+    "agence": "12001",
+    "libelle": "AGENCE FATICK",
+    "n": 3143,
+    "taux": 99
+   }
+  ],
+  "pm_agences": [
+   {
+    "agence": "01000",
+    "libelle": "SIEGE BOA - SENEGAL",
+    "n": 2,
+    "taux": 62
+   },
+   {
+    "agence": "01002",
+    "libelle": "AGENCE ELITE",
+    "n": 351,
+    "taux": 71
+   },
+   {
+    "agence": "01004",
+    "libelle": "AGENCE PARCELLES ASSAINIES",
+    "n": 382,
+    "taux": 72
+   },
+   {
+    "agence": "01001",
+    "libelle": "AGENCE CENTRALE DAKAR",
+    "n": 1208,
+    "taux": 75
+   },
+   {
+    "agence": "01021",
+    "libelle": "AGENCE INDEPENDANCE",
+    "n": 662,
+    "taux": 75
+   },
+   {
+    "agence": "01003",
+    "libelle": "CAF ZONE INDUSTRIELLE",
+    "n": 471,
+    "taux": 75
+   },
+   {
+    "agence": "05001",
+    "libelle": "AGENCE TAMBACOUNDA",
+    "n": 153,
+    "taux": 76
+   },
+   {
+    "agence": "01009",
+    "libelle": "AGENCE BOURGUIBA",
+    "n": 373,
+    "taux": 77
+   },
+   {
+    "agence": "01015",
+    "libelle": "AGENCE GRAND YOFF",
+    "n": 315,
+    "taux": 77
+   },
+   {
+    "agence": "01007",
+    "libelle": "AGENCE MERMOZ",
+    "n": 307,
+    "taux": 77
+   },
+   {
+    "agence": "02001",
+    "libelle": "AGENCE KAOLACK",
+    "n": 185,
+    "taux": 77
+   },
+   {
+    "agence": "01016",
+    "libelle": "AGENCE SATELLITE HLM FASS",
+    "n": 247,
+    "taux": 78
+   },
+   {
+    "agence": "01019",
+    "libelle": "AGENCE SATELLITE PIKINE",
+    "n": 214,
+    "taux": 78
+   },
+   {
+    "agence": "17002",
+    "libelle": "AGENCE TOUBA 2",
+    "n": 199,
+    "taux": 78
+   },
+   {
+    "agence": "01008",
+    "libelle": "AGENCE HLM",
+    "n": 385,
+    "taux": 80
+   },
+   {
+    "agence": "01006",
+    "libelle": "AGENCE DE PIKINE",
+    "n": 353,
+    "taux": 80
+   },
+   {
+    "agence": "01005",
+    "libelle": "AGENCE MALICK SY",
+    "n": 318,
+    "taux": 80
+   },
+   {
+    "agence": "01012",
+    "libelle": "AGENCE HANN MARISTE",
+    "n": 428,
+    "taux": 81
+   },
+   {
+    "agence": "01028",
+    "libelle": "AGENCE YOFF",
+    "n": 420,
+    "taux": 81
+   },
+   {
+    "agence": "09001",
+    "libelle": "AGENCE SALY",
+    "n": 301,
+    "taux": 81
+   },
+   {
+    "agence": "01024",
+    "libelle": "CAF VDN",
+    "n": 228,
+    "taux": 81
+   },
+   {
+    "agence": "09002",
+    "libelle": "AGENCE MBOUR",
+    "n": 224,
+    "taux": 81
+   },
+   {
+    "agence": "01017",
+    "libelle": "AGENCE LAMINE GUEYE",
+    "n": 782,
+    "taux": 82
+   },
+   {
+    "agence": "01022",
+    "libelle": "AGENCE NORD FOIRE",
+    "n": 478,
+    "taux": 82
+   },
+   {
+    "agence": "04001",
+    "libelle": "AGENCE THIES",
+    "n": 442,
+    "taux": 82
+   },
+   {
+    "agence": "04002",
+    "libelle": "AGENCE SATELLITE THIES",
+    "n": 194,
+    "taux": 82
+   },
+   {
+    "agence": "01011",
+    "libelle": "AGENCE THIAROYE",
+    "n": 377,
+    "taux": 83
+   },
+   {
+    "agence": "01023",
+    "libelle": "AGENCE ZI PARTICULIER",
+    "n": 283,
+    "taux": 83
+   },
+   {
+    "agence": "03001",
+    "libelle": "AGENCE ZIGUINCHOR",
+    "n": 256,
+    "taux": 83
+   },
+   {
+    "agence": "09003",
+    "libelle": "AGENCE SATELLITE SALY CENTER",
+    "n": 191,
+    "taux": 83
+   },
+   {
+    "agence": "09004",
+    "libelle": "AGENCE SATTELITE NIANING",
+    "n": 143,
+    "taux": 84
+   },
+   {
+    "agence": "13001",
+    "libelle": "AGENCE OUROSSOGUI",
+    "n": 137,
+    "taux": 84
+   },
+   {
+    "agence": "01025",
+    "libelle": "AGENCE VDN",
+    "n": 432,
+    "taux": 85
+   },
+   {
+    "agence": "01018",
+    "libelle": "AGENCE SATELLITE GOLF",
+    "n": 309,
+    "taux": 85
+   },
+   {
+    "agence": "33001",
+    "libelle": "AGENCE KEDOUGOU",
+    "n": 177,
+    "taux": 85
+   },
+   {
+    "agence": "01020",
+    "libelle": "AGENCE SEBIKOTANE",
+    "n": 339,
+    "taux": 86
+   },
+   {
+    "agence": "01026",
+    "libelle": "AGENCE MBAO",
+    "n": 223,
+    "taux": 86
+   },
+   {
+    "agence": "11001",
+    "libelle": "AGENCE DIOURBEL",
+    "n": 210,
+    "taux": 86
+   },
+   {
+    "agence": "01032",
+    "libelle": "AGENCE GUEDIAWAYE",
+    "n": 202,
+    "taux": 86
+   },
+   {
+    "agence": "01030",
+    "libelle": "AGENCE CENTENAIRE",
+    "n": 181,
+    "taux": 86
+   },
+   {
+    "agence": "01034",
+    "libelle": "AGENCE HAUT DE GAMME",
+    "n": 40,
+    "taux": 86
+   },
+   {
+    "agence": "01027",
+    "libelle": "AGENCE RUFISQUE",
+    "n": 454,
+    "taux": 87
+   },
+   {
+    "agence": "07001",
+    "libelle": "AGENCE LOUGA",
+    "n": 358,
+    "taux": 87
+   },
+   {
+    "agence": "01035",
+    "libelle": "AGENCE DIOR",
+    "n": 166,
+    "taux": 87
+   },
+   {
+    "agence": "28001",
+    "libelle": "AGENCE KAFFRINE",
+    "n": 91,
+    "taux": 87
+   },
+   {
+    "agence": "42001",
+    "libelle": "AGENCE KIDIRA",
+    "n": 32,
+    "taux": 87
+   },
+   {
+    "agence": "01010",
+    "libelle": "AGENCE NGOR",
+    "n": 1,
+    "taux": 87
+   },
+   {
+    "agence": "08001",
+    "libelle": "AGENCE SAINT-LOUIS",
+    "n": 246,
+    "taux": 90
+   },
+   {
+    "agence": "10001",
+    "libelle": "AGENCE RICHARD TOLL",
+    "n": 137,
+    "taux": 90
+   },
+   {
+    "agence": "01031",
+    "libelle": "AGENCE COLOBANE",
+    "n": 118,
+    "taux": 91
+   },
+   {
+    "agence": "01014",
+    "libelle": "AGENCE KEUR MASSAR",
+    "n": 304,
+    "taux": 94
+   },
+   {
+    "agence": "12001",
+    "libelle": "AGENCE FATICK",
+    "n": 71,
+    "taux": 95
+   },
+   {
+    "agence": "01029",
+    "libelle": "AGENCE FRONT DE TERRE",
+    "n": 206,
+    "taux": 97
+   },
+   {
+    "agence": "06001",
+    "libelle": "AGENCE KOLDA",
+    "n": 147,
+    "taux": 98
+   },
+   {
+    "agence": "04003",
+    "libelle": "AGENCE ICS-MBORO",
+    "n": 221,
+    "taux": 99
+   }
+  ]
+ },
+ "qualite": {
+  "pp": {
+   "typologie": "PP",
+   "taux_qualite": 95.9,
+   "nb_regles": 16,
+   "nb_regles_evaluables": 16,
+   "total_anomalies": 252787,
+   "regles": [
+    {
+     "nom": "Date de révision KYC expirée",
+     "description": "La date de révision KYC (DATEREV) est dépassée.",
+     "total": 381480,
+     "anomalies": 151528,
+     "part": 39.7,
+     "taux_conformite": 60.3,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND DATEREV expired "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Document d'identité expiré",
+     "description": "",
+     "total": 381480,
+     "anomalies": 87192,
+     "part": 22.9,
+     "taux_conformite": 77.1,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND DATVALID expired "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Risque élevé sans révision KYC à jour",
+     "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+     "total": 381480,
+     "anomalies": 5872,
+     "part": 1.5,
+     "taux_conformite": 98.5,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND RISQUE = Risque eleve",
+      "AND DATEREV expired "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Non-résident sans boîte postale",
+     "description": "Client non-résident (RESID=N) sans boîte postale renseignée.",
+     "total": 381480,
+     "anomalies": 2754,
+     "part": 0.7,
+     "taux_conformite": 99.3,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND RESID = N",
+      "AND BOITE_POSTALE is_empty "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "NUMID trop court",
+     "description": "Le numéro de pièce d'identité comporte moins de 5 caractères.",
+     "total": 381480,
+     "anomalies": 1698,
+     "part": 0.4,
+     "taux_conformite": 99.6,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND NUMID is_not_empty ",
+      "AND NUMID min_length 5"
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Format téléphone invalide (trop court)",
+     "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
+     "total": 381480,
+     "anomalies": 1418,
+     "part": 0.4,
+     "taux_conformite": 99.6,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND TEL is_not_empty ",
+      "AND TEL min_length 9"
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Format téléphone invalide (trop long)",
+     "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
+     "total": 381480,
+     "anomalies": 1390,
+     "part": 0.4,
+     "taux_conformite": 99.6,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND TEL max_length 18"
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Retraité avec revenu positif",
+     "description": "Profession de type retraité (RETRAIT) avec un salaire numérique > 0.",
+     "total": 381480,
+     "anomalies": 612,
+     "part": 0.2,
+     "taux_conformite": 99.8,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND PROFESSION contains RETRAIT",
+      "AND SALAIRE > 0"
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Détection des employés de banque sans salaire",
+     "description": "",
+     "total": 381480,
+     "anomalies": 106,
+     "part": 0.0,
+     "taux_conformite": 100.0,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND PROFESSION contains EMPLOYE DE BANQUE",
+      "AND SALAIRE is_empty "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Salarié sans revenu",
+     "description": "Profession de type salarié (EMPLOYE) mais salaire non renseigné.",
+     "total": 381480,
+     "anomalies": 106,
+     "part": 0.0,
+     "taux_conformite": 100.0,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND PROFESSION contains EMPLOYE",
+      "AND SALAIRE is_empty "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Salarié sans employeur",
+     "description": "Profession de type salarié (EMPLOYE) mais employeur non renseigné.",
+     "total": 381480,
+     "anomalies": 82,
+     "part": 0.0,
+     "taux_conformite": 100.0,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND PROFESSION contains EMPLOYE",
+      "AND EMPLOYEUR is_empty "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Âge client supérieur à 100 ans (aberrant)",
+     "description": "La date de naissance implique un âge supérieur à 100 ans.",
+     "total": 381480,
+     "anomalies": 27,
+     "part": 0.0,
+     "taux_conformite": 100.0,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND DATNAIS age_gt 100"
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Revenus élevés sans origine déclarée",
+     "description": "Salaire numérique supérieur à 50 000 000 sans origine des revenus renseignée.",
+     "total": 381480,
+     "anomalies": 1,
+     "part": 0.0,
+     "taux_conformite": 100.0,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND SALAIRE > 50000000",
+      "AND ORIGINE_REV is_empty "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "PPE déclaré sans risque élevé",
+     "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+     "total": 381480,
+     "anomalies": 1,
+     "part": 0.0,
+     "taux_conformite": 100.0,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND PPE = O",
+      "AND RISQUE != Risque eleve"
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Mineur de plus de plus de 21 ans",
+     "description": "",
+     "total": 381480,
+     "anomalies": 0,
+     "part": 0.0,
+     "taux_conformite": 100.0,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND PROFESSION contains Mineur",
+      "AND DATNAIS age_gt 21",
+      "AND PROFESSION contains Enfant",
+      "AND PROFESSION contains Eleve"
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "PPE sans origine des revenus",
+     "description": "Client PPE (PPE=O) sans origine des revenus renseignée.",
+     "total": 381480,
+     "anomalies": 0,
+     "part": 0.0,
+     "taux_conformite": 100.0,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND PPE = O",
+      "AND ORIGINE_REV is_empty "
+     ],
+     "exemples": []
+    }
+   ],
+   "doublons_regles": []
+  },
+  "pm": {
+   "typologie": "PM",
+   "taux_qualite": 85.2,
+   "nb_regles": 12,
+   "nb_regles_evaluables": 11,
+   "total_anomalies": 27829,
+   "regles": [
+    {
+     "nom": "CA positif mais résultat vide",
+     "description": "Chiffre d'affaires > 0 alors que le résultat n'est pas renseigné.",
+     "total": 15674,
+     "anomalies": 10877,
+     "part": 69.4,
+     "taux_conformite": 30.6,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND CA > 0",
+      "AND RESULTAT is_empty "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Société avec capital mais sans actionnaire",
+     "description": "Capital social > 0 alors qu'aucun actionnaire n'est renseigné.",
+     "total": 15674,
+     "anomalies": 9144,
+     "part": 58.3,
+     "taux_conformite": 41.7,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND CAPITAL > 0",
+      "AND ACTIONNAIRE is_empty "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "RCS renseigné mais sans numéro fiscal",
+     "description": "Numéro RCS présent mais numéro fiscal absent.",
+     "total": 15674,
+     "anomalies": 4228,
+     "part": 27.0,
+     "taux_conformite": 73.0,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND RCSNO is_not_empty ",
+      "AND NUMERO_FISCAL is_empty "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Capital social nul",
+     "description": "Le capital social déclaré est égal à 0.",
+     "total": 15674,
+     "anomalies": 2064,
+     "part": 13.2,
+     "taux_conformite": 86.8,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND CAPITAL = 0"
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Format téléphone invalide (trop long)",
+     "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
+     "total": 15674,
+     "anomalies": 441,
+     "part": 2.8,
+     "taux_conformite": 97.2,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND TEL max_length 18"
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Risque élevé sans révision KYC à jour",
+     "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+     "total": 15674,
+     "anomalies": 394,
+     "part": 2.5,
+     "taux_conformite": 97.5,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND RISQUE = Risque eleve",
+      "AND DATEREV expired "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Numéro RCS trop court",
+     "description": "Le numéro RCS renseigné comporte moins de 6 caractères.",
+     "total": 15674,
+     "anomalies": 356,
+     "part": 2.3,
+     "taux_conformite": 97.7,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND RCSNO is_not_empty ",
+      "AND RCSNO min_length 6"
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Mandataire absent pour société active",
+     "description": "Société avec chiffre d'affaires > 0 mais sans mandataire renseigné.",
+     "total": 15674,
+     "anomalies": 279,
+     "part": 1.8,
+     "taux_conformite": 98.2,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND CA > 0",
+      "AND MANDATAIRE is_empty "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Sociétés sans adresse sociale",
+     "description": "Recenser les PM sans adresse sociale",
+     "total": 15674,
+     "anomalies": 46,
+     "part": 0.3,
+     "taux_conformite": 99.7,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND ADRESSE_SOCIALE is_empty "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Format téléphone court ou contenant des lettres (PM)",
+     "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
+     "total": 15674,
+     "anomalies": 0,
+     "part": 0.0,
+     "taux_conformite": 100.0,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND TEL is_not_empty ",
+      "AND TEL min_length 9",
+      "AND TEL contains_alpha "
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "PPE déclarée sans risque élevé",
+     "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+     "total": 15674,
+     "anomalies": 0,
+     "part": 0.0,
+     "taux_conformite": 100.0,
+     "evaluable": false,
+     "champs_absents": [
+      "PPE"
+     ],
+     "conditions": [
+      "AND PPE = O",
+      "AND RISQUE != Risque eleve"
+     ],
+     "exemples": []
+    },
+    {
+     "nom": "Résultat renseigné sans chiffre d'affaires",
+     "description": "Le résultat est renseigné mais le chiffre d'affaires (CA) est vide.",
+     "total": 15674,
+     "anomalies": 0,
+     "part": 0.0,
+     "taux_conformite": 100.0,
+     "evaluable": true,
+     "champs_absents": [],
+     "conditions": [
+      "AND RESULTAT is_not_empty ",
+      "AND CA is_empty "
+     ],
+     "exemples": []
+    }
+   ],
+   "doublons_regles": []
+  }
+ },
+ "scoring": {
+  "pp": {
+   "n": 381480,
+   "risque": {
+    "Risque moyen faible": 366383,
+    "Risque moyen eleve": 1789,
+    "(non renseigné)": 37,
+    "Risque eleve": 13256,
+    "Risque faible": 13,
+    "(hors référentiel)": 2
+   },
+   "risque_ordonne": [
+    [
+     "Risque faible",
+     13
+    ],
+    [
+     "Risque moyen faible",
+     366383
+    ],
+    [
+     "Risque moyen eleve",
+     1789
+    ],
+    [
+     "Risque eleve",
+     13256
+    ],
+    [
+     "(non renseigné)",
+     37
+    ]
+   ],
+   "risque_non_renseigne": 37,
+   "statuts": {
+    "Échue": 151528,
+    "À échoir < 3 mois": 58150,
+    "Non renseignée": 30550,
+    "À échoir > 12 mois": 72042,
+    "À échoir 3–6 mois": 49165,
+    "À échoir 6–12 mois": 20045
+   },
+   "statuts_ordonnes": [
+    [
+     "Échue",
+     151528
+    ],
+    [
+     "Non renseignée",
+     30550
+    ],
+    [
+     "À échoir < 3 mois",
+     58150
+    ],
+    [
+     "À échoir 3–6 mois",
+     49165
+    ],
+    [
+     "À échoir 6–12 mois",
+     20045
+    ],
+    [
+     "À échoir > 12 mois",
+     72042
+    ]
+   ],
+   "sans_revision": 182078,
+   "part_sans_revision": 47.7,
+   "anciennete_echues": {
+    "< 6 mois": 128733,
+    "6 à 12 mois": 22196,
+    "1 à 2 ans": 309,
+    "> 2 ans": 290
+   },
+   "croise": {
+    "Risque moyen faible": {
+     "Échue": 144834,
+     "À échoir < 3 mois": 55894,
+     "À échoir > 12 mois": 71720,
+     "À échoir 3–6 mois": 46923,
+     "Non renseignée": 29786,
+     "À échoir 6–12 mois": 17226
+    },
+    "Risque moyen eleve": {
+     "Non renseignée": 486,
+     "À échoir > 12 mois": 169,
+     "À échoir 6–12 mois": 143,
+     "Échue": 822,
+     "À échoir 3–6 mois": 95,
+     "À échoir < 3 mois": 74
+    },
+    "(non renseigné)": {
+     "Non renseignée": 37
+    },
+    "Risque eleve": {
+     "À échoir < 3 mois": 2182,
+     "Échue": 5872,
+     "À échoir 3–6 mois": 2147,
+     "À échoir 6–12 mois": 2676,
+     "Non renseignée": 227,
+     "À échoir > 12 mois": 152
+    },
+    "Risque faible": {
+     "À échoir > 12 mois": 1,
+     "Non renseignée": 12
+    },
+    "(hors référentiel)": {
+     "Non renseignée": 2
+    }
+   },
+   "risque_eleve": {
+    "total": 13256,
+    "sans_revision": 6099,
+    "part": 46.0,
+    "echue": 5872,
+    "non_renseignee": 227
+   }
+  },
+  "pm": {
+   "n": 15674,
+   "risque": {
+    "Risque moyen faible": 12264,
+    "Risque moyen eleve": 2174,
+    "Risque eleve": 1201,
+    "Risque faible": 32,
+    "(non renseigné)": 3
+   },
+   "risque_ordonne": [
+    [
+     "Risque faible",
+     32
+    ],
+    [
+     "Risque moyen faible",
+     12264
+    ],
+    [
+     "Risque moyen eleve",
+     2174
+    ],
+    [
+     "Risque eleve",
+     1201
+    ],
+    [
+     "(non renseigné)",
+     3
+    ]
+   ],
+   "risque_non_renseigne": 3,
+   "statuts": {
+    "Non renseignée": 10537,
+    "Échue": 571,
+    "À échoir 6–12 mois": 400,
+    "À échoir > 12 mois": 3627,
+    "À échoir 3–6 mois": 279,
+    "À échoir < 3 mois": 259,
+    "Format invalide": 1
+   },
+   "statuts_ordonnes": [
+    [
+     "Échue",
+     571
+    ],
+    [
+     "Non renseignée",
+     10537
+    ],
+    [
+     "À échoir < 3 mois",
+     259
+    ],
+    [
+     "À échoir 3–6 mois",
+     279
+    ],
+    [
+     "À échoir 6–12 mois",
+     400
+    ],
+    [
+     "À échoir > 12 mois",
+     3627
+    ],
+    [
+     "Format invalide",
+     1
+    ]
+   ],
+   "sans_revision": 11109,
+   "part_sans_revision": 70.9,
+   "anciennete_echues": {
+    "< 6 mois": 460,
+    "> 2 ans": 9,
+    "6 à 12 mois": 83,
+    "1 à 2 ans": 19
+   },
+   "croise": {
+    "Risque moyen faible": {
+     "Non renseignée": 8183,
+     "Échue": 144,
+     "À échoir > 12 mois": 3519,
+     "À échoir 3–6 mois": 105,
+     "À échoir 6–12 mois": 232,
+     "À échoir < 3 mois": 81
+    },
+    "Risque moyen eleve": {
+     "Non renseignée": 2035,
+     "À échoir 6–12 mois": 23,
+     "À échoir > 12 mois": 59,
+     "Échue": 33,
+     "À échoir 3–6 mois": 10,
+     "À échoir < 3 mois": 14
+    },
+    "Risque eleve": {
+     "Non renseignée": 315,
+     "À échoir 3–6 mois": 164,
+     "Échue": 394,
+     "À échoir < 3 mois": 164,
+     "À échoir 6–12 mois": 145,
+     "À échoir > 12 mois": 18,
+     "Format invalide": 1
+    },
+    "Risque faible": {
+     "À échoir > 12 mois": 31,
+     "Non renseignée": 1
+    },
+    "(non renseigné)": {
+     "Non renseignée": 3
+    }
+   },
+   "risque_eleve": {
+    "total": 1201,
+    "sans_revision": 710,
+    "part": 59.1,
+    "echue": 394,
+    "non_renseignee": 315
+   }
+  },
+  "ppe_pp": {
+   "disponible": true,
+   "ppe": 2716,
+   "part": 0.71,
+   "sans_risque_eleve": 1,
+   "avec_risque_eleve": 2715
+  },
+  "ppe_pm": {
+   "disponible": false
+  }
+ },
+ "risque_eleve": {
+  "pp": {
+   "n": 13256,
+   "part": 3.47,
+   "completude": {
+    "n": 13256,
+    "taux_global": 99,
+    "appreciation": "Moyen",
+    "par_champ": {
+     "PAYNAIS": 100,
+     "PROFESSION": 100,
+     "SALAIRE": 97,
+     "NUMID": 99,
+     "CODAPE": 100,
+     "TEL": 99,
+     "DATNAIS": 100,
+     "ADRESSE": 100,
+     "DATVALID": 99,
+     "ORIGINE_REVENU": 100,
+     "PAYS_RESID": 100
+    },
+    "vides_par_champ": {
+     "PAYNAIS": 0,
+     "PROFESSION": 0,
+     "SALAIRE": 281,
+     "NUMID": 2,
+     "CODAPE": 0,
+     "TEL": 83,
+     "DATNAIS": 0,
+     "ADRESSE": 0,
+     "DATVALID": 17,
+     "ORIGINE_REVENU": 0,
+     "PAYS_RESID": 0
+    },
+    "champs_absents": [],
+    "clients_complets": 12887,
+    "part_clients_complets": 97.2
+   },
+   "qualite": {
+    "typologie": "PP",
+    "taux_qualite": 94.2,
+    "nb_regles": 16,
+    "nb_regles_evaluables": 16,
+    "total_anomalies": 12246,
+    "regles": [
+     {
+      "nom": "Date de révision KYC expirée",
+      "description": "La date de révision KYC (DATEREV) est dépassée.",
+      "total": 13256,
+      "anomalies": 5872,
+      "part": 44.3,
+      "taux_conformite": 55.7,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND DATEREV expired "
+      ],
+      "exemples": [],
+      "part_globale": 39.7,
+      "anomalies_globales": 151528
+     },
+     {
+      "nom": "Risque élevé sans révision KYC à jour",
+      "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+      "total": 13256,
+      "anomalies": 5872,
+      "part": 44.3,
+      "taux_conformite": 55.7,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND RISQUE = Risque eleve",
+       "AND DATEREV expired "
+      ],
+      "exemples": [],
+      "part_globale": 1.5,
+      "anomalies_globales": 5872
+     },
+     {
+      "nom": "Document d'identité expiré",
+      "description": "",
+      "total": 13256,
+      "anomalies": 316,
+      "part": 2.4,
+      "taux_conformite": 97.6,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND DATVALID expired "
+      ],
+      "exemples": [],
+      "part_globale": 22.9,
+      "anomalies_globales": 87192
+     },
+     {
+      "nom": "Retraité avec revenu positif",
+      "description": "Profession de type retraité (RETRAIT) avec un salaire numérique > 0.",
+      "total": 13256,
+      "anomalies": 81,
+      "part": 0.6,
+      "taux_conformite": 99.4,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND PROFESSION contains RETRAIT",
+       "AND SALAIRE > 0"
+      ],
+      "exemples": [],
+      "part_globale": 0.2,
+      "anomalies_globales": 612
+     },
+     {
+      "nom": "NUMID trop court",
+      "description": "Le numéro de pièce d'identité comporte moins de 5 caractères.",
+      "total": 13256,
+      "anomalies": 43,
+      "part": 0.3,
+      "taux_conformite": 99.7,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND NUMID is_not_empty ",
+       "AND NUMID min_length 5"
+      ],
+      "exemples": [],
+      "part_globale": 0.4,
+      "anomalies_globales": 1698
+     },
+     {
+      "nom": "Non-résident sans boîte postale",
+      "description": "Client non-résident (RESID=N) sans boîte postale renseignée.",
+      "total": 13256,
+      "anomalies": 43,
+      "part": 0.3,
+      "taux_conformite": 99.7,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND RESID = N",
+       "AND BOITE_POSTALE is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 0.7,
+      "anomalies_globales": 2754
+     },
+     {
+      "nom": "Format téléphone invalide (trop court)",
+      "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
+      "total": 13256,
+      "anomalies": 17,
+      "part": 0.1,
+      "taux_conformite": 99.9,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND TEL is_not_empty ",
+       "AND TEL min_length 9"
+      ],
+      "exemples": [],
+      "part_globale": 0.4,
+      "anomalies_globales": 1418
+     },
+     {
+      "nom": "Format téléphone invalide (trop long)",
+      "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
+      "total": 13256,
+      "anomalies": 1,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND TEL max_length 18"
+      ],
+      "exemples": [],
+      "part_globale": 0.4,
+      "anomalies_globales": 1390
+     },
+     {
+      "nom": "Salarié sans employeur",
+      "description": "Profession de type salarié (EMPLOYE) mais employeur non renseigné.",
+      "total": 13256,
+      "anomalies": 1,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND PROFESSION contains EMPLOYE",
+       "AND EMPLOYEUR is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 0.0,
+      "anomalies_globales": 82
+     },
+     {
+      "nom": "Mineur de plus de plus de 21 ans",
+      "description": "",
+      "total": 13256,
+      "anomalies": 0,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND PROFESSION contains Mineur",
+       "AND DATNAIS age_gt 21",
+       "AND PROFESSION contains Enfant",
+       "AND PROFESSION contains Eleve"
+      ],
+      "exemples": [],
+      "part_globale": 0.0,
+      "anomalies_globales": 0
+     },
+     {
+      "nom": "Détection des employés de banque sans salaire",
+      "description": "",
+      "total": 13256,
+      "anomalies": 0,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND PROFESSION contains EMPLOYE DE BANQUE",
+       "AND SALAIRE is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 0.0,
+      "anomalies_globales": 106
+     },
+     {
+      "nom": "Revenus élevés sans origine déclarée",
+      "description": "Salaire numérique supérieur à 50 000 000 sans origine des revenus renseignée.",
+      "total": 13256,
+      "anomalies": 0,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND SALAIRE > 50000000",
+       "AND ORIGINE_REV is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 0.0,
+      "anomalies_globales": 1
+     },
+     {
+      "nom": "Âge client supérieur à 100 ans (aberrant)",
+      "description": "La date de naissance implique un âge supérieur à 100 ans.",
+      "total": 13256,
+      "anomalies": 0,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND DATNAIS age_gt 100"
+      ],
+      "exemples": [],
+      "part_globale": 0.0,
+      "anomalies_globales": 27
+     },
+     {
+      "nom": "PPE déclaré sans risque élevé",
+      "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+      "total": 13256,
+      "anomalies": 0,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND PPE = O",
+       "AND RISQUE != Risque eleve"
+      ],
+      "exemples": [],
+      "part_globale": 0.0,
+      "anomalies_globales": 1
+     },
+     {
+      "nom": "Salarié sans revenu",
+      "description": "Profession de type salarié (EMPLOYE) mais salaire non renseigné.",
+      "total": 13256,
+      "anomalies": 0,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND PROFESSION contains EMPLOYE",
+       "AND SALAIRE is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 0.0,
+      "anomalies_globales": 106
+     },
+     {
+      "nom": "PPE sans origine des revenus",
+      "description": "Client PPE (PPE=O) sans origine des revenus renseignée.",
+      "total": 13256,
+      "anomalies": 0,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND PPE = O",
+       "AND ORIGINE_REV is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 0.0,
+      "anomalies_globales": 0
+     }
+    ]
+   },
+   "scoring": {
+    "n": 13256,
+    "risque": {
+     "Risque eleve": 13256
+    },
+    "risque_ordonne": [
+     [
+      "Risque eleve",
+      13256
+     ]
+    ],
+    "risque_non_renseigne": 0,
+    "statuts": {
+     "À échoir < 3 mois": 2182,
+     "Échue": 5872,
+     "À échoir 3–6 mois": 2147,
+     "À échoir 6–12 mois": 2676,
+     "Non renseignée": 227,
+     "À échoir > 12 mois": 152
+    },
+    "statuts_ordonnes": [
+     [
+      "Échue",
+      5872
+     ],
+     [
+      "Non renseignée",
+      227
+     ],
+     [
+      "À échoir < 3 mois",
+      2182
+     ],
+     [
+      "À échoir 3–6 mois",
+      2147
+     ],
+     [
+      "À échoir 6–12 mois",
+      2676
+     ],
+     [
+      "À échoir > 12 mois",
+      152
+     ]
+    ],
+    "sans_revision": 6099,
+    "part_sans_revision": 46.0,
+    "anciennete_echues": {
+     "1 à 2 ans": 11,
+     "6 à 12 mois": 1270,
+     "< 6 mois": 4590,
+     "> 2 ans": 1
+    },
+    "croise": {
+     "Risque eleve": {
+      "À échoir < 3 mois": 2182,
+      "Échue": 5872,
+      "À échoir 3–6 mois": 2147,
+      "À échoir 6–12 mois": 2676,
+      "Non renseignée": 227,
+      "À échoir > 12 mois": 152
+     }
+    },
+    "risque_eleve": {
+     "total": 13256,
+     "sans_revision": 6099,
+     "part": 46.0,
+     "echue": 5872,
+     "non_renseignee": 227
+    }
+   },
+   "non_residents": 43,
+   "devise_etrangere": 111,
+   "ppe": 2715
+  },
+  "pm": {
+   "n": 1201,
+   "part": 7.66,
+   "completude": {
+    "n": 1201,
+    "taux_global": 85,
+    "appreciation": "Moyen",
+    "par_champ": {
+     "CODAPE": 99,
+     "AGEC": 100,
+     "CAPITAL": 86,
+     "CA": 91,
+     "RESULTAT": 18,
+     "RCSNO": 90,
+     "ORIGINE_REVENU": 100,
+     "TEL": 94
+    },
+    "vides_par_champ": {
+     "CODAPE": 9,
+     "AGEC": 0,
+     "CAPITAL": 162,
+     "CA": 106,
+     "RESULTAT": 982,
+     "RCSNO": 113,
+     "ORIGINE_REVENU": 0,
+     "TEL": 61
+    },
+    "champs_absents": [],
+    "clients_complets": 218,
+    "part_clients_complets": 18.2
+   },
+   "qualite": {
+    "typologie": "PM",
+    "taux_qualite": 82.1,
+    "nb_regles": 12,
+    "nb_regles_evaluables": 11,
+    "total_anomalies": 2583,
+    "regles": [
+     {
+      "nom": "CA positif mais résultat vide",
+      "description": "Chiffre d'affaires > 0 alors que le résultat n'est pas renseigné.",
+      "total": 1201,
+      "anomalies": 832,
+      "part": 69.3,
+      "taux_conformite": 30.7,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND CA > 0",
+       "AND RESULTAT is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 69.4,
+      "anomalies_globales": 10877
+     },
+     {
+      "nom": "Société avec capital mais sans actionnaire",
+      "description": "Capital social > 0 alors qu'aucun actionnaire n'est renseigné.",
+      "total": 1201,
+      "anomalies": 773,
+      "part": 64.4,
+      "taux_conformite": 35.6,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND CAPITAL > 0",
+       "AND ACTIONNAIRE is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 58.3,
+      "anomalies_globales": 9144
+     },
+     {
+      "nom": "Risque élevé sans révision KYC à jour",
+      "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+      "total": 1201,
+      "anomalies": 394,
+      "part": 32.8,
+      "taux_conformite": 67.2,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND RISQUE = Risque eleve",
+       "AND DATEREV expired "
+      ],
+      "exemples": [],
+      "part_globale": 2.5,
+      "anomalies_globales": 394
+     },
+     {
+      "nom": "RCS renseigné mais sans numéro fiscal",
+      "description": "Numéro RCS présent mais numéro fiscal absent.",
+      "total": 1201,
+      "anomalies": 273,
+      "part": 22.7,
+      "taux_conformite": 77.3,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND RCSNO is_not_empty ",
+       "AND NUMERO_FISCAL is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 27.0,
+      "anomalies_globales": 4228
+     },
+     {
+      "nom": "Capital social nul",
+      "description": "Le capital social déclaré est égal à 0.",
+      "total": 1201,
+      "anomalies": 207,
+      "part": 17.2,
+      "taux_conformite": 82.8,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND CAPITAL = 0"
+      ],
+      "exemples": [],
+      "part_globale": 13.2,
+      "anomalies_globales": 2064
+     },
+     {
+      "nom": "Numéro RCS trop court",
+      "description": "Le numéro RCS renseigné comporte moins de 6 caractères.",
+      "total": 1201,
+      "anomalies": 54,
+      "part": 4.5,
+      "taux_conformite": 95.5,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND RCSNO is_not_empty ",
+       "AND RCSNO min_length 6"
+      ],
+      "exemples": [],
+      "part_globale": 2.3,
+      "anomalies_globales": 356
+     },
+     {
+      "nom": "Format téléphone invalide (trop long)",
+      "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
+      "total": 1201,
+      "anomalies": 34,
+      "part": 2.8,
+      "taux_conformite": 97.2,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND TEL max_length 18"
+      ],
+      "exemples": [],
+      "part_globale": 2.8,
+      "anomalies_globales": 441
+     },
+     {
+      "nom": "Mandataire absent pour société active",
+      "description": "Société avec chiffre d'affaires > 0 mais sans mandataire renseigné.",
+      "total": 1201,
+      "anomalies": 16,
+      "part": 1.3,
+      "taux_conformite": 98.7,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND CA > 0",
+       "AND MANDATAIRE is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 1.8,
+      "anomalies_globales": 279
+     },
+     {
+      "nom": "Sociétés sans adresse sociale",
+      "description": "Recenser les PM sans adresse sociale",
+      "total": 1201,
+      "anomalies": 0,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND ADRESSE_SOCIALE is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 0.3,
+      "anomalies_globales": 46
+     },
+     {
+      "nom": "Format téléphone court ou contenant des lettres (PM)",
+      "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
+      "total": 1201,
+      "anomalies": 0,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND TEL is_not_empty ",
+       "AND TEL min_length 9",
+       "AND TEL contains_alpha "
+      ],
+      "exemples": [],
+      "part_globale": 0.0,
+      "anomalies_globales": 0
+     },
+     {
+      "nom": "PPE déclarée sans risque élevé",
+      "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+      "total": 1201,
+      "anomalies": 0,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": false,
+      "champs_absents": [
+       "PPE"
+      ],
+      "conditions": [
+       "AND PPE = O",
+       "AND RISQUE != Risque eleve"
+      ],
+      "exemples": [],
+      "part_globale": 0.0,
+      "anomalies_globales": 0
+     },
+     {
+      "nom": "Résultat renseigné sans chiffre d'affaires",
+      "description": "Le résultat est renseigné mais le chiffre d'affaires (CA) est vide.",
+      "total": 1201,
+      "anomalies": 0,
+      "part": 0.0,
+      "taux_conformite": 100.0,
+      "evaluable": true,
+      "champs_absents": [],
+      "conditions": [
+       "AND RESULTAT is_not_empty ",
+       "AND CA is_empty "
+      ],
+      "exemples": [],
+      "part_globale": 0.0,
+      "anomalies_globales": 0
+     }
+    ]
+   },
+   "scoring": {
+    "n": 1201,
+    "risque": {
+     "Risque eleve": 1201
+    },
+    "risque_ordonne": [
+     [
+      "Risque eleve",
+      1201
+     ]
+    ],
+    "risque_non_renseigne": 0,
+    "statuts": {
+     "Non renseignée": 315,
+     "À échoir 3–6 mois": 164,
+     "Échue": 394,
+     "À échoir < 3 mois": 164,
+     "À échoir 6–12 mois": 145,
+     "À échoir > 12 mois": 18,
+     "Format invalide": 1
+    },
+    "statuts_ordonnes": [
+     [
+      "Échue",
+      394
+     ],
+     [
+      "Non renseignée",
+      315
+     ],
+     [
+      "À échoir < 3 mois",
+      164
+     ],
+     [
+      "À échoir 3–6 mois",
+      164
+     ],
+     [
+      "À échoir 6–12 mois",
+      145
+     ],
+     [
+      "À échoir > 12 mois",
+      18
+     ],
+     [
+      "Format invalide",
+      1
+     ]
+    ],
+    "sans_revision": 710,
+    "part_sans_revision": 59.1,
+    "anciennete_echues": {
+     "< 6 mois": 316,
+     "6 à 12 mois": 60,
+     "> 2 ans": 6,
+     "1 à 2 ans": 12
+    },
+    "croise": {
+     "Risque eleve": {
+      "Non renseignée": 315,
+      "À échoir 3–6 mois": 164,
+      "Échue": 394,
+      "À échoir < 3 mois": 164,
+      "À échoir 6–12 mois": 145,
+      "À échoir > 12 mois": 18,
+      "Format invalide": 1
+     }
+    },
+    "risque_eleve": {
+     "total": 1201,
+     "sans_revision": 710,
+     "part": 59.1,
+     "echue": 394,
+     "non_renseignee": 315
+    }
+   },
+   "non_residents": 12,
+   "devise_etrangere": 52,
+   "ppe": null
+  }
+ },
+ "segments": {
+  "pp": {
+   "Clients PPE": {
+    "n": 2716,
+    "part": 0.71,
+    "completude": {
+     "n": 2716,
+     "taux_global": 99,
+     "appreciation": "Moyen",
+     "par_champ": {
+      "PAYNAIS": 100,
+      "PROFESSION": 100,
+      "SALAIRE": 97,
+      "NUMID": 100,
+      "CODAPE": 100,
+      "TEL": 100,
+      "DATNAIS": 100,
+      "ADRESSE": 100,
+      "DATVALID": 100,
+      "ORIGINE_REVENU": 100,
+      "PAYS_RESID": 100
+     },
+     "vides_par_champ": {
+      "PAYNAIS": 0,
+      "PROFESSION": 0,
+      "SALAIRE": 64,
+      "NUMID": 0,
+      "CODAPE": 0,
+      "TEL": 0,
+      "DATNAIS": 0,
+      "ADRESSE": 0,
+      "DATVALID": 0,
+      "ORIGINE_REVENU": 0,
+      "PAYS_RESID": 0
+     },
+     "champs_absents": [],
+     "clients_complets": 2652,
+     "part_clients_complets": 97.6
+    },
+    "qualite": {
+     "typologie": "PP",
+     "taux_qualite": 99.9,
+     "nb_regles": 16,
+     "nb_regles_evaluables": 16,
+     "total_anomalies": 62,
+     "regles": [
+      {
+       "nom": "Retraité avec revenu positif",
+       "description": "Profession de type retraité (RETRAIT) avec un salaire numérique > 0.",
+       "total": 2716,
+       "anomalies": 28,
+       "part": 1.0,
+       "taux_conformite": 99.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains RETRAIT",
+        "AND SALAIRE > 0"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Non-résident sans boîte postale",
+       "description": "Client non-résident (RESID=N) sans boîte postale renseignée.",
+       "total": 2716,
+       "anomalies": 11,
+       "part": 0.4,
+       "taux_conformite": 99.6,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RESID = N",
+        "AND BOITE_POSTALE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone invalide (trop court)",
+       "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
+       "total": 2716,
+       "anomalies": 10,
+       "part": 0.4,
+       "taux_conformite": 99.6,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL is_not_empty ",
+        "AND TEL min_length 9"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Document d'identité expiré",
+       "description": "",
+       "total": 2716,
+       "anomalies": 7,
+       "part": 0.3,
+       "taux_conformite": 99.7,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATVALID expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "NUMID trop court",
+       "description": "Le numéro de pièce d'identité comporte moins de 5 caractères.",
+       "total": 2716,
+       "anomalies": 5,
+       "part": 0.2,
+       "taux_conformite": 99.8,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND NUMID is_not_empty ",
+        "AND NUMID min_length 5"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "PPE déclaré sans risque élevé",
+       "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+       "total": 2716,
+       "anomalies": 1,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PPE = O",
+        "AND RISQUE != Risque eleve"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Mineur de plus de plus de 21 ans",
+       "description": "",
+       "total": 2716,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains Mineur",
+        "AND DATNAIS age_gt 21",
+        "AND PROFESSION contains Enfant",
+        "AND PROFESSION contains Eleve"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Détection des employés de banque sans salaire",
+       "description": "",
+       "total": 2716,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE DE BANQUE",
+        "AND SALAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Revenus élevés sans origine déclarée",
+       "description": "Salaire numérique supérieur à 50 000 000 sans origine des revenus renseignée.",
+       "total": 2716,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND SALAIRE > 50000000",
+        "AND ORIGINE_REV is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone invalide (trop long)",
+       "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
+       "total": 2716,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL max_length 18"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Âge client supérieur à 100 ans (aberrant)",
+       "description": "La date de naissance implique un âge supérieur à 100 ans.",
+       "total": 2716,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATNAIS age_gt 100"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Date de révision KYC expirée",
+       "description": "La date de révision KYC (DATEREV) est dépassée.",
+       "total": 2716,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATEREV expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Salarié sans employeur",
+       "description": "Profession de type salarié (EMPLOYE) mais employeur non renseigné.",
+       "total": 2716,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE",
+        "AND EMPLOYEUR is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Salarié sans revenu",
+       "description": "Profession de type salarié (EMPLOYE) mais salaire non renseigné.",
+       "total": 2716,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE",
+        "AND SALAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Risque élevé sans révision KYC à jour",
+       "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+       "total": 2716,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RISQUE = Risque eleve",
+        "AND DATEREV expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "PPE sans origine des revenus",
+       "description": "Client PPE (PPE=O) sans origine des revenus renseignée.",
+       "total": 2716,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PPE = O",
+        "AND ORIGINE_REV is_empty "
+       ],
+       "exemples": []
+      }
+     ]
+    },
+    "scoring": {
+     "n": 2716,
+     "risque": {
+      "Risque eleve": 2715,
+      "Risque moyen faible": 1
+     },
+     "risque_ordonne": [
+      [
+       "Risque moyen faible",
+       1
+      ],
+      [
+       "Risque eleve",
+       2715
+      ]
+     ],
+     "risque_non_renseigne": 0,
+     "statuts": {
+      "À échoir 6–12 mois": 2237,
+      "À échoir 3–6 mois": 475,
+      "À échoir > 12 mois": 1,
+      "Non renseignée": 3
+     },
+     "statuts_ordonnes": [
+      [
+       "Non renseignée",
+       3
+      ],
+      [
+       "À échoir 3–6 mois",
+       475
+      ],
+      [
+       "À échoir 6–12 mois",
+       2237
+      ],
+      [
+       "À échoir > 12 mois",
+       1
+      ]
+     ],
+     "sans_revision": 3,
+     "part_sans_revision": 0.1,
+     "anciennete_echues": {},
+     "croise": {
+      "Risque eleve": {
+       "À échoir 6–12 mois": 2237,
+       "À échoir 3–6 mois": 475,
+       "Non renseignée": 3
+      },
+      "Risque moyen faible": {
+       "À échoir > 12 mois": 1
+      }
+     },
+     "risque_eleve": {
+      "total": 2715,
+      "sans_revision": 3,
+      "part": 0.1,
+      "echue": 0,
+      "non_renseignee": 3
+     }
+    },
+    "risque_eleve": 2715
+   },
+   "Comptes en devise étrangère": {
+    "n": 490,
+    "part": 0.13,
+    "completude": {
+     "n": 490,
+     "taux_global": 94,
+     "appreciation": "Moyen",
+     "par_champ": {
+      "PAYNAIS": 100,
+      "PROFESSION": 100,
+      "SALAIRE": 70,
+      "NUMID": 99,
+      "CODAPE": 100,
+      "TEL": 80,
+      "DATNAIS": 100,
+      "ADRESSE": 100,
+      "DATVALID": 93,
+      "ORIGINE_REVENU": 100,
+      "PAYS_RESID": 100
+     },
+     "vides_par_champ": {
+      "PAYNAIS": 0,
+      "PROFESSION": 0,
+      "SALAIRE": 144,
+      "NUMID": 1,
+      "CODAPE": 0,
+      "TEL": 97,
+      "DATNAIS": 0,
+      "ADRESSE": 0,
+      "DATVALID": 34,
+      "ORIGINE_REVENU": 0,
+      "PAYS_RESID": 0
+     },
+     "champs_absents": [],
+     "clients_complets": 252,
+     "part_clients_complets": 51.4
+    },
+    "qualite": {
+     "typologie": "PP",
+     "taux_qualite": 92.9,
+     "nb_regles": 16,
+     "nb_regles_evaluables": 16,
+     "total_anomalies": 559,
+     "regles": [
+      {
+       "nom": "Document d'identité expiré",
+       "description": "",
+       "total": 490,
+       "anomalies": 326,
+       "part": 66.5,
+       "taux_conformite": 33.5,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATVALID expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Date de révision KYC expirée",
+       "description": "La date de révision KYC (DATEREV) est dépassée.",
+       "total": 490,
+       "anomalies": 156,
+       "part": 31.8,
+       "taux_conformite": 68.2,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATEREV expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Risque élevé sans révision KYC à jour",
+       "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+       "total": 490,
+       "anomalies": 51,
+       "part": 10.4,
+       "taux_conformite": 89.6,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RISQUE = Risque eleve",
+        "AND DATEREV expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone invalide (trop court)",
+       "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
+       "total": 490,
+       "anomalies": 11,
+       "part": 2.2,
+       "taux_conformite": 97.8,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL is_not_empty ",
+        "AND TEL min_length 9"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Non-résident sans boîte postale",
+       "description": "Client non-résident (RESID=N) sans boîte postale renseignée.",
+       "total": 490,
+       "anomalies": 9,
+       "part": 1.8,
+       "taux_conformite": 98.2,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RESID = N",
+        "AND BOITE_POSTALE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Retraité avec revenu positif",
+       "description": "Profession de type retraité (RETRAIT) avec un salaire numérique > 0.",
+       "total": 490,
+       "anomalies": 5,
+       "part": 1.0,
+       "taux_conformite": 99.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains RETRAIT",
+        "AND SALAIRE > 0"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "NUMID trop court",
+       "description": "Le numéro de pièce d'identité comporte moins de 5 caractères.",
+       "total": 490,
+       "anomalies": 1,
+       "part": 0.2,
+       "taux_conformite": 99.8,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND NUMID is_not_empty ",
+        "AND NUMID min_length 5"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Mineur de plus de plus de 21 ans",
+       "description": "",
+       "total": 490,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains Mineur",
+        "AND DATNAIS age_gt 21",
+        "AND PROFESSION contains Enfant",
+        "AND PROFESSION contains Eleve"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Détection des employés de banque sans salaire",
+       "description": "",
+       "total": 490,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE DE BANQUE",
+        "AND SALAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Revenus élevés sans origine déclarée",
+       "description": "Salaire numérique supérieur à 50 000 000 sans origine des revenus renseignée.",
+       "total": 490,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND SALAIRE > 50000000",
+        "AND ORIGINE_REV is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone invalide (trop long)",
+       "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
+       "total": 490,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL max_length 18"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Âge client supérieur à 100 ans (aberrant)",
+       "description": "La date de naissance implique un âge supérieur à 100 ans.",
+       "total": 490,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATNAIS age_gt 100"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "PPE déclaré sans risque élevé",
+       "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+       "total": 490,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PPE = O",
+        "AND RISQUE != Risque eleve"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Salarié sans employeur",
+       "description": "Profession de type salarié (EMPLOYE) mais employeur non renseigné.",
+       "total": 490,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE",
+        "AND EMPLOYEUR is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Salarié sans revenu",
+       "description": "Profession de type salarié (EMPLOYE) mais salaire non renseigné.",
+       "total": 490,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE",
+        "AND SALAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "PPE sans origine des revenus",
+       "description": "Client PPE (PPE=O) sans origine des revenus renseignée.",
+       "total": 490,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PPE = O",
+        "AND ORIGINE_REV is_empty "
+       ],
+       "exemples": []
+      }
+     ]
+    },
+    "scoring": {
+     "n": 490,
+     "risque": {
+      "Risque moyen eleve": 123,
+      "Risque moyen faible": 250,
+      "Risque eleve": 111,
+      "Risque faible": 4,
+      "(hors référentiel)": 2
+     },
+     "risque_ordonne": [
+      [
+       "Risque faible",
+       4
+      ],
+      [
+       "Risque moyen faible",
+       250
+      ],
+      [
+       "Risque moyen eleve",
+       123
+      ],
+      [
+       "Risque eleve",
+       111
+      ]
+     ],
+     "risque_non_renseigne": 0,
+     "statuts": {
+      "Non renseignée": 168,
+      "Échue": 156,
+      "À échoir 3–6 mois": 41,
+      "À échoir < 3 mois": 65,
+      "À échoir > 12 mois": 46,
+      "À échoir 6–12 mois": 14
+     },
+     "statuts_ordonnes": [
+      [
+       "Échue",
+       156
+      ],
+      [
+       "Non renseignée",
+       168
+      ],
+      [
+       "À échoir < 3 mois",
+       65
+      ],
+      [
+       "À échoir 3–6 mois",
+       41
+      ],
+      [
+       "À échoir 6–12 mois",
+       14
+      ],
+      [
+       "À échoir > 12 mois",
+       46
+      ]
+     ],
+     "sans_revision": 324,
+     "part_sans_revision": 66.1,
+     "anciennete_echues": {
+      "< 6 mois": 116,
+      "> 2 ans": 2,
+      "6 à 12 mois": 38
+     },
+     "croise": {
+      "Risque moyen eleve": {
+       "Non renseignée": 100,
+       "Échue": 17,
+       "À échoir 6–12 mois": 6
+      },
+      "Risque moyen faible": {
+       "Échue": 88,
+       "À échoir 3–6 mois": 37,
+       "À échoir < 3 mois": 37,
+       "Non renseignée": 42,
+       "À échoir > 12 mois": 46
+      },
+      "Risque eleve": {
+       "À échoir 3–6 mois": 4,
+       "À échoir < 3 mois": 28,
+       "Échue": 51,
+       "À échoir 6–12 mois": 8,
+       "Non renseignée": 20
+      },
+      "Risque faible": {
+       "Non renseignée": 4
+      },
+      "(hors référentiel)": {
+       "Non renseignée": 2
+      }
+     },
+     "risque_eleve": {
+      "total": 111,
+      "sans_revision": 71,
+      "part": 64.0,
+      "echue": 51,
+      "non_renseignee": 20
+     }
+    },
+    "risque_eleve": 111
+   },
+   "Clients non-résidents": {
+    "n": 2754,
+    "part": 0.72,
+    "completude": {
+     "n": 2754,
+     "taux_global": 94,
+     "appreciation": "Moyen",
+     "par_champ": {
+      "PAYNAIS": 100,
+      "PROFESSION": 100,
+      "SALAIRE": 44,
+      "NUMID": 100,
+      "CODAPE": 100,
+      "TEL": 98,
+      "DATNAIS": 100,
+      "ADRESSE": 99,
+      "DATVALID": 99,
+      "ORIGINE_REVENU": 100,
+      "PAYS_RESID": 100
+     },
+     "vides_par_champ": {
+      "PAYNAIS": 0,
+      "PROFESSION": 0,
+      "SALAIRE": 1524,
+      "NUMID": 0,
+      "CODAPE": 0,
+      "TEL": 43,
+      "DATNAIS": 0,
+      "ADRESSE": 1,
+      "DATVALID": 18,
+      "ORIGINE_REVENU": 0,
+      "PAYS_RESID": 0
+     },
+     "champs_absents": [],
+     "clients_complets": 1208,
+     "part_clients_complets": 43.9
+    },
+    "qualite": {
+     "typologie": "PP",
+     "taux_qualite": 86.0,
+     "nb_regles": 16,
+     "nb_regles_evaluables": 16,
+     "total_anomalies": 6182,
+     "regles": [
+      {
+       "nom": "Non-résident sans boîte postale",
+       "description": "Client non-résident (RESID=N) sans boîte postale renseignée.",
+       "total": 2754,
+       "anomalies": 2754,
+       "part": 100.0,
+       "taux_conformite": 0.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RESID = N",
+        "AND BOITE_POSTALE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Document d'identité expiré",
+       "description": "",
+       "total": 2754,
+       "anomalies": 1880,
+       "part": 68.3,
+       "taux_conformite": 31.7,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATVALID expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Date de révision KYC expirée",
+       "description": "La date de révision KYC (DATEREV) est dépassée.",
+       "total": 2754,
+       "anomalies": 1463,
+       "part": 53.1,
+       "taux_conformite": 46.9,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATEREV expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone invalide (trop court)",
+       "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
+       "total": 2754,
+       "anomalies": 31,
+       "part": 1.1,
+       "taux_conformite": 98.9,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL is_not_empty ",
+        "AND TEL min_length 9"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Risque élevé sans révision KYC à jour",
+       "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+       "total": 2754,
+       "anomalies": 16,
+       "part": 0.6,
+       "taux_conformite": 99.4,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RISQUE = Risque eleve",
+        "AND DATEREV expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "NUMID trop court",
+       "description": "Le numéro de pièce d'identité comporte moins de 5 caractères.",
+       "total": 2754,
+       "anomalies": 10,
+       "part": 0.4,
+       "taux_conformite": 99.6,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND NUMID is_not_empty ",
+        "AND NUMID min_length 5"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Détection des employés de banque sans salaire",
+       "description": "",
+       "total": 2754,
+       "anomalies": 6,
+       "part": 0.2,
+       "taux_conformite": 99.8,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE DE BANQUE",
+        "AND SALAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Salarié sans revenu",
+       "description": "Profession de type salarié (EMPLOYE) mais salaire non renseigné.",
+       "total": 2754,
+       "anomalies": 6,
+       "part": 0.2,
+       "taux_conformite": 99.8,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE",
+        "AND SALAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone invalide (trop long)",
+       "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
+       "total": 2754,
+       "anomalies": 5,
+       "part": 0.2,
+       "taux_conformite": 99.8,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL max_length 18"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Retraité avec revenu positif",
+       "description": "Profession de type retraité (RETRAIT) avec un salaire numérique > 0.",
+       "total": 2754,
+       "anomalies": 5,
+       "part": 0.2,
+       "taux_conformite": 99.8,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains RETRAIT",
+        "AND SALAIRE > 0"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Salarié sans employeur",
+       "description": "Profession de type salarié (EMPLOYE) mais employeur non renseigné.",
+       "total": 2754,
+       "anomalies": 4,
+       "part": 0.1,
+       "taux_conformite": 99.9,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE",
+        "AND EMPLOYEUR is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Âge client supérieur à 100 ans (aberrant)",
+       "description": "La date de naissance implique un âge supérieur à 100 ans.",
+       "total": 2754,
+       "anomalies": 2,
+       "part": 0.1,
+       "taux_conformite": 99.9,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATNAIS age_gt 100"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Mineur de plus de plus de 21 ans",
+       "description": "",
+       "total": 2754,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains Mineur",
+        "AND DATNAIS age_gt 21",
+        "AND PROFESSION contains Enfant",
+        "AND PROFESSION contains Eleve"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Revenus élevés sans origine déclarée",
+       "description": "Salaire numérique supérieur à 50 000 000 sans origine des revenus renseignée.",
+       "total": 2754,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND SALAIRE > 50000000",
+        "AND ORIGINE_REV is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "PPE déclaré sans risque élevé",
+       "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+       "total": 2754,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PPE = O",
+        "AND RISQUE != Risque eleve"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "PPE sans origine des revenus",
+       "description": "Client PPE (PPE=O) sans origine des revenus renseignée.",
+       "total": 2754,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PPE = O",
+        "AND ORIGINE_REV is_empty "
+       ],
+       "exemples": []
+      }
+     ]
+    },
+    "scoring": {
+     "n": 2754,
+     "risque": {
+      "Risque moyen faible": 2417,
+      "Risque moyen eleve": 294,
+      "Risque eleve": 43
+     },
+     "risque_ordonne": [
+      [
+       "Risque moyen faible",
+       2417
+      ],
+      [
+       "Risque moyen eleve",
+       294
+      ],
+      [
+       "Risque eleve",
+       43
+      ]
+     ],
+     "risque_non_renseigne": 0,
+     "statuts": {
+      "Échue": 1463,
+      "Non renseignée": 126,
+      "À échoir 6–12 mois": 45,
+      "À échoir 3–6 mois": 351,
+      "À échoir < 3 mois": 590,
+      "À échoir > 12 mois": 179
+     },
+     "statuts_ordonnes": [
+      [
+       "Échue",
+       1463
+      ],
+      [
+       "Non renseignée",
+       126
+      ],
+      [
+       "À échoir < 3 mois",
+       590
+      ],
+      [
+       "À échoir 3–6 mois",
+       351
+      ],
+      [
+       "À échoir 6–12 mois",
+       45
+      ],
+      [
+       "À échoir > 12 mois",
+       179
+      ]
+     ],
+     "sans_revision": 1589,
+     "part_sans_revision": 57.7,
+     "anciennete_echues": {
+      "< 6 mois": 1059,
+      "1 à 2 ans": 111,
+      "> 2 ans": 94,
+      "6 à 12 mois": 199
+     },
+     "croise": {
+      "Risque moyen faible": {
+       "Échue": 1217,
+       "Non renseignée": 91,
+       "À échoir 6–12 mois": 31,
+       "À échoir 3–6 mois": 335,
+       "À échoir < 3 mois": 571,
+       "À échoir > 12 mois": 172
+      },
+      "Risque moyen eleve": {
+       "Échue": 230,
+       "Non renseignée": 34,
+       "À échoir 3–6 mois": 9,
+       "À échoir < 3 mois": 10,
+       "À échoir 6–12 mois": 4,
+       "À échoir > 12 mois": 7
+      },
+      "Risque eleve": {
+       "À échoir < 3 mois": 9,
+       "À échoir 3–6 mois": 7,
+       "À échoir 6–12 mois": 10,
+       "Échue": 16,
+       "Non renseignée": 1
+      }
+     },
+     "risque_eleve": {
+      "total": 43,
+      "sans_revision": 17,
+      "part": 39.5,
+      "echue": 16,
+      "non_renseignee": 1
+     }
+    },
+    "risque_eleve": 43
+   },
+   "Périmètre sensible consolidé": {
+    "n": 5940,
+    "part": 1.56,
+    "completude": {
+     "n": 5940,
+     "taux_global": 97,
+     "appreciation": "Moyen",
+     "par_champ": {
+      "PAYNAIS": 100,
+      "PROFESSION": 100,
+      "SALAIRE": 70,
+      "NUMID": 99,
+      "CODAPE": 100,
+      "TEL": 97,
+      "DATNAIS": 100,
+      "ADRESSE": 99,
+      "DATVALID": 99,
+      "ORIGINE_REVENU": 100,
+      "PAYS_RESID": 100
+     },
+     "vides_par_champ": {
+      "PAYNAIS": 0,
+      "PROFESSION": 0,
+      "SALAIRE": 1728,
+      "NUMID": 1,
+      "CODAPE": 0,
+      "TEL": 138,
+      "DATNAIS": 0,
+      "ADRESSE": 1,
+      "DATVALID": 51,
+      "ORIGINE_REVENU": 0,
+      "PAYS_RESID": 0
+     },
+     "champs_absents": [],
+     "clients_complets": 4098,
+     "part_clients_complets": 69.0
+    },
+    "qualite": {
+     "typologie": "PP",
+     "taux_qualite": 92.9,
+     "nb_regles": 16,
+     "nb_regles_evaluables": 16,
+     "total_anomalies": 6769,
+     "regles": [
+      {
+       "nom": "Non-résident sans boîte postale",
+       "description": "Client non-résident (RESID=N) sans boîte postale renseignée.",
+       "total": 5940,
+       "anomalies": 2754,
+       "part": 46.4,
+       "taux_conformite": 53.6,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RESID = N",
+        "AND BOITE_POSTALE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Document d'identité expiré",
+       "description": "",
+       "total": 5940,
+       "anomalies": 2207,
+       "part": 37.2,
+       "taux_conformite": 62.8,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATVALID expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Date de révision KYC expirée",
+       "description": "La date de révision KYC (DATEREV) est dépassée.",
+       "total": 5940,
+       "anomalies": 1615,
+       "part": 27.2,
+       "taux_conformite": 72.8,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATEREV expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Risque élevé sans révision KYC à jour",
+       "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+       "total": 5940,
+       "anomalies": 65,
+       "part": 1.1,
+       "taux_conformite": 98.9,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RISQUE = Risque eleve",
+        "AND DATEREV expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone invalide (trop court)",
+       "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
+       "total": 5940,
+       "anomalies": 51,
+       "part": 0.9,
+       "taux_conformite": 99.1,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL is_not_empty ",
+        "AND TEL min_length 9"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Retraité avec revenu positif",
+       "description": "Profession de type retraité (RETRAIT) avec un salaire numérique > 0.",
+       "total": 5940,
+       "anomalies": 37,
+       "part": 0.6,
+       "taux_conformite": 99.4,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains RETRAIT",
+        "AND SALAIRE > 0"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "NUMID trop court",
+       "description": "Le numéro de pièce d'identité comporte moins de 5 caractères.",
+       "total": 5940,
+       "anomalies": 16,
+       "part": 0.3,
+       "taux_conformite": 99.7,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND NUMID is_not_empty ",
+        "AND NUMID min_length 5"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Détection des employés de banque sans salaire",
+       "description": "",
+       "total": 5940,
+       "anomalies": 6,
+       "part": 0.1,
+       "taux_conformite": 99.9,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE DE BANQUE",
+        "AND SALAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Salarié sans revenu",
+       "description": "Profession de type salarié (EMPLOYE) mais salaire non renseigné.",
+       "total": 5940,
+       "anomalies": 6,
+       "part": 0.1,
+       "taux_conformite": 99.9,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE",
+        "AND SALAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone invalide (trop long)",
+       "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
+       "total": 5940,
+       "anomalies": 5,
+       "part": 0.1,
+       "taux_conformite": 99.9,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL max_length 18"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Salarié sans employeur",
+       "description": "Profession de type salarié (EMPLOYE) mais employeur non renseigné.",
+       "total": 5940,
+       "anomalies": 4,
+       "part": 0.1,
+       "taux_conformite": 99.9,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains EMPLOYE",
+        "AND EMPLOYEUR is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Âge client supérieur à 100 ans (aberrant)",
+       "description": "La date de naissance implique un âge supérieur à 100 ans.",
+       "total": 5940,
+       "anomalies": 2,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND DATNAIS age_gt 100"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "PPE déclaré sans risque élevé",
+       "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+       "total": 5940,
+       "anomalies": 1,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PPE = O",
+        "AND RISQUE != Risque eleve"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Mineur de plus de plus de 21 ans",
+       "description": "",
+       "total": 5940,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PROFESSION contains Mineur",
+        "AND DATNAIS age_gt 21",
+        "AND PROFESSION contains Enfant",
+        "AND PROFESSION contains Eleve"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Revenus élevés sans origine déclarée",
+       "description": "Salaire numérique supérieur à 50 000 000 sans origine des revenus renseignée.",
+       "total": 5940,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND SALAIRE > 50000000",
+        "AND ORIGINE_REV is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "PPE sans origine des revenus",
+       "description": "Client PPE (PPE=O) sans origine des revenus renseignée.",
+       "total": 5940,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND PPE = O",
+        "AND ORIGINE_REV is_empty "
+       ],
+       "exemples": []
+      }
+     ]
+    },
+    "scoring": {
+     "n": 5940,
+     "risque": {
+      "Risque eleve": 2856,
+      "Risque moyen faible": 2663,
+      "Risque moyen eleve": 415,
+      "Risque faible": 4,
+      "(hors référentiel)": 2
+     },
+     "risque_ordonne": [
+      [
+       "Risque faible",
+       4
+      ],
+      [
+       "Risque moyen faible",
+       2663
+      ],
+      [
+       "Risque moyen eleve",
+       415
+      ],
+      [
+       "Risque eleve",
+       2856
+      ]
+     ],
+     "risque_non_renseigne": 0,
+     "statuts": {
+      "À échoir 6–12 mois": 2287,
+      "À échoir 3–6 mois": 863,
+      "À échoir > 12 mois": 225,
+      "Non renseignée": 295,
+      "Échue": 1615,
+      "À échoir < 3 mois": 655
+     },
+     "statuts_ordonnes": [
+      [
+       "Échue",
+       1615
+      ],
+      [
+       "Non renseignée",
+       295
+      ],
+      [
+       "À échoir < 3 mois",
+       655
+      ],
+      [
+       "À échoir 3–6 mois",
+       863
+      ],
+      [
+       "À échoir 6–12 mois",
+       2287
+      ],
+      [
+       "À échoir > 12 mois",
+       225
+      ]
+     ],
+     "sans_revision": 1910,
+     "part_sans_revision": 32.2,
+     "anciennete_echues": {
+      "< 6 mois": 1172,
+      "> 2 ans": 95,
+      "6 à 12 mois": 237,
+      "1 à 2 ans": 111
+     },
+     "croise": {
+      "Risque eleve": {
+       "À échoir 6–12 mois": 2246,
+       "À échoir 3–6 mois": 484,
+       "Non renseignée": 24,
+       "À échoir < 3 mois": 37,
+       "Échue": 65
+      },
+      "Risque moyen faible": {
+       "À échoir > 12 mois": 218,
+       "Échue": 1304,
+       "À échoir 3–6 mois": 370,
+       "À échoir < 3 mois": 608,
+       "Non renseignée": 132,
+       "À échoir 6–12 mois": 31
+      },
+      "Risque moyen eleve": {
+       "Non renseignée": 133,
+       "Échue": 246,
+       "À échoir 6–12 mois": 10,
+       "À échoir 3–6 mois": 9,
+       "À échoir < 3 mois": 10,
+       "À échoir > 12 mois": 7
+      },
+      "Risque faible": {
+       "Non renseignée": 4
+      },
+      "(hors référentiel)": {
+       "Non renseignée": 2
+      }
+     },
+     "risque_eleve": {
+      "total": 2856,
+      "sans_revision": 89,
+      "part": 3.1,
+      "echue": 65,
+      "non_renseignee": 24
+     }
+    },
+    "risque_eleve": 2856
+   },
+   "_devises": {
+    "EUR": 373,
+    "USD": 95,
+    "CAD": 7,
+    "FRF": 5,
+    "ATS": 3,
+    "GBP": 2,
+    "OR": 2,
+    "N": 2,
+    "SEK": 1
+   },
+   "_croisements": {
+    "Non-résident et devise étrangère": 9,
+    "Risque élevé et non-résident": 43,
+    "Risque élevé et devise étrangère": 111,
+    "PPE et non-résident": 11,
+    "PPE et devise étrangère": 0
+   }
+  },
+  "pm": {
+   "Comptes en devise étrangère": {
+    "n": 493,
+    "part": 3.15,
+    "completude": {
+     "n": 493,
+     "taux_global": 78,
+     "appreciation": "Faible",
+     "par_champ": {
+      "CODAPE": 100,
+      "AGEC": 100,
+      "CAPITAL": 70,
+      "CA": 82,
+      "RESULTAT": 7,
+      "RCSNO": 79,
+      "ORIGINE_REVENU": 100,
+      "TEL": 85
+     },
+     "vides_par_champ": {
+      "CODAPE": 0,
+      "AGEC": 0,
+      "CAPITAL": 146,
+      "CA": 84,
+      "RESULTAT": 458,
+      "RCSNO": 101,
+      "ORIGINE_REVENU": 0,
+      "TEL": 70
+     },
+     "champs_absents": [],
+     "clients_complets": 33,
+     "part_clients_complets": 6.7
+    },
+    "qualite": {
+     "typologie": "PM",
+     "taux_qualite": 85.9,
+     "nb_regles": 12,
+     "nb_regles_evaluables": 11,
+     "total_anomalies": 832,
+     "regles": [
+      {
+       "nom": "CA positif mais résultat vide",
+       "description": "Chiffre d'affaires > 0 alors que le résultat n'est pas renseigné.",
+       "total": 493,
+       "anomalies": 367,
+       "part": 74.4,
+       "taux_conformite": 25.6,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CA > 0",
+        "AND RESULTAT is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Société avec capital mais sans actionnaire",
+       "description": "Capital social > 0 alors qu'aucun actionnaire n'est renseigné.",
+       "total": 493,
+       "anomalies": 224,
+       "part": 45.4,
+       "taux_conformite": 54.6,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CAPITAL > 0",
+        "AND ACTIONNAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "RCS renseigné mais sans numéro fiscal",
+       "description": "Numéro RCS présent mais numéro fiscal absent.",
+       "total": 493,
+       "anomalies": 148,
+       "part": 30.0,
+       "taux_conformite": 70.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RCSNO is_not_empty ",
+        "AND NUMERO_FISCAL is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone invalide (trop long)",
+       "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
+       "total": 493,
+       "anomalies": 23,
+       "part": 4.7,
+       "taux_conformite": 95.3,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL max_length 18"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Risque élevé sans révision KYC à jour",
+       "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+       "total": 493,
+       "anomalies": 23,
+       "part": 4.7,
+       "taux_conformite": 95.3,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RISQUE = Risque eleve",
+        "AND DATEREV expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Capital social nul",
+       "description": "Le capital social déclaré est égal à 0.",
+       "total": 493,
+       "anomalies": 16,
+       "part": 3.2,
+       "taux_conformite": 96.8,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CAPITAL = 0"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Numéro RCS trop court",
+       "description": "Le numéro RCS renseigné comporte moins de 6 caractères.",
+       "total": 493,
+       "anomalies": 15,
+       "part": 3.0,
+       "taux_conformite": 97.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RCSNO is_not_empty ",
+        "AND RCSNO min_length 6"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Mandataire absent pour société active",
+       "description": "Société avec chiffre d'affaires > 0 mais sans mandataire renseigné.",
+       "total": 493,
+       "anomalies": 14,
+       "part": 2.8,
+       "taux_conformite": 97.2,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CA > 0",
+        "AND MANDATAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Sociétés sans adresse sociale",
+       "description": "Recenser les PM sans adresse sociale",
+       "total": 493,
+       "anomalies": 2,
+       "part": 0.4,
+       "taux_conformite": 99.6,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND ADRESSE_SOCIALE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone court ou contenant des lettres (PM)",
+       "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
+       "total": 493,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL is_not_empty ",
+        "AND TEL min_length 9",
+        "AND TEL contains_alpha "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "PPE déclarée sans risque élevé",
+       "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+       "total": 493,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": false,
+       "champs_absents": [
+        "PPE"
+       ],
+       "conditions": [
+        "AND PPE = O",
+        "AND RISQUE != Risque eleve"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Résultat renseigné sans chiffre d'affaires",
+       "description": "Le résultat est renseigné mais le chiffre d'affaires (CA) est vide.",
+       "total": 493,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RESULTAT is_not_empty ",
+        "AND CA is_empty "
+       ],
+       "exemples": []
+      }
+     ]
+    },
+    "scoring": {
+     "n": 493,
+     "risque": {
+      "Risque moyen eleve": 105,
+      "Risque eleve": 52,
+      "Risque moyen faible": 335,
+      "Risque faible": 1
+     },
+     "risque_ordonne": [
+      [
+       "Risque faible",
+       1
+      ],
+      [
+       "Risque moyen faible",
+       335
+      ],
+      [
+       "Risque moyen eleve",
+       105
+      ],
+      [
+       "Risque eleve",
+       52
+      ]
+     ],
+     "risque_non_renseigne": 0,
+     "statuts": {
+      "Non renseignée": 326,
+      "À échoir > 12 mois": 112,
+      "À échoir 3–6 mois": 8,
+      "Échue": 26,
+      "À échoir < 3 mois": 11,
+      "À échoir 6–12 mois": 10
+     },
+     "statuts_ordonnes": [
+      [
+       "Échue",
+       26
+      ],
+      [
+       "Non renseignée",
+       326
+      ],
+      [
+       "À échoir < 3 mois",
+       11
+      ],
+      [
+       "À échoir 3–6 mois",
+       8
+      ],
+      [
+       "À échoir 6–12 mois",
+       10
+      ],
+      [
+       "À échoir > 12 mois",
+       112
+      ]
+     ],
+     "sans_revision": 352,
+     "part_sans_revision": 71.4,
+     "anciennete_echues": {
+      "< 6 mois": 23,
+      "6 à 12 mois": 3
+     },
+     "croise": {
+      "Risque moyen eleve": {
+       "Non renseignée": 101,
+       "Échue": 1,
+       "À échoir 6–12 mois": 2,
+       "À échoir > 12 mois": 1
+      },
+      "Risque eleve": {
+       "Non renseignée": 7,
+       "À échoir 3–6 mois": 6,
+       "Échue": 23,
+       "À échoir < 3 mois": 9,
+       "À échoir 6–12 mois": 7
+      },
+      "Risque moyen faible": {
+       "Non renseignée": 217,
+       "À échoir > 12 mois": 111,
+       "Échue": 2,
+       "À échoir 3–6 mois": 2,
+       "À échoir < 3 mois": 2,
+       "À échoir 6–12 mois": 1
+      },
+      "Risque faible": {
+       "Non renseignée": 1
+      }
+     },
+     "risque_eleve": {
+      "total": 52,
+      "sans_revision": 30,
+      "part": 57.7,
+      "echue": 23,
+      "non_renseignee": 7
+     }
+    },
+    "risque_eleve": 52
+   },
+   "Clients non-résidents": {
+    "n": 92,
+    "part": 0.59,
+    "completude": {
+     "n": 92,
+     "taux_global": 81,
+     "appreciation": "Moyen",
+     "par_champ": {
+      "CODAPE": 100,
+      "AGEC": 100,
+      "CAPITAL": 91,
+      "CA": 85,
+      "RESULTAT": 2,
+      "RCSNO": 95,
+      "ORIGINE_REVENU": 100,
+      "TEL": 76
+     },
+     "vides_par_champ": {
+      "CODAPE": 0,
+      "AGEC": 0,
+      "CAPITAL": 8,
+      "CA": 13,
+      "RESULTAT": 90,
+      "RCSNO": 4,
+      "ORIGINE_REVENU": 0,
+      "TEL": 22
+     },
+     "champs_absents": [],
+     "clients_complets": 2,
+     "part_clients_complets": 2.2
+    },
+    "qualite": {
+     "typologie": "PM",
+     "taux_qualite": 79.7,
+     "nb_regles": 12,
+     "nb_regles_evaluables": 11,
+     "total_anomalies": 224,
+     "regles": [
+      {
+       "nom": "Société avec capital mais sans actionnaire",
+       "description": "Capital social > 0 alors qu'aucun actionnaire n'est renseigné.",
+       "total": 92,
+       "anomalies": 78,
+       "part": 84.8,
+       "taux_conformite": 15.2,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CAPITAL > 0",
+        "AND ACTIONNAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "CA positif mais résultat vide",
+       "description": "Chiffre d'affaires > 0 alors que le résultat n'est pas renseigné.",
+       "total": 92,
+       "anomalies": 73,
+       "part": 79.3,
+       "taux_conformite": 20.7,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CA > 0",
+        "AND RESULTAT is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "RCS renseigné mais sans numéro fiscal",
+       "description": "Numéro RCS présent mais numéro fiscal absent.",
+       "total": 92,
+       "anomalies": 33,
+       "part": 35.9,
+       "taux_conformite": 64.1,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RCSNO is_not_empty ",
+        "AND NUMERO_FISCAL is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Mandataire absent pour société active",
+       "description": "Société avec chiffre d'affaires > 0 mais sans mandataire renseigné.",
+       "total": 92,
+       "anomalies": 19,
+       "part": 20.7,
+       "taux_conformite": 79.3,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CA > 0",
+        "AND MANDATAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Numéro RCS trop court",
+       "description": "Le numéro RCS renseigné comporte moins de 6 caractères.",
+       "total": 92,
+       "anomalies": 12,
+       "part": 13.0,
+       "taux_conformite": 87.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RCSNO is_not_empty ",
+        "AND RCSNO min_length 6"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Risque élevé sans révision KYC à jour",
+       "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+       "total": 92,
+       "anomalies": 4,
+       "part": 4.3,
+       "taux_conformite": 95.7,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RISQUE = Risque eleve",
+        "AND DATEREV expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Capital social nul",
+       "description": "Le capital social déclaré est égal à 0.",
+       "total": 92,
+       "anomalies": 3,
+       "part": 3.3,
+       "taux_conformite": 96.7,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CAPITAL = 0"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone invalide (trop long)",
+       "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
+       "total": 92,
+       "anomalies": 2,
+       "part": 2.2,
+       "taux_conformite": 97.8,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL max_length 18"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Sociétés sans adresse sociale",
+       "description": "Recenser les PM sans adresse sociale",
+       "total": 92,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND ADRESSE_SOCIALE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone court ou contenant des lettres (PM)",
+       "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
+       "total": 92,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL is_not_empty ",
+        "AND TEL min_length 9",
+        "AND TEL contains_alpha "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "PPE déclarée sans risque élevé",
+       "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+       "total": 92,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": false,
+       "champs_absents": [
+        "PPE"
+       ],
+       "conditions": [
+        "AND PPE = O",
+        "AND RISQUE != Risque eleve"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Résultat renseigné sans chiffre d'affaires",
+       "description": "Le résultat est renseigné mais le chiffre d'affaires (CA) est vide.",
+       "total": 92,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RESULTAT is_not_empty ",
+        "AND CA is_empty "
+       ],
+       "exemples": []
+      }
+     ]
+    },
+    "scoring": {
+     "n": 92,
+     "risque": {
+      "Risque moyen faible": 52,
+      "Risque moyen eleve": 28,
+      "Risque eleve": 12
+     },
+     "risque_ordonne": [
+      [
+       "Risque moyen faible",
+       52
+      ],
+      [
+       "Risque moyen eleve",
+       28
+      ],
+      [
+       "Risque eleve",
+       12
+      ]
+     ],
+     "risque_non_renseigne": 0,
+     "statuts": {
+      "Non renseignée": 72,
+      "À échoir > 12 mois": 11,
+      "Échue": 5,
+      "À échoir 3–6 mois": 2,
+      "À échoir 6–12 mois": 2
+     },
+     "statuts_ordonnes": [
+      [
+       "Échue",
+       5
+      ],
+      [
+       "Non renseignée",
+       72
+      ],
+      [
+       "À échoir 3–6 mois",
+       2
+      ],
+      [
+       "À échoir 6–12 mois",
+       2
+      ],
+      [
+       "À échoir > 12 mois",
+       11
+      ]
+     ],
+     "sans_revision": 77,
+     "part_sans_revision": 83.7,
+     "anciennete_echues": {
+      "< 6 mois": 5
+     },
+     "croise": {
+      "Risque moyen faible": {
+       "Non renseignée": 45,
+       "À échoir > 12 mois": 7
+      },
+      "Risque moyen eleve": {
+       "Non renseignée": 23,
+       "À échoir > 12 mois": 3,
+       "Échue": 1,
+       "À échoir 3–6 mois": 1
+      },
+      "Risque eleve": {
+       "Non renseignée": 4,
+       "Échue": 4,
+       "À échoir > 12 mois": 1,
+       "À échoir 3–6 mois": 1,
+       "À échoir 6–12 mois": 2
+      }
+     },
+     "risque_eleve": {
+      "total": 12,
+      "sans_revision": 8,
+      "part": 66.7,
+      "echue": 4,
+      "non_renseignee": 4
+     }
+    },
+    "risque_eleve": 12
+   },
+   "Périmètre sensible consolidé": {
+    "n": 573,
+    "part": 3.66,
+    "completude": {
+     "n": 573,
+     "taux_global": 78,
+     "appreciation": "Faible",
+     "par_champ": {
+      "CODAPE": 100,
+      "AGEC": 100,
+      "CAPITAL": 73,
+      "CA": 83,
+      "RESULTAT": 6,
+      "RCSNO": 81,
+      "ORIGINE_REVENU": 100,
+      "TEL": 84
+     },
+     "vides_par_champ": {
+      "CODAPE": 0,
+      "AGEC": 0,
+      "CAPITAL": 152,
+      "CA": 97,
+      "RESULTAT": 536,
+      "RCSNO": 104,
+      "ORIGINE_REVENU": 0,
+      "TEL": 88
+     },
+     "champs_absents": [],
+     "clients_complets": 35,
+     "part_clients_complets": 6.1
+    },
+    "qualite": {
+     "typologie": "PM",
+     "taux_qualite": 85.2,
+     "nb_regles": 12,
+     "nb_regles_evaluables": 11,
+     "total_anomalies": 1020,
+     "regles": [
+      {
+       "nom": "CA positif mais résultat vide",
+       "description": "Chiffre d'affaires > 0 alors que le résultat n'est pas renseigné.",
+       "total": 573,
+       "anomalies": 428,
+       "part": 74.7,
+       "taux_conformite": 25.3,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CA > 0",
+        "AND RESULTAT is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Société avec capital mais sans actionnaire",
+       "description": "Capital social > 0 alors qu'aucun actionnaire n'est renseigné.",
+       "total": 573,
+       "anomalies": 293,
+       "part": 51.1,
+       "taux_conformite": 48.9,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CAPITAL > 0",
+        "AND ACTIONNAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "RCS renseigné mais sans numéro fiscal",
+       "description": "Numéro RCS présent mais numéro fiscal absent.",
+       "total": 573,
+       "anomalies": 176,
+       "part": 30.7,
+       "taux_conformite": 69.3,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RCSNO is_not_empty ",
+        "AND NUMERO_FISCAL is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Mandataire absent pour société active",
+       "description": "Société avec chiffre d'affaires > 0 mais sans mandataire renseigné.",
+       "total": 573,
+       "anomalies": 29,
+       "part": 5.1,
+       "taux_conformite": 94.9,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CA > 0",
+        "AND MANDATAIRE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Risque élevé sans révision KYC à jour",
+       "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+       "total": 573,
+       "anomalies": 26,
+       "part": 4.5,
+       "taux_conformite": 95.5,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RISQUE = Risque eleve",
+        "AND DATEREV expired "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone invalide (trop long)",
+       "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
+       "total": 573,
+       "anomalies": 25,
+       "part": 4.4,
+       "taux_conformite": 95.6,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL max_length 18"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Numéro RCS trop court",
+       "description": "Le numéro RCS renseigné comporte moins de 6 caractères.",
+       "total": 573,
+       "anomalies": 22,
+       "part": 3.8,
+       "taux_conformite": 96.2,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RCSNO is_not_empty ",
+        "AND RCSNO min_length 6"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Capital social nul",
+       "description": "Le capital social déclaré est égal à 0.",
+       "total": 573,
+       "anomalies": 19,
+       "part": 3.3,
+       "taux_conformite": 96.7,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND CAPITAL = 0"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Sociétés sans adresse sociale",
+       "description": "Recenser les PM sans adresse sociale",
+       "total": 573,
+       "anomalies": 2,
+       "part": 0.3,
+       "taux_conformite": 99.7,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND ADRESSE_SOCIALE is_empty "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Format téléphone court ou contenant des lettres (PM)",
+       "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
+       "total": 573,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND TEL is_not_empty ",
+        "AND TEL min_length 9",
+        "AND TEL contains_alpha "
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "PPE déclarée sans risque élevé",
+       "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+       "total": 573,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": false,
+       "champs_absents": [
+        "PPE"
+       ],
+       "conditions": [
+        "AND PPE = O",
+        "AND RISQUE != Risque eleve"
+       ],
+       "exemples": []
+      },
+      {
+       "nom": "Résultat renseigné sans chiffre d'affaires",
+       "description": "Le résultat est renseigné mais le chiffre d'affaires (CA) est vide.",
+       "total": 573,
+       "anomalies": 0,
+       "part": 0.0,
+       "taux_conformite": 100.0,
+       "evaluable": true,
+       "champs_absents": [],
+       "conditions": [
+        "AND RESULTAT is_not_empty ",
+        "AND CA is_empty "
+       ],
+       "exemples": []
+      }
+     ]
+    },
+    "scoring": {
+     "n": 573,
+     "risque": {
+      "Risque moyen eleve": 130,
+      "Risque eleve": 61,
+      "Risque moyen faible": 381,
+      "Risque faible": 1
+     },
+     "risque_ordonne": [
+      [
+       "Risque faible",
+       1
+      ],
+      [
+       "Risque moyen faible",
+       381
+      ],
+      [
+       "Risque moyen eleve",
+       130
+      ],
+      [
+       "Risque eleve",
+       61
+      ]
+     ],
+     "risque_non_renseigne": 0,
+     "statuts": {
+      "Non renseignée": 392,
+      "À échoir > 12 mois": 120,
+      "À échoir 3–6 mois": 10,
+      "Échue": 30,
+      "À échoir < 3 mois": 11,
+      "À échoir 6–12 mois": 10
+     },
+     "statuts_ordonnes": [
+      [
+       "Échue",
+       30
+      ],
+      [
+       "Non renseignée",
+       392
+      ],
+      [
+       "À échoir < 3 mois",
+       11
+      ],
+      [
+       "À échoir 3–6 mois",
+       10
+      ],
+      [
+       "À échoir 6–12 mois",
+       10
+      ],
+      [
+       "À échoir > 12 mois",
+       120
+      ]
+     ],
+     "sans_revision": 422,
+     "part_sans_revision": 73.6,
+     "anciennete_echues": {
+      "< 6 mois": 27,
+      "6 à 12 mois": 3
+     },
+     "croise": {
+      "Risque moyen eleve": {
+       "Non renseignée": 121,
+       "Échue": 2,
+       "À échoir 6–12 mois": 2,
+       "À échoir > 12 mois": 4,
+       "À échoir 3–6 mois": 1
+      },
+      "Risque eleve": {
+       "Non renseignée": 11,
+       "À échoir 3–6 mois": 7,
+       "Échue": 26,
+       "À échoir < 3 mois": 9,
+       "À échoir 6–12 mois": 7,
+       "À échoir > 12 mois": 1
+      },
+      "Risque moyen faible": {
+       "Non renseignée": 259,
+       "À échoir > 12 mois": 115,
+       "Échue": 2,
+       "À échoir 3–6 mois": 2,
+       "À échoir < 3 mois": 2,
+       "À échoir 6–12 mois": 1
+      },
+      "Risque faible": {
+       "Non renseignée": 1
+      }
+     },
+     "risque_eleve": {
+      "total": 61,
+      "sans_revision": 37,
+      "part": 60.7,
+      "echue": 26,
+      "non_renseignee": 11
+     }
+    },
+    "risque_eleve": 61
+   },
+   "_devises": {
+    "EUR": 420,
+    "USD": 210,
+    "GBP": 9,
+    "ATS": 4,
+    "FRF": 4,
+    "CAD": 4,
+    "CHF": 2,
+    "BDI": 1
+   },
+   "_croisements": {
+    "Non-résident et devise étrangère": 12,
+    "Risque élevé et non-résident": 12,
+    "Risque élevé et devise étrangère": 52
+   }
+  }
+ },
+ "valeurs": {
+  "pp": {
+   "PAYNAIS": {
+    "renseigne": 381480,
+    "distinctes": 126,
+    "top": [
+     [
+      "SN",
+      355302
+     ],
+     [
+      "FR",
+      4347
+     ],
+     [
+      "CG",
+      2180
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 0,
+    "part_valeur_nulle": 0.0
+   },
+   "PROFESSION": {
+    "renseigne": 381480,
+    "distinctes": 306,
+    "top": [
+     [
+      "COMMERCANT",
+      71864
+     ],
+     [
+      "ELEVE,ETUDIANT",
+      35839
+     ],
+     [
+      "OUVRIER",
+      32508
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 0,
+    "part_valeur_nulle": 0.0
+   },
+   "SALAIRE": {
+    "renseigne": 350872,
+    "distinctes": 1252,
+    "top": [
+     [
+      "SANS REVENU FIXE",
+      118162
+     ],
+     [
+      "de 100,000 a 200,000",
+      67124
+     ],
+     [
+      "de 50,000 a 100,000",
+      52699
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 9191,
+    "part_valeur_nulle": 2.4
+   },
+   "NUMID": {
+    "renseigne": 381471,
+    "distinctes": 55429,
+    "top": [
+     [
+      "1,7512E+12",
+      8648
+     ],
+     [
+      "1,6192E+12",
+      7207
+     ],
+     [
+      "1,7652E+12",
+      6696
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 16,
+    "part_valeur_nulle": 0.0
+   },
+   "CODAPE": {
+    "renseigne": 381480,
+    "distinctes": 200,
+    "top": [
+     [
+      "ACTIV MENAG EMPLOYE PERS SALARIE",
+      211979
+     ],
+     [
+      "ACTI MENAG EMPLO PERS NON-SALARI",
+      162113
+     ],
+     [
+      "ADMINISTATION PUBL ET DEF NAT",
+      1776
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 0,
+    "part_valeur_nulle": 0.0
+   },
+   "TEL": {
+    "renseigne": 374744,
+    "distinctes": 184293,
+    "top": [
+     [
+      "2,21775E+11",
+      15468
+     ],
+     [
+      "2,21774E+11",
+      15384
+     ],
+     [
+      "2,21776E+11",
+      15318
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 2,
+    "part_valeur_nulle": 0.0
+   },
+   "DATNAIS": {
+    "renseigne": 381480,
+    "distinctes": 25428,
+    "top": [
+     [
+      "01/01/1988",
+      431
+     ],
+     [
+      "01/01/1994",
+      430
+     ],
+     [
+      "01/01/1990",
+      423
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 0,
+    "part_valeur_nulle": 0.0
+   },
+   "ADRESSE": {
+    "renseigne": 381275,
+    "distinctes": 134305,
+    "top": [
+     [
+      "DAKAR DAKAR",
+      5400
+     ],
+     [
+      "MBORO MBORO",
+      2751
+     ],
+     [
+      "DAROU KHOUDOSS DAROU KHOUDOSS",
+      2164
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 1,
+    "part_valeur_nulle": 0.0
+   },
+   "DATVALID": {
+    "renseigne": 381114,
+    "distinctes": 8634,
+    "top": [
+     [
+      "23/05/2027",
+      3142
+     ],
+     [
+      "31/05/2027",
+      2927
+     ],
+     [
+      "26/06/2027",
+      2909
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 0,
+    "part_valeur_nulle": 0.0
+   },
+   "ORIGINE_REVENU": {
+    "renseigne": 381443,
+    "distinctes": 14,
+    "top": [
+     [
+      "Non communiquee",
+      318658
+     ],
+     [
+      "Salaires",
+      39517
+     ],
+     [
+      "Autres",
+      17662
+     ]
+    ],
+    "non_communiquee": 318658,
+    "part_non_communiquee": 83.5,
+    "valeur_nulle": 0,
+    "part_valeur_nulle": 0.0
+   },
+   "PAYS_RESID": {
+    "renseigne": 381480,
+    "distinctes": 186,
+    "top": [
+     [
+      "SENEGAL",
+      376327
+     ],
+     [
+      "FRANCE",
+      1700
+     ],
+     [
+      "SN",
+      1579
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 6,
+    "part_valeur_nulle": 0.0
+   }
+  },
+  "pm": {
+   "CODAPE": {
+    "renseigne": 15622,
+    "distinctes": 254,
+    "top": [
+     [
+      "BATIMENTS ET TRAVAUX PUB",
+      1421
+     ],
+     [
+      "COMMERCE DE GROS",
+      1402
+     ],
+     [
+      "AUTRES COMMERCES",
+      1093
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 0,
+    "part_valeur_nulle": 0.0
+   },
+   "AGEC": {
+    "renseigne": 15671,
+    "distinctes": 20,
+    "top": [
+     [
+      "SNP",
+      7205
+     ],
+     [
+      "EIN",
+      6935
+     ],
+     [
+      "ORG",
+      605
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 0,
+    "part_valeur_nulle": 0.0
+   },
+   "CAPITAL": {
+    "renseigne": 11857,
+    "distinctes": 365,
+    "top": [
+     [
+      "1e+06",
+      5535
+     ],
+     [
+      "0",
+      2064
+     ],
+     [
+      "5e+05",
+      1054
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 2064,
+    "part_valeur_nulle": 13.2
+   },
+   "CA": {
+    "renseigne": 13493,
+    "distinctes": 1896,
+    "top": [
+     [
+      "5e+07",
+      1561
+     ],
+     [
+      "1e+07",
+      769
+     ],
+     [
+      "1e+08",
+      710
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 458,
+    "part_valeur_nulle": 2.9
+   },
+   "RESULTAT": {
+    "renseigne": 2142,
+    "distinctes": 337,
+    "top": [
+     [
+      "0",
+      163
+     ],
+     [
+      "5e+06",
+      109
+     ],
+     [
+      "1.5e+07",
+      101
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 163,
+    "part_valeur_nulle": 1.0
+   },
+   "RCSNO": {
+    "renseigne": 13920,
+    "distinctes": 13395,
+    "top": [
+     [
+      "IEFLING-19624-271216",
+      180
+     ],
+     [
+      "0",
+      47
+     ],
+     [
+      "SNDKR",
+      43
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 47,
+    "part_valeur_nulle": 0.3
+   },
+   "ORIGINE_REVENU": {
+    "renseigne": 15671,
+    "distinctes": 14,
+    "top": [
+     [
+      "Non communiquee",
+      11881
+     ],
+     [
+      "Resultat d'exploitation",
+      1548
+     ],
+     [
+      "Autres",
+      1022
+     ]
+    ],
+    "non_communiquee": 11882,
+    "part_non_communiquee": 75.8,
+    "valeur_nulle": 0,
+    "part_valeur_nulle": 0.0
+   },
+   "TEL": {
+    "renseigne": 14707,
+    "distinctes": 13290,
+    "top": [
+     [
+      "339681038",
+      127
+     ],
+     [
+      "2,21776E+11",
+      113
+     ],
+     [
+      "2,21775E+11",
+      63
+     ]
+    ],
+    "non_communiquee": 0,
+    "part_non_communiquee": 0.0,
+    "valeur_nulle": 0,
+    "part_valeur_nulle": 0.0
+   }
+  }
+ },
+ "champs_non_alimentes": {
+  "pp": {
+   "BOITE_POSTALE": 0.0,
+   "EMPLOYEUR": 94.9,
+   "LIEU_DELIVRANCE_CIN": 1.0,
+   "PPE": 99.9,
+   "DATREV": 92.0
+  },
+  "pm": {
+   "BOITE_POSTALE": 0.0,
+   "ACTIONNAIRE": 7.1,
+   "MANDATAIRE": 97.2,
+   "NUMERO_FISCAL": 64.6,
+   "ADRESSE_SOCIALE": 99.7,
+   "PPE": null,
+   "DATREV": 32.8
+  }
+ }
+}

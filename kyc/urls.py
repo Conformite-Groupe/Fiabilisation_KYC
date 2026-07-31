@@ -25,6 +25,7 @@ urlpatterns = [
     path('quality_control/', views.quality_control_view, name='quality_control'),
     path('quality_control/delete/<int:pk>/', views.delete_quality_rule, name='delete_quality_rule'),
     path('quality_control/edit/<int:pk>/', views.edit_quality_rule, name='edit_quality_rule'),
+    path('quality_control/duplicate/<int:pk>/', views.duplicate_quality_rule, name='duplicate_quality_rule'),
     path('quality_control/audits/', views.quality_control_audits, name='quality_control_audits'),
     path('quality_control/audits/excel/', views.export_audits_excel, name='export_audits_excel'),
     path('quality_control/audits/pdf/', views.export_audits_pdf, name='export_audits_pdf'),

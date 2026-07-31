@@ -98,10 +98,10 @@
                 </svg>
             </div>
             <div>
-                <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none uppercase">{{ "Modification de la"|t }}
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none uppercase">{% if duplicate_mode %}{{ "Duplication de la"|t }}{% else %}{{ "Modification de la"|t }}{% endif %}
                     <span class="text-blue-600 font-light">{{ "Règle"|t }}</span>
                 </h1>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-2">{{ "Ajustement de l'algorithme de contrôle qualité"|t }}</p>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-2">{% if duplicate_mode %}{{ "Conserver le nom garde le même numéro ; modifier le nom crée un nouveau numéro"|t }}{% else %}{{ "Ajustement de l'algorithme de contrôle qualité"|t }}{% endif %}</p>
             </div>
         </div>
         <a href="{% url 'kyc:quality_control' %}"
@@ -172,6 +172,18 @@
                         </div>
 
                         {{ formset.management_form }}
+
+                        <div class="mb-6 p-6 bg-slate-900 rounded-3xl">
+                            <div class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                                {{ "Formule évaluée"|t }}
+                            </div>
+                            <code id="formulaPreview"
+                                class="block text-xs font-mono text-emerald-300 leading-relaxed break-words"></code>
+                            <div class="text-[9px] text-slate-500 mt-3 leading-relaxed">
+                                {{ "Le connecteur OU ouvre un nouveau groupe. Les conditions d'un même groupe sont reliées par ET. L'anomalie est détectée si au moins un groupe est entièrement vrai."|t }}
+                            </div>
+                        </div>
+
                         <div id="conditionContainer"
                             class="space-y-6 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
                             {% for f in formset %}
@@ -184,6 +196,8 @@
                                     </span>
                                     <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ "Noeud"|t }}
                                     </h4>
+                                    <span
+                                        class="js-group-badge ml-auto px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-widest"></span>
                                 </div>
                                 <div class="condition-logic-block flex items-center gap-3">
                                     <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">{{ "Relié à la condition précédente par"|t }}</span>
@@ -220,7 +234,7 @@
                     class="px-10 py-5 text-xs font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">{{ "Annuler"|t }}</a>
                 <button type="submit" id="submitEditBtn"
                     class="px-20 py-6 bg-slate-900 text-white text-xs font-black uppercase tracking-[0.4em] rounded-3xl hover:bg-blue-600 shadow-2xl hover:shadow-blue-900/40 transition-all active:scale-95 btn-glow-blue flex items-center gap-3">
-                    <span class="btn-text">{{ "Mettre à jour"|t }}</span>
+                    <span class="btn-text">{% if duplicate_mode %}{{ "Créer la copie"|t }}{% else %}{{ "Mettre à jour"|t }}{% endif %}</span>
                     <div class="hidden btn-loader">
                         <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24">
@@ -302,12 +316,72 @@
             });
         }
 
+        // Libellés lisibles des opérateurs pour l'aperçu de formule.
+        const operatorLabels = {
+            '=': '=', '!=': '≠', '>': '>', '<': '<', '>=': '≥', '<=': '≤',
+            'contains': 'contient', 'not_contains': 'ne contient pas',
+            'word_contains': 'contient le mot', 'word_not_contains': 'ne contient pas le mot',
+            'contains_alpha': 'contient des lettres', 'contains_digit': 'contient des chiffres',
+            'regex': 'regex', 'is_empty': 'est vide', 'is_not_empty': "n'est pas vide",
+            'expired': 'est expiré', 'age_gt': 'âge >', 'age_lt': 'âge <',
+            'min_length': 'longueur <', 'max_length': 'longueur >'
+        };
+
+        // Découpe les noeuds en groupes : un connecteur OU démarre un nouveau groupe,
+        // les noeuds d'un même groupe sont reliés par ET (forme normale disjonctive,
+        // identique à _dq_conditions_flag côté serveur).
+        function readGroups() {
+            const groups = [];
+            let kept = 0;
+            document.querySelectorAll('#conditionContainer .condition-row').forEach((row) => {
+                const del = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+                if (del && del.checked) return;
+                const field = row.querySelector('select[name$="-field_name"]')?.value || '';
+                const op = row.querySelector('select[name$="-operator"]')?.value || '';
+                const val = row.querySelector('[name$="-value"]')?.value || '';
+                const logic = row.querySelector('.js-cond-logic')?.value || 'AND';
+                // Le connecteur du 1er noeud conservé est ignoré côté serveur.
+                if (kept === 0 || logic === 'OR') groups.push([]);
+                kept += 1;
+                groups[groups.length - 1].push({ row, field, op, val });
+            });
+            return groups;
+        }
+
+        function updateGroupsAndFormula() {
+            const groups = readGroups();
+            const parts = [];
+
+            groups.forEach((group, gi) => {
+                const chunks = [];
+                group.forEach(node => {
+                    const badge = node.row.querySelector('.js-group-badge');
+                    if (badge) badge.textContent = `Groupe ${gi + 1}`;
+                    if (!node.field || !node.op) return;
+                    const label = operatorLabels[node.op] || node.op;
+                    const noValue = ['is_empty', 'is_not_empty', 'expired',
+                        'contains_alpha', 'contains_digit'].includes(node.op);
+                    chunks.push(noValue ? `${node.field} ${label}`
+                        : `${node.field} ${label} ${node.val || '?'}`);
+                });
+                if (chunks.length) parts.push(`(${chunks.join(' ET ')})`);
+            });
+
+            const preview = document.getElementById('formulaPreview');
+            if (preview) {
+                preview.textContent = parts.length
+                    ? parts.join('  OU  ')
+                    : 'Aucune condition complète — la règle ne remontera aucune anomalie.';
+            }
+        }
+
         function refreshAllNodes() {
             document.querySelectorAll('.condition-row').forEach(row => {
                 updateFieldsInRow(row);
                 handleOperatorChange(row);
             });
             updateLogicVisibility();
+            updateGroupsAndFormula();
         }
 
         applicabilitySelect?.addEventListener('change', refreshAllNodes);
@@ -327,9 +401,15 @@
         }
 
         document.addEventListener('change', (e) => {
-            if (e.target.name && e.target.name.endsWith('-operator')) {
+            if (!e.target.name || !e.target.name.startsWith('conditions-')) return;
+            if (e.target.name.endsWith('-operator')) {
                 handleOperatorChange(e.target.closest('.condition-row'));
             }
+            updateGroupsAndFormula();
+        });
+
+        document.addEventListener('input', (e) => {
+            if (e.target.name && e.target.name.endsWith('-value')) updateGroupsAndFormula();
         });
 
         // Forcer le type composite et cacher le champ
@@ -364,6 +444,7 @@
                 updateFieldsInRow(newRow);
                 handleOperatorChange(newRow);
                 updateLogicVisibility();
+                updateGroupsAndFormula();
             });
         }
 

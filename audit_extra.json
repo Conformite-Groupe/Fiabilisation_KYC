@@ -1,0 +1,648 @@
+{
+ "pp_valeurs": {
+  "PAYNAIS": {
+   "valeurs_distinctes": 126,
+   "top5": [
+    [
+     "SN",
+     355315
+    ],
+    [
+     "FR",
+     4348
+    ],
+    [
+     "CG",
+     2180
+    ],
+    [
+     "ML",
+     2125
+    ],
+    [
+     "GN",
+     2070
+    ]
+   ],
+   "valeurs_complaisance": 0,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 100.0
+  },
+  "PROFESSION": {
+   "valeurs_distinctes": 306,
+   "top5": [
+    [
+     "COMMERCANT",
+     71866
+    ],
+    [
+     "ELEVE,ETUDIANT",
+     35839
+    ],
+    [
+     "OUVRIER",
+     32510
+    ],
+    [
+     "MILITAIRES",
+     17908
+    ],
+    [
+     "AGENT DE SECURITE",
+     17787
+    ]
+   ],
+   "valeurs_complaisance": 0,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 100.0
+  },
+  "SALAIRE": {
+   "valeurs_distinctes": 1250,
+   "top5": [
+    [
+     "SANS REVENU FIXE",
+     118167
+    ],
+    [
+     "de 100,000 a 200,000",
+     67126
+    ],
+    [
+     "de 50,000 a 100,000",
+     52700
+    ],
+    [
+     "de 200,000 a 350,000",
+     28766
+    ],
+    [
+     "de 35,000 a 50,000",
+     19986
+    ]
+   ],
+   "valeurs_complaisance": 9203,
+   "pct_complaisance": 2.41,
+   "renseigne_reellement_pct": 89.6
+  },
+  "NUMID": {
+   "valeurs_distinctes": 55431,
+   "top5": [
+    [
+     "1,7512E+12",
+     8648
+    ],
+    [
+     "1,6192E+12",
+     7207
+    ],
+    [
+     "1,7652E+12",
+     6696
+    ],
+    [
+     "2,7512E+12",
+     6374
+    ],
+    [
+     "1,5482E+12",
+     5690
+    ]
+   ],
+   "valeurs_complaisance": 20,
+   "pct_complaisance": 0.01,
+   "renseigne_reellement_pct": 100.0
+  },
+  "CODAPE": {
+   "valeurs_distinctes": 200,
+   "top5": [
+    [
+     "ACTIV MENAG EMPLOYE PERS SALARIE",
+     211979
+    ],
+    [
+     "ACTI MENAG EMPLO PERS NON-SALARI",
+     162127
+    ],
+    [
+     "ADMINISTATION PUBL ET DEF NAT",
+     1776
+    ],
+    [
+     "PHOSPHATES",
+     1290
+    ],
+    [
+     "AUTRES ACTIVITES ANNEXES",
+     436
+    ]
+   ],
+   "valeurs_complaisance": 0,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 100.0
+  },
+  "TEL": {
+   "valeurs_distinctes": 184305,
+   "top5": [
+    [
+     "2,21775E+11",
+     15468
+    ],
+    [
+     "2,21774E+11",
+     15384
+    ],
+    [
+     "2,21776E+11",
+     15318
+    ],
+    [
+     "2,21777E+11",
+     13990
+    ],
+    [
+     "2,21773E+11",
+     12920
+    ]
+   ],
+   "valeurs_complaisance": 15,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 98.2
+  },
+  "DATNAIS": {
+   "valeurs_distinctes": 25428,
+   "top5": [
+    [
+     "01/01/1988",
+     431
+    ],
+    [
+     "01/01/1994",
+     430
+    ],
+    [
+     "01/01/1990",
+     423
+    ],
+    [
+     "01/01/1993",
+     419
+    ],
+    [
+     "01/01/1995",
+     415
+    ]
+   ],
+   "valeurs_complaisance": 0,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 100.0
+  },
+  "ADRESSE": {
+   "valeurs_distinctes": 134314,
+   "top5": [
+    [
+     "DAKAR DAKAR",
+     5400
+    ],
+    [
+     "MBORO MBORO",
+     2751
+    ],
+    [
+     "DAROU KHOUDOSS DAROU KHOUDOSS",
+     2164
+    ],
+    [
+     "S/C ICS DAROU KHOUDOSS",
+     2119
+    ],
+    [
+     "GRAND YOFF DAKAR",
+     2093
+    ]
+   ],
+   "valeurs_complaisance": 1,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 99.9
+  },
+  "DATVALID": {
+   "valeurs_distinctes": 8634,
+   "top5": [
+    [
+     "23/05/2027",
+     3142
+    ],
+    [
+     "31/05/2027",
+     2927
+    ],
+    [
+     "26/06/2027",
+     2909
+    ],
+    [
+     "13/07/2027",
+     2596
+    ],
+    [
+     "16/06/2027",
+     2583
+    ]
+   ],
+   "valeurs_complaisance": 0,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 99.9
+  },
+  "ORIGINE_REVENU": {
+   "valeurs_distinctes": 13,
+   "top5": [
+    [
+     "Non communiquee",
+     318674
+    ],
+    [
+     "Salaires",
+     39517
+    ],
+    [
+     "Autres",
+     17662
+    ],
+    [
+     "Resultat d'exploitation",
+     2689
+    ],
+    [
+     "Rentes",
+     1235
+    ]
+   ],
+   "valeurs_complaisance": 0,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 100.0
+  },
+  "PAYS_RESID": {
+   "valeurs_distinctes": 184,
+   "top5": [
+    [
+     "SENEGAL",
+     376341
+    ],
+    [
+     "FRANCE",
+     1702
+    ],
+    [
+     "SN",
+     1579
+    ],
+    [
+     "FR",
+     455
+    ],
+    [
+     "MALI",
+     157
+    ]
+   ],
+   "valeurs_complaisance": 13,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 100.0
+  }
+ },
+ "pm_valeurs": {
+  "CODAPE": {
+   "valeurs_distinctes": 254,
+   "top5": [
+    [
+     "BATIMENTS ET TRAVAUX PUB",
+     2228
+    ],
+    [
+     "COMMERCE DE GROS",
+     1900
+    ],
+    [
+     "AUTRES COMMERCES",
+     1621
+    ],
+    [
+     "COMMERCE DE DETAIL",
+     1326
+    ],
+    [
+     "COMM GENE D'IMPORT EXPORT",
+     1277
+    ]
+   ],
+   "valeurs_complaisance": 0,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 99.8
+  },
+  "AGEC": {
+   "valeurs_distinctes": 20,
+   "top5": [
+    [
+     "SNP",
+     17158
+    ],
+    [
+     "EIN",
+     8122
+    ],
+    [
+     "ORG",
+     1389
+    ],
+    [
+     "ADL",
+     510
+    ],
+    [
+     "ISB",
+     491
+    ]
+   ],
+   "valeurs_complaisance": 0,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 100.0
+  },
+  "CAPITAL": {
+   "valeurs_distinctes": 346,
+   "top5": [
+    [
+     "1000000",
+     8167
+    ],
+    [
+     "0",
+     3216
+    ],
+    [
+     "500000",
+     1530
+    ],
+    [
+     "10000000",
+     1217
+    ],
+    [
+     "100000",
+     1210
+    ]
+   ],
+   "valeurs_complaisance": 3216,
+   "pct_complaisance": 11.06,
+   "renseigne_reellement_pct": 62.2
+  },
+  "CA": {
+   "valeurs_distinctes": 1869,
+   "top5": [
+    [
+     "50000000",
+     2085
+    ],
+    [
+     "100000000",
+     1270
+    ],
+    [
+     "10000000",
+     1079
+    ],
+    [
+     "0",
+     970
+    ],
+    [
+     "25000000",
+     778
+    ]
+   ],
+   "valeurs_complaisance": 970,
+   "pct_complaisance": 3.34,
+   "renseigne_reellement_pct": 81.2
+  },
+  "RESULTAT": {
+   "valeurs_distinctes": 333,
+   "top5": [
+    [
+     "0",
+     327
+    ],
+    [
+     "5000000",
+     173
+    ],
+    [
+     "15000000",
+     130
+    ],
+    [
+     "6000000",
+     122
+    ],
+    [
+     "10000000",
+     113
+    ]
+   ],
+   "valeurs_complaisance": 327,
+   "pct_complaisance": 1.12,
+   "renseigne_reellement_pct": 10.0
+  },
+  "RCSNO": {
+   "valeurs_distinctes": 13481,
+   "top5": [
+    [
+     "IEFLING-19624-271216",
+     360
+    ],
+    [
+     "15104/MINT/DAGA",
+     264
+    ],
+    [
+     "SNDKR2007B1670",
+     176
+    ],
+    [
+     "SNDKR1977B13",
+     164
+    ],
+    [
+     "SNDKR",
+     146
+    ]
+   ],
+   "valeurs_complaisance": 149,
+   "pct_complaisance": 0.51,
+   "renseigne_reellement_pct": 85.1
+  },
+  "ORIGINE_REVENU": {
+   "valeurs_distinctes": 13,
+   "top5": [
+    [
+     "Non communiquee",
+     21129
+    ],
+    [
+     "Resultat d'exploitation",
+     3989
+    ],
+    [
+     "Autres",
+     1968
+    ],
+    [
+     "Salaires",
+     1502
+    ],
+    [
+     "Rentes",
+     234
+    ]
+   ],
+   "valeurs_complaisance": 0,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 100.0
+  },
+  "TEL": {
+   "valeurs_distinctes": 13313,
+   "top5": [
+    [
+     "779397070/338257004",
+     264
+    ],
+    [
+     "339681038",
+     253
+    ],
+    [
+     "338791000",
+     177
+    ],
+    [
+     "338698420",
+     176
+    ],
+    [
+     "776342995",
+     134
+    ]
+   ],
+   "valeurs_complaisance": 1,
+   "pct_complaisance": 0.0,
+   "renseigne_reellement_pct": 92.2
+  }
+ },
+ "pp_doublons": {
+  "lignes": 381494,
+  "clients_uniques": 364460,
+  "clients_multi_lignes": 15037,
+  "lignes_excedentaires": 17034,
+  "max_lignes_par_client": 30
+ },
+ "pm_doublons": {
+  "lignes": 29073,
+  "clients_uniques": 15674,
+  "clients_multi_lignes": 4841,
+  "lignes_excedentaires": 13399,
+  "max_lignes_par_client": 264
+ },
+ "pp_formats": {
+  "age_moins_18": 5585,
+  "age_sup_100": 29,
+  "datnais_illisible": 0,
+  "datvalid_illisible": 0,
+  "datvalid_anterieure_datouv": 139,
+  "tel_non_numerique": 175880,
+  "numid_doublon": 4614
+ },
+ "pm_formats": {
+  "capital_nul_ou_neg": 3216,
+  "ca_nul": 970,
+  "resultat_sup_ca": 79,
+  "rcs_non_alphanum": 599,
+  "numero_fiscal_vide": 12134
+ },
+ "segments_par_champ": {
+  "pp": {
+   "PPE=O": {
+    "n": 2716,
+    "par_champ": {
+     "PAYNAIS": 100,
+     "PROFESSION": 100,
+     "SALAIRE": 97,
+     "NUMID": 100,
+     "CODAPE": 100,
+     "TEL": 100,
+     "DATNAIS": 100,
+     "ADRESSE": 100,
+     "DATVALID": 100,
+     "ORIGINE_REVENU": 100,
+     "PAYS_RESID": 100
+    }
+   },
+   "Devise etrangere": {
+    "n": 500,
+    "par_champ": {
+     "PAYNAIS": 100,
+     "PROFESSION": 100,
+     "SALAIRE": 71,
+     "NUMID": 99,
+     "CODAPE": 100,
+     "TEL": 80,
+     "DATNAIS": 100,
+     "ADRESSE": 100,
+     "DATVALID": 93,
+     "ORIGINE_REVENU": 100,
+     "PAYS_RESID": 100
+    }
+   },
+   "Non-residents": {
+    "n": 2756,
+    "par_champ": {
+     "PAYNAIS": 100,
+     "PROFESSION": 100,
+     "SALAIRE": 44,
+     "NUMID": 100,
+     "CODAPE": 100,
+     "TEL": 98,
+     "DATNAIS": 100,
+     "ADRESSE": 99,
+     "DATVALID": 99,
+     "ORIGINE_REVENU": 100,
+     "PAYS_RESID": 100
+    }
+   }
+  },
+  "pm": {
+   "Devise etrangere": {
+    "n": 3154,
+    "par_champ": {
+     "CODAPE": 100,
+     "AGEC": 100,
+     "CAPITAL": 71,
+     "CA": 83,
+     "RESULTAT": 5,
+     "RCSNO": 81,
+     "ORIGINE_REVENU": 100,
+     "TEL": 85
+    }
+   },
+   "Non-residents": {
+    "n": 199,
+    "par_champ": {
+     "CODAPE": 100,
+     "AGEC": 100,
+     "CAPITAL": 88,
+     "CA": 80,
+     "RESULTAT": 1,
+     "RCSNO": 95,
+     "ORIGINE_REVENU": 100,
+     "TEL": 86
+    }
+   }
+  }
+ }
+}

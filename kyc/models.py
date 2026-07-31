@@ -46,6 +46,8 @@ OPERATOR_CHOICES = (
     ('<=', 'Inférieur ou égal (<=)'),
     ('contains', 'Contient'),
     ('not_contains', 'Ne contient pas'),
+    ('word_contains', 'Contient le mot exact'),
+    ('word_not_contains', 'Ne contient pas le mot exact'),
     ('contains_alpha', 'Contient des lettres'),
     ('contains_digit', 'Contient des chiffres'),
     ('regex', 'Expression régulière'),
@@ -202,7 +204,7 @@ class DataQualityRuleAudit(models.Model):
 
 
 Filiales = (
-    ('BOA BJ', 'BOA BJ'),
+    ('BOA SN', 'BOA SN'),
 )
 
 class FilialeModuleConfig(models.Model):

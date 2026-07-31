@@ -17,6 +17,7 @@ from django.core.mail import send_mail, BadHeaderError
 from .models import TauxEvolution_filiale
 import json
 import csv
+import re
 
 
 import openpyxl
@@ -27,7 +28,7 @@ except ImportError:
     pisa = None
 from kyc.models import (
     Notation, Historique, Kyc_pm, Kyc_pp, TauxEvolution, DATEREV,
-    DataQualityRule, DataQualityRuleAudit, KycDocumentExtraction, KycExpiredDocumentScanMatch,
+    DataQualityRule, DataQualityCondition, DataQualityRuleAudit, KycDocumentExtraction, KycExpiredDocumentScanMatch,
     KycDocumentMatchJob, KycDocumentMatchSettings, DOCUMENT_EXTRACTION_TYPE_CHOICES,
     KycFieldVisibilityConfig, KycDocumentType, Filiales, CLIENT_TYPE_CHOICES,
     DATA_QUALITY_FIELD_CHOICES, EmailReminderConfig, KycDocumentOcrJob,
@@ -320,6 +321,10 @@ def _dq_eval_condition(op, raw_val, raw_target, today, parse_date, calc_age):
         except Exception: return False
     if op == 'contains': return target.lower() in val.lower()
     if op == 'not_contains': return target.lower() not in val.lower()
+    if op == 'word_contains':
+        return bool(target and re.search(rf'(?<!\w){re.escape(target)}(?!\w)', val, re.IGNORECASE))
+    if op == 'word_not_contains':
+        return not bool(target and re.search(rf'(?<!\w){re.escape(target)}(?!\w)', val, re.IGNORECASE))
     if op == 'contains_alpha': return any(c.isalpha() for c in val)
     if op == 'contains_digit': return any(c.isdigit() for c in val)
     if op == 'is_empty': return not val
@@ -343,7 +348,6 @@ def _dq_eval_condition(op, raw_val, raw_target, today, parse_date, calc_age):
         except Exception: return False
     if op == 'regex':
         try:
-            import re
             return re.search(target, val) is not None
         except re.error:
             return False
@@ -860,6 +864,98 @@ def edit_quality_rule(request, pk):
         'form': form,
         'formset': formset,
         'rule': rule
+    })
+
+@login_required
+def duplicate_quality_rule(request, pk):
+    user_organe = (getattr(request.user, 'organe', '') or '').strip()
+    if user_organe not in ['PASS']:
+        messages.error(request, "Accès refusé.")
+        return redirect('kyc:quality_control')
+
+    source_rule = get_object_or_404(
+        DataQualityRule.objects.prefetch_related('conditions'),
+        pk=pk,
+    )
+
+    from django.forms import inlineformset_factory
+    from kyc.forms import DataQualityRuleForm, DataQualityConditionForm, DataQualityConditionFormSet
+
+    if user_organe == 'PASS':
+        from kyc.models import Filiales as ModelFiliales
+        filiale_choices = [f[0] for f in ModelFiliales]
+    else:
+        filiale_choices = [request.user.filiale] if request.user.filiale else []
+
+    if request.method == 'POST':
+        form = DataQualityRuleForm(request.POST, filiale_choices=filiale_choices)
+        formset = DataQualityConditionFormSet(request.POST)
+        if form.is_valid() and formset.is_valid():
+            rule = form.save(commit=False)
+            rule.created_by = request.user
+            rule.save()
+            formset.instance = rule
+            formset.save()
+
+            DataQualityRuleAudit.objects.create(
+                rule_name=rule.name,
+                user=request.user,
+                action='DUPLICATION',
+                details=(
+                    f"Duplication de la règle #{source_rule.rule_number} "
+                    f"'{source_rule.name}' vers '{rule.name}' ({rule.filiale or 'Toutes les filiales'})"
+                ),
+            )
+
+            current_version = cache.get('quality_control_rules_version', 1)
+            cache.set('quality_control_rules_version', current_version + 1, timeout=None)
+            if (rule.name or '').strip() == (source_rule.name or '').strip():
+                messages.success(request, "Règle dupliquée avec le même numéro. Vous pouvez ajuster ses conditions indépendamment.")
+            else:
+                messages.success(request, "Règle dupliquée avec un nouveau numéro car le nom a changé.")
+            return redirect('kyc:quality_control')
+    else:
+        duplicated_rule = DataQualityRule(
+            name=source_rule.name,
+            applicability=source_rule.applicability,
+            filiale=source_rule.filiale,
+            description=source_rule.description,
+            active=source_rule.active,
+            control_type=source_rule.control_type,
+            field_name=source_rule.field_name,
+            parameter=source_rule.parameter,
+        )
+        form = DataQualityRuleForm(
+            instance=duplicated_rule,
+            filiale_choices=filiale_choices,
+        )
+        initial_conditions = [
+            {
+                'logic': condition.logic,
+                'field_name': condition.field_name,
+                'operator': condition.operator,
+                'value': condition.value,
+            }
+            for condition in source_rule.conditions.all()
+        ]
+        DuplicateConditionFormSet = inlineformset_factory(
+            DataQualityRule,
+            DataQualityCondition,
+            form=DataQualityConditionForm,
+            fields=['logic', 'field_name', 'operator', 'value'],
+            extra=max(len(initial_conditions), 1),
+            can_delete=True,
+        )
+        formset = DuplicateConditionFormSet(
+            initial=initial_conditions,
+            queryset=DataQualityCondition.objects.none(),
+        )
+
+    return render(request, 'quality_rule_edit.html', {
+        'form': form,
+        'formset': formset,
+        'rule': source_rule,
+        'duplicate_mode': True,
     })
 
 @login_required

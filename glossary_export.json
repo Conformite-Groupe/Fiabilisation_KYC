@@ -1,0 +1,5347 @@
+{
+  "exported_at": "2026-07-28T17:09:37",
+  "format": "kyc_glossary_fr_en_v1",
+  "count": 890,
+  "terms": [
+    {
+      "terme_fr": "& RECOMMANDATIONS",
+      "terme_en": "& RECOMMENDATIONS",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.363039+00:00"
+    },
+    {
+      "terme_fr": "&laquo; Première",
+      "terme_en": "&laquo; First",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.369171+00:00"
+    },
+    {
+      "terme_fr": "(*) Date de la prochaine revue de conformite.",
+      "terme_en": "(*) Date of the next compliance review.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.381704+00:00"
+    },
+    {
+      "terme_fr": "(*) Date limite recommandée pour effectuer le renouvellement du scoring de conformité.",
+      "terme_en": "(*) Recommended deadline to renew the compliance scoring.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.387381+00:00"
+    },
+    {
+      "terme_fr": "(*) Date prévisionnelle à laquelle le scoring du client doit être obligatoirement réévalué.",
+      "terme_en": "(*) Expected date by which the client's scoring must be re-assessed.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.393232+00:00"
+    },
+    {
+      "terme_fr": "(c) BANK OF AFRICA - Plateforme de Fiabilisation KYC v2 - Page",
+      "terme_en": "(c) BANK OF AFRICA - KYC Data Reliability Platform v2 - Page",
+      "note": "",
+      "updated_at": "2026-07-02T16:18:46.333985+00:00"
+    },
+    {
+      "terme_fr": "(non applicable en mode Groupe)",
+      "terme_en": "(not applicable in Group mode)",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.310645+00:00"
+    },
+    {
+      "terme_fr": "(tous si aucun sélectionné)",
+      "terme_en": "(all if none selected)",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.317584+00:00"
+    },
+    {
+      "terme_fr": "(toutes si aucune sélectionnée)",
+      "terme_en": "(all if none selected)",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.323681+00:00"
+    },
+    {
+      "terme_fr": "-- Choisir un agent --",
+      "terme_en": "-- Select an agent --",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.402582+00:00"
+    },
+    {
+      "terme_fr": "-- Globale (Groupe) --",
+      "terme_en": "-- Global (Group) --",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.407559+00:00"
+    },
+    {
+      "terme_fr": "A completer",
+      "terme_en": "To complete",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.413128+00:00"
+    },
+    {
+      "terme_fr": "A completer / A modifier",
+      "terme_en": "To complete / To update",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.416782+00:00"
+    },
+    {
+      "terme_fr": "A modifier",
+      "terme_en": "To update",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.420165+00:00"
+    },
+    {
+      "terme_fr": "A traiter",
+      "terme_en": "To process",
+      "note": "",
+      "updated_at": "2026-07-03T15:54:21.468811+00:00"
+    },
+    {
+      "terme_fr": "A valider",
+      "terme_en": "To validate",
+      "note": "",
+      "updated_at": "2026-07-03T15:54:21.454334+00:00"
+    },
+    {
+      "terme_fr": "AAAA-mm-jj",
+      "terme_en": "YYYY-mm-dd",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.425018+00:00"
+    },
+    {
+      "terme_fr": "ACTIONNAIRE",
+      "terme_en": "Shareholder",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.831436+00:00"
+    },
+    {
+      "terme_fr": "ADRESSE",
+      "terme_en": "Address",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.727228+00:00"
+    },
+    {
+      "terme_fr": "ADRESSE_SOCIALE",
+      "terme_en": "Registered address",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.816882+00:00"
+    },
+    {
+      "terme_fr": "AGENCE",
+      "terme_en": "Branch",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.667972+00:00"
+    },
+    {
+      "terme_fr": "AGENTS & NOTATION.",
+      "terme_en": "AGENTS & RATING.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.429170+00:00"
+    },
+    {
+      "terme_fr": "ANOMALIE",
+      "terme_en": "ANOMALY",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.048300+00:00"
+    },
+    {
+      "terme_fr": "AVANCER",
+      "terme_en": "FORWARD",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.432601+00:00"
+    },
+    {
+      "terme_fr": "Accueil",
+      "terme_en": "Home",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.440405+00:00"
+    },
+    {
+      "terme_fr": "Accès",
+      "terme_en": "Access",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.444577+00:00"
+    },
+    {
+      "terme_fr": "Accès Restreint",
+      "terme_en": "Restricted Access",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.447964+00:00"
+    },
+    {
+      "terme_fr": "Accès Verrouillé | KYC",
+      "terme_en": "Access Locked | KYC",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.451120+00:00"
+    },
+    {
+      "terme_fr": "Accès temporairement verrouillé",
+      "terme_en": "Access temporarily locked",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.455096+00:00"
+    },
+    {
+      "terme_fr": "Acteur",
+      "terme_en": "Sstakeholder",
+      "note": "",
+      "updated_at": "2026-07-27T11:16:57.536458+00:00"
+    },
+    {
+      "terme_fr": "Action",
+      "terme_en": "Action",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.459670+00:00"
+    },
+    {
+      "terme_fr": "Actions",
+      "terme_en": "Actions",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.463731+00:00"
+    },
+    {
+      "terme_fr": "Actions de gestion",
+      "terme_en": "Management actions",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.468319+00:00"
+    },
+    {
+      "terme_fr": "Active",
+      "terme_en": "Active",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.474115+00:00"
+    },
+    {
+      "terme_fr": "Activer en Production",
+      "terme_en": "Enable in Production",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.477553+00:00"
+    },
+    {
+      "terme_fr": "Activer la Règle",
+      "terme_en": "Enable Rule",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.480686+00:00"
+    },
+    {
+      "terme_fr": "Actualiser",
+      "terme_en": "Refresh",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.329597+00:00"
+    },
+    {
+      "terme_fr": "Administration",
+      "terme_en": "Administration",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.186578+00:00"
+    },
+    {
+      "terme_fr": "Adresse",
+      "terme_en": "Address",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.484044+00:00"
+    },
+    {
+      "terme_fr": "Adresse email de test",
+      "terme_en": "Test email address",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.488273+00:00"
+    },
+    {
+      "terme_fr": "Affichage des champs configurés :",
+      "terme_en": "Configured fields display:",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.492839+00:00"
+    },
+    {
+      "terme_fr": "Afficher",
+      "terme_en": "Show",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.496363+00:00"
+    },
+    {
+      "terme_fr": "Afficher et modifier les configurations appliquees",
+      "terme_en": "View and edit applied configurations",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.499492+00:00"
+    },
+    {
+      "terme_fr": "Afficher non renseignes",
+      "terme_en": "Show missing values",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.502673+00:00"
+    },
+    {
+      "terme_fr": "Affinez le filtre (lot, type) pour tout couvrir.",
+      "terme_en": "Refine the filter (batch, type) to cover everything.",
+      "note": "",
+      "updated_at": "2026-07-03T11:57:27.860245+00:00"
+    },
+    {
+      "terme_fr": "Agence",
+      "terme_en": "Branch",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.910357+00:00"
+    },
+    {
+      "terme_fr": "Agencelib",
+      "terme_en": "Branch name",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.507463+00:00"
+    },
+    {
+      "terme_fr": "Agent",
+      "terme_en": "Officer",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.335840+00:00"
+    },
+    {
+      "terme_fr": "Agents",
+      "terme_en": "Officers",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:56.953475+00:00"
+    },
+    {
+      "terme_fr": "Agents notés",
+      "terme_en": "Rated officers",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.137511+00:00"
+    },
+    {
+      "terme_fr": "Agents évalués",
+      "terme_en": "Officers assessed",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.341290+00:00"
+    },
+    {
+      "terme_fr": "Ajouter Logique",
+      "terme_en": "Add Logic",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.510786+00:00"
+    },
+    {
+      "terme_fr": "Ajouter conditions",
+      "terme_en": "Add conditions",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.513865+00:00"
+    },
+    {
+      "terme_fr": "Ajouter un type de document",
+      "terme_en": "Add a document type",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.516872+00:00"
+    },
+    {
+      "terme_fr": "Ajustement de l'algorithme de contrôle qualité",
+      "terme_en": "Quality control algorithm tuning",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.520567+00:00"
+    },
+    {
+      "terme_fr": "Alerte qualite et detection automatique",
+      "terme_en": "Quality alert and automatic detection",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.525419+00:00"
+    },
+    {
+      "terme_fr": "Alertes",
+      "terme_en": "Alerts",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.528699+00:00"
+    },
+    {
+      "terme_fr": "Analyse & Suivi",
+      "terme_en": "Analysis & Monitoring",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.120349+00:00"
+    },
+    {
+      "terme_fr": "Analyse OCR en arriere-plan",
+      "terme_en": "OCR analysis in background",
+      "note": "",
+      "updated_at": "2026-07-03T10:53:57.582347+00:00"
+    },
+    {
+      "terme_fr": "Analyse Risque",
+      "terme_en": "Risk Analysis",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.531822+00:00"
+    },
+    {
+      "terme_fr": "Analyses",
+      "terme_en": "Analytics",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.535408+00:00"
+    },
+    {
+      "terme_fr": "Annuel",
+      "terme_en": "Yearly",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.539955+00:00"
+    },
+    {
+      "terme_fr": "Annuelle",
+      "terme_en": "Yearly",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.544606+00:00"
+    },
+    {
+      "terme_fr": "Annuler",
+      "terme_en": "Cancel",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.548151+00:00"
+    },
+    {
+      "terme_fr": "Anomalie KYC",
+      "terme_en": "KYC anomaly",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.551475+00:00"
+    },
+    {
+      "terme_fr": "Anomalies",
+      "terme_en": "Anomalies",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.065546+00:00"
+    },
+    {
+      "terme_fr": "Appliquer",
+      "terme_en": "Apply",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.556024+00:00"
+    },
+    {
+      "terme_fr": "Appliquer à toutes les filiales",
+      "terme_en": "Apply to all subsidiaries",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.559675+00:00"
+    },
+    {
+      "terme_fr": "Appréciation Stock",
+      "terme_en": "Stock Assessment",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.563137+00:00"
+    },
+    {
+      "terme_fr": "Appréciation globale",
+      "terme_en": "Overall rating",
+      "note": "",
+      "updated_at": "2026-07-02T12:29:27.316923+00:00"
+    },
+    {
+      "terme_fr": "Archive complète et traçabilité des évaluations",
+      "terme_en": "Full archive and traceability of assessments",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.566301+00:00"
+    },
+    {
+      "terme_fr": "Assistance technique",
+      "terme_en": "Technical support",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.240677+00:00"
+    },
+    {
+      "terme_fr": "Attention : les imports peuvent être lourds. Vérifiez les fichiers et l’encodage avant exécution. Consultez",
+      "terme_en": "Warning: imports can be heavy. Check files and encoding before running. See",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.569508+00:00"
+    },
+    {
+      "terme_fr": "Attention, ce processus peut prendre du temps selon le nombre de documents charges et le volume de clients KYC PP a analyser.",
+      "terme_en": "Warning: this process may take time depending on the number of uploaded documents and the volume of KYC PP clients to analyse.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.573626+00:00"
+    },
+    {
+      "terme_fr": "Attribution et mise à jour des notes agents",
+      "terme_en": "Assignment and update of agent ratings",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.577024+00:00"
+    },
+    {
+      "terme_fr": "Au",
+      "terme_en": "To",
+      "note": "",
+      "updated_at": "2026-07-27T11:18:39.381369+00:00"
+    },
+    {
+      "terme_fr": "Au moins un de ces champs doit etre vide.",
+      "terme_en": "At least one of these fields must be empty.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.580297+00:00"
+    },
+    {
+      "terme_fr": "Aucun agent sélectionné",
+      "terme_en": "No officer selected",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.321429+00:00"
+    },
+    {
+      "terme_fr": "Aucun agent trouvé.",
+      "terme_en": "No agent found.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.583931+00:00"
+    },
+    {
+      "terme_fr": "Aucun calcul lance",
+      "terme_en": "No computation started",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.588078+00:00"
+    },
+    {
+      "terme_fr": "Aucun champ sous le seuil",
+      "terme_en": "No field below threshold",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.346738+00:00"
+    },
+    {
+      "terme_fr": "Aucun champ standard n'a ete reconnu automatiquement. Consultez le texte brut ci-dessous.",
+      "terme_en": "No standard field was recognised automatically. See the raw text below.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.592126+00:00"
+    },
+    {
+      "terme_fr": "Aucun champ standard reconnu automatiquement.",
+      "terme_en": "No standard field recognised automatically.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.595677+00:00"
+    },
+    {
+      "terme_fr": "Aucun client en anomalie pour cette regle.",
+      "terme_en": "No client in anomaly for this rule.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.599708+00:00"
+    },
+    {
+      "terme_fr": "Aucun client non score pour ce perimetre.",
+      "terme_en": "No unscored client in this scope.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.602998+00:00"
+    },
+    {
+      "terme_fr": "Aucun client trouvé avec ces filtres.",
+      "terme_en": "No client found with these filters.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.607942+00:00"
+    },
+    {
+      "terme_fr": "Aucun connecté",
+      "terme_en": "None connected",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.611286+00:00"
+    },
+    {
+      "terme_fr": "Aucun critere detaille disponible.",
+      "terme_en": "No detailed criterion available.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.615502+00:00"
+    },
+    {
+      "terme_fr": "Aucun document trouve.",
+      "terme_en": "No document found.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.620366+00:00"
+    },
+    {
+      "terme_fr": "Aucun dossier trouvé pour ces critères.",
+      "terme_en": "No record found for these criteria.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.626001+00:00"
+    },
+    {
+      "terme_fr": "Aucun email",
+      "terme_en": "No email",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.629788+00:00"
+    },
+    {
+      "terme_fr": "Aucun exploitant avec DATEREV dépassée ou proche.",
+      "terme_en": "No account officer with DATEREV overdue or upcoming.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.633294+00:00"
+    },
+    {
+      "terme_fr": "Aucun exploitant trouvé pour cette recherche.",
+      "terme_en": "No officer found for this search.",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.010860+00:00"
+    },
+    {
+      "terme_fr": "Aucun exploitant trouvé.",
+      "terme_en": "No account officer found.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.636493+00:00"
+    },
+    {
+      "terme_fr": "Aucun historique disponible pour ce code",
+      "terme_en": "No history available for this code",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.641513+00:00"
+    },
+    {
+      "terme_fr": "Aucun historique disponible pour le moment",
+      "terme_en": "No history available yet",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.645030+00:00"
+    },
+    {
+      "terme_fr": "Aucun import enregistré.",
+      "terme_en": "No import recorded.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.648358+00:00"
+    },
+    {
+      "terme_fr": "Aucun log disponible.",
+      "terme_en": "No log available.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.651657+00:00"
+    },
+    {
+      "terme_fr": "Aucun lot en attente. Les lots en cours ou termines sont visibles dans l'onglet Suivi.",
+      "terme_en": "No pending batch. Running or completed batches are visible in the Tracking tab.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.656421+00:00"
+    },
+    {
+      "terme_fr": "Aucun mot-clé",
+      "terme_en": "No keyword",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.660282+00:00"
+    },
+    {
+      "terme_fr": "Aucun rapprochement lance pour le moment.",
+      "terme_en": "No matching started yet.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.664551+00:00"
+    },
+    {
+      "terme_fr": "Aucun resultat exploitable pour ce rapprochement.",
+      "terme_en": "No usable result for this matching.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.667876+00:00"
+    },
+    {
+      "terme_fr": "Aucun resultat global disponible.",
+      "terme_en": "No global result available.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.672372+00:00"
+    },
+    {
+      "terme_fr": "Aucun resultat pour ces criteres",
+      "terme_en": "No result for these criteria",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.213038+00:00"
+    },
+    {
+      "terme_fr": "Aucun résident étranger trouvé.",
+      "terme_en": "No foreign resident found.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.677099+00:00"
+    },
+    {
+      "terme_fr": "Aucun type de document configuré. Utilisez le formulaire pour en ajouter.",
+      "terme_en": "No document type configured. Use the form to add one.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.680899+00:00"
+    },
+    {
+      "terme_fr": "Aucun ✗",
+      "terme_en": "None ✗",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.653471+00:00"
+    },
+    {
+      "terme_fr": "Aucune",
+      "terme_en": "None",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.684332+00:00"
+    },
+    {
+      "terme_fr": "Aucune Règle Configurée",
+      "terme_en": "No Rule Configured",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.689130+00:00"
+    },
+    {
+      "terme_fr": "Aucune anomalie trouvée",
+      "terme_en": "No anomaly found",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.693472+00:00"
+    },
+    {
+      "terme_fr": "Aucune configuration SMTP active. &nbsp;",
+      "terme_en": "No active SMTP configuration. &nbsp;",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.697285+00:00"
+    },
+    {
+      "terme_fr": "Aucune correspondance exploitable detectee.",
+      "terme_en": "No usable match detected.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.701485+00:00"
+    },
+    {
+      "terme_fr": "Aucune donnee d'audit disponible",
+      "terme_en": "No audit data available",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.707192+00:00"
+    },
+    {
+      "terme_fr": "Aucune donnee d'audit disponible.",
+      "terme_en": "No audit data available.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.711392+00:00"
+    },
+    {
+      "terme_fr": "Aucune donnee disponible",
+      "terme_en": "No data available",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.312682+00:00"
+    },
+    {
+      "terme_fr": "Aucune donnee trouvee.",
+      "terme_en": "No data found.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.714591+00:00"
+    },
+    {
+      "terme_fr": "Aucune donnée disponible",
+      "terme_en": "No data available",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.352165+00:00"
+    },
+    {
+      "terme_fr": "Aucune donnée disponible pour les critères sélectionnés.",
+      "terme_en": "No data available for the selected criteria.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.717696+00:00"
+    },
+    {
+      "terme_fr": "Aucune donnée disponible.",
+      "terme_en": "No data available.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.722340+00:00"
+    },
+    {
+      "terme_fr": "Aucune donnée trouvée.",
+      "terme_en": "No data found.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.726400+00:00"
+    },
+    {
+      "terme_fr": "Aucune notation disponible",
+      "terme_en": "No rating available",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.357773+00:00"
+    },
+    {
+      "terme_fr": "Aucune notation trouvée",
+      "terme_en": "No rating found",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.005314+00:00"
+    },
+    {
+      "terme_fr": "Aucune notation trouvée dans ce périmètre",
+      "terme_en": "No rating found in this scope",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.363109+00:00"
+    },
+    {
+      "terme_fr": "Aucune regle active trouvee.",
+      "terme_en": "No active rule found.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.729707+00:00"
+    },
+    {
+      "terme_fr": "Aucune revue planifiée pour cette période.",
+      "terme_en": "No review scheduled for this period.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.732864+00:00"
+    },
+    {
+      "terme_fr": "Aucune règle qualité disponible.",
+      "terme_en": "No quality rule available.",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.369803+00:00"
+    },
+    {
+      "terme_fr": "Aucune règle sous le seuil",
+      "terme_en": "No rule below threshold",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.375265+00:00"
+    },
+    {
+      "terme_fr": "Audit",
+      "terme_en": "Audit",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.736067+00:00"
+    },
+    {
+      "terme_fr": "Audit des Controles - KYC Portal",
+      "terme_en": "Controls Audit - KYC Portal",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.741127+00:00"
+    },
+    {
+      "terme_fr": "Auteur",
+      "terme_en": "Author",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.744683+00:00"
+    },
+    {
+      "terme_fr": "Automatique (lot mixte)",
+      "terme_en": "Automatic (mixed batch)",
+      "note": "",
+      "updated_at": "2026-07-03T11:16:55.998389+00:00"
+    },
+    {
+      "terme_fr": "BANQUE",
+      "terme_en": "BANK",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.264034+00:00"
+    },
+    {
+      "terme_fr": "BOITE_POSTALE",
+      "terme_en": "PO box",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.766554+00:00"
+    },
+    {
+      "terme_fr": "Base",
+      "terme_en": "Base",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.747955+00:00"
+    },
+    {
+      "terme_fr": "Base documentaire",
+      "terme_en": "Document repository",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.751215+00:00"
+    },
+    {
+      "terme_fr": "Bibliothèque des Règles",
+      "terme_en": "Rule Library",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.756449+00:00"
+    },
+    {
+      "terme_fr": "Bien",
+      "terme_en": "Good",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.784547+00:00"
+    },
+    {
+      "terme_fr": "Bienvenue",
+      "terme_en": "Welcome",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.760094+00:00"
+    },
+    {
+      "terme_fr": "Bon+",
+      "terme_en": "Good+",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.831697+00:00"
+    },
+    {
+      "terme_fr": "Bon++",
+      "terme_en": "Good++",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.821361+00:00"
+    },
+    {
+      "terme_fr": "Bon-",
+      "terme_en": "Good-",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.842161+00:00"
+    },
+    {
+      "terme_fr": "Bénéficiaire effectif",
+      "terme_en": "Ultimate Beneficial Owner",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.063409+00:00"
+    },
+    {
+      "terme_fr": "CA",
+      "terme_en": "Turnover",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.804251+00:00"
+    },
+    {
+      "terme_fr": "CAPITAL",
+      "terme_en": "Share capital",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.800533+00:00"
+    },
+    {
+      "terme_fr": "CHAMPS NON RENSEIGNES.",
+      "terme_en": "MISSING FIELDS.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.763643+00:00"
+    },
+    {
+      "terme_fr": "CLIENT",
+      "terme_en": "Client",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.652075+00:00"
+    },
+    {
+      "terme_fr": "CLIENTS EN",
+      "terme_en": "CUSTOMERS WITH",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.042675+00:00"
+    },
+    {
+      "terme_fr": "Calcul en cours",
+      "terme_en": "Computation in progress",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.767016+00:00"
+    },
+    {
+      "terme_fr": "Calcul...",
+      "terme_en": "Computing...",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.771115+00:00"
+    },
+    {
+      "terme_fr": "Categorie",
+      "terme_en": "Category",
+      "note": "",
+      "updated_at": "2026-07-27T11:17:47.728842+00:00"
+    },
+    {
+      "terme_fr": "Catégories configurées",
+      "terme_en": "Configured categories",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.776031+00:00"
+    },
+    {
+      "terme_fr": "Ce rapprochement est en echec. Vous pouvez relancer le lot depuis l'onglet Charger.",
+      "terme_en": "This matching failed. You can relaunch the batch from the Upload tab.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.779657+00:00"
+    },
+    {
+      "terme_fr": "Cette jauge est une estimation. Le resultat s'affichera automatiquement des que le serveur aura termine.",
+      "terme_en": "This gauge is an estimate. The result will appear automatically once the server has finished.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.784106+00:00"
+    },
+    {
+      "terme_fr": "Champ",
+      "terme_en": "Field",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.380865+00:00"
+    },
+    {
+      "terme_fr": "Champ d'exclusion",
+      "terme_en": "Exclusion field",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.788416+00:00"
+    },
+    {
+      "terme_fr": "Champs KYC",
+      "terme_en": "KYC fields",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.200766+00:00"
+    },
+    {
+      "terme_fr": "Champs critiques, exclusions et calcul PASS",
+      "terme_en": "Critical fields, exclusions and PASS computation",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.792721+00:00"
+    },
+    {
+      "terme_fr": "Champs de Complétude à inclure",
+      "terme_en": "Completeness fields to include",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.386986+00:00"
+    },
+    {
+      "terme_fr": "Champs detectes",
+      "terme_en": "Detected fields",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.796144+00:00"
+    },
+    {
+      "terme_fr": "Champs en anomalie",
+      "terme_en": "Fields in anomaly",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.799373+00:00"
+    },
+    {
+      "terme_fr": "Champs manquants",
+      "terme_en": "Missing fields",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.803213+00:00"
+    },
+    {
+      "terme_fr": "Champs non-renseignés",
+      "terme_en": "Missing fields",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.142440+00:00"
+    },
+    {
+      "terme_fr": "Champs vides dans KYC PP mais presents dans les documents charges",
+      "terme_en": "Fields empty in KYC PP but present in uploaded documents",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.808247+00:00"
+    },
+    {
+      "terme_fr": "Changer mot de passe",
+      "terme_en": "Change password",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.631604+00:00"
+    },
+    {
+      "terme_fr": "Changer votre mot de passe.",
+      "terme_en": "Change your password.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.811819+00:00"
+    },
+    {
+      "terme_fr": "Chargement...",
+      "terme_en": "Loading...",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.815282+00:00"
+    },
+    {
+      "terme_fr": "Charger",
+      "terme_en": "Upload",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.819081+00:00"
+    },
+    {
+      "terme_fr": "Charger des documents",
+      "terme_en": "Upload documents",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.823675+00:00"
+    },
+    {
+      "terme_fr": "Charger le lot",
+      "terme_en": "Upload batch",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.827250+00:00"
+    },
+    {
+      "terme_fr": "Chargé Client",
+      "terme_en": "Relationship Manager",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.918877+00:00"
+    },
+    {
+      "terme_fr": "Choisir Filiale",
+      "terme_en": "Select Subsidiary",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.830647+00:00"
+    },
+    {
+      "terme_fr": "Choisir agent",
+      "terme_en": "Select officer",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.299046+00:00"
+    },
+    {
+      "terme_fr": "Choisir quel type de document utiliser pour completer ou modifier chaque champ KYC.",
+      "terme_en": "Choose which document type to use to complete or update each KYC field.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.834336+00:00"
+    },
+    {
+      "terme_fr": "Chronologie",
+      "terme_en": "Timeline",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.838855+00:00"
+    },
+    {
+      "terme_fr": "Cible",
+      "terme_en": "Target",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.842806+00:00"
+    },
+    {
+      "terme_fr": "Cible 100%",
+      "terme_en": "Target 100%",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.846200+00:00"
+    },
+    {
+      "terme_fr": "Classe de risque",
+      "terme_en": "Risk class",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.850114+00:00"
+    },
+    {
+      "terme_fr": "Client",
+      "terme_en": "Customer",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.018861+00:00"
+    },
+    {
+      "terme_fr": "Clients",
+      "terme_en": "Customers",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.162719+00:00"
+    },
+    {
+      "terme_fr": "Clients PPE par classe de risque",
+      "terme_en": "PEP clients by risk class",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.349482+00:00"
+    },
+    {
+      "terme_fr": "Clients Scorés",
+      "terme_en": "Scored customers",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.188415+00:00"
+    },
+    {
+      "terme_fr": "Clients a afficher",
+      "terme_en": "Clients to display",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.853637+00:00"
+    },
+    {
+      "terme_fr": "Clients domiciliés hors du territoire",
+      "terme_en": "Clients domiciled outside the territory",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.858877+00:00"
+    },
+    {
+      "terme_fr": "Clients en anomalie",
+      "terme_en": "Flagged customers",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.147627+00:00"
+    },
+    {
+      "terme_fr": "Clients en anomalie par regle de qualité",
+      "terme_en": "Flagged customers by quality rule",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.054650+00:00"
+    },
+    {
+      "terme_fr": "Clients non conformes",
+      "terme_en": "Non-compliant clients",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.863507+00:00"
+    },
+    {
+      "terme_fr": "Clients non résidents PM",
+      "terme_en": "Non-resident LE clients",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.388529+00:00"
+    },
+    {
+      "terme_fr": "Clients non résidents PP",
+      "terme_en": "Non-resident IND clients",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.378043+00:00"
+    },
+    {
+      "terme_fr": "Clients non scores",
+      "terme_en": "Unscored customers",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.208412+00:00"
+    },
+    {
+      "terme_fr": "Clients sans classe",
+      "terme_en": "Clients without risk class",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.867113+00:00"
+    },
+    {
+      "terme_fr": "Clients trouves",
+      "terme_en": "Clients found",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.870426+00:00"
+    },
+    {
+      "terme_fr": "Clients à réviser",
+      "terme_en": "Clients to review",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.875238+00:00"
+    },
+    {
+      "terme_fr": "Cliquer sur une regle pour ouvrir ses resultats",
+      "terme_en": "Click a rule to open its results",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.113019+00:00"
+    },
+    {
+      "terme_fr": "Codape",
+      "terme_en": "Codape",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.878993+00:00"
+    },
+    {
+      "terme_fr": "Code",
+      "terme_en": "Code",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.882825+00:00"
+    },
+    {
+      "terme_fr": "Code Expl.",
+      "terme_en": "Officer code",
+      "note": "",
+      "updated_at": "2026-07-02T18:56:19.656339+00:00"
+    },
+    {
+      "terme_fr": "Code Exploitant",
+      "terme_en": "Officer code",
+      "note": "",
+      "updated_at": "2026-07-02T18:56:19.676699+00:00"
+    },
+    {
+      "terme_fr": "Code Exploitant :",
+      "terme_en": "Officer code:",
+      "note": "",
+      "updated_at": "2026-07-02T18:56:19.688676+00:00"
+    },
+    {
+      "terme_fr": "Code exploitant",
+      "terme_en": "Officer code",
+      "note": "",
+      "updated_at": "2026-07-02T18:56:19.703290+00:00"
+    },
+    {
+      "terme_fr": "Code technique",
+      "terme_en": "Technical code",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.898130+00:00"
+    },
+    {
+      "terme_fr": "Code...",
+      "terme_en": "Code...",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.901225+00:00"
+    },
+    {
+      "terme_fr": "Collaborateur",
+      "terme_en": "Staff member",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.898118+00:00"
+    },
+    {
+      "terme_fr": "Colonnes visibles",
+      "terme_en": "Visible columns",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.905686+00:00"
+    },
+    {
+      "terme_fr": "Complétude",
+      "terme_en": "Completeness",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.752195+00:00"
+    },
+    {
+      "terme_fr": "Complétude PM",
+      "terme_en": "Completeness PM",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.392325+00:00"
+    },
+    {
+      "terme_fr": "Complétude PP",
+      "terme_en": "IP Completeness",
+      "note": "",
+      "updated_at": "2026-07-02T12:29:27.319326+00:00"
+    },
+    {
+      "terme_fr": "Complétude des Données",
+      "terme_en": "Data completeness",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.404725+00:00"
+    },
+    {
+      "terme_fr": "Compte",
+      "terme_en": "Account",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.909985+00:00"
+    },
+    {
+      "terme_fr": "Comptes",
+      "terme_en": "Accounts",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.913432+00:00"
+    },
+    {
+      "terme_fr": "Comptes Incomplets",
+      "terme_en": "Incomplete accounts",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.407652+00:00"
+    },
+    {
+      "terme_fr": "Comptes Non-Résidents",
+      "terme_en": "Non-Resident Accounts",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.916570+00:00"
+    },
+    {
+      "terme_fr": "Comptes PM Incomplets",
+      "terme_en": "Incomplete LE accounts",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.418625+00:00"
+    },
+    {
+      "terme_fr": "Comptes PM en devise",
+      "terme_en": "LE foreign currency accounts",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.412620+00:00"
+    },
+    {
+      "terme_fr": "Comptes en devise",
+      "terme_en": "Foreign currency accounts",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.919716+00:00"
+    },
+    {
+      "terme_fr": "Comptes en devise à fiabiliser",
+      "terme_en": "Foreign currency accounts to remediate",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.924251+00:00"
+    },
+    {
+      "terme_fr": "Comptes en devise étrangère",
+      "terme_en": "Foreign currency accounts",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.403433+00:00"
+    },
+    {
+      "terme_fr": "Comptes spécifiques",
+      "terme_en": "Specific accounts",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.180202+00:00"
+    },
+    {
+      "terme_fr": "Conditions Logiques",
+      "terme_en": "Logical Conditions",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.927941+00:00"
+    },
+    {
+      "terme_fr": "Conditions logiques",
+      "terme_en": "Logical conditions",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.931174+00:00"
+    },
+    {
+      "terme_fr": "Configuration",
+      "terme_en": "Configuration",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.410576+00:00"
+    },
+    {
+      "terme_fr": "Configurer dans l'admin →",
+      "terme_en": "Configure in admin →",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.934571+00:00"
+    },
+    {
+      "terme_fr": "Confirmer",
+      "terme_en": "Confirm",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.940262+00:00"
+    },
+    {
+      "terme_fr": "Conforme",
+      "terme_en": "Compliant",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.299515+00:00"
+    },
+    {
+      "terme_fr": "Conformes",
+      "terme_en": "Compliant",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.944034+00:00"
+    },
+    {
+      "terme_fr": "Conformité",
+      "terme_en": "Compliance",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.938454+00:00"
+    },
+    {
+      "terme_fr": "Conformité Groupe",
+      "terme_en": "Group Compliance",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.947509+00:00"
+    },
+    {
+      "terme_fr": "Conformité Totale",
+      "terme_en": "Full Compliance",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.947504+00:00"
+    },
+    {
+      "terme_fr": "Conformité moyenne",
+      "terme_en": "Average compliance",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.950649+00:00"
+    },
+    {
+      "terme_fr": "Conformité par règle — Entreprises",
+      "terme_en": "Compliance by rule — Companies",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.417410+00:00"
+    },
+    {
+      "terme_fr": "Conformité par règle — Particuliers",
+      "terme_en": "Compliance by rule — Individuals",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.423302+00:00"
+    },
+    {
+      "terme_fr": "Connectez-vous à votre espace",
+      "terme_en": "Sign in to your workspace",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.229542+00:00"
+    },
+    {
+      "terme_fr": "Connexion",
+      "terme_en": "Sign in",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.954465+00:00"
+    },
+    {
+      "terme_fr": "Connexion | KYC",
+      "terme_en": "Sign in | KYC",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.959722+00:00"
+    },
+    {
+      "terme_fr": "Connexion | KYC Portal v3.0",
+      "terme_en": "Sign in | KYC Portal v3.0",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.963653+00:00"
+    },
+    {
+      "terme_fr": "Consultation des notations par exploitant",
+      "terme_en": "Officer ratings overview",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:56.966343+00:00"
+    },
+    {
+      "terme_fr": "Contrôle Permanent",
+      "terme_en": "Permanent Control",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.963666+00:00"
+    },
+    {
+      "terme_fr": "Contrôle Permanent Groupe",
+      "terme_en": "Group Permanent Control",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.969108+00:00"
+    },
+    {
+      "terme_fr": "Correspondance par numero d'identite, date de naissance, date de validité du document d'identité et la nationalité.",
+      "terme_en": "Matching by ID number, date of birth, ID document expiry date and nationality.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.966958+00:00"
+    },
+    {
+      "terme_fr": "Corriger le type",
+      "terme_en": "Correct the type",
+      "note": "",
+      "updated_at": "2026-07-03T11:16:56.036715+00:00"
+    },
+    {
+      "terme_fr": "Creation",
+      "terme_en": "Creation",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.970287+00:00"
+    },
+    {
+      "terme_fr": "Criteres de la regle",
+      "terme_en": "Rule criteria",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.124206+00:00"
+    },
+    {
+      "terme_fr": "Critique",
+      "terme_en": "Critical",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.000805+00:00"
+    },
+    {
+      "terme_fr": "Création",
+      "terme_en": "Creation",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.975405+00:00"
+    },
+    {
+      "terme_fr": "Création de règle",
+      "terme_en": "Rule creation",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.978780+00:00"
+    },
+    {
+      "terme_fr": "Créer règle",
+      "terme_en": "Create rule",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.982203+00:00"
+    },
+    {
+      "terme_fr": "Créer type de documents",
+      "terme_en": "Create document type",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.985466+00:00"
+    },
+    {
+      "terme_fr": "Créer un compte",
+      "terme_en": "Create an account",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.990475+00:00"
+    },
+    {
+      "terme_fr": "Créer une catégorie",
+      "terme_en": "Create a category",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.996124+00:00"
+    },
+    {
+      "terme_fr": "DAI",
+      "terme_en": "Internal Audit",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.981777+00:00"
+    },
+    {
+      "terme_fr": "DATEREV",
+      "terme_en": "Review date",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.788302+00:00"
+    },
+    {
+      "terme_fr": "DATNAIS",
+      "terme_en": "Date of birth",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.720551+00:00"
+    },
+    {
+      "terme_fr": "DATOUV",
+      "terme_en": "Opening date",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.771162+00:00"
+    },
+    {
+      "terme_fr": "DATVALID",
+      "terme_en": "Expiry date",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.733142+00:00"
+    },
+    {
+      "terme_fr": "DEVISE",
+      "terme_en": "Currency",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.778217+00:00"
+    },
+    {
+      "terme_fr": "DSI",
+      "terme_en": "IT Department",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.987179+00:00"
+    },
+    {
+      "terme_fr": "Dans 1 an",
+      "terme_en": "Within 1 year",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.218831+00:00"
+    },
+    {
+      "terme_fr": "Dans 3 mois",
+      "terme_en": "Within 3 months",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.223977+00:00"
+    },
+    {
+      "terme_fr": "Dans 6 mois",
+      "terme_en": "Within 6 months",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.228710+00:00"
+    },
+    {
+      "terme_fr": "Date",
+      "terme_en": "Date",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.429056+00:00"
+    },
+    {
+      "terme_fr": "Date & Heure",
+      "terme_en": "Date & Time",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.006276+00:00"
+    },
+    {
+      "terme_fr": "Date Ouv.",
+      "terme_en": "Open. date",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.011375+00:00"
+    },
+    {
+      "terme_fr": "Date Ouverture",
+      "terme_en": "Opening date",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.016290+00:00"
+    },
+    {
+      "terme_fr": "Date d'arrêté",
+      "terme_en": "Cut-off date",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.022692+00:00"
+    },
+    {
+      "terme_fr": "Date de Notation",
+      "terme_en": "Rating date",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.029355+00:00"
+    },
+    {
+      "terme_fr": "Date de notation",
+      "terme_en": "Rating date",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.034994+00:00"
+    },
+    {
+      "terme_fr": "Date de revue",
+      "terme_en": "Review date",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.075412+00:00"
+    },
+    {
+      "terme_fr": "Date notation",
+      "terme_en": "Rating date",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.030337+00:00"
+    },
+    {
+      "terme_fr": "Daterev, Anomalies, TauxEvolution_filiale et TauxEvolution via",
+      "terme_en": "Daterev, Anomalies, TauxEvolution_filiale and TauxEvolution via",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.040867+00:00"
+    },
+    {
+      "terme_fr": "Demande d'explication avec sanction forte et décote sur le bonus si motif infondé",
+      "terme_en": "Request for explanation with strong sanction and bonus reduction if the grounds are unfounded",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.809224+00:00"
+    },
+    {
+      "terme_fr": "Demande d'explication et décote sur le bonus si motif infondé",
+      "terme_en": "Request for explanation and bonus reduction if the grounds are unfounded",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.802803+00:00"
+    },
+    {
+      "terme_fr": "Demarre le",
+      "terme_en": "Started on",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.046173+00:00"
+    },
+    {
+      "terme_fr": "Derniere mise a jour",
+      "terme_en": "Last update",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.051854+00:00"
+    },
+    {
+      "terme_fr": "Derniers resultats filiale",
+      "terme_en": "Latest subsidiary results",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.057151+00:00"
+    },
+    {
+      "terme_fr": "Dernière &raquo;",
+      "terme_en": "Last &raquo;",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.374947+00:00"
+    },
+    {
+      "terme_fr": "Dernière journée",
+      "terme_en": "Last day",
+      "note": "",
+      "updated_at": "2026-07-27T10:46:23.364120+00:00"
+    },
+    {
+      "terme_fr": "Dernière notation",
+      "terme_en": "Last rating",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.062453+00:00"
+    },
+    {
+      "terme_fr": "Description",
+      "terme_en": "Description",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.067504+00:00"
+    },
+    {
+      "terme_fr": "Detail document",
+      "terme_en": "Document detail",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.073203+00:00"
+    },
+    {
+      "terme_fr": "Details",
+      "terme_en": "Details",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.076772+00:00"
+    },
+    {
+      "terme_fr": "Details des Modifications",
+      "terme_en": "Change details",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.079956+00:00"
+    },
+    {
+      "terme_fr": "Devise (PM)",
+      "terme_en": "Currency (LE)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.083396+00:00"
+    },
+    {
+      "terme_fr": "Devise (PP)",
+      "terme_en": "Currency (IND)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.086633+00:00"
+    },
+    {
+      "terme_fr": "Directeur Agence",
+      "terme_en": "Branch Manager",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.927271+00:00"
+    },
+    {
+      "terme_fr": "Directeur Réseau",
+      "terme_en": "Network Director",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.933095+00:00"
+    },
+    {
+      "terme_fr": "Distribution par filiale",
+      "terme_en": "Distribution by subsidiary",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.435479+00:00"
+    },
+    {
+      "terme_fr": "Document",
+      "terme_en": "Document",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.091511+00:00"
+    },
+    {
+      "terme_fr": "Documents",
+      "terme_en": "Documents",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.094871+00:00"
+    },
+    {
+      "terme_fr": "Documents a verifier",
+      "terme_en": "Documents to check",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.098485+00:00"
+    },
+    {
+      "terme_fr": "Documents du lot",
+      "terme_en": "Batch documents",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.101714+00:00"
+    },
+    {
+      "terme_fr": "Documents extraits",
+      "terme_en": "Extracted documents",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.106247+00:00"
+    },
+    {
+      "terme_fr": "Données",
+      "terme_en": "Data",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.109887+00:00"
+    },
+    {
+      "terme_fr": "Données KYC",
+      "terme_en": "KYC data",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.113797+00:00"
+    },
+    {
+      "terme_fr": "Dossiers avec données manquantes",
+      "terme_en": "Records with missing data",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.361990+00:00"
+    },
+    {
+      "terme_fr": "Dossiers complets / total",
+      "terme_en": "Complete records / total",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.369501+00:00"
+    },
+    {
+      "terme_fr": "Dossiers à traiter",
+      "terme_en": "Customers to remediate",
+      "note": "",
+      "updated_at": "2026-07-06T17:13:54.352122+00:00"
+    },
+    {
+      "terme_fr": "Dossiers à  traiter",
+      "terme_en": "Customers to remediate",
+      "note": "",
+      "updated_at": "2026-07-06T17:14:07.287638+00:00"
+    },
+    {
+      "terme_fr": "Déconnexion",
+      "terme_en": "Log out",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.663734+00:00"
+    },
+    {
+      "terme_fr": "Dépassée",
+      "terme_en": "Overdue",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.117925+00:00"
+    },
+    {
+      "terme_fr": "Déposer le CSV ici",
+      "terme_en": "Drop the CSV here",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.122365+00:00"
+    },
+    {
+      "terme_fr": "Détail",
+      "terme_en": "Detail",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.126287+00:00"
+    },
+    {
+      "terme_fr": "Détails Complétude",
+      "terme_en": "Completeness details",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.441479+00:00"
+    },
+    {
+      "terme_fr": "Détails Qualité",
+      "terme_en": "Quality details",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.447015+00:00"
+    },
+    {
+      "terme_fr": "Détection des incohérences de données (Âge, EER, CIN)",
+      "terme_en": "Data inconsistency detection (Age, EER, CIN)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.130497+00:00"
+    },
+    {
+      "terme_fr": "EMPLOYEUR",
+      "terme_en": "Employer",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.749371+00:00"
+    },
+    {
+      "terme_fr": "ENTREPRISES (PM)",
+      "terme_en": "LEGAL PERSONS (LP)",
+      "note": "",
+      "updated_at": "2026-07-06T17:15:44.828353+00:00"
+    },
+    {
+      "terme_fr": "EXPL",
+      "terme_en": "Officer",
+      "note": "",
+      "updated_at": "2026-07-02T18:55:09.750145+00:00"
+    },
+    {
+      "terme_fr": "Echeance",
+      "terme_en": "Due date",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.153299+00:00"
+    },
+    {
+      "terme_fr": "Echec",
+      "terme_en": "Failed",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.142121+00:00"
+    },
+    {
+      "terme_fr": "Echues",
+      "terme_en": "Overdue",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.234169+00:00"
+    },
+    {
+      "terme_fr": "Email",
+      "terme_en": "Email",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.023124+00:00"
+    },
+    {
+      "terme_fr": "En Ligne",
+      "terme_en": "Online",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.147471+00:00"
+    },
+    {
+      "terme_fr": "En attente du worker OCR...",
+      "terme_en": "Waiting for the OCR worker...",
+      "note": "",
+      "updated_at": "2026-07-03T10:53:57.588414+00:00"
+    },
+    {
+      "terme_fr": "En cours",
+      "terme_en": "In progress",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.153078+00:00"
+    },
+    {
+      "terme_fr": "En mode automatique, chaque fichier du lot est classe individuellement (CNI, passeport...) selon les types configures.",
+      "terme_en": "In automatic mode, each file in the batch is classified individually (ID card, passport...) using the configured types.",
+      "note": "",
+      "updated_at": "2026-07-03T11:16:56.012318+00:00"
+    },
+    {
+      "terme_fr": "Enregistrer",
+      "terme_en": "Save",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.158476+00:00"
+    },
+    {
+      "terme_fr": "Enregistrer l'utilisateur",
+      "terme_en": "Save user",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.162759+00:00"
+    },
+    {
+      "terme_fr": "Enregistrer la notation",
+      "terme_en": "Save rating",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.166727+00:00"
+    },
+    {
+      "terme_fr": "Enregistrer les choix",
+      "terme_en": "Save choices",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.172208+00:00"
+    },
+    {
+      "terme_fr": "Enregistrer les modifications",
+      "terme_en": "Save changes",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.176684+00:00"
+    },
+    {
+      "terme_fr": "Entreprises (PM)",
+      "terme_en": "LEGAL PERSONS (LP)",
+      "note": "",
+      "updated_at": "2026-07-06T17:26:45.688816+00:00"
+    },
+    {
+      "terme_fr": "Envoyer",
+      "terme_en": "Send",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.180602+00:00"
+    },
+    {
+      "terme_fr": "Envoyer le test",
+      "terme_en": "Send test",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.184233+00:00"
+    },
+    {
+      "terme_fr": "Envoyer rappels",
+      "terme_en": "Send reminders",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.188615+00:00"
+    },
+    {
+      "terme_fr": "Erreur de saisie détectée.",
+      "terme_en": "Input error detected.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.192845+00:00"
+    },
+    {
+      "terme_fr": "Etat",
+      "terme_en": "Status",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.196199+00:00"
+    },
+    {
+      "terme_fr": "Evalues",
+      "terme_en": "Evaluated",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.071600+00:00"
+    },
+    {
+      "terme_fr": "Evolution taux de completude PM",
+      "terme_en": "LP completeness rate trend",
+      "note": "",
+      "updated_at": "2026-07-28T09:35:19.395463+00:00"
+    },
+    {
+      "terme_fr": "Evolution taux de completude PP",
+      "terme_en": "IND completeness rate trend",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.202323+00:00"
+    },
+    {
+      "terme_fr": "Ex: MINEUR, ETUDIANT...",
+      "terme_en": "E.g.: MINOR, STUDENT...",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.207375+00:00"
+    },
+    {
+      "terme_fr": "Ex: PERMIS, CONDUITE, LICENCE, CATEGORIE",
+      "terme_en": "E.g.: PERMIT, DRIVING, LICENCE, CATEGORY",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.211448+00:00"
+    },
+    {
+      "terme_fr": "Ex: Permis de conduire",
+      "terme_en": "E.g.: Driver's licence",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.214694+00:00"
+    },
+    {
+      "terme_fr": "Ex: Stock CNI agence Dakar",
+      "terme_en": "E.g.: ID card stock Dakar branch",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.217891+00:00"
+    },
+    {
+      "terme_fr": "Ex: permis_conduire",
+      "terme_en": "E.g.: driving_licence",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.223066+00:00"
+    },
+    {
+      "terme_fr": "Excel",
+      "terme_en": "Excel",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.227198+00:00"
+    },
+    {
+      "terme_fr": "Expiration",
+      "terme_en": "Expiry",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.230531+00:00"
+    },
+    {
+      "terme_fr": "Expl.",
+      "terme_en": "Off.",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.143490+00:00"
+    },
+    {
+      "terme_fr": "Exploit.",
+      "terme_en": "Officer",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.233836+00:00"
+    },
+    {
+      "terme_fr": "Exploitant",
+      "terme_en": "Officer",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.011625+00:00"
+    },
+    {
+      "terme_fr": "Exploitants",
+      "terme_en": "Account officers",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.238881+00:00"
+    },
+    {
+      "terme_fr": "Export",
+      "terme_en": "Export",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.453223+00:00"
+    },
+    {
+      "terme_fr": "Exporter",
+      "terme_en": "Export",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:56.984500+00:00"
+    },
+    {
+      "terme_fr": "Exporter Anomalies",
+      "terme_en": "Export Anomalies",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.243097+00:00"
+    },
+    {
+      "terme_fr": "Exporter CSV",
+      "terme_en": "Export CSV",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.246637+00:00"
+    },
+    {
+      "terme_fr": "Exporter Excel",
+      "terme_en": "Export Excel",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.250150+00:00"
+    },
+    {
+      "terme_fr": "Exporter PDF",
+      "terme_en": "Export PDF",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.255523+00:00"
+    },
+    {
+      "terme_fr": "Exporter la regle",
+      "terme_en": "Export rule",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.260226+00:00"
+    },
+    {
+      "terme_fr": "Expression a exclure",
+      "terme_en": "Expression to exclude",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.264090+00:00"
+    },
+    {
+      "terme_fr": "Extraction documentaire et rapprochement KYC PP",
+      "terme_en": "Document extraction and KYC IND matching",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.267422+00:00"
+    },
+    {
+      "terme_fr": "Exécuter l'importation",
+      "terme_en": "Run import",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.272354+00:00"
+    },
+    {
+      "terme_fr": "FIABILISATION KYC",
+      "terme_en": "KYC DATA QUALITY",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.276238+00:00"
+    },
+    {
+      "terme_fr": "FILIALE",
+      "terme_en": "Subsidiary",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.661808+00:00"
+    },
+    {
+      "terme_fr": "FLUX",
+      "terme_en": "FLOW",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:56.972417+00:00"
+    },
+    {
+      "terme_fr": "Faible+",
+      "terme_en": "Low+",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.884833+00:00"
+    },
+    {
+      "terme_fr": "Faible++",
+      "terme_en": "Low++",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.878953+00:00"
+    },
+    {
+      "terme_fr": "Faible-",
+      "terme_en": "Low-",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.892415+00:00"
+    },
+    {
+      "terme_fr": "Fenêtre",
+      "terme_en": "Window",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.279648+00:00"
+    },
+    {
+      "terme_fr": "Fermer",
+      "terme_en": "Close",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.282851+00:00"
+    },
+    {
+      "terme_fr": "Fiabilisation",
+      "terme_en": "Reliability",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.223451+00:00"
+    },
+    {
+      "terme_fr": "Fiabilité PM",
+      "terme_en": "LE reliability",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.287223+00:00"
+    },
+    {
+      "terme_fr": "Fiabilité PP",
+      "terme_en": "IND reliability",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.292881+00:00"
+    },
+    {
+      "terme_fr": "Fichier",
+      "terme_en": "File",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.296153+00:00"
+    },
+    {
+      "terme_fr": "Fichier simple, import multiple, archive ZIP ou PDF groupe",
+      "terme_en": "Single file, multi-import, ZIP archive or grouped PDF",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.299434+00:00"
+    },
+    {
+      "terme_fr": "Fichier(s) a charger",
+      "terme_en": "File(s) to upload",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.302814+00:00"
+    },
+    {
+      "terme_fr": "Fichiers charges avec succes",
+      "terme_en": "Files uploaded successfully",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.307686+00:00"
+    },
+    {
+      "terme_fr": "Fichiers ou ZIP",
+      "terme_en": "Files or ZIP",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.311321+00:00"
+    },
+    {
+      "terme_fr": "Filiale",
+      "terme_en": "Subsidiary",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.001846+00:00"
+    },
+    {
+      "terme_fr": "Filiale / Pays",
+      "terme_en": "Subsidiary / Country",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.314825+00:00"
+    },
+    {
+      "terme_fr": "Filiale :",
+      "terme_en": "Subsidiary:",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.318571+00:00"
+    },
+    {
+      "terme_fr": "Filiale cible :",
+      "terme_en": "Target subsidiary:",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.323116+00:00"
+    },
+    {
+      "terme_fr": "Filiale(s) concernee(s)",
+      "terme_en": "Subsidiary(ies) concerned",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.326906+00:00"
+    },
+    {
+      "terme_fr": "Filiales Impactées",
+      "terme_en": "Impacted subsidiaries",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.331187+00:00"
+    },
+    {
+      "terme_fr": "Filiales choisies",
+      "terme_en": "Selected subsidiaries",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.335006+00:00"
+    },
+    {
+      "terme_fr": "Filiales ciblees",
+      "terme_en": "Targeted subsidiaries",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.339553+00:00"
+    },
+    {
+      "terme_fr": "Filtre",
+      "terme_en": "Filter",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.138857+00:00"
+    },
+    {
+      "terme_fr": "Filtrer",
+      "terme_en": "Filter",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.094807+00:00"
+    },
+    {
+      "terme_fr": "Flux",
+      "terme_en": "Flow",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.343282+00:00"
+    },
+    {
+      "terme_fr": "Flux / Stock",
+      "terme_en": "Flow / Stock",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.458979+00:00"
+    },
+    {
+      "terme_fr": "Gestion des comptes utilisateurs",
+      "terme_en": "User account management",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.346808+00:00"
+    },
+    {
+      "terme_fr": "Gestion des règles de contrôle qualité KYC",
+      "terme_en": "KYC quality control rule management",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.350123+00:00"
+    },
+    {
+      "terme_fr": "Global",
+      "terme_en": "Overall",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.464378+00:00"
+    },
+    {
+      "terme_fr": "Global / Par défaut",
+      "terme_en": "Global / Default",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.353216+00:00"
+    },
+    {
+      "terme_fr": "Graphiques",
+      "terme_en": "Charts",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.278379+00:00"
+    },
+    {
+      "terme_fr": "Hebdomadaire",
+      "terme_en": "Weekly",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.358322+00:00"
+    },
+    {
+      "terme_fr": "Historique",
+      "terme_en": "History",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.174610+00:00"
+    },
+    {
+      "terme_fr": "Historique complet",
+      "terme_en": "Full history",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.470796+00:00"
+    },
+    {
+      "terme_fr": "Historique d'",
+      "terme_en": "History of ",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.361691+00:00"
+    },
+    {
+      "terme_fr": "Historique des connexions",
+      "terme_en": "Login history",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.365244+00:00"
+    },
+    {
+      "terme_fr": "Historique des notations",
+      "terme_en": "Ratings history",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.476330+00:00"
+    },
+    {
+      "terme_fr": "INSCRIRE UN UTILISATEUR",
+      "terme_en": "REGISTER A USER",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.368362+00:00"
+    },
+    {
+      "terme_fr": "INTITULE_COMPTE",
+      "terme_en": "Account name",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.744893+00:00"
+    },
+    {
+      "terme_fr": "Identifiant",
+      "terme_en": "Login ID",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.254751+00:00"
+    },
+    {
+      "terme_fr": "Identifiant Email",
+      "terme_en": "Email login",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.636496+00:00"
+    },
+    {
+      "terme_fr": "Identifiant unique. Caractères alphanumériques et underscores uniquement.",
+      "terme_en": "Unique identifier. Alphanumeric characters and underscores only.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.373297+00:00"
+    },
+    {
+      "terme_fr": "Identifier",
+      "terme_en": "Identify",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.376886+00:00"
+    },
+    {
+      "terme_fr": "Ignorer les doublons",
+      "terme_en": "Skip duplicates",
+      "note": "",
+      "updated_at": "2026-07-03T10:53:57.560933+00:00"
+    },
+    {
+      "terme_fr": "Impact positif sur le bonus",
+      "terme_en": "Positive impact on the bonus",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.815353+00:00"
+    },
+    {
+      "terme_fr": "Import",
+      "terme_en": "Import",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.381150+00:00"
+    },
+    {
+      "terme_fr": "Import Daterev / Anomalies / Taux (Filiales + Évolution)",
+      "terme_en": "Import Daterev / Anomalies / Rates (Subsidiaries + Trend)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.384880+00:00"
+    },
+    {
+      "terme_fr": "Import KYC (PP / PM)",
+      "terme_en": "KYC Import (IND / LE)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.389659+00:00"
+    },
+    {
+      "terme_fr": "Importation",
+      "terme_en": "Import",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.208823+00:00"
+    },
+    {
+      "terme_fr": "Inactive",
+      "terme_en": "Inactive",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.393753+00:00"
+    },
+    {
+      "terme_fr": "Incomplets",
+      "terme_en": "Incomplete",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.481419+00:00"
+    },
+    {
+      "terme_fr": "Indexation",
+      "terme_en": "Indexing",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.397438+00:00"
+    },
+    {
+      "terme_fr": "Informations de l'agent :",
+      "terme_en": "Agent information:",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.401025+00:00"
+    },
+    {
+      "terme_fr": "Informations personnelles & Performances",
+      "terme_en": "Personal information & Performance",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.625604+00:00"
+    },
+    {
+      "terme_fr": "Inscription",
+      "terme_en": "Registration",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.405724+00:00"
+    },
+    {
+      "terme_fr": "Insuffisant",
+      "terme_en": "Poor",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.797947+00:00"
+    },
+    {
+      "terme_fr": "Jour",
+      "terme_en": "Day",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.410917+00:00"
+    },
+    {
+      "terme_fr": "Journal",
+      "terme_en": "Log",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.414716+00:00"
+    },
+    {
+      "terme_fr": "Journalier",
+      "terme_en": "Daily",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.282037+00:00"
+    },
+    {
+      "terme_fr": "KYC Portal v3.0 | BOA Group",
+      "terme_en": "KYC Portal v3.0 | BOA Group",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.417889+00:00"
+    },
+    {
+      "terme_fr": "L'affichage est limite aux",
+      "terme_en": "The display is limited to the",
+      "note": "",
+      "updated_at": "2026-07-03T11:57:27.872962+00:00"
+    },
+    {
+      "terme_fr": "LIB_AGENCE",
+      "terme_en": "Branch name",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.675408+00:00"
+    },
+    {
+      "terme_fr": "LIEU_DELIVRANCE_CIN",
+      "terme_en": "ID issue place",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.759246+00:00"
+    },
+    {
+      "terme_fr": "LISTE DES AGENTS.",
+      "terme_en": "AGENT LIST.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.422861+00:00"
+    },
+    {
+      "terme_fr": "LISTE DES règles",
+      "terme_en": "RULE LIST",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.426880+00:00"
+    },
+    {
+      "terme_fr": "La modale montre PP et PM pour la filiale choisie",
+      "terme_en": "The modal shows IND and LE for the selected subsidiary",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.430077+00:00"
+    },
+    {
+      "terme_fr": "La progression se met a jour automatiquement toutes les deux secondes.",
+      "terme_en": "Progress refreshes automatically every two seconds.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.433085+00:00"
+    },
+    {
+      "terme_fr": "La regle filiale prime sur la regle globale.",
+      "terme_en": "The subsidiary rule overrides the global rule.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.436183+00:00"
+    },
+    {
+      "terme_fr": "Lance l’import PP/PM. Les CSV doivent être dans",
+      "terme_en": "Runs the IND/LE import. CSV files must be in",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.441065+00:00"
+    },
+    {
+      "terme_fr": "Lancer",
+      "terme_en": "Run",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.445246+00:00"
+    },
+    {
+      "terme_fr": "Lancer Import Daterev / Anomalies / Taux",
+      "terme_en": "Run Daterev / Anomalies / Rates import",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.448813+00:00"
+    },
+    {
+      "terme_fr": "Lancer Import KYC",
+      "terme_en": "Run KYC import",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.452037+00:00"
+    },
+    {
+      "terme_fr": "Lancer calcul",
+      "terme_en": "Run computation",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.456469+00:00"
+    },
+    {
+      "terme_fr": "Lancer le rapprochement",
+      "terme_en": "Run matching",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.460092+00:00"
+    },
+    {
+      "terme_fr": "Lancer les correspondances du lot",
+      "terme_en": "Run batch matching",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.463693+00:00"
+    },
+    {
+      "terme_fr": "Le",
+      "terme_en": "On",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.670273+00:00"
+    },
+    {
+      "terme_fr": "Le calcul peut parcourir plusieurs milliers de documents et clients. Lancez-le uniquement apres avoir filtre un lot ou une recherche.",
+      "terme_en": "The computation may scan thousands of documents and clients. Run it only after filtering a batch or a search.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.467615+00:00"
+    },
+    {
+      "terme_fr": "Legende",
+      "terme_en": "Legend",
+      "note": "",
+      "updated_at": "2026-07-02T12:25:17.044850+00:00"
+    },
+    {
+      "terme_fr": "Les documents doivent contenir un numero d'identite deja present dans KYC PP, ou le code client dans le nom du fichier/lot.",
+      "terme_en": "Documents must contain an ID number already present in KYC PP, or the client code in the file/batch name.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.472709+00:00"
+    },
+    {
+      "terme_fr": "Les documents et les correspondances affiches sont limites a ce lot.",
+      "terme_en": "The displayed documents and matches are limited to this batch.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.476381+00:00"
+    },
+    {
+      "terme_fr": "Les fichiers strictement identiques a un document deja charge seront ignores.",
+      "terme_en": "Files strictly identical to an already uploaded document will be skipped.",
+      "note": "",
+      "updated_at": "2026-07-03T10:53:57.575318+00:00"
+    },
+    {
+      "terme_fr": "Les variables ci-dessous s'adaptent selon les parametres de la filiale choisie.",
+      "terme_en": "The variables below adapt to the parameters of the selected subsidiary.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.479765+00:00"
+    },
+    {
+      "terme_fr": "Lib. Agence",
+      "terme_en": "Branch name",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.482968+00:00"
+    },
+    {
+      "terme_fr": "Lib. agence",
+      "terme_en": "Branch name",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.486919+00:00"
+    },
+    {
+      "terme_fr": "Libellé",
+      "terme_en": "Label",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.492858+00:00"
+    },
+    {
+      "terme_fr": "Libellé affiché",
+      "terme_en": "Displayed label",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.496846+00:00"
+    },
+    {
+      "terme_fr": "Lieu naissance",
+      "terme_en": "Place of birth",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.500501+00:00"
+    },
+    {
+      "terme_fr": "Logique de la regle :",
+      "terme_en": "Rule logic:",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.505118+00:00"
+    },
+    {
+      "terme_fr": "Logs d'Audit",
+      "terme_en": "Audit Logs",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.509549+00:00"
+    },
+    {
+      "terme_fr": "Logs d'exécution",
+      "terme_en": "Execution logs",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.512803+00:00"
+    },
+    {
+      "terme_fr": "Logs de tracabilite complete du systeme",
+      "terme_en": "Full system traceability logs",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.515819+00:00"
+    },
+    {
+      "terme_fr": "Lost password?",
+      "terme_en": "Lost password?",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.519117+00:00"
+    },
+    {
+      "terme_fr": "Lot",
+      "terme_en": "Batch",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.524329+00:00"
+    },
+    {
+      "terme_fr": "Lot / Perimetre",
+      "terme_en": "Batch / Scope",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.527849+00:00"
+    },
+    {
+      "terme_fr": "Lot charge avec succes",
+      "terme_en": "Batch uploaded successfully",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.531168+00:00"
+    },
+    {
+      "terme_fr": "Lots charges mais pas encore lances en rapprochement.",
+      "terme_en": "Batches uploaded but matching not started yet.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.534270+00:00"
+    },
+    {
+      "terme_fr": "Lots en attente",
+      "terme_en": "Pending batches",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.539303+00:00"
+    },
+    {
+      "terme_fr": "MANDATAIRE",
+      "terme_en": "Authorised representative",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.835235+00:00"
+    },
+    {
+      "terme_fr": "MON",
+      "terme_en": "MY",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.611142+00:00"
+    },
+    {
+      "terme_fr": "Massif",
+      "terme_en": "Bulk",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.543009+00:00"
+    },
+    {
+      "terme_fr": "Mensuel",
+      "terme_en": "Monthly",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.287242+00:00"
+    },
+    {
+      "terme_fr": "Mensuelle",
+      "terme_en": "Monthly",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.291146+00:00"
+    },
+    {
+      "terme_fr": "Merci de patienter pendant l'analyse.",
+      "terme_en": "Please wait while the analysis runs.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.546274+00:00"
+    },
+    {
+      "terme_fr": "Mesure",
+      "terme_en": "Action",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.703600+00:00"
+    },
+    {
+      "terme_fr": "Mettre à jour",
+      "terme_en": "Update",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.549544+00:00"
+    },
+    {
+      "terme_fr": "Mise à jour",
+      "terme_en": "Last update",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.273869+00:00"
+    },
+    {
+      "terme_fr": "Mise à jour de vos accès personnels",
+      "terme_en": "Update of your personal credentials",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.553099+00:00"
+    },
+    {
+      "terme_fr": "Mise à jour mot de passe",
+      "terme_en": "Password update",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.558846+00:00"
+    },
+    {
+      "terme_fr": "Mode Groupe actif — Les indicateurs agrègent toutes les filiales autorisées",
+      "terme_en": "Group mode active — Indicators aggregate all authorized subsidiaries",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.487837+00:00"
+    },
+    {
+      "terme_fr": "Mode d'import",
+      "terme_en": "Import mode",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.562561+00:00"
+    },
+    {
+      "terme_fr": "Modification",
+      "terme_en": "Update",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.566657+00:00"
+    },
+    {
+      "terme_fr": "Modification de la",
+      "terme_en": "Editing",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.571880+00:00"
+    },
+    {
+      "terme_fr": "Modification des habilitations et informations",
+      "terme_en": "Editing permissions and information",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.575711+00:00"
+    },
+    {
+      "terme_fr": "Modifier",
+      "terme_en": "Edit",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.579184+00:00"
+    },
+    {
+      "terme_fr": "Modifier infos",
+      "terme_en": "Edit info",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.582888+00:00"
+    },
+    {
+      "terme_fr": "Modifier le mot de passe",
+      "terme_en": "Change password",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.586473+00:00"
+    },
+    {
+      "terme_fr": "Modifier les informations",
+      "terme_en": "Edit information",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.591450+00:00"
+    },
+    {
+      "terme_fr": "Modifier mon profil.",
+      "terme_en": "Edit my profile.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.594750+00:00"
+    },
+    {
+      "terme_fr": "Modèle requis",
+      "terme_en": "Template required",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.598176+00:00"
+    },
+    {
+      "terme_fr": "Mon profil",
+      "terme_en": "My profile",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.601457+00:00"
+    },
+    {
+      "terme_fr": "Mot de passe",
+      "terme_en": "Password",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.249624+00:00"
+    },
+    {
+      "terme_fr": "Mots ou phrases séparés par des virgules.",
+      "terme_en": "Words or phrases separated by commas.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.605699+00:00"
+    },
+    {
+      "terme_fr": "Mots-clés de reconnaissance",
+      "terme_en": "Recognition keywords",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.609440+00:00"
+    },
+    {
+      "terme_fr": "Moyen+",
+      "terme_en": "Average+",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.858155+00:00"
+    },
+    {
+      "terme_fr": "Moyen++",
+      "terme_en": "Average++",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.851636+00:00"
+    },
+    {
+      "terme_fr": "Moyen-",
+      "terme_en": "Average-",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.869996+00:00"
+    },
+    {
+      "terme_fr": "NON ASSIGNÉ",
+      "terme_en": "UNASSIGNED",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.612957+00:00"
+    },
+    {
+      "terme_fr": "NOTATION DES AGENTS.",
+      "terme_en": "AGENT RATING.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.616221+00:00"
+    },
+    {
+      "terme_fr": "NUMERO_FISCAL",
+      "terme_en": "Tax number",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.820686+00:00"
+    },
+    {
+      "terme_fr": "NUMID",
+      "terme_en": "ID number",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.706112+00:00"
+    },
+    {
+      "terme_fr": "Naissance",
+      "terme_en": "Birth",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.619508+00:00"
+    },
+    {
+      "terme_fr": "Nationalite",
+      "terme_en": "Nationality",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.624351+00:00"
+    },
+    {
+      "terme_fr": "Navigation",
+      "terme_en": "Navigation",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.627886+00:00"
+    },
+    {
+      "terme_fr": "Niveau Risque",
+      "terme_en": "Risk level",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.631087+00:00"
+    },
+    {
+      "terme_fr": "Noeud",
+      "terme_en": "Node",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.634293+00:00"
+    },
+    {
+      "terme_fr": "Noeud Logique",
+      "terme_en": "Logic node",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.638902+00:00"
+    },
+    {
+      "terme_fr": "Nom",
+      "terme_en": "Name",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.643324+00:00"
+    },
+    {
+      "terme_fr": "Nom & Prénom",
+      "terme_en": "Full name",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.647608+00:00"
+    },
+    {
+      "terme_fr": "Nom Agent",
+      "terme_en": "Agent name",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.650827+00:00"
+    },
+    {
+      "terme_fr": "Nom du lot",
+      "terme_en": "Batch name",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.654974+00:00"
+    },
+    {
+      "terme_fr": "Nom et Prénom",
+      "terme_en": "Full name",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.016153+00:00"
+    },
+    {
+      "terme_fr": "Nom lisible par l'utilisateur.",
+      "terme_en": "User-readable name.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.659469+00:00"
+    },
+    {
+      "terme_fr": "Nom, numero, nationalite...",
+      "terme_en": "Name, number, nationality...",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.663058+00:00"
+    },
+    {
+      "terme_fr": "Nombre d'occurrences de mots-clés nécessaires pour classer le document.",
+      "terme_en": "Number of keyword occurrences required to classify the document.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.666328+00:00"
+    },
+    {
+      "terme_fr": "Nombre de notations par filiale",
+      "terme_en": "Number of ratings by subsidiary",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.493329+00:00"
+    },
+    {
+      "terme_fr": "Non Conformes",
+      "terme_en": "Non-compliant",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.669377+00:00"
+    },
+    {
+      "terme_fr": "Non Scorés",
+      "terme_en": "Not scored",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.192989+00:00"
+    },
+    {
+      "terme_fr": "Non Scorés (Échus)",
+      "terme_en": "Not scored (Overdue)",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.197625+00:00"
+    },
+    {
+      "terme_fr": "Non assigné",
+      "terme_en": "Not assigned",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.655627+00:00"
+    },
+    {
+      "terme_fr": "Non calculée",
+      "terme_en": "Not computed",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.037457+00:00"
+    },
+    {
+      "terme_fr": "Non notée",
+      "terme_en": "Not rated",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.688659+00:00"
+    },
+    {
+      "terme_fr": "Non planifiees",
+      "terme_en": "Not scheduled",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.240027+00:00"
+    },
+    {
+      "terme_fr": "Non renseigné",
+      "terme_en": "Not provided",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.650669+00:00"
+    },
+    {
+      "terme_fr": "Non renseignée",
+      "terme_en": "Not provided",
+      "note": "",
+      "updated_at": "2026-07-02T18:11:02.144459+00:00"
+    },
+    {
+      "terme_fr": "Non résident",
+      "terme_en": "Non-resident",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.051387+00:00"
+    },
+    {
+      "terme_fr": "Non trouvé",
+      "terme_en": "Not found",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.674385+00:00"
+    },
+    {
+      "terme_fr": "Non-Résidents",
+      "terme_en": "Non-residents",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.677975+00:00"
+    },
+    {
+      "terme_fr": "Notation",
+      "terme_en": "Rating",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.681108+00:00"
+    },
+    {
+      "terme_fr": "Notation Contrôle Permanent",
+      "terme_en": "Permanent Control rating",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.729900+00:00"
+    },
+    {
+      "terme_fr": "Notations",
+      "terme_en": "Ratings",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.163049+00:00"
+    },
+    {
+      "terme_fr": "Note",
+      "terme_en": "Rating",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.499278+00:00"
+    },
+    {
+      "terme_fr": "Note Qualité",
+      "terme_en": "Quality score",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.684359+00:00"
+    },
+    {
+      "terme_fr": "Note actuelle",
+      "terme_en": "Current score",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.688904+00:00"
+    },
+    {
+      "terme_fr": "Noter",
+      "terme_en": "Rate",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.692991+00:00"
+    },
+    {
+      "terme_fr": "Noter l'agent",
+      "terme_en": "Rate agent",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.696376+00:00"
+    },
+    {
+      "terme_fr": "Notes du Contrôle Permanent",
+      "terme_en": "Permanent Control Rating",
+      "note": "",
+      "updated_at": "2026-07-13T11:24:59.633450+00:00"
+    },
+    {
+      "terme_fr": "Notification",
+      "terme_en": "Notification",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.699605+00:00"
+    },
+    {
+      "terme_fr": "Nouveaux identifiants requis",
+      "terme_en": "New credentials required",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.702663+00:00"
+    },
+    {
+      "terme_fr": "Nouvelle Notation",
+      "terme_en": "New rating",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.169495+00:00"
+    },
+    {
+      "terme_fr": "Nouvelle règle",
+      "terme_en": "New rule",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.708241+00:00"
+    },
+    {
+      "terme_fr": "Num Cin",
+      "terme_en": "ID number",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.711747+00:00"
+    },
+    {
+      "terme_fr": "Numero doc.",
+      "terme_en": "Doc. number",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.714921+00:00"
+    },
+    {
+      "terme_fr": "ORIGINE_REV",
+      "terme_en": "Income source",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.737523+00:00"
+    },
+    {
+      "terme_fr": "Objectif Groupe",
+      "terme_en": "Group target",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.718320+00:00"
+    },
+    {
+      "terme_fr": "Operateur",
+      "terme_en": "Operator",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.724548+00:00"
+    },
+    {
+      "terme_fr": "Opérationnelles",
+      "terme_en": "Operational",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.728455+00:00"
+    },
+    {
+      "terme_fr": "Origine Revenu",
+      "terme_en": "Income source",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.731718+00:00"
+    },
+    {
+      "terme_fr": "Origine des revenus",
+      "terme_en": "Source of income",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.068329+00:00"
+    },
+    {
+      "terme_fr": "Ou cliquez ici pour changer votre mot de passe.",
+      "terme_en": "Or click here to change your password.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.735303+00:00"
+    },
+    {
+      "terme_fr": "PAR AGENT",
+      "terme_en": "BY OFFICER",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.269577+00:00"
+    },
+    {
+      "terme_fr": "PARTICULIERS (PP)",
+      "terme_en": "INDIVIDUALS (IP)",
+      "note": "",
+      "updated_at": "2026-07-06T17:16:28.039792+00:00"
+    },
+    {
+      "terme_fr": "PAYNAIS",
+      "terme_en": "Country of birth",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.684545+00:00"
+    },
+    {
+      "terme_fr": "PAYS_JUR",
+      "terme_en": "Country of jurisdiction",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.827145+00:00"
+    },
+    {
+      "terme_fr": "PAYS_RESID",
+      "terme_en": "Country of residence",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.753975+00:00"
+    },
+    {
+      "terme_fr": "PDF groupe",
+      "terme_en": "Grouped PDF",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.743811+00:00"
+    },
+    {
+      "terme_fr": "PDF, JPG, PNG, TIFF, TXT ou ZIP. Selection multiple autorisee.",
+      "terme_en": "PDF, JPG, PNG, TIFF, TXT or ZIP. Multiple selection allowed.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.746952+00:00"
+    },
+    {
+      "terme_fr": "PDF, JPG, PNG, TIFF, TXT, ZIP",
+      "terme_en": "PDF, JPG, PNG, TIFF, TXT, ZIP",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.750538+00:00"
+    },
+    {
+      "terme_fr": "PLATEFORME DE NOTATION",
+      "terme_en": "RATING PLATFORM",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.755548+00:00"
+    },
+    {
+      "terme_fr": "PLATEFORME FIABILISATION KYC",
+      "terme_en": "KYC DATA QUALITY PLATFORM",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.760027+00:00"
+    },
+    {
+      "terme_fr": "PM Incomplets",
+      "terme_en": "Incomplete LE records",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.393341+00:00"
+    },
+    {
+      "terme_fr": "PM — Entreprises",
+      "terme_en": "LP - LEGAL PERSONS",
+      "note": "",
+      "updated_at": "2026-07-06T17:26:45.692000+00:00"
+    },
+    {
+      "terme_fr": "PP",
+      "terme_en": "IP",
+      "note": "",
+      "updated_at": "2026-07-02T12:26:00.130371+00:00"
+    },
+    {
+      "terme_fr": "PP Incomplets",
+      "terme_en": "Incomplete IND records",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.382207+00:00"
+    },
+    {
+      "terme_fr": "PP — Particuliers",
+      "terme_en": "Individuals (IP)",
+      "note": "",
+      "updated_at": "2026-07-06T17:16:28.043591+00:00"
+    },
+    {
+      "terme_fr": "PPE",
+      "terme_en": "PEP",
+      "note": "",
+      "updated_at": "2026-07-02T18:13:40.720052+00:00"
+    },
+    {
+      "terme_fr": "PPE Incomplets",
+      "terme_en": "Incomplete PEPs",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.356729+00:00"
+    },
+    {
+      "terme_fr": "PPE non classée à risque élevé :",
+      "terme_en": "PEP not classified as high risk:",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.763622+00:00"
+    },
+    {
+      "terme_fr": "PRECEDENT",
+      "terme_en": "PREVIOUS",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.277792+00:00"
+    },
+    {
+      "terme_fr": "PROFESSION",
+      "terme_en": "Occupation",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.691208+00:00"
+    },
+    {
+      "terme_fr": "PROFIL",
+      "terme_en": "PROFILE",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.618836+00:00"
+    },
+    {
+      "terme_fr": "PRÉC.",
+      "terme_en": "PREV.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.767785+00:00"
+    },
+    {
+      "terme_fr": "PRÉCÉDENT",
+      "terme_en": "PREVIOUS",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.773698+00:00"
+    },
+    {
+      "terme_fr": "Page",
+      "terme_en": "Page",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.272588+00:00"
+    },
+    {
+      "terme_fr": "Page d'administration des imports KYC",
+      "terme_en": "KYC import administration page",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.783242+00:00"
+    },
+    {
+      "terme_fr": "Page d'administration des utilisateurs",
+      "terme_en": "User administration page",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.788134+00:00"
+    },
+    {
+      "terme_fr": "Page de création de nouvel utilisateur",
+      "terme_en": "New user creation page",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.793644+00:00"
+    },
+    {
+      "terme_fr": "Page(s)",
+      "terme_en": "Page(s)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.797559+00:00"
+    },
+    {
+      "terme_fr": "Pages par document",
+      "terme_en": "Pages per document",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.800899+00:00"
+    },
+    {
+      "terme_fr": "Parametrage",
+      "terme_en": "Settings",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.805613+00:00"
+    },
+    {
+      "terme_fr": "Paramètrage des règles de Contrôle",
+      "terme_en": "Control rule settings",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.809114+00:00"
+    },
+    {
+      "terme_fr": "Paramètres",
+      "terme_en": "Settings",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.812225+00:00"
+    },
+    {
+      "terme_fr": "Paramètres de Base",
+      "terme_en": "Basic settings",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.815597+00:00"
+    },
+    {
+      "terme_fr": "Paramétrage",
+      "terme_en": "Settings",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.819381+00:00"
+    },
+    {
+      "terme_fr": "Paramétrage Utilisateurs",
+      "terme_en": "User settings",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.191307+00:00"
+    },
+    {
+      "terme_fr": "Paramétrage |",
+      "terme_en": "Settings |",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.824410+00:00"
+    },
+    {
+      "terme_fr": "Particuliers (PP)",
+      "terme_en": "Individuals (IP)",
+      "note": "",
+      "updated_at": "2026-07-02T12:29:27.320872+00:00"
+    },
+    {
+      "terme_fr": "Passable",
+      "terme_en": "Fair",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.790209+00:00"
+    },
+    {
+      "terme_fr": "Pays Nais",
+      "terme_en": "Country of birth",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.828212+00:00"
+    },
+    {
+      "terme_fr": "Pays Resid",
+      "terme_en": "Country of residence",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.831629+00:00"
+    },
+    {
+      "terme_fr": "Performance",
+      "terme_en": "Performance",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.834983+00:00"
+    },
+    {
+      "terme_fr": "Performance des agents notés",
+      "terme_en": "Rated officers performance",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.518619+00:00"
+    },
+    {
+      "terme_fr": "Perimetre",
+      "terme_en": "Scope",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.839507+00:00"
+    },
+    {
+      "terme_fr": "Periode",
+      "terme_en": "Period",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.842956+00:00"
+    },
+    {
+      "terme_fr": "Personne politiquement exposée",
+      "terme_en": "Politically Exposed Person",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.056289+00:00"
+    },
+    {
+      "terme_fr": "Personnes",
+      "terme_en": "Persons",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.846554+00:00"
+    },
+    {
+      "terme_fr": "Personnes connectees",
+      "terme_en": "Connected users",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.849839+00:00"
+    },
+    {
+      "terme_fr": "Pilotage",
+      "terme_en": "Monitoring",
+      "note": "",
+      "updated_at": "2026-07-03T10:30:19.834227+00:00"
+    },
+    {
+      "terme_fr": "Plateforme KYC",
+      "terme_en": "KYC Platform",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.853009+00:00"
+    },
+    {
+      "terme_fr": "Plateforme KYC Test V0.2",
+      "terme_en": "KYC Platform Test V0.2",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.857849+00:00"
+    },
+    {
+      "terme_fr": "Plateforme v3.0",
+      "terme_en": "Platform v3.0",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.861359+00:00"
+    },
+    {
+      "terme_fr": "Please login to see this page.",
+      "terme_en": "Please login to see this page.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.864674+00:00"
+    },
+    {
+      "terme_fr": "Plus tard",
+      "terme_en": "Later",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.868634+00:00"
+    },
+    {
+      "terme_fr": "Politiquement Exposées (PPE)",
+      "terme_en": "Politically Exposed Persons (PEP)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.873904+00:00"
+    },
+    {
+      "terme_fr": "Portefeuille",
+      "terme_en": "Portfolio",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.995619+00:00"
+    },
+    {
+      "terme_fr": "Portefeuille unique",
+      "terme_en": "Unique portfolio",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.524401+00:00"
+    },
+    {
+      "terme_fr": "Pour charger un document, plusieurs fichiers separes ou une archive de plusieuers pieces.",
+      "terme_en": "To upload one document, several separate files, or an archive of multiple items.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.877835+00:00"
+    },
+    {
+      "terme_fr": "Pour rechercher un agent, veuillez renseigner son code exploitant.",
+      "terme_en": "To search for an agent, please enter their officer code.",
+      "note": "",
+      "updated_at": "2026-07-02T18:56:19.746630+00:00"
+    },
+    {
+      "terme_fr": "Pour un seul PDF contenant plusieurs documents d'identite.",
+      "terme_en": "For a single PDF containing several identity documents.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.884961+00:00"
+    },
+    {
+      "terme_fr": "Pourcentage par type d'évaluation",
+      "terme_en": "Percentage by rating type",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.530578+00:00"
+    },
+    {
+      "terme_fr": "Precedent",
+      "terme_en": "Previous",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.128637+00:00"
+    },
+    {
+      "terme_fr": "Prenom",
+      "terme_en": "First name",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.889771+00:00"
+    },
+    {
+      "terme_fr": "Preparation",
+      "terme_en": "Preparation",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.893469+00:00"
+    },
+    {
+      "terme_fr": "Prochaine Date Revue (*)",
+      "terme_en": "Next review date (*)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.896704+00:00"
+    },
+    {
+      "terme_fr": "Prochaine date revue",
+      "terme_en": "Next review date",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.899831+00:00"
+    },
+    {
+      "terme_fr": "Prochaine date revue (Scoring)",
+      "terme_en": "Next review date (DATEREV)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.902976+00:00"
+    },
+    {
+      "terme_fr": "Profession",
+      "terme_en": "Occupation",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.907743+00:00"
+    },
+    {
+      "terme_fr": "Progression",
+      "terme_en": "Progress",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.538607+00:00"
+    },
+    {
+      "terme_fr": "Progression estimee",
+      "terme_en": "Estimated progress",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.911415+00:00"
+    },
+    {
+      "terme_fr": "Précédent",
+      "terme_en": "Previous",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.914711+00:00"
+    },
+    {
+      "terme_fr": "Précédente",
+      "terme_en": "Previous",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.917976+00:00"
+    },
+    {
+      "terme_fr": "Prénom",
+      "terme_en": "First name",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.922095+00:00"
+    },
+    {
+      "terme_fr": "Purger TauxEvolution avant import",
+      "terme_en": "Purge TauxEvolution before import",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.926242+00:00"
+    },
+    {
+      "terme_fr": "Périmètre",
+      "terme_en": "Scope",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.544645+00:00"
+    },
+    {
+      "terme_fr": "Périmètre Filiale",
+      "terme_en": "Subsidiary scope",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.929407+00:00"
+    },
+    {
+      "terme_fr": "Période",
+      "terme_en": "Period",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.932488+00:00"
+    },
+    {
+      "terme_fr": "Périodicité",
+      "terme_en": "Periodicity",
+      "note": "",
+      "updated_at": "2026-07-01T17:21:36.105586+00:00"
+    },
+    {
+      "terme_fr": "Qualité",
+      "terme_en": "Quality",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.766384+00:00"
+    },
+    {
+      "terme_fr": "Qualité PM",
+      "terme_en": "Quality PM",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.552243+00:00"
+    },
+    {
+      "terme_fr": "Qualité PP",
+      "terme_en": "IP Quality",
+      "note": "",
+      "updated_at": "2026-07-02T12:29:27.321507+00:00"
+    },
+    {
+      "terme_fr": "Qualité des",
+      "terme_en": "Quality of",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.346700+00:00"
+    },
+    {
+      "terme_fr": "Qualité des Données",
+      "terme_en": "Data quality",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.563794+00:00"
+    },
+    {
+      "terme_fr": "Quotidienne",
+      "terme_en": "Daily",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.935552+00:00"
+    },
+    {
+      "terme_fr": "RAPPELS",
+      "terme_en": "REMINDERS",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.940448+00:00"
+    },
+    {
+      "terme_fr": "RCSNO",
+      "terme_en": "Trade register no.",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.811227+00:00"
+    },
+    {
+      "terme_fr": "RECULER",
+      "terme_en": "BACK",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:50.436039+00:00"
+    },
+    {
+      "terme_fr": "RESID",
+      "terme_en": "Residence",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.783527+00:00"
+    },
+    {
+      "terme_fr": "RESULTAT",
+      "terme_en": "RESULT",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.944611+00:00"
+    },
+    {
+      "terme_fr": "RETOUR RÉPERTOIRE",
+      "terme_en": "BACK TO DIRECTORY",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.948704+00:00"
+    },
+    {
+      "terme_fr": "REVUE SCORING",
+      "terme_en": "SCORING REVIEW",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.952025+00:00"
+    },
+    {
+      "terme_fr": "RISQUE",
+      "terme_en": "Risk",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.795567+00:00"
+    },
+    {
+      "terme_fr": "Racine Client",
+      "terme_en": "Client root",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.957454+00:00"
+    },
+    {
+      "terme_fr": "Rappels DATEREV",
+      "terme_en": "DATEREV reminders",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.218689+00:00"
+    },
+    {
+      "terme_fr": "Rapport Filiale",
+      "terme_en": "Subsidiary report",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.570167+00:00"
+    },
+    {
+      "terme_fr": "Rapport Groupe",
+      "terme_en": "Group report",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.575889+00:00"
+    },
+    {
+      "terme_fr": "Rapport de complétude KYC",
+      "terme_en": "KYC completeness report",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.961368+00:00"
+    },
+    {
+      "terme_fr": "Rapports de Complétude &amp; Qualité — PDF &amp; PPTX",
+      "terme_en": "Completeness &amp; Quality Reports — PDF &amp; PPTX",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.964625+00:00"
+    },
+    {
+      "terme_fr": "Rapprochement KYC PP en cours",
+      "terme_en": "KYC IND matching in progress",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.967735+00:00"
+    },
+    {
+      "terme_fr": "Rapprochement global KYC PP",
+      "terme_en": "Global KYC IND matching",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.972349+00:00"
+    },
+    {
+      "terme_fr": "Rapprochement non lance.",
+      "terme_en": "Matching not started.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.976275+00:00"
+    },
+    {
+      "terme_fr": "Recherche",
+      "terme_en": "Search",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:56.990640+00:00"
+    },
+    {
+      "terme_fr": "Recherche par lot, type et champs extraits",
+      "terme_en": "Search by batch, type and extracted fields",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.979509+00:00"
+    },
+    {
+      "terme_fr": "Rechercher",
+      "terme_en": "Search",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.982550+00:00"
+    },
+    {
+      "terme_fr": "Rechercher par Code Exploitant...",
+      "terme_en": "Search by officer code...",
+      "note": "",
+      "updated_at": "2026-07-02T18:56:19.716887+00:00"
+    },
+    {
+      "terme_fr": "Rechercher un agent",
+      "terme_en": "Search for an agent",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.991075+00:00"
+    },
+    {
+      "terme_fr": "Rechercher un code exploitant",
+      "terme_en": "Search for an officer code",
+      "note": "",
+      "updated_at": "2026-07-02T18:56:19.727304+00:00"
+    },
+    {
+      "terme_fr": "Rechercher un collaborateur...",
+      "terme_en": "Search for a staff member...",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.994470+00:00"
+    },
+    {
+      "terme_fr": "Rechercher une regle, un champ, un parametre...",
+      "terme_en": "Search a rule, field or parameter...",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.077098+00:00"
+    },
+    {
+      "terme_fr": "Recommandation / Feedback",
+      "terme_en": "Recommendation / Feedback",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.997699+00:00"
+    },
+    {
+      "terme_fr": "Recommandations",
+      "terme_en": "Recommendations",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.581848+00:00"
+    },
+    {
+      "terme_fr": "Recommandations du Contrôleur",
+      "terme_en": "Controller's recommendations",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.735913+00:00"
+    },
+    {
+      "terme_fr": "Regle",
+      "terme_en": "Rule",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.001060+00:00"
+    },
+    {
+      "terme_fr": "Regles PP et PM appliquees a cette filiale",
+      "terme_en": "IND and LE rules applied to this subsidiary",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.005967+00:00"
+    },
+    {
+      "terme_fr": "Regles actives",
+      "terme_en": "Active rules",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.060190+00:00"
+    },
+    {
+      "terme_fr": "Regles de Controle Qualite KYC",
+      "terme_en": "KYC Quality Control Rules",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.009730+00:00"
+    },
+    {
+      "terme_fr": "Regles de controle",
+      "terme_en": "Control rules",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.107432+00:00"
+    },
+    {
+      "terme_fr": "Rejete",
+      "terme_en": "Rejected",
+      "note": "",
+      "updated_at": "2026-07-03T15:54:21.447138+00:00"
+    },
+    {
+      "terme_fr": "Rejetees",
+      "terme_en": "Rejected",
+      "note": "",
+      "updated_at": "2026-07-03T15:54:21.483608+00:00"
+    },
+    {
+      "terme_fr": "Rejeter",
+      "terme_en": "Reject",
+      "note": "",
+      "updated_at": "2026-07-03T15:54:21.462008+00:00"
+    },
+    {
+      "terme_fr": "Relancer OCR des echecs",
+      "terme_en": "Retry failed OCR",
+      "note": "",
+      "updated_at": "2026-07-03T10:53:57.612773+00:00"
+    },
+    {
+      "terme_fr": "Repartition par type",
+      "terme_en": "Breakdown by type",
+      "note": "",
+      "updated_at": "2026-07-03T11:16:56.023191+00:00"
+    },
+    {
+      "terme_fr": "Reset",
+      "terme_en": "Reset",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.100634+00:00"
+    },
+    {
+      "terme_fr": "Resultat d'analyse",
+      "terme_en": "Analysis result",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.012936+00:00"
+    },
+    {
+      "terme_fr": "Resultats",
+      "terme_en": "Results",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.016182+00:00"
+    },
+    {
+      "terme_fr": "Resultats de la regle",
+      "terme_en": "Rule results",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.119239+00:00"
+    },
+    {
+      "terme_fr": "Resultats de rapprochement",
+      "terme_en": "Matching results",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.021800+00:00"
+    },
+    {
+      "terme_fr": "Resultats de rapprochement KYC PP",
+      "terme_en": "KYC IND matching results",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.026406+00:00"
+    },
+    {
+      "terme_fr": "Resultats partiels",
+      "terme_en": "Partial results",
+      "note": "",
+      "updated_at": "2026-07-03T11:57:27.823090+00:00"
+    },
+    {
+      "terme_fr": "Retour",
+      "terme_en": "Back",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.030007+00:00"
+    },
+    {
+      "terme_fr": "Retour au lot",
+      "terme_en": "Back to batch",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.034073+00:00"
+    },
+    {
+      "terme_fr": "Retour aux resultats du lot",
+      "terme_en": "Back to batch results",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.039088+00:00"
+    },
+    {
+      "terme_fr": "Retour à la page de connexion",
+      "terme_en": "Back to the sign-in page",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.043261+00:00"
+    },
+    {
+      "terme_fr": "Revenir à l'accueil &rarr;",
+      "terme_en": "Back to home &rarr;",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.046752+00:00"
+    },
+    {
+      "terme_fr": "Revue",
+      "terme_en": "Review",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.050675+00:00"
+    },
+    {
+      "terme_fr": "Revue KYC — portefeuilles à échéance",
+      "terme_en": "KYC review — portfolios reaching due date",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.054924+00:00"
+    },
+    {
+      "terme_fr": "Revue Scoring",
+      "terme_en": "Scoring review",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.058658+00:00"
+    },
+    {
+      "terme_fr": "Revue scoring",
+      "terme_en": "Scoring review",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.061940+00:00"
+    },
+    {
+      "terme_fr": "Risque",
+      "terme_en": "Risk",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.147928+00:00"
+    },
+    {
+      "terme_fr": "Risques",
+      "terme_en": "Risk",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.975877+00:00"
+    },
+    {
+      "terme_fr": "Règle",
+      "terme_en": "Rule",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.588807+00:00"
+    },
+    {
+      "terme_fr": "Règles Qualité à inclure",
+      "terme_en": "Quality rules to include",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.595017+00:00"
+    },
+    {
+      "terme_fr": "Règles actives",
+      "terme_en": "Active rules",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.065644+00:00"
+    },
+    {
+      "terme_fr": "Règles de Qualité",
+      "terme_en": "Quality rules",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.195794+00:00"
+    },
+    {
+      "terme_fr": "Régles de",
+      "terme_en": "Rules of",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.069494+00:00"
+    },
+    {
+      "terme_fr": "Réinitialiser le mot de passe",
+      "terme_en": "Reset password",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.075174+00:00"
+    },
+    {
+      "terme_fr": "Réinitialiser les filtres",
+      "terme_en": "Reset filters",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.078995+00:00"
+    },
+    {
+      "terme_fr": "Répartition Globale",
+      "terme_en": "Overall breakdown",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.601839+00:00"
+    },
+    {
+      "terme_fr": "Répartition par Devise",
+      "terme_en": "Breakdown by Currency",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.398141+00:00"
+    },
+    {
+      "terme_fr": "Répartition par Pays",
+      "terme_en": "Breakdown by Country",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.373950+00:00"
+    },
+    {
+      "terme_fr": "Répartition par Risque",
+      "terme_en": "Breakdown by Risk",
+      "note": "",
+      "updated_at": "2026-07-02T18:10:36.341494+00:00"
+    },
+    {
+      "terme_fr": "Répertoire complet et gestion des privilèges d'accès",
+      "terme_en": "Full directory and access privilege management",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.083332+00:00"
+    },
+    {
+      "terme_fr": "S'applique aux particuliers (PP) ou aux entreprises (PM).",
+      "terme_en": "Applies to individuals (IP) or legal persons (LP).",
+      "note": "",
+      "updated_at": "2026-07-06T17:15:44.832362+00:00"
+    },
+    {
+      "terme_fr": "SALAIRE",
+      "terme_en": "Salary",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.700071+00:00"
+    },
+    {
+      "terme_fr": "SANS CLASSE",
+      "terme_en": "NO RISK CLASS",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.091946+00:00"
+    },
+    {
+      "terme_fr": "SCREENING",
+      "terme_en": "SCREENING",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.096034+00:00"
+    },
+    {
+      "terme_fr": "STATISTIQUES",
+      "terme_en": "STATISTICS",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.258973+00:00"
+    },
+    {
+      "terme_fr": "STOCK",
+      "terme_en": "STOCK",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:56.977709+00:00"
+    },
+    {
+      "terme_fr": "SUIV.",
+      "terme_en": "NEXT",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:51.777870+00:00"
+    },
+    {
+      "terme_fr": "SUIVANT",
+      "terme_en": "NEXT",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.282850+00:00"
+    },
+    {
+      "terme_fr": "Saisie des identifiants",
+      "terme_en": "Credential entry",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.105551+00:00"
+    },
+    {
+      "terme_fr": "Saisir le code expoloitant du collaborateur pour le noter ou modifier sa notation",
+      "terme_en": "Enter the staff member's officer code to rate them or update their rating",
+      "note": "",
+      "updated_at": "2026-07-02T18:56:19.759597+00:00"
+    },
+    {
+      "terme_fr": "Salaire",
+      "terme_en": "Salary",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.114003+00:00"
+    },
+    {
+      "terme_fr": "Sans classe",
+      "terme_en": "Unclassified",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.244937+00:00"
+    },
+    {
+      "terme_fr": "Sans paramètre",
+      "terme_en": "No parameter",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.117503+00:00"
+    },
+    {
+      "terme_fr": "Score Global",
+      "terme_en": "Overall score",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.121919+00:00"
+    },
+    {
+      "terme_fr": "Score de détection minimum",
+      "terme_en": "Minimum detection score",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.125808+00:00"
+    },
+    {
+      "terme_fr": "Scoring",
+      "terme_en": "Scoring",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.158123+00:00"
+    },
+    {
+      "terme_fr": "Scoring Clients",
+      "terme_en": "Customer scoring",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.154241+00:00"
+    },
+    {
+      "terme_fr": "Scoring PPE",
+      "terme_en": "PEP scoring",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.129274+00:00"
+    },
+    {
+      "terme_fr": "Screening KYC ID",
+      "terme_en": "KYC ID Screening",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.158920+00:00"
+    },
+    {
+      "terme_fr": "Se connecter",
+      "terme_en": "Sign in",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.235902+00:00"
+    },
+    {
+      "terme_fr": "Segment cible",
+      "terme_en": "Target segment",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.132805+00:00"
+    },
+    {
+      "terme_fr": "Selectionnez un agent pour afficher l'historique.",
+      "terme_en": "Select an agent to display the history.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.136963+00:00"
+    },
+    {
+      "terme_fr": "Selectionnez un agent pour afficher les graphiques.",
+      "terme_en": "Select an agent to display the charts.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.142620+00:00"
+    },
+    {
+      "terme_fr": "Selectionnez une filiale avec des taux disponibles.",
+      "terme_en": "Select a subsidiary with available rates.",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.316196+00:00"
+    },
+    {
+      "terme_fr": "Sessions Actives",
+      "terme_en": "Active sessions",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.146532+00:00"
+    },
+    {
+      "terme_fr": "Seuil (%)",
+      "terme_en": "Threshold (%)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.149929+00:00"
+    },
+    {
+      "terme_fr": "Seuil de score",
+      "terme_en": "Score threshold",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.153316+00:00"
+    },
+    {
+      "terme_fr": "Seuls les",
+      "terme_en": "Only the",
+      "note": "",
+      "updated_at": "2026-07-03T11:57:27.835886+00:00"
+    },
+    {
+      "terme_fr": "Sources documentaires par champ",
+      "terme_en": "Document sources per field",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.159114+00:00"
+    },
+    {
+      "terme_fr": "Sources par champ",
+      "terme_en": "Sources per field",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.164062+00:00"
+    },
+    {
+      "terme_fr": "Sous seuil",
+      "terme_en": "Below threshold",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.305711+00:00"
+    },
+    {
+      "terme_fr": "Stats Agents",
+      "terme_en": "Agent stats",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.168203+00:00"
+    },
+    {
+      "terme_fr": "Statut",
+      "terme_en": "Status",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.172816+00:00"
+    },
+    {
+      "terme_fr": "Stock",
+      "terme_en": "Stock",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.176829+00:00"
+    },
+    {
+      "terme_fr": "Stock Entreprises",
+      "terme_en": "Stock Legal Persons",
+      "note": "",
+      "updated_at": "2026-07-06T17:15:44.833391+00:00"
+    },
+    {
+      "terme_fr": "Stock KYC",
+      "terme_en": "KYC stock",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.184088+00:00"
+    },
+    {
+      "terme_fr": "Stock Particuliers",
+      "terme_en": "Individual stock",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.189955+00:00"
+    },
+    {
+      "terme_fr": "Suivant",
+      "terme_en": "Next",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.133199+00:00"
+    },
+    {
+      "terme_fr": "Suivante",
+      "terme_en": "Next",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.194585+00:00"
+    },
+    {
+      "terme_fr": "Suivi",
+      "terme_en": "Tracking",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.198087+00:00"
+    },
+    {
+      "terme_fr": "Suivi & Logs",
+      "terme_en": "Tracking & Logs",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.201559+00:00"
+    },
+    {
+      "terme_fr": "Suivi des dates d'anniversaire de scoring",
+      "terme_en": "Tracking of scoring anniversary dates",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.206441+00:00"
+    },
+    {
+      "terme_fr": "Suivi des données manquantes des PPE",
+      "terme_en": "Tracking of missing PEP data",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.210130+00:00"
+    },
+    {
+      "terme_fr": "Suivi des rapprochements",
+      "terme_en": "Matching tracking",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.213381+00:00"
+    },
+    {
+      "terme_fr": "Suivre le rapprochement",
+      "terme_en": "Track matching",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.216648+00:00"
+    },
+    {
+      "terme_fr": "Superadmin",
+      "terme_en": "Superadmin",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.220355+00:00"
+    },
+    {
+      "terme_fr": "Suppression",
+      "terme_en": "Deletion",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.225224+00:00"
+    },
+    {
+      "terme_fr": "Supprimer",
+      "terme_en": "Delete",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.228502+00:00"
+    },
+    {
+      "terme_fr": "Supprimer Noeud",
+      "terme_en": "Delete node",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.231573+00:00"
+    },
+    {
+      "terme_fr": "Surveillance des dates de revue scoring & classe de risque",
+      "terme_en": "Monitoring of scoring review dates & risk class",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.234658+00:00"
+    },
+    {
+      "terme_fr": "SÉCURITÉ",
+      "terme_en": "SECURITY",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.100143+00:00"
+    },
+    {
+      "terme_fr": "Sécurité",
+      "terme_en": "Security",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.238967+00:00"
+    },
+    {
+      "terme_fr": "Sécurité Système",
+      "terme_en": "System security",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.242317+00:00"
+    },
+    {
+      "terme_fr": "TEL",
+      "terme_en": "Phone",
+      "note": "",
+      "updated_at": "2026-07-02T18:50:03.714549+00:00"
+    },
+    {
+      "terme_fr": "Tableau de bord",
+      "terme_en": "Dashboard",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.129728+00:00"
+    },
+    {
+      "terme_fr": "Tableau et export Excel.",
+      "terme_en": "Table and Excel export.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.245691+00:00"
+    },
+    {
+      "terme_fr": "Taux",
+      "terme_en": "Rate",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.628434+00:00"
+    },
+    {
+      "terme_fr": "Taux PM",
+      "terme_en": "LP completeness rate",
+      "note": "",
+      "updated_at": "2026-07-28T09:35:19.402194+00:00"
+    },
+    {
+      "terme_fr": "Taux PP",
+      "terme_en": "IP completeness rate",
+      "note": "",
+      "updated_at": "2026-07-28T09:35:38.583433+00:00"
+    },
+    {
+      "terme_fr": "Taux correspondance",
+      "terme_en": "Match rate",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.249076+00:00"
+    },
+    {
+      "terme_fr": "Taux d'excellence",
+      "terme_en": "Excellence rate",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.608512+00:00"
+    },
+    {
+      "terme_fr": "Taux d'Évolution",
+      "terme_en": "Growth rate",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.252429+00:00"
+    },
+    {
+      "terme_fr": "Taux de Complétude",
+      "terme_en": "Completeness rate",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.333240+00:00"
+    },
+    {
+      "terme_fr": "Taux de Qualité",
+      "terme_en": "Quality rate",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.338867+00:00"
+    },
+    {
+      "terme_fr": "Taux de Scoring",
+      "terme_en": "Scoring rate",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.256975+00:00"
+    },
+    {
+      "terme_fr": "Taux de completude et de qualite des donnees KYC",
+      "terme_en": "Completeness and quality rates of KYC data",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.342872+00:00"
+    },
+    {
+      "terme_fr": "Taux de complétude",
+      "terme_en": "Completeness rate",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.025436+00:00"
+    },
+    {
+      "terme_fr": "Taux de complétude et de qualité des données KYC",
+      "terme_en": "KYC data completeness and quality rates",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.260546+00:00"
+    },
+    {
+      "terme_fr": "Taux de conformite",
+      "terme_en": "Compliance rate",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.264665+00:00"
+    },
+    {
+      "terme_fr": "Taux de conformité",
+      "terme_en": "Compliance rate",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.037691+00:00"
+    },
+    {
+      "terme_fr": "Taux de qualité",
+      "terme_en": "Quality rate",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.031883+00:00"
+    },
+    {
+      "terme_fr": "Taux de scoring",
+      "terme_en": "Scoring rate",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:18.045988+00:00"
+    },
+    {
+      "terme_fr": "Taux par agence",
+      "terme_en": "Branch rates",
+      "note": "",
+      "updated_at": "2026-07-27T11:13:43.957131+00:00"
+    },
+    {
+      "terme_fr": "Taux par agent",
+      "terme_en": "Officer rates",
+      "note": "",
+      "updated_at": "2026-07-27T11:13:49.910537+00:00"
+    },
+    {
+      "terme_fr": "Taux par champ — Entreprises",
+      "terme_en": "Rate by field — entities",
+      "note": "",
+      "updated_at": "2026-07-06T17:26:45.693201+00:00"
+    },
+    {
+      "terme_fr": "Taux par champ — Particuliers",
+      "terme_en": "Rate by field — Individuals",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.622173+00:00"
+    },
+    {
+      "terme_fr": "Temps restant",
+      "terme_en": "Time remaining",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.268271+00:00"
+    },
+    {
+      "terme_fr": "Terminer le Noeud",
+      "terme_en": "Finish node",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.272913+00:00"
+    },
+    {
+      "terme_fr": "Tester SMTP",
+      "terme_en": "Test SMTP",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.276886+00:00"
+    },
+    {
+      "terme_fr": "Tester la configuration SMTP",
+      "terme_en": "Test SMTP configuration",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.280163+00:00"
+    },
+    {
+      "terme_fr": "Texte extrait",
+      "terme_en": "Extracted text",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.283986+00:00"
+    },
+    {
+      "terme_fr": "Total",
+      "terme_en": "Total",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.640852+00:00"
+    },
+    {
+      "terme_fr": "Total Anomalies",
+      "terme_en": "Total anomalies",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.288667+00:00"
+    },
+    {
+      "terme_fr": "Total Règles",
+      "terme_en": "Total rules",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.292352+00:00"
+    },
+    {
+      "terme_fr": "Total évaluations",
+      "terme_en": "Total assessments",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.635067+00:00"
+    },
+    {
+      "terme_fr": "Tous",
+      "terme_en": "All",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.295675+00:00"
+    },
+    {
+      "terme_fr": "Tous documents",
+      "terme_en": "All documents",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.299104+00:00"
+    },
+    {
+      "terme_fr": "Tous exploitants",
+      "terme_en": "All officers",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.250723+00:00"
+    },
+    {
+      "terme_fr": "Tous les clients de votre périmètre disposent d'une classification de risque valide.",
+      "terme_en": "All clients in your scope have a valid risk classification.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.302273+00:00"
+    },
+    {
+      "terme_fr": "Tous les exploitants",
+      "terme_en": "All officers",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.089373+00:00"
+    },
+    {
+      "terme_fr": "Tous les gestionnaires",
+      "terme_en": "All managers",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.306950+00:00"
+    },
+    {
+      "terme_fr": "Tous les lots",
+      "terme_en": "All batches",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.310251+00:00"
+    },
+    {
+      "terme_fr": "Tous les risques",
+      "terme_en": "All risks",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.256696+00:00"
+    },
+    {
+      "terme_fr": "Tout lancer",
+      "terme_en": "Run all",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.313627+00:00"
+    },
+    {
+      "terme_fr": "Tout ✓",
+      "terme_en": "All ✓",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.646709+00:00"
+    },
+    {
+      "terme_fr": "Toute échéance",
+      "terme_en": "Any due date",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.317145+00:00"
+    },
+    {
+      "terme_fr": "Toutes",
+      "terme_en": "All",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.321379+00:00"
+    },
+    {
+      "terme_fr": "Toutes agences",
+      "terme_en": "All branches",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.082989+00:00"
+    },
+    {
+      "terme_fr": "Toutes filiales",
+      "terme_en": "All subsidiaries",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.325270+00:00"
+    },
+    {
+      "terme_fr": "Toutes les PPE sont à risque élevé",
+      "terme_en": "All PEPs are high risk",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.328433+00:00"
+    },
+    {
+      "terme_fr": "Toutes les agences",
+      "terme_en": "All branches",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.331800+00:00"
+    },
+    {
+      "terme_fr": "Toutes les filiales",
+      "terme_en": "All subsidiaries",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.295247+00:00"
+    },
+    {
+      "terme_fr": "Toutes les périodes",
+      "terme_en": "All periods",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.334847+00:00"
+    },
+    {
+      "terme_fr": "Toutes les règles",
+      "terme_en": "All rules",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.339919+00:00"
+    },
+    {
+      "terme_fr": "Toutes periodes",
+      "terme_en": "All periods",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.261558+00:00"
+    },
+    {
+      "terme_fr": "Traitement en cours",
+      "terme_en": "Processing",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.343304+00:00"
+    },
+    {
+      "terme_fr": "Traitement selectionne",
+      "terme_en": "Selected processing",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.346819+00:00"
+    },
+    {
+      "terme_fr": "Traitements en arriere-plan, progression et acces aux resultats",
+      "terme_en": "Background processing, progress and access to results",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.350117+00:00"
+    },
+    {
+      "terme_fr": "Trimestre",
+      "terme_en": "Quarter",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.677428+00:00"
+    },
+    {
+      "terme_fr": "Très Bien",
+      "terme_en": "Very Good",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.778702+00:00"
+    },
+    {
+      "terme_fr": "Type",
+      "terme_en": "Type",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.660377+00:00"
+    },
+    {
+      "terme_fr": "Type Dossier",
+      "terme_en": "Record type",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.353322+00:00"
+    },
+    {
+      "terme_fr": "Type de client",
+      "terme_en": "Client type",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.358272+00:00"
+    },
+    {
+      "terme_fr": "Type de document",
+      "terme_en": "Document type",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.361744+00:00"
+    },
+    {
+      "terme_fr": "Type de rapport",
+      "terme_en": "Report type",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.365105+00:00"
+    },
+    {
+      "terme_fr": "Type non reconnu",
+      "terme_en": "Unrecognised type",
+      "note": "",
+      "updated_at": "2026-07-03T11:16:56.050742+00:00"
+    },
+    {
+      "terme_fr": "Types de",
+      "terme_en": "Types of",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.368270+00:00"
+    },
+    {
+      "terme_fr": "Types de documents",
+      "terme_en": "Document types",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.205328+00:00"
+    },
+    {
+      "terme_fr": "Types de documents &amp; Règles d'apprentissage OCR",
+      "terme_en": "Document types &amp; OCR learning rules",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.372567+00:00"
+    },
+    {
+      "terme_fr": "Télécharger",
+      "terme_en": "Download",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.376190+00:00"
+    },
+    {
+      "terme_fr": "Télécharger l'historique complet",
+      "terme_en": "Download full history",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.379575+00:00"
+    },
+    {
+      "terme_fr": "Télécharger le CSV",
+      "terme_en": "Download CSV",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.382745+00:00"
+    },
+    {
+      "terme_fr": "Téléphone",
+      "terme_en": "Phone",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.643169+00:00"
+    },
+    {
+      "terme_fr": "Un email de test sera envoyé via la configuration SMTP enregistrée dans l'admin.",
+      "terme_en": "A test email will be sent using the SMTP configuration saved in the admin.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.385756+00:00"
+    },
+    {
+      "terme_fr": "Utile uniquement pour un PDF groupe : 1 page par piece, ou 2 en recto-verso.",
+      "terme_en": "Only useful for a grouped PDF: 1 page per item, or 2 for two-sided.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.391200+00:00"
+    },
+    {
+      "terme_fr": "Utilisateur",
+      "terme_en": "User",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.394725+00:00"
+    },
+    {
+      "terme_fr": "Utilisateur inconnu",
+      "terme_en": "Unknown user",
+      "note": "",
+      "updated_at": "2026-07-28T11:42:07.962423+00:00"
+    },
+    {
+      "terme_fr": "Utilisateurs",
+      "terme_en": "Users",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.397890+00:00"
+    },
+    {
+      "terme_fr": "Utilisez exclusivement le fichier modèle téléchargé ci-dessus pour garantir l'importation.",
+      "terme_en": "Use only the template file downloaded above to guarantee the import.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.400928+00:00"
+    },
+    {
+      "terme_fr": "Utilisez le scroll horizontal pour voir toutes les colonnes",
+      "terme_en": "Use horizontal scrolling to see all columns",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.405119+00:00"
+    },
+    {
+      "terme_fr": "Valide",
+      "terme_en": "Validated",
+      "note": "",
+      "updated_at": "2026-07-03T15:54:21.438927+00:00"
+    },
+    {
+      "terme_fr": "Validees",
+      "terme_en": "Validated",
+      "note": "",
+      "updated_at": "2026-07-03T15:54:21.477282+00:00"
+    },
+    {
+      "terme_fr": "Valider",
+      "terme_en": "Validate",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.409520+00:00"
+    },
+    {
+      "terme_fr": "Validité Cin",
+      "terme_en": "ID validity",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.413827+00:00"
+    },
+    {
+      "terme_fr": "Version 3.0",
+      "terme_en": "Version 3.0",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.417221+00:00"
+    },
+    {
+      "terme_fr": "Veuillez choisir un agent dans les filtres pour afficher les données.",
+      "terme_en": "Please select an officer in the filters to display the data.",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.326463+00:00"
+    },
+    {
+      "terme_fr": "Veuillez rentrer le code exploitant EXPL d'un agent.",
+      "terme_en": "Please enter an agent's EXPL officer code.",
+      "note": "",
+      "updated_at": "2026-07-02T18:56:19.737289+00:00"
+    },
+    {
+      "terme_fr": "Veuillez sélectionner un agent pour les données Stock",
+      "terme_en": "Please select an agent for Stock data",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.425557+00:00"
+    },
+    {
+      "terme_fr": "Voir",
+      "terme_en": "View",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.203052+00:00"
+    },
+    {
+      "terme_fr": "Voir Extractions",
+      "terme_en": "View extractions",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.428865+00:00"
+    },
+    {
+      "terme_fr": "Voir Taux Banque",
+      "terme_en": "View bank rates",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.309092+00:00"
+    },
+    {
+      "terme_fr": "Voir le fichier",
+      "terme_en": "View file",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.431980+00:00"
+    },
+    {
+      "terme_fr": "Voir les details",
+      "terme_en": "View details",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.435056+00:00"
+    },
+    {
+      "terme_fr": "Voir les resultats du lot",
+      "terme_en": "View batch results",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.440092+00:00"
+    },
+    {
+      "terme_fr": "Voir resultats",
+      "terme_en": "View results",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.443639+00:00"
+    },
+    {
+      "terme_fr": "Voir taux Agents",
+      "terme_en": "View officer rates",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.304713+00:00"
+    },
+    {
+      "terme_fr": "Voir tous les lots",
+      "terme_en": "View all batches",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.446900+00:00"
+    },
+    {
+      "terme_fr": "Volume",
+      "terme_en": "Volume",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.450119+00:00"
+    },
+    {
+      "terme_fr": "Votre appréciation",
+      "terme_en": "Your appraisal",
+      "note": "",
+      "updated_at": "2026-07-01T14:36:17.683853+00:00"
+    },
+    {
+      "terme_fr": "Votre espace de conformité attend ses premières instructions.",
+      "terme_en": "Your compliance workspace awaits its first instructions.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.453247+00:00"
+    },
+    {
+      "terme_fr": "Voulez-vous lancer le rapprochement maintenant ?",
+      "terme_en": "Do you want to run the matching now?",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.458968+00:00"
+    },
+    {
+      "terme_fr": "Vous n'êtes pas autorisé à consulter cette page.",
+      "terme_en": "You are not allowed to view this page.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.463491+00:00"
+    },
+    {
+      "terme_fr": "Vous pouvez lancer le rapprochement maintenant ou le retrouver plus tard depuis l'onglet Suivi.",
+      "terme_en": "You can run the matching now or find it later in the Tracking tab.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.466932+00:00"
+    },
+    {
+      "terme_fr": "Vue Globale",
+      "terme_en": "Global view",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.470955+00:00"
+    },
+    {
+      "terme_fr": "Vue d'ensemble",
+      "terme_en": "Overview",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.475161+00:00"
+    },
+    {
+      "terme_fr": "Your account doesn't have access to this page. To proceed, please login with an account that has access.",
+      "terme_en": "Your account doesn't have access to this page. To proceed, please login with an account that has access.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.478293+00:00"
+    },
+    {
+      "terme_fr": "Your username and password didn't match. Please try again.",
+      "terme_en": "Your username and password didn't match. Please try again.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.481236+00:00"
+    },
+    {
+      "terme_fr": "champs KYC",
+      "terme_en": "KYC fields",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.484407+00:00"
+    },
+    {
+      "terme_fr": "client",
+      "terme_en": "client",
+      "note": "",
+      "updated_at": "2026-07-02T18:13:56.434469+00:00"
+    },
+    {
+      "terme_fr": "completude KYC",
+      "terme_en": "KYC completeness",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.489655+00:00"
+    },
+    {
+      "terme_fr": "des Notations",
+      "terme_en": "of Ratings",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.493843+00:00"
+    },
+    {
+      "terme_fr": "documents",
+      "terme_en": "documents",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.497113+00:00"
+    },
+    {
+      "terme_fr": "documents les plus recents ont ete analyses sur",
+      "terme_en": "most recent documents were analysed out of",
+      "note": "",
+      "updated_at": "2026-07-03T11:57:27.849881+00:00"
+    },
+    {
+      "terme_fr": "données saisies",
+      "terme_en": "entered data",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.351673+00:00"
+    },
+    {
+      "terme_fr": "dossiers",
+      "terme_en": "files",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.168132+00:00"
+    },
+    {
+      "terme_fr": "dossiers entreprises à traiter",
+      "terme_en": "corporate files to process",
+      "note": "",
+      "updated_at": "2026-07-06T18:08:08.221538+00:00"
+    },
+    {
+      "terme_fr": "dossiers particuliers à traiter",
+      "terme_en": "individual files to process",
+      "note": "",
+      "updated_at": "2026-07-06T18:08:08.236045+00:00"
+    },
+    {
+      "terme_fr": "echecs",
+      "terme_en": "failed",
+      "note": "",
+      "updated_at": "2026-07-03T10:53:57.607087+00:00"
+    },
+    {
+      "terme_fr": "en attente",
+      "terme_en": "pending",
+      "note": "",
+      "updated_at": "2026-07-03T10:53:57.593449+00:00"
+    },
+    {
+      "terme_fr": "en cas d’erreur.",
+      "terme_en": "in case of error.",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.500192+00:00"
+    },
+    {
+      "terme_fr": "entreprises",
+      "terme_en": "entities",
+      "note": "",
+      "updated_at": "2026-07-06T17:26:45.694249+00:00"
+    },
+    {
+      "terme_fr": "jours",
+      "terme_en": "days",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.508192+00:00"
+    },
+    {
+      "terme_fr": "meilleures correspondances ; exportez le CSV pour la liste complete.",
+      "terme_en": "best matches; export the CSV for the full list.",
+      "note": "",
+      "updated_at": "2026-07-03T11:57:27.881946+00:00"
+    },
+    {
+      "terme_fr": "mois précédent",
+      "terme_en": "last month",
+      "note": "",
+      "updated_at": "2026-07-27T10:44:59.514151+00:00"
+    },
+    {
+      "terme_fr": "notés",
+      "terme_en": "rated",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:56.960764+00:00"
+    },
+    {
+      "terme_fr": "particuliers",
+      "terme_en": "individuals",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.178141+00:00"
+    },
+    {
+      "terme_fr": "regle affichee",
+      "terme_en": "rule shown",
+      "note": "",
+      "updated_at": "2026-07-06T17:28:26.017565+00:00"
+    },
+    {
+      "terme_fr": "regles affichees",
+      "terme_en": "rules shown",
+      "note": "",
+      "updated_at": "2026-07-06T17:28:24.808272+00:00"
+    },
+    {
+      "terme_fr": "sans classe de risque",
+      "terme_en": "without risk class",
+      "note": "",
+      "updated_at": "2026-07-02T18:13:56.440229+00:00"
+    },
+    {
+      "terme_fr": "sans-classe de risque",
+      "terme_en": "without risk class",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.512811+00:00"
+    },
+    {
+      "terme_fr": "traites",
+      "terme_en": "processed",
+      "note": "",
+      "updated_at": "2026-07-03T10:53:57.599967+00:00"
+    },
+    {
+      "terme_fr": "veille",
+      "terme_en": "Last day",
+      "note": "",
+      "updated_at": "2026-07-28T09:34:01.356890+00:00"
+    },
+    {
+      "terme_fr": "votre@email.com",
+      "terme_en": "your@email.com",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.245434+00:00"
+    },
+    {
+      "terme_fr": "| COMPTE",
+      "terme_en": "| ACCOUNT",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.516326+00:00"
+    },
+    {
+      "terme_fr": "| DATEREV",
+      "terme_en": "| DATEREV",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.519586+00:00"
+    },
+    {
+      "terme_fr": "À traiter",
+      "terme_en": "To process",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.266382+00:00"
+    },
+    {
+      "terme_fr": "Âge",
+      "terme_en": "Age",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.524535+00:00"
+    },
+    {
+      "terme_fr": "Échues (Auj.)",
+      "terme_en": "Due (today)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.527824+00:00"
+    },
+    {
+      "terme_fr": "Échues (à ce jour)",
+      "terme_en": "Due (to date)",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.530957+00:00"
+    },
+    {
+      "terme_fr": "Échus",
+      "terme_en": "Overdue",
+      "note": "",
+      "updated_at": "2026-07-02T18:13:56.419374+00:00"
+    },
+    {
+      "terme_fr": "Échéance",
+      "terme_en": "Due date",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.534769+00:00"
+    },
+    {
+      "terme_fr": "Éditer",
+      "terme_en": "Edit",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.539421+00:00"
+    },
+    {
+      "terme_fr": "Évaluations des agents enregistrées",
+      "terme_en": "Recorded officer assessments",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.668119+00:00"
+    },
+    {
+      "terme_fr": "Évaluer un Collaborateur",
+      "terme_en": "Rate a staff member",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.542749+00:00"
+    },
+    {
+      "terme_fr": "Évalué par",
+      "terme_en": "Assessed by",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.674732+00:00"
+    },
+    {
+      "terme_fr": "Évolution",
+      "terme_en": "Trend",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.546164+00:00"
+    },
+    {
+      "terme_fr": "Évolution taux de complétude",
+      "terme_en": "Completeness rate trend",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.549708+00:00"
+    },
+    {
+      "terme_fr": "Évolution taux de complétude - Flux",
+      "terme_en": "Completeness rate trend – Flow",
+      "note": "",
+      "updated_at": "2026-07-01T17:10:49.356248+00:00"
+    },
+    {
+      "terme_fr": "Évolution taux de complétude - Stock",
+      "terme_en": "Completeness rate trend - Stock",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.552798+00:00"
+    },
+    {
+      "terme_fr": "à fiabiliser",
+      "terme_en": "to remediate",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.558126+00:00"
+    },
+    {
+      "terme_fr": "à traiter",
+      "terme_en": "to process",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.182624+00:00"
+    },
+    {
+      "terme_fr": "— Toutes les filiales —",
+      "terme_en": "— All subsidiaries —",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.561893+00:00"
+    },
+    {
+      "terme_fr": "← Retour à la liste",
+      "terme_en": "← Back to list",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.565570+00:00"
+    },
+    {
+      "terme_fr": "⚙ Sélection des champs de complétude pour le rapport PDF / PPTX",
+      "terme_en": "⚙ Select completeness fields for the PDF / PPTX report",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.680842+00:00"
+    },
+    {
+      "terme_fr": "⚙ Sélection des règles de qualité pour le rapport PDF / PPTX",
+      "terme_en": "⚙ Select quality rules for the PDF / PPTX report",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.688017+00:00"
+    },
+    {
+      "terme_fr": "✕ Réinitialiser",
+      "terme_en": "✕ Reset",
+      "note": "",
+      "updated_at": "2026-07-02T12:38:52.568679+00:00"
+    },
+    {
+      "terme_fr": "💻 Générer PPTX",
+      "terme_en": "💻 Generate PPTX",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.694474+00:00"
+    },
+    {
+      "terme_fr": "📈 Générer Excel",
+      "terme_en": "📈 Generate Excel",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.701757+00:00"
+    },
+    {
+      "terme_fr": "📊 Générer PDF",
+      "terme_en": "📊 Generate PDF",
+      "note": "",
+      "updated_at": "2026-07-01T17:28:57.708289+00:00"
+    }
+  ]
+}

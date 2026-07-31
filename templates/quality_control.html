@@ -193,6 +193,15 @@
 
         {% if can_manage %}
         <div class="flex flex-wrap items-center justify-end gap-2">
+            <button id="openGuideModal" type="button"
+                class="btn-premium flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-900 rounded-xl hover:bg-slate-50 shadow-sm active:scale-95 transition-all">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                    </path>
+                </svg>
+                <span class="text-[10px] font-black uppercase tracking-widest">{{ "Guide"|t }}</span>
+            </button>
             <button id="openRuleModal"
                 class="btn-premium flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl shadow-xl hover:shadow-emerald-900/20 active:scale-95 transition-all">
                 <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -464,6 +473,18 @@
 
                             {% if can_manage %}
                             <div class="flex items-center gap-2">
+                                <a href="{% url 'kyc:duplicate_quality_rule' rule.id %}"
+                                    class="w-12 h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-2xl hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-sm"
+                                    title="{{ 'Dupliquer'|t }}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-width="2"
+                                            d="M8 8h10a2 2 0 012 2v8a2 2 0 01-2 2H8a2 2 0 01-2-2V10a2 2 0 012-2z">
+                                        </path>
+                                        <path stroke-width="2"
+                                            d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2">
+                                        </path>
+                                    </svg>
+                                </a>
                                 <a href="{% url 'kyc:edit_quality_rule' rule.id %}"
                                     class="w-12 h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-2xl hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm"
                                     title="{{ 'Modifier'|t }}">
@@ -633,6 +654,239 @@
 </div>
 
 
+<div id="guideModal"
+    class="fixed inset-0 z-[110] hidden overflow-y-auto bg-slate-900/80 backdrop-blur-xl p-4 lg:p-12 animate-in fade-in duration-500">
+    <div class="flex items-start justify-center min-h-full">
+        <div
+            class="relative w-full max-w-5xl bg-white rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden my-8 animate-in zoom-in-95 duration-500">
+
+            <div class="px-10 py-8 bg-slate-900 flex justify-between items-center sticky top-0 z-10">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                            </path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-black text-white uppercase tracking-widest">{{ "Guide des règles"|t }}</h2>
+                        <p class="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">
+                            {{ "Opérateurs, valeurs à saisir et pièges à éviter"|t }}</p>
+                    </div>
+                </div>
+                <button id="closeGuideModal" type="button"
+                    class="h-12 w-12 flex items-center justify-center rounded-2xl bg-white/5 hover:bg-white/10 text-white transition-all">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-6 lg:p-10 space-y-10 text-slate-700">
+
+                {# ── 1. Principe ── #}
+                <section class="space-y-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-1.5 h-6 bg-slate-900 rounded-full"></div>
+                        <h3 class="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">
+                            {{ "1. Comment une règle est évaluée"|t }}</h3>
+                    </div>
+                    <p class="text-sm leading-relaxed">
+                        {{ "Une règle détecte une ANOMALIE. Chaque nœud est une condition ; si l'ensemble est vrai pour un client, ce client est compté comme non conforme."|t }}
+                    </p>
+                    <div class="p-6 bg-slate-900 rounded-3xl space-y-3">
+                        <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                            {{ "Combinaison ET / OU"|t }}</div>
+                        <ul class="text-xs text-slate-300 space-y-2 leading-relaxed">
+                            <li>{{ "• Le connecteur OU ouvre un nouveau groupe."|t }}</li>
+                            <li>{{ "• Les nœuds d'un même groupe sont reliés par ET."|t }}</li>
+                            <li>{{ "• Anomalie détectée si AU MOINS UN groupe est entièrement vrai."|t }}</li>
+                            <li>{{ "• Le connecteur du 1er nœud est ignoré."|t }}</li>
+                        </ul>
+                        <div class="pt-3 border-t border-white/10">
+                            <div class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                                {{ "Exemple : pour obtenir (A ET B) OU (B ET C)"|t }}</div>
+                            <code class="block text-xs font-mono text-emerald-300 leading-relaxed">
+1. A &nbsp;(connecteur ignoré)<br>
+2. ET&nbsp; B<br>
+3. OU&nbsp; B &nbsp;&larr; ouvre le 2<sup>e</sup> groupe<br>
+4. ET&nbsp; C
+                            </code>
+                        </div>
+                        <p class="text-[10px] text-slate-500 leading-relaxed pt-2">
+                            {{ "L'imbrication A ET (B OU C) n'existe pas : il faut la développer en (A ET B) OU (A ET C)."|t }}
+                        </p>
+                    </div>
+                </section>
+
+                {# ── 2. Contenir exactement une expression ── #}
+                <section class="space-y-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
+                        <h3 class="text-xs font-black text-emerald-600 uppercase tracking-[0.3em]">
+                            {{ "2. « Le champ contient exactement telle expression »"|t }}</h3>
+                    </div>
+                    <p class="text-sm leading-relaxed">
+                        {{ "C'est la question la plus fréquente. Trois opérateurs se ressemblent mais ne font pas la même chose :"|t }}
+                    </p>
+                    <div class="overflow-x-auto rounded-3xl border border-slate-200">
+                        <table class="w-full text-xs">
+                            <thead class="bg-slate-50">
+                                <tr class="text-left text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                    <th class="px-5 py-4">{{ "Opérateur"|t }}</th>
+                                    <th class="px-5 py-4">{{ "Valeur à saisir"|t }}</th>
+                                    <th class="px-5 py-4">{{ "Se déclenche quand"|t }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="bg-emerald-50/40">
+                                    <td class="px-5 py-4 font-black text-emerald-700">{{ "Contient le mot exact"|t }}</td>
+                                    <td class="px-5 py-4 font-mono">ELEVE</td>
+                                    <td class="px-5 py-4 leading-relaxed">
+                                        {{ "L'expression apparaît comme mot entier, où qu'elle soit dans le champ."|t }}<br>
+                                        <span class="text-emerald-700 font-bold">« ELEVE,ETUDIANT » → oui</span><br>
+                                        <span class="text-red-500 font-bold">« RELEVEUR » → non</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-5 py-4 font-black">{{ "Contient"|t }}</td>
+                                    <td class="px-5 py-4 font-mono">ELEVE</td>
+                                    <td class="px-5 py-4 leading-relaxed">
+                                        {{ "L'expression apparaît n'importe où, même collée à d'autres lettres."|t }}<br>
+                                        <span class="text-emerald-700 font-bold">« ELEVE,ETUDIANT » → oui</span><br>
+                                        <span class="text-amber-600 font-bold">« RELEVEUR » → oui (faux positif)</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-5 py-4 font-black">{{ "Égal à (=)"|t }}</td>
+                                    <td class="px-5 py-4 font-mono">ELEVE</td>
+                                    <td class="px-5 py-4 leading-relaxed">
+                                        {{ "Le champ vaut exactement cette valeur, RIEN d'autre."|t }}<br>
+                                        <span class="text-red-500 font-bold">« ELEVE,ETUDIANT » → non</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-5 bg-emerald-50 border border-emerald-200 rounded-3xl text-xs leading-relaxed">
+                        <span class="font-black text-emerald-700 uppercase tracking-widest text-[9px]">{{ "À retenir"|t }}</span><br>
+                        {{ "« Contient le mot exact » est presque toujours le bon choix pour PROFESSION, ORIGINE_REV ou tout champ texte multi-valeurs. Il accepte aussi une expression de plusieurs mots (ex. DE SECURITE) et ignore les majuscules/minuscules."|t }}
+                    </div>
+                </section>
+
+                {# ── 3. Tableau des opérateurs ── #}
+                <section class="space-y-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+                        <h3 class="text-xs font-black text-blue-600 uppercase tracking-[0.3em]">
+                            {{ "3. Tous les opérateurs et la valeur attendue"|t }}</h3>
+                    </div>
+                    <div class="overflow-x-auto rounded-3xl border border-slate-200">
+                        <table class="w-full text-xs">
+                            <thead class="bg-slate-50">
+                                <tr class="text-left text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                    <th class="px-5 py-4">{{ "Opérateur"|t }}</th>
+                                    <th class="px-5 py-4">{{ "Valeur"|t }}</th>
+                                    <th class="px-5 py-4">{{ "Signification"|t }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 align-top">
+                                <tr><td class="px-5 py-3 font-bold">{{ "Est vide"|t }}</td><td class="px-5 py-3 text-slate-400 italic">{{ "aucune"|t }}</td><td class="px-5 py-3">{{ "Champ non renseigné."|t }}</td></tr>
+                                <tr><td class="px-5 py-3 font-bold">{{ "N'est pas vide"|t }}</td><td class="px-5 py-3 text-slate-400 italic">{{ "aucune"|t }}</td><td class="px-5 py-3">{{ "Champ renseigné."|t }}</td></tr>
+                                <tr><td class="px-5 py-3 font-bold">{{ "Est expiré"|t }}</td><td class="px-5 py-3 text-slate-400 italic">{{ "aucune"|t }}</td><td class="px-5 py-3">{{ "Date strictement antérieure à aujourd'hui. Un champ date vide n'est JAMAIS expiré."|t }}</td></tr>
+                                <tr><td class="px-5 py-3 font-bold">{{ "Égal à (=) / Différent de (≠)"|t }}</td><td class="px-5 py-3 font-mono">Risque eleve</td><td class="px-5 py-3">{{ "Comparaison exacte du champ entier. Sensible aux majuscules et aux accents : saisir la valeur telle qu'elle existe en base."|t }}</td></tr>
+                                <tr><td class="px-5 py-3 font-bold">{{ "> < ≥ ≤"|t }}</td><td class="px-5 py-3 font-mono">50000000</td><td class="px-5 py-3">{{ "Comparaison numérique. Saisir le nombre sans espace ni séparateur de milliers. Un champ vide ou non numérique ne se déclenche jamais."|t }}</td></tr>
+                                <tr><td class="px-5 py-3 font-bold">{{ "Contient le mot exact"|t }}</td><td class="px-5 py-3 font-mono">RETRAITE</td><td class="px-5 py-3">{{ "Mot ou expression entière, casse ignorée. Voir la section 2."|t }}</td></tr>
+                                <tr><td class="px-5 py-3 font-bold">{{ "Contient / Ne contient pas"|t }}</td><td class="px-5 py-3 font-mono">RETRAIT</td><td class="px-5 py-3">{{ "Fragment de texte n'importe où, casse ignorée. Utile pour couvrir plusieurs variantes (RETRAIT couvre RETRAITE et RETRAITES)."|t }}</td></tr>
+                                <tr><td class="px-5 py-3 font-bold">{{ "Contient des lettres / des chiffres"|t }}</td><td class="px-5 py-3 text-slate-400 italic">{{ "aucune"|t }}</td><td class="px-5 py-3">{{ "Détecte un caractère alphabétique (resp. numérique) dans le champ. Typiquement pour un téléphone pollué."|t }}</td></tr>
+                                <tr><td class="px-5 py-3 font-bold">{{ "Longueur minimum"|t }}</td><td class="px-5 py-3 font-mono">8</td><td class="px-5 py-3 bg-amber-50">{{ "ATTENTION : se déclenche si la longueur est INFÉRIEURE à la valeur. C'est un contrôle d'anomalie « trop court ». Un champ vide (longueur 0) est donc signalé : ajouter un nœud « N'est pas vide » si ce n'est pas voulu."|t }}</td></tr>
+                                <tr><td class="px-5 py-3 font-bold">{{ "Longueur maximum"|t }}</td><td class="px-5 py-3 font-mono">15</td><td class="px-5 py-3">{{ "Se déclenche si la longueur est SUPÉRIEURE à la valeur (« trop long »)."|t }}</td></tr>
+                                <tr><td class="px-5 py-3 font-bold">{{ "Âge supérieur à / inférieur à"|t }}</td><td class="px-5 py-3 font-mono">100</td><td class="px-5 py-3">{{ "Nombre d'années entier. À utiliser sur un champ date (DATNAIS)."|t }}</td></tr>
+                                <tr><td class="px-5 py-3 font-bold">{{ "Expression régulière"|t }}</td><td class="px-5 py-3 font-mono">^7[0-9]{8}$</td><td class="px-5 py-3">{{ "Pour les formats stricts. Réservé aux utilisateurs avertis : une expression invalide ne remonte aucune anomalie, sans message d'erreur."|t }}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                {# ── 4. Pièges ── #}
+                <section class="space-y-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-1.5 h-6 bg-amber-500 rounded-full"></div>
+                        <h3 class="text-xs font-black text-amber-600 uppercase tracking-[0.3em]">
+                            {{ "4. Pièges courants"|t }}</h3>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs leading-relaxed">
+                        <div class="p-5 bg-amber-50 border border-amber-200 rounded-3xl">
+                            <div class="font-black text-amber-700 uppercase tracking-widest text-[9px] mb-2">{{ "Majuscules et accents"|t }}</div>
+                            {{ "Les opérateurs « Contient » et « Contient le mot exact » ignorent la casse, mais PAS les accents : « Retraité » ne correspond pas à « RETRAITE ». Préférer une racine sans accent (RETRAIT)."|t }}
+                        </div>
+                        <div class="p-5 bg-amber-50 border border-amber-200 rounded-3xl">
+                            <div class="font-black text-amber-700 uppercase tracking-widest text-[9px] mb-2">{{ "Égal à (=)"|t }}</div>
+                            {{ "Sensible à la casse. « risque eleve » ne correspond PAS à « Risque eleve ». Vérifier l'orthographe exacte utilisée dans les données."|t }}
+                        </div>
+                        <div class="p-5 bg-amber-50 border border-amber-200 rounded-3xl">
+                            <div class="font-black text-amber-700 uppercase tracking-widest text-[9px] mb-2">{{ "Champs vides"|t }}</div>
+                            {{ "Une comparaison numérique (>, <) sur un champ vide ne se déclenche jamais. Pour cibler les champs non renseignés, utiliser « Est vide »."|t }}
+                        </div>
+                        <div class="p-5 bg-amber-50 border border-amber-200 rounded-3xl">
+                            <div class="font-black text-amber-700 uppercase tracking-widest text-[9px] mb-2">{{ "Conditions contradictoires"|t }}</div>
+                            {{ "« Longueur < 8 » ET « Longueur > 15 » sur le même champ ne remontera jamais rien. Pour un format invalide dans les deux sens, relier les deux nœuds par OU."|t }}
+                        </div>
+                    </div>
+                </section>
+
+                {# ── 5. Exemples ── #}
+                <section class="space-y-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-1.5 h-6 bg-slate-900 rounded-full"></div>
+                        <h3 class="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">
+                            {{ "5. Exemples de règles"|t }}</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="p-5 bg-slate-50 rounded-3xl border border-slate-200">
+                            <div class="font-black text-slate-900 text-xs mb-2">{{ "Retraité avec un revenu positif"|t }}</div>
+                            <code class="text-[11px] font-mono text-slate-600 leading-relaxed">
+                                PROFESSION contient le mot exact RETRAITE<br>
+                                ET&nbsp; SALAIRE &gt; 0
+                            </code>
+                        </div>
+                        <div class="p-5 bg-slate-50 rounded-3xl border border-slate-200">
+                            <div class="font-black text-slate-900 text-xs mb-2">{{ "Téléphone au format invalide (trop court, trop long ou avec des lettres)"|t }}</div>
+                            <code class="text-[11px] font-mono text-slate-600 leading-relaxed">
+                                TEL longueur &lt; 8<br>
+                                OU&nbsp; TEL longueur &gt; 15<br>
+                                OU&nbsp; TEL contient des lettres
+                            </code>
+                        </div>
+                        <div class="p-5 bg-slate-50 rounded-3xl border border-slate-200">
+                            <div class="font-black text-slate-900 text-xs mb-2">{{ "Client scolarisé de plus de 21 ans (deux libellés possibles)"|t }}</div>
+                            <code class="text-[11px] font-mono text-slate-600 leading-relaxed">
+                                PROFESSION contient le mot exact ELEVE<br>
+                                ET&nbsp; DATNAIS âge &gt; 21<br>
+                                OU&nbsp; PROFESSION contient le mot exact ETUDIANT<br>
+                                ET&nbsp; DATNAIS âge &gt; 21
+                            </code>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        {{ "L'aperçu « Formule évaluée », affiché en haut du bloc Conditions logiques, reconstruit la formule en direct pendant la saisie : le vérifier avant d'enregistrer."|t }}
+                    </p>
+                </section>
+            </div>
+
+            <div class="px-10 py-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button id="closeGuideModalFooter" type="button"
+                    class="px-10 py-4 bg-slate-900 text-white text-xs font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-emerald-600 transition-all active:scale-95">
+                    {{ "Fermer"|t }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <div id="ruleModal"
     class="fixed inset-0 z-[100] hidden overflow-y-auto bg-slate-900/80 backdrop-blur-xl p-4 lg:p-12 animate-in fade-in duration-500">
     <div class="flex items-start justify-center min-h-full">
@@ -709,6 +963,18 @@
                             </div>
 
                             {{ formset.management_form }}
+
+                            <div class="mb-4 p-5 bg-slate-900 rounded-2xl">
+                                <div class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                                    {{ "Formule évaluée"|t }}
+                                </div>
+                                <code id="formulaPreview"
+                                    class="block text-xs font-mono text-emerald-300 leading-relaxed break-words"></code>
+                                <div class="text-[9px] text-slate-500 mt-3 leading-relaxed">
+                                    {{ "Le connecteur OU ouvre un nouveau groupe. Les conditions d'un même groupe sont reliées par ET. L'anomalie est détectée si au moins un groupe est entièrement vrai."|t }}
+                                </div>
+                            </div>
+
                             <div id="conditionContainer"
                                 class="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
                                 {% for f in formset %}
@@ -719,6 +985,8 @@
                                             class="w-10 h-10 flex items-center justify-center rounded-2xl bg-blue-50 text-blue-600 text-sm font-black shadow-inner">#</span>
                                         <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                             {{ "Noeud Logique"|t }}</h4>
+                                        <span
+                                            class="js-group-badge ml-auto px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-widest"></span>
                                     </div>
                                     <div class="condition-logic-block flex items-center gap-3 -mt-1 mb-1">
                                         <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">{{ "Relié à la condition précédente par"|t }}</span>
@@ -839,6 +1107,30 @@
         openBtn.addEventListener('click', () => toggleModal(true));
         closeBtns.forEach(btn => btn?.addEventListener('click', () => toggleModal(false)));
 
+        // Modale d'aide : opérateurs, valeurs attendues, combinaison ET/OU.
+        const guideModal = document.getElementById('guideModal');
+        const toggleGuide = (show) => {
+            if (!guideModal) return;
+            guideModal.classList.toggle('hidden', !show);
+            // La modale de création peut rester ouverte derrière : on ne rétablit
+            // le défilement que si plus aucune modale n'est visible.
+            const anyOpen = !guideModal.classList.contains('hidden')
+                || !modal.classList.contains('hidden');
+            document.body.style.overflow = anyOpen ? 'hidden' : 'auto';
+        };
+
+        document.getElementById('openGuideModal')?.addEventListener('click', () => toggleGuide(true));
+        document.getElementById('closeGuideModal')?.addEventListener('click', () => toggleGuide(false));
+        document.getElementById('closeGuideModalFooter')?.addEventListener('click', () => toggleGuide(false));
+        guideModal?.addEventListener('click', (e) => {
+            if (e.target === guideModal) toggleGuide(false);
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && guideModal && !guideModal.classList.contains('hidden')) {
+                toggleGuide(false);
+            }
+        });
+
         // Labels en franà§ais
         const fieldLabels = {
             id_name: 'Nom de la règle',
@@ -901,20 +1193,86 @@
             });
         }
 
+        // Libellés lisibles des opérateurs pour l'aperçu de formule.
+        const operatorLabels = {
+            '=': '=', '!=': '≠', '>': '>', '<': '<', '>=': '≥', '<=': '≤',
+            'contains': 'contient', 'not_contains': 'ne contient pas',
+            'word_contains': 'contient le mot', 'word_not_contains': 'ne contient pas le mot',
+            'contains_alpha': 'contient des lettres', 'contains_digit': 'contient des chiffres',
+            'regex': 'regex', 'is_empty': 'est vide', 'is_not_empty': "n'est pas vide",
+            'expired': 'est expiré', 'age_gt': 'âge >', 'age_lt': 'âge <',
+            'min_length': 'longueur <', 'max_length': 'longueur >'
+        };
+
+        // Découpe les noeuds en groupes : un connecteur OU démarre un nouveau groupe,
+        // les noeuds d'un même groupe sont reliés par ET (forme normale disjonctive,
+        // identique à _dq_conditions_flag côté serveur).
+        function readGroups() {
+            const groups = [];
+            let kept = 0;
+            document.querySelectorAll('#conditionContainer .condition-row').forEach((row) => {
+                const del = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+                if (del && del.checked) return;
+                const field = row.querySelector('select[name$="-field_name"]')?.value || '';
+                const op = row.querySelector('select[name$="-operator"]')?.value || '';
+                const val = row.querySelector('[name$="-value"]')?.value || '';
+                const logic = row.querySelector('.js-cond-logic')?.value || 'AND';
+                // Le connecteur du 1er noeud conservé est ignoré côté serveur.
+                if (kept === 0 || logic === 'OR') groups.push([]);
+                kept += 1;
+                groups[groups.length - 1].push({ row, field, op, val });
+            });
+            return groups;
+        }
+
+        function updateGroupsAndFormula() {
+            const groups = readGroups();
+            const parts = [];
+
+            groups.forEach((group, gi) => {
+                const chunks = [];
+                group.forEach(node => {
+                    const badge = node.row.querySelector('.js-group-badge');
+                    if (badge) badge.textContent = `Groupe ${gi + 1}`;
+                    if (!node.field || !node.op) return;
+                    const label = operatorLabels[node.op] || node.op;
+                    const noValue = ['is_empty', 'is_not_empty', 'expired',
+                        'contains_alpha', 'contains_digit'].includes(node.op);
+                    chunks.push(noValue ? `${node.field} ${label}`
+                        : `${node.field} ${label} ${node.val || '?'}`);
+                });
+                if (chunks.length) parts.push(`(${chunks.join(' ET ')})`);
+            });
+
+            const preview = document.getElementById('formulaPreview');
+            if (preview) {
+                preview.textContent = parts.length
+                    ? parts.join('  OU  ')
+                    : 'Aucune condition complète — la règle ne remontera aucune anomalie.';
+            }
+        }
+
         function refreshAllNodes() {
             document.querySelectorAll('.condition-row').forEach(row => {
                 updateFieldsInRow(row);
                 handleOperatorChange(row);
             });
             updateLogicVisibility();
+            updateGroupsAndFormula();
         }
 
         applicabilitySelect?.addEventListener('change', refreshAllNodes);
 
         document.addEventListener('change', (e) => {
-            if (e.target.name && e.target.name.endsWith('-operator')) {
+            if (!e.target.name || !e.target.name.startsWith('conditions-')) return;
+            if (e.target.name.endsWith('-operator')) {
                 handleOperatorChange(e.target.closest('.condition-row'));
             }
+            updateGroupsAndFormula();
+        });
+
+        document.addEventListener('input', (e) => {
+            if (e.target.name && e.target.name.endsWith('-value')) updateGroupsAndFormula();
         });
 
         // Forcer le type composite et cacher le champ
@@ -948,6 +1306,7 @@
                 updateFieldsInRow(newRow);
                 handleOperatorChange(newRow);
                 updateLogicVisibility();
+                updateGroupsAndFormula();
 
                 container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
             });

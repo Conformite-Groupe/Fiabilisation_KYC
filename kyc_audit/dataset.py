@@ -17,7 +17,6 @@ from .config import DEVISES_LOCALES, RISQUE_ELEVE
 
 csv.field_size_limit(10_000_000)
 
-# tabulation, espace, insécable (U+00A0), insécable étroit (U+202F), espace chiffre (U+2007)
 _ESPACES = re.compile("[\t    ]+")
 
 
@@ -82,7 +81,6 @@ class Table:
         self.typologie = typologie
         self._idx = {h: i for i, h in enumerate(header)}
 
-    # -- accès --------------------------------------------------------------
     def col(self, name):
         name = self.ALIAS.get(name, name)
         return self._idx.get(name)
@@ -104,7 +102,6 @@ class Table:
     def __len__(self):
         return len(self.rows)
 
-    # -- segments -----------------------------------------------------------
     @staticmethod
     def _jetons(v):
         return [t.strip().upper() for t in (v or "").split(",") if t.strip()]
@@ -153,7 +150,6 @@ def charger(path, typologie, verbose=True):
         rows.append([nettoyer(x) for x in r])
     f.close()
 
-    # Colonnes fantômes de l'export R (V31, V32...) : entièrement vides
     fantomes = [h for i, h in enumerate(header)
                 if re.fullmatch(r"V\d+", h) and not any(r[i] for r in rows)]
 

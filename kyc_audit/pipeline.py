@@ -17,7 +17,6 @@ def _segments(t, champs, regles, filiale, typologie, today):
     if t.a_colonne("PPE"):
         defs.insert(0, ("Clients PPE", t.segment_ppe()))
 
-    # Union sans double compte (les segments se recoupent)
     vus, union = set(), []
     for _, s in defs:
         for r in s.rows:
@@ -36,7 +35,6 @@ def _segments(t, champs, regles, filiale, typologie, today):
             "scoring": scoring.analyser(s, today) if len(s) else None,
         }
 
-    # Détail des devises étrangères rencontrées (jetons, hors devises locales)
     from .config import DEVISES_LOCALES
     devises = Counter()
     for r in t.rows:
@@ -60,7 +58,6 @@ def _segments(t, champs, regles, filiale, typologie, today):
         out["_croisements"]["PPE et devise étrangère"] = \
             sum(1 for r in t.rows if t.est_ppe(r) and t.est_devise_etrangere(r))
 
-    # Part de clients à risque élevé dans chaque segment sensible
     for libelle, s in defs:
         out[libelle]["risque_eleve"] = sum(1 for r in s.rows if s.est_risque_eleve(r))
     return out
@@ -84,7 +81,6 @@ def _profil_risque_eleve(t, champs, regles, filiale, typologie, today, qualite_g
         "devise_etrangere": sum(1 for r in s.rows if s.est_devise_etrangere(r)),
         "ppe": sum(1 for r in s.rows if s.est_ppe(r)) if t.a_colonne("PPE") else None,
     }
-    # Anomalies par règle, rapprochées du portefeuille global pour comparaison
     if n:
         global_par_nom = {r["nom"]: r for r in qualite_globale["regles"]}
         for r in bloc["qualite"]["regles"]:
@@ -124,7 +120,7 @@ def _champs_vides(t, candidats):
     for c in candidats:
         i = t.col(c)
         if i is None:
-            out[c] = None                       # absent de l'export
+            out[c] = None
             continue
         remplis = sum(1 for r in t.rows if r[i])
         out[c] = round(remplis / len(t) * 100, 1) if len(t) else 0.0

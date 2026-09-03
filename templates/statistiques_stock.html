@@ -194,7 +194,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const datesPM = JSON.parse(document.getElementById('dates-pm-data').textContent);
     const tauxPM = JSON.parse(document.getElementById('taux-pm-data').textContent);
 
-    // 1. KPI & Variations
     const updateKPI = (idVal, idVar, data) => {
         if(data.length > 0) {
             const last = data[data.length - 1];
@@ -212,7 +211,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updateKPI('valPP', 'varPP', tauxPP);
     updateKPI('valPM', 'varPM', tauxPM);
 
-    // 2. Tableau
     const tbody = document.getElementById('tableBody');
     datesPP.forEach((date, i) => {
         const row = `<tr class="hover:bg-slate-50 transition-all">
@@ -223,7 +221,6 @@ document.addEventListener('DOMContentLoaded', function() {
         tbody.insertAdjacentHTML('afterbegin', row);
     });
 
-    // 3. Graphiques
     const getOptions = (lineColor) => ({
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },

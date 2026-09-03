@@ -81,11 +81,20 @@ def _logo_path():
     return None
 
 
+def _fmt_pct(rate, dash="—"):
+    """Taux en % : sans décimale s'il est entier (cas complétude, tronquée),
+    sinon une décimale."""
+    if rate is None:
+        return dash
+    rate = float(rate)
+    return f"{rate:.0f}%" if rate.is_integer() else f"{rate:.1f}%"
+
+
 def _rate_color(rate, threshold):
-    """Retourne la couleur en fonction du taux (vert ou rouge uniquement)."""
+    """Retourne la couleur en fonction du taux (vert ou orange uniquement)."""
     if rate is None:
         return BOA_SLATE
-    return BOA_RED if rate < threshold else BOA_GREEN
+    return BOA_AMBER if rate < threshold else BOA_GREEN
 
 
 def _rate_color_pptx(rate, threshold):
@@ -171,7 +180,7 @@ def _build_pdf_styles():
         ),
         "kpi_value_red": ParagraphStyle(
             "kpi_value_red", parent=base["Normal"],
-            fontName="Helvetica-Bold", fontSize=22, textColor=BOA_RED,
+            fontName="Helvetica-Bold", fontSize=22, textColor=BOA_AMBER,
             leading=26, alignment=TA_CENTER,
         ),
         "th": ParagraphStyle(
@@ -275,7 +284,7 @@ def _build_completeness_bar_chart(rows, threshold, max_items=15):
     bc.bars[0].strokeColor = None
 
                                           
-    bc.barLabelFormat = '%0.1f%%'
+    bc.barLabelFormat = '%d%%'
     bc.barLabels.fontName = "Helvetica-Bold"
     bc.barLabels.fontSize = 6
     bc.barLabels.fillColor = BOA_BLUE
@@ -347,7 +356,7 @@ def _build_quality_bar_chart(rows, threshold, max_items=15):
     bc.bars[0].strokeColor = None
 
                                           
-    bc.barLabelFormat = '%0.1f%%'
+    bc.barLabelFormat = '%d%%'
     bc.barLabels.fontName = "Helvetica-Bold"
     bc.barLabels.fontSize = 6
     bc.barLabels.fillColor = BOA_BLUE
@@ -446,7 +455,7 @@ class _HeaderFooterCanvas(pdfcanvas.Canvas):
             self.setFillColor(BOA_WHITE)
             self.setFont("Helvetica-Bold", 8)
             self.drawString(0.5 * cm, h - HEADER_H + 0.70 * cm,
-                            "RAPPORT DE PILOTAGE KYC — BOA GROUP")
+                            "RAPPORT DE PILOTAGE KYC")
             self.setFont("Helvetica", 7)
             self.drawString(0.5 * cm, h - HEADER_H + 0.35 * cm,
                             f"Périmètre : {self._scope_label}  |  Seuil : {self._threshold:.1f}%")
@@ -483,12 +492,12 @@ class _HeaderFooterCanvas(pdfcanvas.Canvas):
 
             self.setFillColor(BOA_WHITE)
             self.setFont("Helvetica-Bold", 7)
-            self.drawString(0.5 * cm, 0.32 * cm, "BOA Group — Confidentiel")
+            self.drawString(0.5 * cm, 0.32 * cm, "BOA Group")
 
             self.setFont("Helvetica", 7)
             self.drawCentredString(
                 w / 2, 0.32 * cm,
-                f"Rapport généré automatiquement le {self._date_str} — Ne pas diffuser sans autorisation"
+                f"Rapport généré automatiquement le {self._date_str}"
             )
 
                                                       
@@ -513,11 +522,66 @@ _PDF_PAGE_TITLES = {
 }
 
 
-def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
+def _build_filiale_rates_table(filiale_rates, threshold, styles):
+    """Tableau de synthèse filiale par filiale (rapport GROUPE)."""
+    headers = ["Filiale", "Clients", "Complétude", "dont PP", "dont PM",
+               "Qualité", "dont PP", "dont PM", ""]
+    col_widths = [3.2 * cm, 1.7 * cm, 1.8 * cm, 1.5 * cm, 1.5 * cm,
+                  1.6 * cm, 1.5 * cm, 1.5 * cm, 3.0 * cm]
+
+    def _cell(rate):
+        color = _rate_color(rate, threshold)
+        return Paragraph(
+            _fmt_pct(rate),
+            ParagraphStyle("r", fontName="Helvetica-Bold", fontSize=7,
+                           textColor=color, alignment=TA_RIGHT, leading=9),
+        )
+
+    table_data = [[Paragraph(h, styles["th"]) for h in headers]]
+    for fr in filiale_rates:
+        total_clients = (fr.get("total_pp") or 0) + (fr.get("total_pm") or 0)
+        table_data.append([
+            Paragraph(fr.get("filiale", ""), styles["td_bold"]),
+            Paragraph(f"{total_clients:,}".replace(",", " "), styles["td_right"]),
+            _cell(fr.get("comp_global")),
+            _cell(fr.get("comp_pp")),
+            _cell(fr.get("comp_pm")),
+            _cell(fr.get("qual_global")),
+            _cell(fr.get("qual_pp")),
+            _cell(fr.get("qual_pm")),
+            RateBar(fr.get("comp_global"), threshold, width=55, height=7),
+        ])
+
+    t = Table(table_data, colWidths=col_widths, repeatRows=1)
+    style = TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), BOA_GREEN),
+        ("TEXTCOLOR", (0, 0), (-1, 0), BOA_WHITE),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 7),
+        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 1), (-1, -1), 7),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BOA_WHITE, BOA_GRAY]),
+        ("GRID", (0, 0), (-1, -1), 0.3, BOA_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ("ALIGN", (1, 0), (7, -1), "RIGHT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ])
+    for i, fr in enumerate(filiale_rates, start=1):
+        cg = fr.get("comp_global")
+        if cg is not None and cg < threshold:
+            style.add("BACKGROUND", (0, i), (-1, i), colors.HexColor("#fff7ed"))
+    t.setStyle(style)
+    return t
+
+
+def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows, filiale_rates=None,
+                        notations_list=None, notation_kpis=None):
     """
     Génère un rapport PDF professionnel avec logo BOA, graphiques et tableaux.
-    - Logo BOA en haut à droite sur chaque page
-    - Sommaire sur la page 2
+    - Logo BOA + synthèse des indicateurs clés sur la page de garde
     - Titre de section (bandeau bleu) en haut à droite
     - Pied de page avec numérotation
     Retourne un HttpResponse avec le PDF en pièce jointe.
@@ -639,6 +703,62 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
                 cnv.setFont("Helvetica-Bold", 11)
                 cnv.drawString(col_x, ph * 0.27 - 0.5 * cm, value)
 
+
+
+            comp_rate = summary.get("completeness_rate")
+            qual_rate = summary.get("quality_rate")
+            low_comp = summary.get("low_completeness_count", 0)
+            low_qual = summary.get("low_quality_count", 0)
+
+            def _kpi_fg(rate, is_count=False):
+                if is_count:
+                    return BOA_AMBER if rate > 0 else BOA_GREEN
+                if rate is None:
+                    return BOA_SLATE
+                return BOA_AMBER if rate < threshold else BOA_GREEN
+
+            kpis = [
+                ("TAUX DE COMPLÉTUDE", _fmt_pct(comp_rate), comp_rate, False),
+                ("TAUX DE QUALITÉ", _fmt_pct(qual_rate), qual_rate, False),
+                ("CHAMPS SOUS SEUIL", str(low_comp), low_comp, True),
+                ("RÈGLES SOUS SEUIL", str(low_qual), low_qual, True),
+            ]
+
+            margin_x = 1.5 * cm
+            gap = 0.35 * cm
+            card_w = (pw - 2 * margin_x - 3 * gap) / 4
+            card_h = 2.3 * cm
+            band_h = 0.55 * cm
+            card_top = 0.9 * cm
+
+            cnv.setFillColor(BOA_BLUE)
+            cnv.setFont("Helvetica-Bold", 8)
+            cnv.drawString(margin_x, card_top + card_h + 0.2 * cm, "SYNTHÈSE DES INDICATEURS CLÉS")
+
+            for i, (label, val_str, raw, is_count) in enumerate(kpis):
+                cx = margin_x + i * (card_w + gap)
+                accent = _kpi_fg(raw, is_count)
+
+
+                cnv.setFillColor(BOA_WHITE)
+                cnv.setStrokeColor(BOA_BORDER)
+                cnv.setLineWidth(0.75)
+                cnv.roundRect(cx, card_top, card_w, card_h, 4, fill=1, stroke=1)
+
+
+                cnv.setFillColor(accent)
+                cnv.rect(cx, card_top + card_h - band_h, card_w, band_h, fill=1, stroke=0)
+
+                cnv.setFillColor(BOA_WHITE)
+                cnv.setFont("Helvetica-Bold", 6.5)
+                cnv.drawCentredString(cx + card_w / 2,
+                                      card_top + card_h - band_h / 2 - 0.07 * cm, label)
+
+                cnv.setFillColor(accent)
+                cnv.setFont("Helvetica-Bold", 18)
+                cnv.drawCentredString(cx + card_w / 2,
+                                      card_top + (card_h - band_h) / 2 - 0.15 * cm, val_str)
+
         def wrap(self, *args):
             return A4
 
@@ -648,219 +768,73 @@ def export_pilotage_pdf(scope_data, summary, completeness_rows, quality_rows):
     story.append(NextPageTemplate("normal"))
     story.append(PageBreak())
 
-                                                             
-                       
-                                                             
 
-    story.append(Spacer(1, 0.5 * cm))
-    story.append(SetSectionTitle("SOMMAIRE"))
-    story.append(Paragraph("SOMMAIRE", styles["toc_title"]))
-    story.append(HRFlowable(width="100%", thickness=2, color=BOA_BLUE, spaceAfter=12))
-    story.append(Spacer(1, 0.3 * cm))
 
-    toc_entries = [
-        ("01", "Synthèse des Indicateurs Clés",
-         "Taux global de complétude, taux de qualité, champs et règles sous seuil", 3),
-        ("02", "Détail Complétude",
-         "Champs sous le seuil défini avec barres de progression", 4),
-        ("03", "Vue d'ensemble Complétude",
-         "Tous les champs — tableau complet avec indicateurs", 5),
-        ("04", "Détail Qualité",
-         "Règles de qualité sous le seuil avec indicateurs visuels", 6),
-        ("05", "Vue d'ensemble Qualité",
-         "Toutes les règles qualité — tableau complet", 7),
-    ]
 
-    for num, titre, desc, page_num in toc_entries:
-                        
-        entry_data = [[
-            Paragraph(
-                f'<font color="#1B2A4A"><b>{num}</b></font>',
-                ParagraphStyle("toc_num", fontName="Helvetica-Bold",
-                               fontSize=14, textColor=BOA_BLUE,
-                               leading=18, alignment=TA_CENTER)
-            ),
-            Table(
-                [
-                    [Paragraph(titre, styles["toc_entry"])],
-                    [Paragraph(desc, styles["toc_sub"])],
-                ],
-                colWidths=[13 * cm],
-            ),
-            Paragraph(
-                f'<font color="#64748b">p. {page_num}</font>',
-                ParagraphStyle("toc_pg", fontName="Helvetica",
-                               fontSize=9, textColor=BOA_SLATE,
-                               leading=14, alignment=TA_RIGHT)
-            ),
-        ]]
-        entry_t = Table(entry_data, colWidths=[1.2 * cm, 14 * cm, 1.8 * cm])
-        entry_t.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("BACKGROUND", (0, 0), (0, 0), BOA_BLUE),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("LEFTPADDING", (0, 0), (-1, -1), 6),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-            ("LINEBELOW", (0, 0), (-1, -1), 0.5, BOA_BORDER),
-        ]))
-        story.append(entry_t)
-        story.append(Spacer(1, 0.25 * cm))
-
-    story.append(PageBreak())
-
-                                                             
-                           
-                                                             
-    story.append(SetSectionTitle("SYNTHÈSE DES INDICATEURS CLÉS"))
-
-                   
-    story.append(_section_header("📊  Synthèse des Indicateurs Clés", styles))
-    story.append(Spacer(1, 0.4 * cm))
-
-                    
-    comp_rate = summary.get("completeness_rate")
-    qual_rate = summary.get("quality_rate")
-    low_comp = summary.get("low_completeness_count", 0)
-    low_qual = summary.get("low_quality_count", 0)
-
-    def _kpi_cell(label, value, unit="", red=False):
-        style_v = styles["kpi_value_red"] if red else styles["kpi_value"]
-        val_str = f"{value:.1f}" if isinstance(value, float) else str(value)
-        return [
-            Paragraph(label, styles["kpi_label"]),
-            Paragraph(f"{val_str}{unit}", style_v),
-        ]
-
-    def _kpi_bg(rate, threshold, is_count=False):
-        if is_count:
-            return BOA_RED_LIGHT if rate > 0 else BOA_GREEN_LIGHT
-        if rate is None:
-            return BOA_GRAY
-        if rate < threshold:
-            return BOA_RED_LIGHT
-        return BOA_GREEN_LIGHT
-
-    kpi_data = [[
-        _kpi_cell("TAUX DE COMPLÉTUDE", comp_rate if comp_rate is not None else "—", "%",
-                  red=(comp_rate is not None and comp_rate < threshold)),
-        _kpi_cell("TAUX DE QUALITÉ", qual_rate if qual_rate is not None else "—", "%",
-                  red=(qual_rate is not None and qual_rate < threshold)),
-        _kpi_cell("CHAMPS SOUS SEUIL", low_comp, "", red=low_comp > 0),
-        _kpi_cell("RÈGLES SOUS SEUIL", low_qual, "", red=low_qual > 0),
-    ]]
-
-    kpi_table = Table(kpi_data, colWidths=[4.5 * cm] * 4, rowHeights=None)
-    kpi_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (0, 0), _kpi_bg(comp_rate, threshold)),
-        ("BACKGROUND", (1, 0), (1, 0), _kpi_bg(qual_rate, threshold)),
-        ("BACKGROUND", (2, 0), (2, 0), _kpi_bg(low_comp, threshold, is_count=True)),
-        ("BACKGROUND", (3, 0), (3, 0), _kpi_bg(low_qual, threshold, is_count=True)),
-        ("ROUNDEDCORNERS", [8, 8, 8, 8]),
-        ("BOX", (0, 0), (-1, -1), 0, colors.white),
-        ("INNERGRID", (0, 0), (-1, -1), 0.5 * mm, colors.white),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-        ("LEFTPADDING", (0, 0), (-1, -1), 5),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-    ]))
-    story.append(kpi_table)
-    story.append(Spacer(1, 0.6 * cm))
-
-                                                             
-    if completeness_rows:
-        story.append(Paragraph("Taux de complétude par champ", styles["chart_title"]))
-        chart = _build_completeness_bar_chart(completeness_rows, threshold)
-        if chart:
-            story.append(chart)
-        story.append(Spacer(1, 0.3 * cm))
-                 
-        legend_data = [["■ Sous le seuil", "■ Proche du seuil", "■ Conforme", "– – Seuil"]]
-        leg = Table(legend_data, colWidths=[3.5 * cm, 3.5 * cm, 3.5 * cm, 3.5 * cm])
-        leg.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-            ("FONTSIZE", (0, 0), (-1, -1), 7),
-            ("TEXTCOLOR", (0, 0), (0, 0), BOA_RED),
-            ("TEXTCOLOR", (1, 0), (1, 0), BOA_AMBER),
-            ("TEXTCOLOR", (2, 0), (2, 0), BOA_GREEN),
-            ("TEXTCOLOR", (3, 0), (3, 0), BOA_RED),
-            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-        ]))
-        story.append(leg)
-        story.append(Spacer(1, 0.6 * cm))
-
-                                                            
-    if quality_rows:
-        story.append(Paragraph("Taux de conformité par règle qualité", styles["chart_title"]))
-        chart_q = _build_quality_bar_chart(quality_rows, threshold)
-        if chart_q:
-            story.append(chart_q)
-        story.append(Spacer(1, 0.3 * cm))
-                         
-        legend_data = [["■ Sous le seuil", "■ Proche du seuil", "■ Conforme", "– – Seuil"]]
-        leg_q = Table(legend_data, colWidths=[3.5 * cm, 3.5 * cm, 3.5 * cm, 3.5 * cm])
-        leg_q.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-            ("FONTSIZE", (0, 0), (-1, -1), 7),
-            ("TEXTCOLOR", (0, 0), (0, 0), BOA_RED),
-            ("TEXTCOLOR", (1, 0), (1, 0), BOA_AMBER),
-            ("TEXTCOLOR", (2, 0), (2, 0), BOA_GREEN),
-            ("TEXTCOLOR", (3, 0), (3, 0), BOA_RED),
-            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-        ]))
-        story.append(leg_q)
-        story.append(Spacer(1, 0.4 * cm))
-
-    story.append(PageBreak())
-
-                                                             
-                                 
-                                                             
     story.append(SetSectionTitle("DÉTAIL COMPLÉTUDE"))
-
-    story.append(_section_header("📋  Détail Complétude — Champs sous seuil", styles))
+    story.append(_section_header("📋  Détail Complétude — Particuliers & Entreprises", styles))
     story.append(Spacer(1, 0.4 * cm))
 
-    below_comp = [r for r in completeness_rows if r.get("is_below_threshold")]
-    if below_comp:
-        story.append(_build_completeness_table(below_comp, threshold, styles, scope_label))
-    else:
-        story.append(Paragraph("✓ Aucun champ n'est sous le seuil défini.", styles["body"]))
+    def _sort_desc(rows):
+        return sorted(rows, key=lambda r: r["rate"] if r.get("rate") is not None else -1, reverse=True)
 
-                                                       
-    if completeness_rows:
-        story.append(PageBreak())
-        story.append(SetSectionTitle("VUE D'ENSEMBLE COMPLÉTUDE"))
-        story.append(_section_header("📋  Vue d'ensemble — Tous les champs", styles))
-        story.append(Spacer(1, 0.4 * cm))
-        story.append(_build_completeness_table(completeness_rows, threshold, styles, scope_label, full=True))
+    comp_rows_pp = _sort_desc([r for r in completeness_rows if r.get("type") == "PP"])
+    comp_rows_pm = _sort_desc([r for r in completeness_rows if r.get("type") == "PM"])
+
+    story.append(Paragraph("Clients PP", styles["chart_title"]))
+    if comp_rows_pp:
+        story.append(_build_completeness_table(comp_rows_pp, threshold, styles, scope_label, full=True))
+    else:
+        story.append(Paragraph("Aucune donnée disponible.", styles["body"]))
+    story.append(Spacer(1, 0.5 * cm))
+
+    story.append(Paragraph("Clients PM", styles["chart_title"]))
+    if comp_rows_pm:
+        story.append(_build_completeness_table(comp_rows_pm, threshold, styles, scope_label, full=True))
+    else:
+        story.append(Paragraph("Aucune donnée disponible.", styles["body"]))
 
     story.append(PageBreak())
 
-                                                             
-                              
-                                                             
-    story.append(SetSectionTitle("DÉTAIL QUALITÉ"))
 
-    story.append(_section_header("🔍  Détail Qualité — Règles sous seuil", styles))
+
+
+    story.append(SetSectionTitle("QUALITÉ — PARTICULIERS"))
+    story.append(_section_header("🔍  Taux de Qualité — Clients PP", styles))
     story.append(Spacer(1, 0.4 * cm))
 
-    below_qual = [r for r in quality_rows if r.get("is_below_threshold")]
-    if below_qual:
-        story.append(_build_quality_table(below_qual, threshold, styles))
+    qual_rows_pp = _sort_desc([r for r in quality_rows if r.get("type") == "PP"])
+    if qual_rows_pp:
+        story.append(_build_quality_table(qual_rows_pp, threshold, styles, full=True))
     else:
-        story.append(Paragraph("✓ Aucune règle qualité n'est sous le seuil défini.", styles["body"]))
+        story.append(Paragraph("Aucune règle qualité pour ce périmètre.", styles["body"]))
 
-    if quality_rows:
-        story.append(PageBreak())
-        story.append(SetSectionTitle("VUE D'ENSEMBLE QUALITÉ"))
-        story.append(_section_header("🔍  Vue d'ensemble — Toutes les règles", styles))
-        story.append(Spacer(1, 0.4 * cm))
-        story.append(_build_quality_table(quality_rows, threshold, styles, full=True))
+    story.append(PageBreak())
 
-                                                                  
+
+
+
+    story.append(SetSectionTitle("QUALITÉ — ENTREPRISES"))
+    story.append(_section_header("🔍  Taux de Qualité — Clients PM", styles))
+    story.append(Spacer(1, 0.4 * cm))
+
+    qual_rows_pm = _sort_desc([r for r in quality_rows if r.get("type") == "PM"])
+    if qual_rows_pm:
+        story.append(_build_quality_table(qual_rows_pm, threshold, styles, full=True))
+    else:
+        story.append(Paragraph("Aucune règle qualité pour ce périmètre.", styles["body"]))
+
+    story.append(PageBreak())
+
+
+
+
+    story.append(SetSectionTitle("NOTATION DES AGENTS"))
+    story.append(_section_header("🏅  Notation des Agents", styles))
+    story.append(Spacer(1, 0.4 * cm))
+    story.extend(_build_notations_pdf_section(notation_kpis or {}, notations_list or [], scope, styles))
+
+
     def _make_canvas(*args, **kwargs):
         return _HeaderFooterCanvas(
             *args,
@@ -909,7 +883,7 @@ def _rate_badge(rate, threshold, styles):
     color = _rate_color(rate, threshold)
     color_hex = color.hexval() if hasattr(color, 'hexval') else "#64748b"
                                             
-    rate_str = f"{rate:.1f}%"
+    rate_str = _fmt_pct(rate)
     style = ParagraphStyle(
         "badge", fontName="Helvetica-Bold", fontSize=8,
         textColor=color, alignment=TA_RIGHT, leading=10,
@@ -928,7 +902,7 @@ def _build_completeness_table(rows, threshold, styles, scope_label, full=False):
     for row in rows[:max_rows]:
         rate = row.get("rate")
         color = _rate_color(rate, threshold)
-        rate_str = f"{rate:.1f}%" if rate is not None else "—"
+        rate_str = _fmt_pct(rate)
         rate_style = ParagraphStyle(
             "r", fontName="Helvetica-Bold", fontSize=8,
             textColor=color, alignment=TA_RIGHT, leading=10,
@@ -966,7 +940,7 @@ def _build_completeness_table(rows, threshold, styles, scope_label, full=False):
                                    
     for i, row in enumerate(rows[:max_rows], start=1):
         if row.get("is_below_threshold"):
-            style.add("BACKGROUND", (0, i), (-1, i), colors.HexColor("#fff5f5"))
+            style.add("BACKGROUND", (0, i), (-1, i), colors.HexColor("#fff7ed"))
 
     t.setStyle(style)
     return t
@@ -983,7 +957,7 @@ def _build_quality_table(rows, threshold, styles, full=False):
     for row in rows[:max_rows]:
         rate = row.get("rate")
         color = _rate_color(rate, threshold)
-        rate_str = f"{rate:.1f}%" if rate is not None else "—"
+        rate_str = _fmt_pct(rate)
         rate_style = ParagraphStyle(
             "r", fontName="Helvetica-Bold", fontSize=8,
             textColor=color, alignment=TA_RIGHT, leading=10,
@@ -1019,15 +993,132 @@ def _build_quality_table(rows, threshold, styles, full=False):
 
     for i, row in enumerate(rows[:max_rows], start=1):
         if row.get("is_below_threshold"):
-            style.add("BACKGROUND", (0, i), (-1, i), colors.HexColor("#fff5f5"))
+            style.add("BACKGROUND", (0, i), (-1, i), colors.HexColor("#fff7ed"))
 
     t.setStyle(style)
     return t
 
 
-                                                                                 
-                                                    
-                                                                                 
+def _dedupe_latest_notation_per_agent(notations_list):
+    """Une seule notation par agent (la plus récente) : les graphiques/répartitions
+    de notation portent sur les agents évalués, pas sur l'historique complet des
+    évaluations (un même agent noté plusieurs fois ne doit compter qu'une fois).
+    notations_list doit déjà être trié du plus récent au plus ancien."""
+    seen = set()
+    result = []
+    for n in notations_list:
+        agent_id = getattr(getattr(n, "agent", None), "pk", None)
+        if agent_id in seen:
+            continue
+        seen.add(agent_id)
+        result.append(n)
+    return result
+
+
+def _build_notations_pdf_section(notation_kpis, notations_list, scope, styles):
+    """Construit les flowables de la page Notation des Agents (PDF)."""
+    elements = []
+
+    total_agents = notation_kpis.get("total_agents", 0)
+    excellence = notation_kpis.get("excellence_rate", 0.0)
+
+    kpi_data = [[
+        [Paragraph("AGENTS ÉVALUÉS", styles["kpi_label"]), Paragraph(str(total_agents), styles["kpi_value"])],
+        [Paragraph("TAUX D'EXCELLENCE", styles["kpi_label"]), Paragraph(f"{excellence:.1f}%", styles["kpi_value"])],
+    ]]
+    kpi_table = Table(kpi_data, colWidths=[9 * cm] * 2)
+    kpi_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), BOA_GRAY),
+        ("ROUNDEDCORNERS", [8, 8, 8, 8]),
+        ("BOX", (0, 0), (-1, -1), 0, colors.white),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5 * mm, colors.white),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+    ]))
+    elements.append(kpi_table)
+    elements.append(Spacer(1, 0.6 * cm))
+
+    grades = ["Très Bien", "Bien", "Passable", "Insuffisant"]
+    latest_per_agent = _dedupe_latest_notation_per_agent(notations_list)
+    overall = {g: 0 for g in grades}
+    by_fil = {}
+    for n in latest_per_agent:
+        note = getattr(n, "note", None)
+        fil = getattr(getattr(n, "agent", None), "filiale", None) or "—"
+        if note in overall:
+            overall[note] += 1
+        d = by_fil.setdefault(fil, {g: 0 for g in grades})
+        if note in d:
+            d[note] += 1
+
+    if not notations_list:
+        elements.append(Paragraph("Aucune notation enregistrée pour ce périmètre.", styles["body"]))
+        return elements
+
+    total_all = sum(overall.values()) or 1
+    headers = ["Note", "Nombre", "Pourcentage"]
+    table_data = [[Paragraph(h, styles["th"]) for h in headers]]
+    for g in grades:
+        table_data.append([
+            Paragraph(g, styles["td_bold"]),
+            Paragraph(str(overall[g]), styles["td_right"]),
+            Paragraph(f"{100.0 * overall[g] / total_all:.1f}%", styles["td_right"]),
+        ])
+    t = Table(table_data, colWidths=[6 * cm, 4 * cm, 4 * cm], repeatRows=1)
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), BOA_GREEN),
+        ("TEXTCOLOR", (0, 0), (-1, 0), BOA_WHITE),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 8),
+        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 1), (-1, -1), 8),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BOA_WHITE, BOA_GRAY]),
+        ("GRID", (0, 0), (-1, -1), 0.3, BOA_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    elements.append(Paragraph("Répartition par type d'évaluation", styles["chart_title"]))
+    elements.append(t)
+
+    if scope == "groupe" and by_fil:
+        elements.append(Spacer(1, 0.5 * cm))
+        elements.append(Paragraph("Notations par filiale", styles["chart_title"]))
+        headers2 = ["Filiale"] + grades + ["Total"]
+        table_data2 = [[Paragraph(h, styles["th"]) for h in headers2]]
+        for fil in sorted(by_fil.keys()):
+            d = by_fil[fil]
+            tot = sum(d.values())
+            table_data2.append(
+                [Paragraph(fil, styles["td_bold"])] +
+                [Paragraph(str(d[g]), styles["td_right"]) for g in grades] +
+                [Paragraph(str(tot), styles["td_right"])]
+            )
+        colw2 = [3.5 * cm] + [2.7 * cm] * 4 + [2 * cm]
+        t2 = Table(table_data2, colWidths=colw2, repeatRows=1)
+        t2.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BOA_GREEN),
+            ("TEXTCOLOR", (0, 0), (-1, 0), BOA_WHITE),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 7.5),
+            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 1), (-1, -1), 7.5),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BOA_WHITE, BOA_GRAY]),
+            ("GRID", (0, 0), (-1, -1), 0.3, BOA_BORDER),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+        elements.append(t2)
+
+    return elements
+
+
+
+
+
 
 def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
                          notations_list=None, notation_kpis=None, filiale_rates=None):
@@ -1048,6 +1139,8 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
     _MOIS_FR    = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
                    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
     mois_str    = f"{_MOIS_FR[_now.month]} {_now.year}"
+    _derniere_maj = summary.get("derniere_maj_kyc")
+    maj_str     = f"Données KYC mises à jour le {_derniere_maj.strftime('%d/%m/%Y')}" if _derniere_maj else ""
 
     prs = Presentation()
     prs.slide_width  = Inches(10)
@@ -1069,8 +1162,8 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
     if has_notation:
         toc.append(("III", "Notation des agents"))
 
-                                                                                
-    _bx_cover(prs, scope_label, mois_str)
+
+    _bx_cover(prs, scope_label, mois_str, maj_str)
 
                                                                                 
     _bx_sommaire(prs, toc)
@@ -1079,17 +1172,21 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
     s = _bx_section(prs, "I", "COMPLÉTUDE DES DONNÉES")
     _bx_kpi_triple(
         s, "COMPLÉTUDE DES DONNÉES",
-        ("Global", summary.get("completeness_rate"), True),
-        ("PP — Particuliers", summary.get("completeness_rate_pp"), True),
-        ("PM — Entreprises", summary.get("completeness_rate_pm"), True),
+        ("Global", summary.get("completeness_rate"), True,
+         f"{_fmt_int(summary.get('completeness_total', 0))} clients analysés · "
+         f"{summary.get('low_completeness_count', 0)} champ(s) sous seuil"),
+        ("PP — Particuliers", summary.get("completeness_rate_pp"), True,
+         f"{_fmt_int(summary.get('completeness_total_pp', 0))} clients analysés · "
+         f"{summary.get('low_completeness_count_pp', 0)} champ(s) sous seuil"),
+        ("PM — Entreprises", summary.get("completeness_rate_pm"), True,
+         f"{_fmt_int(summary.get('completeness_total_pm', 0))} clients analysés · "
+         f"{summary.get('low_completeness_count_pm', 0)} champ(s) sous seuil"),
         threshold,
-        footer_left=f"{summary.get('low_completeness_count', 0)} champ(s) sous {threshold:.0f}%",
-        footer_right=f"{_fmt_int(summary.get('completeness_total', 0))} clients analysés",
     )
     _bx_dual_charts(
         s, threshold,
         comp_pp, comp_pm, "rate", "field_label",
-        "Taux par champ — Particuliers (PP)", "Taux par champ — Entreprises (PM)",
+        "Taux par champ — Clients PP", "Taux par champ — Clients PM",
         label_max=22,
     )
 
@@ -1099,47 +1196,30 @@ def export_pilotage_pptx(scope_data, summary, completeness_rows, quality_rows,
         _bx_sublabel(s, "TAUX DE COMPLÉTUDE PAR FILIALE (GLOBAL · PP · PM)")
         _bx_filiale_rates_chart(s, filiale_rates, "comp_global", "comp_pp", "comp_pm", threshold)
 
-                                                          
-                                                                             
-                                                           
-    CHUNK = 10
 
-    def _worst_first(rows):
-        return sorted(rows, key=lambda r: (r.get("rate") is None, r.get("rate") or 0))
 
-    def _chunks(rows):
-        rows = _worst_first(rows)
-        return [rows[i:i + CHUNK] for i in range(0, len(rows), CHUNK)] or [[]]
 
-    pp_chunks = _chunks(qual_pp)
-    pm_chunks = _chunks(qual_pm)
-    n_qual_slides = max(len(pp_chunks), len(pm_chunks))
-
-    for idx in range(n_qual_slides):
-        part = f" ({idx + 1}/{n_qual_slides})" if n_qual_slides > 1 else ""
-        s = _bx_section(prs, "II", "QUALITÉ DES DONNÉES" + part)
-                                                                         
-        if idx == 0:
-            _bx_kpi_triple(
-                s, "QUALITÉ DES DONNÉES",
-                ("Global", summary.get("quality_rate"), True),
-                ("PP — Particuliers", summary.get("quality_rate_pp"), True),
-                ("PM — Entreprises", summary.get("quality_rate_pm"), True),
-                threshold,
-                footer_left=f"{summary.get('low_quality_count', 0)} règle(s) sous {threshold:.0f}%",
-                footer_right="",
-            )
-        pp_c = pp_chunks[idx] if idx < len(pp_chunks) else []
-        pm_c = pm_chunks[idx] if idx < len(pm_chunks) else []
-        suff_pp = f" — bloc {idx + 1}/{len(pp_chunks)}" if len(pp_chunks) > 1 else ""
-        suff_pm = f" — bloc {idx + 1}/{len(pm_chunks)}" if len(pm_chunks) > 1 else ""
-        _bx_dual_charts(
-            s, threshold,
-            pp_c, pm_c, "rate", "rule_name",
-            f"Conformité par règle — Particuliers (PP){suff_pp}",
-            f"Conformité par règle — Entreprises (PM){suff_pm}",
-            label_max=200,
-        )
+    s = _bx_section(prs, "II", "QUALITÉ DES DONNÉES")
+    _bx_kpi_triple(
+        s, "QUALITÉ DES DONNÉES",
+        ("Global", summary.get("quality_rate"), True,
+         f"{_fmt_int(summary.get('completeness_total', 0))} clients analysés · "
+         f"{summary.get('low_quality_count', 0)} règle(s) sous seuil"),
+        ("PP — Particuliers", summary.get("quality_rate_pp"), True,
+         f"{_fmt_int(summary.get('completeness_total_pp', 0))} clients analysés · "
+         f"{summary.get('low_quality_count_pp', 0)} règle(s) sous seuil"),
+        ("PM — Entreprises", summary.get("quality_rate_pm"), True,
+         f"{_fmt_int(summary.get('completeness_total_pm', 0))} clients analysés · "
+         f"{summary.get('low_quality_count_pm', 0)} règle(s) sous seuil"),
+        threshold,
+    )
+    _bx_dual_charts(
+        s, threshold,
+        qual_pp, qual_pm, "rate", "rule_name",
+        "Conformité par règle — Clients PP",
+        "Conformité par règle — Clients PM",
+        label_max=500, label_wrap=30,
+    )
 
                                                            
     if scope == "groupe" and filiale_rates:
@@ -1195,7 +1275,7 @@ BX_AMBER      = RGBColor(0xF5, 0xA6, 0x23)
 BX_CYAN       = RGBColor(0x29, 0xAB, 0xE2)                
 
 _FONT = "Calibri"
-_FOOTER_TXT = "Conformité BOA Group | Pôle Projet"
+_FOOTER_TXT = "Conformité BOA Group"
 
 
 def _roman(n):
@@ -1345,7 +1425,7 @@ def _bx_sublabel(slide, text, top=0.82):
                                
                                                                                  
 
-def _bx_cover(prs, scope_label, mois_str):
+def _bx_cover(prs, scope_label, mois_str, maj_str=""):
     from pptx.util import Inches
     from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
     s = _bx_slide(prs)
@@ -1357,10 +1437,12 @@ def _bx_cover(prs, scope_label, mois_str):
     _bx_text(s, 0.5, 1.35, 7.5, 1.5, "RAPPORT DE PILOTAGE KYC", 46, BX_WHITE,
              bold=True, anchor=MSO_ANCHOR.MIDDLE)
     _bx_text(s, 0.5, 2.9, 7.5, 0.5,
-             f"SYNTHÈSE QUALITÉ & COMPLÉTUDE — PÉRIMÈTRE {scope_label.upper()}",
+             f"SYNTHÈSE QUALITÉ & COMPLÉTUDE — {scope_label.upper()}",
              14, BX_GREEN_SUB, bold=True)
     _bx_rect(s, 0.52, 3.45, 6.0, 0.045, BX_WHITE)
     _bx_text(s, 0.5, 3.65, 7.0, 0.35, mois_str, 11, RGBColor(0xD4, 0xF5, 0xE4))
+    if maj_str:
+        _bx_text(s, 0.5, 3.98, 7.5, 0.3, maj_str, 10, RGBColor(0xD4, 0xF5, 0xE4), italic=True)
     _bx_text(s, 0.5, 5.2, 7.0, 0.28, _FOOTER_TXT, 8,
              RGBColor(0xA0, 0xD4, 0xB8), italic=True)
 
@@ -1439,7 +1521,7 @@ def _bx_donut(slide, l, t, sz, rate, threshold, title):
 
                                               
     _bx_text(slide, l, t + sz / 2 - 0.32, sz, 0.6,
-             f"{r:.1f}%", 26, color, bold=True,
+             _fmt_pct(r), 26, color, bold=True,
              align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
     _bx_text(slide, l - 0.4, t + sz + 0.05, sz + 0.8, 0.3, title, 11, BX_NAVY,
              bold=True, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
@@ -1449,8 +1531,10 @@ def _bx_donut(slide, l, t, sz, rate, threshold, title):
 
 def _bx_hbar_chart(slide, rows, threshold, value_key, label_key, type_key=None,
                    top=1.55, left=0.4, width=9.2, max_items=11, label_max=34,
-                   font_sz=8.5, max_h=3.55, vmax=100, return_bottom=False):
-    """Graphique à barres horizontales natif, points colorés selon le seuil."""
+                   font_sz=8.5, max_h=3.55, vmax=100, return_bottom=False, label_wrap=None):
+    """Graphique à barres horizontales natif, points colorés selon le seuil.
+    label_wrap : si défini, affiche le libellé entier sur plusieurs lignes (largeur en
+    caractères) au lieu de le tronquer avec label_max."""
     from pptx.util import Inches, Pt
     from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
     from pptx.chart.data import CategoryChartData
@@ -1467,7 +1551,12 @@ def _bx_hbar_chart(slide, rows, threshold, value_key, label_key, type_key=None,
     for it in items:
         rate = it.get(value_key) or 0
         typ = str(it.get(type_key, "")).strip() if type_key else ""
-        lab = _trunc(it.get(label_key, ""), label_max)
+        raw_label = str(it.get(label_key, "") or "")
+        if label_wrap:
+            import textwrap
+            lab = "\n".join(textwrap.wrap(raw_label, width=label_wrap)) or raw_label
+        else:
+            lab = _trunc(raw_label, label_max)
         cats.append(f"{typ}  {lab}" if typ else lab)
         vals.append(round(float(rate), 1))
         colors.append(_bx_rate_color(rate, threshold))
@@ -1488,7 +1577,7 @@ def _bx_hbar_chart(slide, rows, threshold, value_key, label_key, type_key=None,
     plot.gap_width = 55
     plot.has_data_labels = True
     dl = plot.data_labels
-    dl.number_format = '0.0"%"'
+    dl.number_format = '0.#"%"'
     dl.number_format_is_linked = False
     dl.position = XL_LABEL_POSITION.OUTSIDE_END
     dl.font.size = Pt(font_sz)
@@ -1613,9 +1702,10 @@ def _bx_end(prs, scope_label, mois_str):
              RGBColor(0xD4, 0xF5, 0xE4), italic=True)
 
 
-def _bx_kpi_triple(slide, header, c1, c2, c3, threshold, footer_left="", footer_right=""):
+def _bx_kpi_triple(slide, header, c1, c2, c3, threshold):
     """Carte KPI 3 colonnes (Global / PP / PM) calquée sur la page pilotage.
-    Chaque colonne ci = (label, valeur_float_ou_None, est_pourcentage)."""
+    Chaque colonne ci = (label, valeur_float_ou_None, est_pourcentage, sous_texte_optionnel)
+    — le sous-texte (ex. "12 345 clients · 3 sous seuil") s'affiche sous chaque bloc."""
     from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 
     L, T, W = 0.4, 1.1, 9.2
@@ -1630,7 +1720,10 @@ def _bx_kpi_triple(slide, header, c1, c2, c3, threshold, footer_left="", footer_
 
     cols = [c1, c2, c3]
     cw = W / 3.0
-    for i, (label, val, is_pct) in enumerate(cols):
+    fy = T + HEAD + BODY + 0.02
+    for i, col in enumerate(cols):
+        label, val, is_pct = col[0], col[1], col[2]
+        foot = col[3] if len(col) > 3 else ""
         cx = L + i * cw
         if i > 0:
             _bx_rect(slide, cx, T + HEAD + 0.08, 0.008, BODY - 0.16, BX_DIVIDER)
@@ -1640,7 +1733,7 @@ def _bx_kpi_triple(slide, header, c1, c2, c3, threshold, footer_left="", footer_
         if val is None:
             valtxt, color = "—", BX_MUTED
         elif is_pct:
-            valtxt = f"{val:.1f}%"
+            valtxt = _fmt_pct(val)
             color = _bx_rate_color(val, threshold)
         else:
             valtxt, color = _fmt_int(val), BX_NAVY
@@ -1653,20 +1746,16 @@ def _bx_kpi_triple(slide, header, c1, c2, c3, threshold, footer_left="", footer_
             by0 = T + HEAD + 0.66
             _bx_rect(slide, bx0, by0, bw, 0.08, BX_TRACK)
             _bx_rect(slide, bx0, by0, bw * max(0, min(val, 100)) / 100.0, 0.08, color)
-
-    fy = T + HEAD + BODY + 0.02
-    if footer_left:
-        _bx_text(slide, L + 0.15, fy, W / 2, FOOT, footer_left, 8.5, BX_MUTED,
-                 bold=True, anchor=MSO_ANCHOR.MIDDLE)
-    if footer_right:
-        _bx_text(slide, L + W / 2 - 0.15, fy, W / 2, FOOT, footer_right, 8.5, BX_MUTED,
-                 align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE)
+        if foot:
+            _bx_text(slide, cx + 0.05, fy, cw - 0.1, FOOT, foot, 7.5, BX_MUTED,
+                     align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
 
 
 def _bx_dual_charts(slide, threshold, rows_l, rows_r, value_key, label_key,
-                    title_l, title_r, label_max=22, max_items=None):
+                    title_l, title_r, label_max=22, max_items=None, label_wrap=None):
     """Deux graphiques à barres côte à côte (PP / PM) + légende de seuil partagée.
-    max_items=None affiche tous les champs (dimensionnement dynamique)."""
+    max_items=None affiche tous les champs (dimensionnement dynamique).
+    label_wrap : voir _bx_hbar_chart (affiche les libellés entiers sur plusieurs lignes)."""
     from pptx.enum.text import MSO_ANCHOR
 
     def _worst_first(rows):
@@ -1683,28 +1772,26 @@ def _bx_dual_charts(slide, threshold, rows_l, rows_r, value_key, label_key,
                  anchor=MSO_ANCHOR.MIDDLE)
         _bx_hbar_chart(slide, _worst_first(rows), threshold, value_key, label_key,
                        type_key=None, top=ctop, left=left, width=4.45,
-                       max_items=cap, label_max=label_max, font_sz=fs, max_h=max_h, vmax=120)
+                       max_items=cap, label_max=label_max, font_sz=fs, max_h=max_h, vmax=120,
+                       label_wrap=label_wrap)
 
     _bx_legend(slide, 4.98, threshold, x=2.6)
 
 
 def _bx_notation(slide, kpis, notations_list, scope="groupe"):
-    """Slide notation : 3 KPI + (groupe) barres par filiale + anneau de répartition,
+    """Slide notation : 2 KPI + (groupe) barres par filiale + anneau de répartition,
     (filiale) uniquement l'anneau de répartition par type d'évaluation."""
     from pptx.enum.text import MSO_ANCHOR
 
     _bx_sublabel(slide, "PERFORMANCE DES AGENTS NOTÉS")
 
     total_agents = kpis.get("total_agents", 0)
-    total_notes  = kpis.get("total_notations", 0)
     excellence   = kpis.get("excellence_rate", 0.0)
 
-    cw, gap = 2.97, 0.145
+    cw, gap = 4.53, 0.145
     _bx_kpi_card(slide, 0.4, 1.2, cw, 1.15, "AGENTS ÉVALUÉS", _fmt_int(total_agents),
-                 BX_NAVY, sub="portefeuille unique")
-    _bx_kpi_card(slide, 0.4 + (cw + gap), 1.2, cw, 1.15, "TOTAL ÉVALUATIONS",
-                 _fmt_int(total_notes), BX_GREEN, sub="historique complet")
-    _bx_kpi_card(slide, 0.4 + 2 * (cw + gap), 1.2, cw, 1.15, "TAUX D'EXCELLENCE",
+                 BX_NAVY, sub="chargé(s) de compte")
+    _bx_kpi_card(slide, 0.4 + (cw + gap), 1.2, cw, 1.15, "TAUX D'EXCELLENCE",
                  f"{excellence:.1f}%", BX_GREEN, sub="notes « Bien » & « Très Bien »")
 
     grades = ["Très Bien", "Bien", "Passable", "Insuffisant"]
@@ -1712,9 +1799,10 @@ def _bx_notation(slide, kpis, notations_list, scope="groupe"):
               "Bien": RGBColor(0x3B, 0x82, 0xF6),
               "Passable": RGBColor(0xF5, 0x9E, 0x0B),
               "Insuffisant": RGBColor(0xEF, 0x44, 0x44)}
+    latest_per_agent = _dedupe_latest_notation_per_agent(notations_list)
     overall = {g: 0 for g in grades}
     by_fil = {}
-    for n in notations_list:
+    for n in latest_per_agent:
         note = getattr(n, "note", None)
         fil = getattr(getattr(n, "agent", None), "filiale", None) or "—"
         if note in overall:

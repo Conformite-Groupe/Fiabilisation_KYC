@@ -5,7 +5,7 @@ import re
 import sys
 import time
 import random
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -210,13 +210,15 @@ def build_column_plan(headers, fields, mapping):
     plan = []
     missing = []
     for field in fields:
+        max_length = getattr(field, "max_length", None)
+
         if field.name == "FILIALE":
-            plan.append((field.name, None))
+            plan.append((field.name, None, max_length))
             continue
 
         candidates = [normalize_header(candidate) for candidate in mapping.get(field.name, [field.name])]
         idx = next((header_positions[candidate] for candidate in candidates if candidate in header_positions), None)
-        plan.append((field.name, idx))
+        plan.append((field.name, idx, max_length))
         if idx is None:
             missing.append(field.name)
 
@@ -225,7 +227,7 @@ def build_column_plan(headers, fields, mapping):
 
 def row_to_values(row, plan, filiale_value):
     values = []
-    for field_name, idx in plan:
+    for field_name, idx, max_length in plan:
         if field_name == "FILIALE":
             value = filiale_value
         elif idx is None or idx >= len(row):
@@ -238,6 +240,12 @@ def row_to_values(row, plan, filiale_value):
 
         if field_name in DATE_TEXT_FIELDS and value:
             value = normalize_date_text(value)
+
+        if max_length and len(value) > max_length:
+            logger.warning(
+                f"Valeur tronquee pour {field_name}: {len(value)} caracteres > {max_length}."
+            )
+            value = value[:max_length]
 
         values.append(value)
     return tuple(values)
@@ -297,6 +305,42 @@ def build_insert_sql(model, columns):
     return f"INSERT INTO {table} ({column_sql}) VALUES ({placeholders})"
 
 
+_FAST_EXECUTEMANY_LOGGED = False
+
+
+def enable_fast_executemany(cursor):
+    """Active fast_executemany sur le curseur pyodbc sous-jacent.
+
+    Django enveloppe le curseur (CursorWrapper -> curseur mssql-django ->
+    curseur pyodbc) : l'attribut ne se trouve pas forcement au premier niveau.
+    Sans ce reglage, pyodbc envoie UNE requete reseau PAR LIGNE — c'est la
+    difference entre ~300 et ~10 000 lignes/s sur un lien distant.
+    """
+    global _FAST_EXECUTEMANY_LOGGED
+    if not is_mssql_database():
+        return False
+
+    candidat = cursor
+    for _ in range(5):
+        if candidat is None:
+            break
+        if hasattr(candidat, "fast_executemany"):
+            candidat.fast_executemany = True
+            if not _FAST_EXECUTEMANY_LOGGED:
+                logger.info("fast_executemany ACTIF (%s).", type(candidat).__name__)
+                _FAST_EXECUTEMANY_LOGGED = True
+            return True
+        candidat = getattr(candidat, "cursor", None)
+
+    if not _FAST_EXECUTEMANY_LOGGED:
+        logger.warning(
+            "fast_executemany INTROUVABLE sur le curseur : les insertions "
+            "partiront ligne par ligne (import tres lent). Verifier la version "
+            "de pyodbc / mssql-django.")
+        _FAST_EXECUTEMANY_LOGGED = True
+    return False
+
+
 def direct_insert_batch(model, columns, rows_with_lines, filename):
     if not rows_with_lines:
         return 0
@@ -307,9 +351,7 @@ def direct_insert_batch(model, columns, rows_with_lines, filename):
     def _insert_all():
         with transaction.atomic():
             with connection.cursor() as cursor:
-                raw_cursor = getattr(cursor, "cursor", None)
-                if is_mssql_database() and raw_cursor is not None and hasattr(raw_cursor, "fast_executemany"):
-                    raw_cursor.fast_executemany = True
+                enable_fast_executemany(cursor)
                 cursor.executemany(sql, rows)
         return len(rows)
 
@@ -396,6 +438,7 @@ def importer_csv_optimise(path, model, mapping, code_filiale):
 
     logger.info(f"--- Lecture de {filename} vers {model._meta.db_table} ({'SQL direct' if direct_mode else 'ORM'}) ---")
 
+    started_at = time.time()
     enc = detect_encoding(path)
     pending_rows = []
 
@@ -434,7 +477,9 @@ def importer_csv_optimise(path, model, mapping, code_filiale):
     finally:
         connection.close_if_unusable_or_obsolete()
 
-    logger.info(f"{filename}: {inserted}/{read_rows} lignes inserees.")
+    duree = max(time.time() - started_at, 0.001)
+    logger.info(f"{filename}: {inserted}/{read_rows} lignes inserees "
+                f"en {duree:.0f}s ({inserted / duree:.0f} lignes/s).")
     return inserted
 
 
@@ -480,13 +525,34 @@ def traiter_fichier_si_present(code, kind, model, mapping):
 
 
 def traiter_filiale(code):
+    """PM et PP d'une meme filiale ne partagent aucune donnee : le goulot
+    d'etranglement etant le reseau/MSSQL (pas le CPU), les importer sur deux
+    threads distincts (chacun avec sa propre connexion Django thread-locale)
+    permet de les chevaucher au lieu de les serialiser."""
     logger.info(f"\n>>> FILIALE {code}")
-    total = 0
 
+    jobs = []
     if should_import("pm"):
-        total += traiter_fichier_si_present(code, "pm", Kyc_pm, MAPPING_PM)
+        jobs.append(("pm", Kyc_pm, MAPPING_PM))
     if should_import("pp"):
-        total += traiter_fichier_si_present(code, "pp", Kyc_pp, MAPPING_PP)
+        jobs.append(("pp", Kyc_pp, MAPPING_PP))
+
+    total = 0
+    if len(jobs) > 1:
+        with ThreadPoolExecutor(max_workers=len(jobs)) as executor:
+            futures = {
+                executor.submit(traiter_fichier_si_present, code, kind, model, mapping): kind
+                for kind, model, mapping in jobs
+            }
+            for future in as_completed(futures):
+                kind = futures[future]
+                try:
+                    total += future.result()
+                except Exception as exc:
+                    logger.error(f"Erreur {kind.upper()} filiale {code}: {exc}")
+    else:
+        for kind, model, mapping in jobs:
+            total += traiter_fichier_si_present(code, kind, model, mapping)
 
     logger.info(f"FILIALE {code}: {total} lignes inserees au total.")
     return total
@@ -512,8 +578,12 @@ if __name__ == "__main__":
                                                                          
                                                                              
     if os.environ.get("KYC_PARALLEL", "0") == "1" and len(FILIALES) > 1:
-        workers = min(len(FILIALES), os.cpu_count() or 1)
-        with ProcessPoolExecutor(max_workers=workers) as executor:
+        # Threads, pas processus : le goulot est reseau/MSSQL (pas CPU), et
+        # ProcessPoolExecutor plante sous tache planifiee Windows sans stdio
+        # valide ("OSError: [WinError 6] The handle is invalid" au spawn).
+        # Chaque thread obtient sa propre connexion Django thread-locale.
+        workers = min(len(FILIALES), int(os.environ.get("KYC_MAX_WORKERS", "6")))
+        with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {executor.submit(traiter_filiale, code): code for code in FILIALES}
             for future in as_completed(futures):
                 code = futures[future]

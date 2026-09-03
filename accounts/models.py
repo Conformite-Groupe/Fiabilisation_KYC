@@ -23,7 +23,7 @@ Organe = (
 Filiales = (
     ('BOA NE', 'BOA NE'), ('BOA CI', 'BOA CI'), ('BOA TG', 'BOA TG'),
     ('BOA SN', 'BOA SN'), ('BOA ML', 'BOA ML'), ('BOA BF', 'BOA BF'),
-    ('BOA BJ', 'BOA BJ'), ('BOA RDC', 'BOA RDC'), ('CG', 'CG'),
+    ('BOA BJ', 'BOA BJ'), ('BOA CD', 'BOA CD'), ('CG', 'CG'),
     ('BCB', 'BCB'), ('BOA MR', 'BOA MR'), ('BOA MG', 'BOA MG'),
     ('BOA UG', 'BOA UG'), ('BOA TZ', 'BOA TZ'), ('BOA RW', 'BOA RW'),
     ('BOA KE', 'BOA KE'), ('BOA FR', 'BOA FR'), ('BOA KM', 'BOA KM'),

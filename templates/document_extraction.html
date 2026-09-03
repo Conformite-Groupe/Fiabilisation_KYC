@@ -1797,7 +1797,6 @@
         if (activeClientTypeInput) {
             filterDocumentTypes(activeClientTypeInput.value);
         }
-        // correction inline du type de document
         document.querySelectorAll("[data-type-edit]").forEach((button) => {
             button.addEventListener("click", () => {
                 const id = button.getAttribute("data-type-edit");
@@ -2012,7 +2011,6 @@
         pollMatchJob();
     }
 
-    // ---- Suivi OCR du lot charge (worker process_document_ocr) ----
     const ocrPanel = document.getElementById("ocr-progress-panel");
     if (ocrPanel && ocrPanel.dataset.batch) {
         const statusUrl = `${ocrPanel.dataset.statusUrl}?batch=${encodeURIComponent(ocrPanel.dataset.batch)}`;
@@ -2077,7 +2075,6 @@
         pollOcr();
     }
 
-    // ---- Rafraichissement live des lignes du tableau Suivi (statuts des rapprochements) ----
     const activeJobRows = Array.from(document.querySelectorAll("[data-match-job-row]"))
         .filter((row) => row.dataset.jobStatus === "pending" || row.dataset.jobStatus === "running");
     if (activeJobRows.length) {
@@ -2130,7 +2127,6 @@
                     if (!response.ok) return;
                     applyJobRowState(row, await response.json());
                 } catch (error) {
-                    /* reessaye au prochain cycle */
                 }
             }));
             window.setTimeout(pollJobRows, 3000);

@@ -341,7 +341,7 @@ AXES_FAILURE_LIMIT = _axes_failure_limit
 AXES_COOLOFF_TIME = _axes_cooloff_time                                        
 AXES_LOCKOUT_TEMPLATE = 'accounts/lockout.html'
 AXES_RESET_ON_SUCCESS = True                                                  
-AXES_ENABLED = not (len(sys.argv) > 1 and sys.argv[1] == 'test')
+AXES_ENABLED = False
 
                                                                                
                                                                          
@@ -367,11 +367,36 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'verbose',
         },
+                                                                               
+                                                                            
+                                                                            
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'errors.log',
+            'maxBytes': 1024 * 1024 * 10,
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
     },
     'loggers': {
         'django.security': {
             'handlers': ['security_file'],
             'level': 'WARNING',
+            'propagate': False,
+        },
+                                                                               
+                                                                             
+        'django.request': {
+            'handlers': ['error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+                                                                            
+        'kyc': {
+            'handlers': ['error_file'],
+            'level': 'ERROR',
             'propagate': False,
         },
     },

@@ -111,14 +111,12 @@
 
         const successMessage = document.getElementById("successMessage");
         if (successMessage && successMessage.innerText.trim() !== "") {
-            // Optionnel : remplacer l'alerte par une notification plus douce si vous le souhaitez
             alert(successMessage.innerText);
         }
     });
 </script>
 
 <style>
-    /* Custom Scrollbar pour le tableau sur mobile */
     .overflow-x-auto::-webkit-scrollbar { height: 4px; }
     .overflow-x-auto::-webkit-scrollbar-track { background: transparent; }
     .overflow-x-auto::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }

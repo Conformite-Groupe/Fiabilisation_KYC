@@ -83,21 +83,18 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #15803d; border-radius: 10px; }
 
-        /* état actif des liens avec dégradé institutionnel */
         .nav-link-active {
             background: linear-gradient(135deg, #15803d 0%, #166534 100%);
             color: white !important;
             box-shadow: 0 10px 15px -3px rgba(21, 128, 61, 0.2);
         }
 
-        /* Animation douce pour les menus */
         .nav-link { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 
-        /* Ajustements globaux des entêtes de tableau (th) pour un meilleur affichage des titres */
         th, thead th {
-            font-weight: 700 !important; /* Réduire le bold */
-            font-size: 8.5px !important;  /* Réduire la police */
-            letter-spacing: normal !important; /* Réduire l'espacement */
+            font-weight: 700 !important;
+            font-size: 8.5px !important;
+            letter-spacing: normal !important;
         }
         th input, thead th input {
             font-weight: normal !important;
@@ -447,7 +444,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Scroll sidebar to active link
             const activeLink = document.querySelector('.nav-link-active');
             if (activeLink) {
                 activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -459,7 +455,6 @@
                     toast.classList.remove('translate-x-full', 'opacity-0');
                     toast.classList.add('translate-x-0', 'opacity-100');
                     
-                    // Auto hide après 5 secondes
                     setTimeout(() => {
                         toast.classList.add('translate-x-full', 'opacity-0');
                         setTimeout(() => toast.remove(), 500);
@@ -502,7 +497,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const datesPP = JSON.parse('{{ dates_pp|default:"[]"|escapejs }}');
     const tauxPP  = JSON.parse('{{ taux_pp |default:"[]"|escapejs }}').map(v => (v > 100  100 : v));
 
-    // Mise à  jour des KPI boxes (on garde l'affichage individuel en haut)
     if (datesPP.length > 0) {
         document.getElementById('lastRatePP').innerText = tauxPP[tauxPP.length - 1];
         document.getElementById('lastDatePP').innerText = `Dernier : ${datesPP[datesPP.length - 1]}`;
@@ -514,7 +508,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const ctx = document.getElementById('combinedChart').getContext('2d');
 
-    // Gradients pour le remplissage (Optionnel, pour le style)
     const gradPP = ctx.createLinearGradient(0, 0, 0, 400);
     gradPP.addColorStop(0, 'rgba(16, 185, 129, 0.1)');
     gradPP.addColorStop(1, 'rgba(255, 255, 255, 0)');
@@ -526,12 +519,12 @@ document.addEventListener('DOMContentLoaded', function () {
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: datesPP.length > datesPM.length  datesPP : datesPM, // Utilise l'axe le plus long
+            labels: datesPP.length > datesPM.length  datesPP : datesPM,
             datasets: [
                 {
                     label: 'PP',
                     data: tauxPP,
-                    borderColor: '#10b981', // Emerald 500
+                    borderColor: '#10b981',
                     backgroundColor: gradPP,
                     fill: true,
                     tension: 0.4,
@@ -543,7 +536,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 {
                     label: 'PM',
                     data: tauxPM,
-                    borderColor: '#f59e0b', // Amber 500
+                    borderColor: '#f59e0b',
                     backgroundColor: gradPM,
                     fill: true,
                     tension: 0.4,
@@ -562,7 +555,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 intersect: false,
             },
             plugins: {
-                legend: { display: false }, // On utilise notre légende HTML personnalisée
+                legend: { display: false },
                 tooltip: {
                     backgroundColor: '#0f172a',
                     padding: 12,
@@ -662,12 +655,10 @@ function createLineChart(canvasId, label, labels, data, borderColor, backgroundC
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Récupération des données (assure-toi que ces variables sont envoyées par ta vue)
     const labels = JSON.parse('{{ labels_json|escapejs }}');
     const dataPM = JSON.parse('{{ data_pm_json|escapejs }}').map(v => (v > 100  100 : v));
     const dataPP = JSON.parse('{{ data_pp_json|escapejs }}').map(v => (v > 100  100 : v));
 
-    // Mise à  jour des boites KPI
     if (labels.length > 0) {
         const lastIdx = labels.length - 1;
         document.getElementById('lastRatePM').innerText = dataPM[lastIdx] || '0';
@@ -679,7 +670,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const ctx = document.getElementById('stockCanvas').getContext('2d');
 
-    // Dégradés harmonisés (Amber pour PM, Emerald pour PP)
     const gradPM = ctx.createLinearGradient(0, 0, 0, 350);
     gradPM.addColorStop(0, 'rgba(245, 158, 11, 0.1)');
     gradPM.addColorStop(1, 'rgba(255, 255, 255, 0)');
@@ -776,13 +766,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const ctx = document.getElementById('fluxCanvas').getContext('2d');
 
-    // Gradients
     const gradPM = ctx.createLinearGradient(0, 0, 0, 350);
-    gradPM.addColorStop(0, 'rgba(245, 158, 11, 0.1)'); // Amber
+    gradPM.addColorStop(0, 'rgba(245, 158, 11, 0.1)');
     gradPM.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
     const gradPP = ctx.createLinearGradient(0, 0, 0, 350);
-    gradPP.addColorStop(0, 'rgba(16, 185, 129, 0.1)'); // Emerald
+    gradPP.addColorStop(0, 'rgba(16, 185, 129, 0.1)');
     gradPP.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
     window.fluxChart = new Chart(ctx, {
@@ -850,14 +839,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const tableContainer = document.getElementById('tableContainer');
         const loadingOverlay = document.getElementById('loadingOverlay');
 
-        // Fonction pour charger la page via AJAX
         function loadPage(url) {
             loadingOverlay.classList.remove('hidden');
 
             fetch(url, {
                 method: 'GET',
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest', // Header pour indiquer à  Django que c'est de l'AJAX
+                    'X-Requested-With': 'XMLHttpRequest',
                 }
             })
             .then(response => {
@@ -867,19 +855,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return response.text();
             })
             .then(html => {
-                // 1. Remplacer le contenu du conteneur du tableau
                 tableContainer.innerHTML = html;
 
-                // 2. Remonter en haut de la page (comportement demandé)
                 window.scrollTo({ top: 0, behavior: 'smooth' });
 
-                // 3. Réattacher les écouteurs d'événements aux nouveaux liens de pagination
-                // Ceci est crucial car l'ancien HTML a été remplacé
                 attachPaginationListeners();
             })
             .catch(error => {
                 console.error('Erreur lors du chargement des données:', error);
-                // Utiliser une alerte simple pour les erreurs critiques utilisateur
                 alert("Erreur lors du chargement de la page.");
             })
             .finally(() => {
@@ -887,35 +870,27 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Fonction pour attacher les écouteurs d'événements aux liens
         function attachPaginationListeners() {
-            // Sélectionner tous les liens de pagination dans le conteneur #paginationControls qui est remplacé par AJAX
             const paginationLinks = document.querySelectorAll('#paginationControls .page-link');
 
             paginationLinks.forEach(link => {
-                // S'assurer que le gestionnaire n'est pas attaché deux fois
                 link.removeEventListener('click', handlePaginationClick);
 
-                // Ajouter le nouvel écouteur
                 link.addEventListener('click', handlePaginationClick);
             });
         }
 
-        // Gestionnaire de clic
         function handlePaginationClick(event) {
-            event.preventDefault(); // Empàªcher la navigation classique
+            event.preventDefault();
             const url = event.currentTarget.getAttribute('href');
             loadPage(url);
         }
 
-        // Attacher les écouteurs au chargement initial
         attachPaginationListeners();
 
-        // Gérer la soumission du formulaire de filtre (qui recharge toute la page)
         const filterForms = document.querySelectorAll('form[method="get"]');
         filterForms.forEach(form => {
             form.addEventListener('submit', function() {
-                // Afficher l'overlay avant la soumission du formulaire
                 loadingOverlay.classList.remove('hidden');
             });
         });

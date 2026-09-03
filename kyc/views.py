@@ -105,6 +105,20 @@ def floor_one_decimal(value):
     return math.floor(value * 10) / 10
 
 
+def _rate_floor_1dec(good, total):
+    """Taux = good / total en %, **tronqué** à 0,1 % (jamais arrondi).
+
+    Règle unique complétude / qualité pour éviter un « 100 % » trompeur :
+    - 100,0 % uniquement si good == total (0 défaut, décidé sur les compteurs) ;
+    - sinon plafonné à 99,9 % (protège d'un arrondi flottant à 100,0).
+    Renvoie None si total nul."""
+    if not total:
+        return None
+    if good >= total:
+        return 100.0
+    return min(floor_one_decimal(good / total * 100), 99.9)
+
+
 def completeness_rate_r(empty_cells, total_cells):
     """Taux de complétude selon la méthodologie du script R `calcul_de_taux.r` :
     floor(100 * (1 - cellules_vides / total_cellules)). Renvoie None si total nul.
@@ -114,22 +128,25 @@ def completeness_rate_r(empty_cells, total_cells):
     return float(math.floor(100 * (1 - empty_cells / total_cells)))
 
 
+from django.db.models.functions import Trim as _Trim
+from django.db.models import CharField as _CharField
+_CharField.register_lookup(_Trim, "trim")
+
+
 def empty_field_q(field_name):
     """Q() identifiant une valeur « vide » au sens du script R : NULL, chaîne vide
-    ou composée uniquement d'espaces (équivalent de trimws(x) == "")."""
+    ou composée uniquement d'espaces (équivalent de trimws(x) == "").
+    Utilise le lookup __trim (LTRIM/RTRIM en SQL, portable SQLite/MSSQL) plutôt
+    qu'un __regex : SQL Server n'a pas de REGEXP_LIKE natif."""
     from django.db.models import Q
     return (Q(**{f"{field_name}__isnull": True})
-            | Q(**{field_name: ""})
-            | Q(**{f"{field_name}__regex": r"^\s+$"}))
+            | Q(**{f"{field_name}__trim": ""}))
 
 def compliance_rate_floor(ok_count, total, fail_count=0):
-    if not total:
-        return None
-
-    rate = floor_one_decimal(ok_count / total * 100)
-    if fail_count > 0 and rate >= 100:
-        return 99.9
-    return rate
+    """Taux de conformité qualité, tronqué à 0,1 %. 100 % seulement si aucune
+    anomalie (ok_count == total) ; sinon plafonné à 99,9 %. `fail_count` n'est
+    plus nécessaire (conservé pour compat d'appel)."""
+    return _rate_floor_1dec(ok_count, total)
 
 def _pdf_link_callback(uri, rel):
     """Resolve static/media URIs for xhtml2pdf on local filesystem."""
@@ -9498,31 +9515,127 @@ def get_rate_color(rate, threshold):
     return "#ef4444" if rate < threshold else "#10b981"
 
 
-def export_pilotage_excel(scope_data, summary, completeness_rows, quality_rows, notations_list, notation_kpis):
+def export_pilotage_excel(scope_data, summary, completeness_rows, quality_rows, notations_list,
+                          notation_kpis, filiale_rates=None):
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
     wb = Workbook()
-    
-                       
+
+    BOA_GREEN = "0a3d2e"
+    header_fill = PatternFill("solid", fgColor=BOA_GREEN)
+    header_font = Font(bold=True, color="FFFFFF", size=10)
+    banner_fill = PatternFill("solid", fgColor=BOA_GREEN)
+    title_font = Font(bold=True, size=16, color="FFFFFF")
+    subtitle_font = Font(size=10, italic=True, color="D7E8DF")
+    ok_fill = PatternFill("solid", fgColor="E8F5EC")
+    ok_font = Font(color="0a7d34", bold=True)
+    low_fill = PatternFill("solid", fgColor="FEE2E2")
+    low_font = Font(color="B91C1C", bold=True)
+    stripe_fill = PatternFill("solid", fgColor="F7FAF8")
+    center = Alignment(horizontal='center', vertical='center')
+    left = Alignment(horizontal='left', vertical='center')
+    thin_side = Side(style='thin', color='D0D7DE')
+    thin = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+    def _style_header_row(ws, row_num=1):
+        for cell in ws[row_num]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center
+            cell.border = thin
+        ws.freeze_panes = ws.cell(row=row_num + 1, column=1).coordinate
+
+    def _style_data_rows(ws, first_row, last_col, numeric_cols=()):
+        for row_num in range(first_row, ws.max_row + 1):
+            striped = (row_num - first_row) % 2 == 1
+            for col_num in range(1, last_col + 1):
+                cell = ws.cell(row=row_num, column=col_num)
+                cell.border = thin
+                cell.alignment = center if col_num in numeric_cols else left
+                if striped:
+                    cell.fill = stripe_fill
+
+    def _style_status_col(ws, col_idx, first_row=2):
+        for row_num in range(first_row, ws.max_row + 1):
+            cell = ws.cell(row=row_num, column=col_idx)
+            if cell.value == "Sous seuil":
+                cell.fill = low_fill
+                cell.font = low_font
+            elif cell.value == "Conforme":
+                cell.fill = ok_fill
+                cell.font = ok_font
+            cell.alignment = center
+            cell.border = thin
+
+
     ws1 = wb.active
     ws1.title = "Synthèse"
+    ws1.sheet_properties.tabColor = BOA_GREEN
+
     ws1.append(["RAPPORT DE PILOTAGE KYC - BOA GROUP"])
-    ws1.append([f"Périmètre: {scope_data.get('selected_filiale') or 'GROUPE'}"])
-    ws1.append([f"Date de génération: {timezone.localtime().strftime('%d/%m/%Y %H:%M')}"])
-    ws1.append([f"Seuil d'analyse: {summary.get('threshold', 90.0)}%"])
+    ws1.append([f"Périmètre : {scope_data.get('selected_filiale') or 'GROUPE'}    |    "
+                f"Date de génération : {timezone.localtime().strftime('%d/%m/%Y %H:%M')}    |    "
+                f"Seuil d'analyse : {summary.get('threshold', 90.0)}%"])
     ws1.append([])
-    
-    ws1.append(["Indicateur", "Valeur", "Unité", "Statut"])
-    ws1.append(["Taux de complétude global", summary.get("completeness_rate"), "%", "Sous seuil" if (summary.get("completeness_rate") or 0) < summary.get("threshold", 90.0) else "Conforme"])
-    ws1.append(["Taux de complétude PP", summary.get("completeness_rate_pp"), "%", "Sous seuil" if (summary.get("completeness_rate_pp") or 0) < summary.get("threshold", 90.0) else "Conforme"])
-    ws1.append(["Taux de complétude PM", summary.get("completeness_rate_pm"), "%", "Sous seuil" if (summary.get("completeness_rate_pm") or 0) < summary.get("threshold", 90.0) else "Conforme"])
-    ws1.append(["Taux de conformité qualité global", summary.get("quality_rate"), "%", "Sous seuil" if (summary.get("quality_rate") or 0) < summary.get("threshold", 90.0) else "Conforme"])
-    ws1.append(["Taux de conformité qualité PP", summary.get("quality_rate_pp"), "%", "Sous seuil" if (summary.get("quality_rate_pp") or 0) < summary.get("threshold", 90.0) else "Conforme"])
-    ws1.append(["Taux de conformité qualité PM", summary.get("quality_rate_pm"), "%", "Sous seuil" if (summary.get("quality_rate_pm") or 0) < summary.get("threshold", 90.0) else "Conforme"])
-    ws1.append(["Nombre de champs sous seuil", summary.get("low_completeness_count"), "", ""])
-    ws1.append(["Nombre de règles sous seuil", summary.get("low_quality_count"), "", ""])
-    
-                         
+    ws1.merge_cells("A1:C1")
+    ws1.merge_cells("A2:C2")
+    for row_num in (1, 2, 3):
+        for col_num in (1, 2, 3):
+            ws1.cell(row=row_num, column=col_num).fill = banner_fill
+    ws1["A1"].font = title_font
+    ws1["A1"].alignment = Alignment(horizontal='left', vertical='center', indent=1)
+    ws1["A2"].font = subtitle_font
+    ws1["A2"].alignment = Alignment(horizontal='left', vertical='center', indent=1)
+    ws1.row_dimensions[1].height = 28
+    ws1.row_dimensions[2].height = 20
+    ws1.row_dimensions[3].height = 8
+
+    def _fmt_valeur(value, unite):
+        if isinstance(value, float) and value.is_integer():
+            value = int(value)
+        return f"{value}{unite}" if unite == "%" else value
+
+    ws1.append(["Indicateur", "Valeur", "Statut"])
+    header_row_1 = ws1.max_row
+    ws1.append(["Taux de complétude global", _fmt_valeur(summary.get("completeness_rate"), "%"), "Sous seuil" if (summary.get("completeness_rate") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Taux de complétude PP", _fmt_valeur(summary.get("completeness_rate_pp"), "%"), "Sous seuil" if (summary.get("completeness_rate_pp") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Taux de complétude PM", _fmt_valeur(summary.get("completeness_rate_pm"), "%"), "Sous seuil" if (summary.get("completeness_rate_pm") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Taux de conformité qualité global", _fmt_valeur(summary.get("quality_rate"), "%"), "Sous seuil" if (summary.get("quality_rate") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Taux de conformité qualité PP", _fmt_valeur(summary.get("quality_rate_pp"), "%"), "Sous seuil" if (summary.get("quality_rate_pp") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Taux de conformité qualité PM", _fmt_valeur(summary.get("quality_rate_pm"), "%"), "Sous seuil" if (summary.get("quality_rate_pm") or 0) < summary.get("threshold", 90.0) else "Conforme"])
+    ws1.append(["Nombre de champs sous seuil", summary.get("low_completeness_count"), ""])
+    ws1.append(["Nombre de règles sous seuil", summary.get("low_quality_count"), ""])
+    _style_header_row(ws1, header_row_1)
+    _style_data_rows(ws1, header_row_1 + 1, 3, numeric_cols=(2,))
+    _style_status_col(ws1, 3, header_row_1 + 1)
+
+    ws_fil = None
+    if scope_data.get("scope") == "groupe" and filiale_rates:
+        threshold_x = summary.get("threshold", 90.0)
+        ws_fil = wb.create_sheet(title="Synthèse par filiale")
+        ws_fil.sheet_properties.tabColor = "2563EB"
+        ws_fil.append(["Filiale", "Clients PP", "Clients PM",
+                       "Complétude globale", "Complétude PP", "Complétude PM",
+                       "Qualité globale", "Qualité PP", "Qualité PM",
+                       "Statut complétude", "Statut qualité"])
+        for fr in filiale_rates:
+            cg, qg = fr.get("comp_global"), fr.get("qual_global")
+            ws_fil.append([
+                fr.get("filiale"),
+                fr.get("total_pp"), fr.get("total_pm"),
+                cg, fr.get("comp_pp"), fr.get("comp_pm"),
+                qg, fr.get("qual_pp"), fr.get("qual_pm"),
+                "" if cg is None else ("Sous seuil" if cg < threshold_x else "Conforme"),
+                "" if qg is None else ("Sous seuil" if qg < threshold_x else "Conforme"),
+            ])
+        _style_header_row(ws_fil)
+        _style_data_rows(ws_fil, 2, 11, numeric_cols=(2, 3, 4, 5, 6, 7, 8, 9))
+        _style_status_col(ws_fil, 10)
+        _style_status_col(ws_fil, 11)
+
     ws2 = wb.create_sheet(title="Complétude")
-    ws2.append(["Type", "Périmètre", "Champ (Code)", "Champ (Libellé)", "Total Clients", "Incomplets", "Taux", "Conformité"])
+    ws2.sheet_properties.tabColor = "0a7d34"
+    ws2.append(["Type", "Filiale", "Champ (Code)", "Champ (Libellé)", "Total Clients", "Incomplets", "Taux", "Conformité"])
     for row in completeness_rows:
         status = "Sous seuil" if row.get("is_below_threshold") else "Conforme"
         ws2.append([
@@ -9535,10 +9648,14 @@ def export_pilotage_excel(scope_data, summary, completeness_rows, quality_rows, 
             row.get("rate"),
             status
         ])
-        
-                      
+    _style_header_row(ws2)
+    _style_data_rows(ws2, 2, 8, numeric_cols=(5, 6, 7))
+    _style_status_col(ws2, 8)
+
+
     ws3 = wb.create_sheet(title="Qualité")
-    ws3.append(["Type", "Périmètre", "Règle", "Champ", "Total Clients", "Anomalies", "Taux", "Conformité"])
+    ws3.sheet_properties.tabColor = "F5A623"
+    ws3.append(["Type", "Filiale", "Règle", "Champ", "Total Clients", "Anomalies", "Taux", "Conformité"])
     for row in quality_rows:
         status = "Sous seuil" if row.get("is_below_threshold") else "Conforme"
         ws3.append([
@@ -9551,9 +9668,13 @@ def export_pilotage_excel(scope_data, summary, completeness_rows, quality_rows, 
             row.get("rate"),
             status
         ])
-        
-                       
+    _style_header_row(ws3)
+    _style_data_rows(ws3, 2, 8, numeric_cols=(5, 6, 7))
+    _style_status_col(ws3, 8)
+
+
     ws4 = wb.create_sheet(title="Notation")
+    ws4.sheet_properties.tabColor = "6366F1"
     ws4.append(["Agent Evalué", "Code Exploitant", "Filiale", "Note", "Flux / Stock", "Recommandations", "Evalué par", "Date évaluation"])
     for n in notations_list:
         ws4.append([
@@ -9566,13 +9687,16 @@ def export_pilotage_excel(scope_data, summary, completeness_rows, quality_rows, 
             n.note_par.username,
             n.date_notation.strftime("%d/%m/%Y %H:%M") if n.date_notation else ""
         ])
-        
-    for ws in [ws1, ws2, ws3, ws4]:
+    _style_header_row(ws4)
+    _style_data_rows(ws4, 2, 8, numeric_cols=(8,))
+
+    for ws in [w for w in (ws1, ws_fil, ws2, ws3, ws4) if w is not None]:
         for col in ws.columns:
             max_len = max(len(str(cell.value or '')) for cell in col)
             col_letter = get_column_letter(col[0].column)
             ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
-            
+        ws.sheet_view.showGridLines = False
+
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     scope_label = "GROUPE" if scope_data.get("scope") == "groupe" else scope_data.get("selected_filiale", "FILIALE")
     scope_safe = re.sub(r"[^A-Za-z0-9_-]+", "_", scope_label)
@@ -9591,39 +9715,6 @@ def _empty_field_missing_counts(queryset, field_names):
     aggs = {f"m_{i}": Count("pk", filter=empty_field_q(fn)) for i, fn in enumerate(field_names)}
     row = queryset.aggregate(**aggs)
     return {fn: (row.get(f"m_{i}") or 0) for i, fn in enumerate(field_names)}
-
-
-def _latest_filiale_stock_rates(scope, selected_filiale, allowed_filiales):
-    """Dernier taux de complétude « stock » (date la plus récente) du modèle
-    TauxEvolution_filiale, par typologie.
-
-    - Périmètre filiale : `stock_PP` / `stock_PM` du dernier enregistrement de la
-      filiale sélectionnée.
-    - Périmètre groupe : moyenne des derniers taux stock de chaque filiale du
-      périmètre (les filiales sans enregistrement sont ignorées).
-
-    Renvoie un couple (pp, pm) ; une valeur à None signifie « pas de repli » →
-    la vue conserve alors le taux calculé en direct."""
-    if scope == 'filiale':
-        rec = (TauxEvolution_filiale.objects
-               .filter(filiale=selected_filiale).order_by('-date').first())
-        if not rec:
-            return None, None
-        return rec.stock_PP, rec.stock_PM
-
-    pp_vals, pm_vals = [], []
-    for fil in allowed_filiales:
-        rec = (TauxEvolution_filiale.objects
-               .filter(filiale=fil).order_by('-date').first())
-        if not rec:
-            continue
-        if rec.stock_PP is not None:
-            pp_vals.append(rec.stock_PP)
-        if rec.stock_PM is not None:
-            pm_vals.append(rec.stock_PM)
-    pp = round(sum(pp_vals) / len(pp_vals), 1) if pp_vals else None
-    pm = round(sum(pm_vals) / len(pm_vals), 1) if pm_vals else None
-    return pp, pm
 
 
 def _pilotage_base_payload(scope, selected_filiale, allowed_filiales,
@@ -9737,6 +9828,91 @@ def _pilotage_base_payload(scope, selected_filiale, allowed_filiales,
     return payload
 
 
+def _pilotage_page_cache_key(can_group, scope, selected_filiale, allowed_filiales,
+                             threshold, pp_fields_to_analyze, pm_fields_to_analyze,
+                             rules_to_evaluate, selected_report_fields, selected_report_rules):
+    """Clé de cache du CONTEXTE COMPLET de /pilotage-kyc.
+
+    Comme les autres dashboards : hash de (scope effectif + paramètres GET
+    significatifs + version des données). Renouvelée chaque jour (localdate) et
+    dès qu'une règle qualité change (_quality_cache_version). Le seuil et la
+    sélection de champs/règles du rapport en font partie."""
+    fields_sig = (','.join(fn for fn, _ in pp_fields_to_analyze) + '|'
+                  + ','.join(fn for fn, _ in pm_fields_to_analyze))
+    rules_sig = ','.join(str(r.id) for r in rules_to_evaluate)
+    raw = '|'.join([
+        'G' if can_group else 'F',
+        scope,
+        selected_filiale or '',
+        ','.join(allowed_filiales or []),
+        f'{threshold:g}',
+        fields_sig,
+        rules_sig,
+        ','.join(sorted(selected_report_fields or [])),
+        ','.join(sorted(selected_report_rules or [])),
+        f'v{_quality_cache_version()}',
+        timezone.localdate().isoformat(),
+    ])
+    return 'pilotage:page:v1:' + hashlib.md5(raw.encode('utf-8')).hexdigest()
+
+
+def _pilotage_filiale_rates(allowed_filiales, pp_fields_to_analyze, pm_fields_to_analyze,
+                            rules_to_evaluate, use_cache=True):
+    """Synthèse complétude + qualité filiale par filiale, pour le rapport GROUPE.
+
+    Ne retient que les filiales qui ont effectivement des données en base
+    (au moins un client PP ou PM). Résultat mis en cache à la journée, comme
+    _pilotage_base_payload : le calcul est lourd (N filiales x N champs)."""
+    rules_to_evaluate = list(rules_to_evaluate)
+    raw = ('|'.join(allowed_filiales) + '#'
+           + ','.join(fn for fn, _ in pp_fields_to_analyze) + '#'
+           + ','.join(fn for fn, _ in pm_fields_to_analyze) + '#'
+           + ','.join(str(r.id) for r in rules_to_evaluate))
+    key = (f"pilotage:filrates:v{_quality_cache_version()}:"
+           f"d{timezone.localdate().isoformat()}:"
+           f"{hashlib.md5(raw.encode('utf-8')).hexdigest()}")
+    if use_cache:
+        cached = cache.get(key)
+        if cached is not None:
+            return cached
+
+    filiale_rates = []
+    for fil in allowed_filiales:
+        fpp = Kyc_pp.objects.filter(FILIALE=fil)
+        fpm = Kyc_pm.objects.filter(FILIALE=fil)
+        tpp_f, tpm_f = fpp.count(), fpm.count()
+        if not (tpp_f or tpm_f):
+            continue
+        miss_pp = sum(fpp.filter(empty_field_q(fn)).count()
+                      for fn, _ in pp_fields_to_analyze)
+        miss_pm = sum(fpm.filter(empty_field_q(fn)).count()
+                      for fn, _ in pm_fields_to_analyze)
+        ev_pp = tpp_f * len(pp_fields_to_analyze)
+        ev_pm = tpm_f * len(pm_fields_to_analyze)
+        c_pp = completeness_rate_r(miss_pp, ev_pp)
+        c_pm = completeness_rate_r(miss_pm, ev_pm)
+        c_g = completeness_rate_r(miss_pp + miss_pm, ev_pp + ev_pm)
+        ok_pp = ev_q_pp = ok_pm = ev_q_pm = 0
+        for rule in rules_to_evaluate:
+            st = evaluate_data_quality_rule(rule, filiale=fil)
+            if rule.applicability == 'PP':
+                ok_pp += st.get('ok_count', 0); ev_q_pp += st.get('total', 0)
+            else:
+                ok_pm += st.get('ok_count', 0); ev_q_pm += st.get('total', 0)
+        q_pp = round(ok_pp / ev_q_pp * 100, 1) if ev_q_pp else None
+        q_pm = round(ok_pm / ev_q_pm * 100, 1) if ev_q_pm else None
+        q_g = round((ok_pp + ok_pm) / (ev_q_pp + ev_q_pm) * 100, 1) if (ev_q_pp + ev_q_pm) else None
+        filiale_rates.append({
+            'filiale': fil,
+            'total_pp': tpp_f, 'total_pm': tpm_f,
+            'comp_global': c_g, 'comp_pp': c_pp, 'comp_pm': c_pm,
+            'qual_global': q_g, 'qual_pp': q_pp, 'qual_pm': q_pm,
+        })
+
+    cache.set(key, filiale_rates, timeout=86400)
+    return filiale_rates
+
+
 @login_required
 def pilotage_kyc(request):
     user = request.user
@@ -9786,14 +9962,10 @@ def pilotage_kyc(request):
                                                                                  
                                                       
     user_filiale = (getattr(user, 'filiale', '') or '').strip()
-    if user_filiale:
+    if user_filiale and not can_group:
         allowed_filiales = [user_filiale]
         scope = 'filiale'
         selected_filiale = user_filiale
-
-                                                                                 
-                                                                  
-    can_group = can_group and not user_filiale
 
                
     try:
@@ -9912,9 +10084,25 @@ def pilotage_kyc(request):
     else:
         rules_to_evaluate = all_quality_rules
 
-                                                                             
-                                                                                 
-                                                              
+    # Cache plein contexte (comme les autres dashboards) : les données KYC sont
+    # injectées une fois par jour, la page peut donc être servie depuis le cache.
+    # On saute le cache pour les exports (réponse fichier) et pour la préchauffe.
+    _force_refresh = getattr(request, '_force_daily_cache_refresh', False)
+    _page_cache_key = None
+    if not request.GET.get('export'):
+        _page_cache_key = _pilotage_page_cache_key(
+            can_group, scope, selected_filiale, allowed_filiales, threshold,
+            pp_fields_to_analyze, pm_fields_to_analyze, rules_to_evaluate,
+            selected_report_fields, selected_report_rules,
+        )
+        if not _force_refresh:
+            _cached_context = cache.get(_page_cache_key)
+            if _cached_context is not None:
+                return render(request, 'pilotage_kyc.html', _cached_context)
+
+
+
+
     base = _pilotage_base_payload(
         scope, selected_filiale, allowed_filiales,
         pp_fields_to_analyze, pm_fields_to_analyze, rules_to_evaluate,
@@ -9945,28 +10133,17 @@ def pilotage_kyc(request):
     low_completeness_rows.sort(key=lambda r: r['rate'])
 
                                                                                      
-    completeness_rate_pp = completeness_rate_r(total_missing_pp, total_evaluated_pp)
-    if completeness_rate_pp is None:
-        completeness_rate_pp = 100.0
+    # KPI Global / PP / PM : même règle que la qualité — taux tronqué à 0,1 %,
+    # 100 % seulement si 0 cellule vide, sinon plafonné à 99,9 %.
+    def _completeness_rate_1dec(empty_cells, total_cells):
+        r = _rate_floor_1dec(total_cells - empty_cells, total_cells)
+        return 100.0 if r is None else r
 
-    completeness_rate_pm = completeness_rate_r(total_missing_pm, total_evaluated_pm)
-    if completeness_rate_pm is None:
-        completeness_rate_pm = 100.0
-
-                                                                                
-                                                                                 
-                                                                               
-    snap_pp, snap_pm = _latest_filiale_stock_rates(scope, selected_filiale, allowed_filiales)
-    if snap_pp is not None:
-        completeness_rate_pp = snap_pp
-    if snap_pm is not None:
-        completeness_rate_pm = snap_pm
-
-    total_evaluated_global = total_evaluated_pp + total_evaluated_pm
-    total_missing_global = total_missing_pp + total_missing_pm
-    completeness_rate = completeness_rate_r(total_missing_global, total_evaluated_global)
-    if completeness_rate is None:
-        completeness_rate = 100.0
+    completeness_rate_pp = _completeness_rate_1dec(total_missing_pp, total_evaluated_pp)
+    completeness_rate_pm = _completeness_rate_1dec(total_missing_pm, total_evaluated_pm)
+    completeness_rate = _completeness_rate_1dec(
+        total_missing_pp + total_missing_pm,
+        total_evaluated_pp + total_evaluated_pm)
 
     low_completeness_count_pp = sum(1 for r in completeness_rows_pp if r['is_below_threshold'])
     low_completeness_count_pm = sum(1 for r in completeness_rows_pm if r['is_below_threshold'])
@@ -9985,16 +10162,30 @@ def pilotage_kyc(request):
     low_quality_rows.sort(key=lambda r: r['rate'])
 
                             
-    quality_rate_pp = round((total_ok_pp / total_eval_rules_pp) * 100, 1) if total_eval_rules_pp > 0 else 100.0
-    quality_rate_pm = round((total_ok_pm / total_eval_rules_pm) * 100, 1) if total_eval_rules_pm > 0 else 100.0
+    # Même logique que la complétude : taux tronqué (floor), calculé sur les totaux
+    # globaux et cohérent avec les lignes de détail (compliance_rate_floor).
+    quality_rate_pp = compliance_rate_floor(
+        total_ok_pp, total_eval_rules_pp, total_eval_rules_pp - total_ok_pp)
+    if quality_rate_pp is None:
+        quality_rate_pp = 100.0
+
+    quality_rate_pm = compliance_rate_floor(
+        total_ok_pm, total_eval_rules_pm, total_eval_rules_pm - total_ok_pm)
+    if quality_rate_pm is None:
+        quality_rate_pm = 100.0
 
     total_ok_global = total_ok_pp + total_ok_pm
     total_eval_global = total_eval_rules_pp + total_eval_rules_pm
-    quality_rate = round((total_ok_global / total_eval_global) * 100, 1) if total_eval_global > 0 else 100.0
+    quality_rate = compliance_rate_floor(
+        total_ok_global, total_eval_global, total_eval_global - total_ok_global)
+    if quality_rate is None:
+        quality_rate = 100.0
 
     low_quality_count_pp = sum(1 for r in quality_rows_pp if r['is_below_threshold'])
     low_quality_count_pm = sum(1 for r in quality_rows_pm if r['is_below_threshold'])
     low_quality_count = low_quality_count_pp + low_quality_count_pm
+
+    derniere_maj_kyc = TauxQualite.objects.aggregate(Max('date'))['date__max']
 
     summary_dict = {
         'threshold': threshold,
@@ -10005,13 +10196,16 @@ def pilotage_kyc(request):
         'low_completeness_count_pp': low_completeness_count_pp,
         'low_completeness_count_pm': low_completeness_count_pm,
         'completeness_total': total_pp + total_pm,
+        'completeness_total_pp': total_pp,
+        'completeness_total_pm': total_pm,
         'quality_rate': quality_rate,
         'quality_rate_pp': quality_rate_pp,
         'quality_rate_pm': quality_rate_pm,
         'low_quality_count': low_quality_count,
         'low_quality_count_pp': low_quality_count_pp,
         'low_quality_count_pm': low_quality_count_pm,
-        'quality_total': total_eval_global
+        'quality_total': total_pp + total_pm,
+        'derniere_maj_kyc': derniere_maj_kyc,
     }
 
                           
@@ -10021,16 +10215,28 @@ def pilotage_kyc(request):
         notations = Notation.objects.filter(agent__filiale__in=allowed_filiales).select_related('agent', 'note_par')
 
     total_notations = notations.count()
-    total_agents = notations.values('agent').distinct().count()
-    excellence_count = notations.filter(note__in=['Très Bien', 'Bien']).count()
-    excellence_rate = round((excellence_count / total_notations) * 100, 1) if total_notations > 0 else 0.0
+    notations_list = list(notations.order_by('-date_notation'))
+
+
+
+    seen_agents = set()
+    latest_notes = []
+    for n in notations_list:
+        agent_id = getattr(n.agent, 'pk', None)
+        if agent_id in seen_agents:
+            continue
+        seen_agents.add(agent_id)
+        latest_notes.append(n.note)
+
+    total_agents = len(latest_notes)
+    excellence_count = sum(1 for note in latest_notes if note in ('Très Bien', 'Bien'))
+    excellence_rate = round((excellence_count / total_agents) * 100, 1) if total_agents > 0 else 0.0
 
     notation_kpis = {
         'total_agents': total_agents,
         'total_notations': total_notations,
         'excellence_rate': excellence_rate
     }
-    notations_list = list(notations.order_by('-date_notation'))
 
              
     export_format = request.GET.get('export')
@@ -10039,65 +10245,54 @@ def pilotage_kyc(request):
             'scope': scope,
             'selected_filiale': selected_filiale
         }
+
+
+        filiale_rates = []
+        if scope == 'groupe':
+            filiale_rates = _pilotage_filiale_rates(
+                allowed_filiales, pp_fields_to_analyze, pm_fields_to_analyze,
+                rules_to_evaluate,
+                use_cache=not getattr(request, '_force_daily_cache_refresh', False),
+            )
         if export_format == 'pdf':
             from kyc.pilotage_exports import export_pilotage_pdf
-            return export_pilotage_pdf(scope_data, summary_dict, completeness_rows, quality_rows)
+            return export_pilotage_pdf(scope_data, summary_dict, completeness_rows, quality_rows,
+                                       filiale_rates=filiale_rates,
+                                       notations_list=notations_list, notation_kpis=notation_kpis)
         elif export_format == 'pptx':
             from kyc.pilotage_exports import export_pilotage_pptx
-                                                                    
-            filiale_rates = []
-            if scope == 'groupe':
-                for fil in allowed_filiales:
-                    fpp = Kyc_pp.objects.filter(FILIALE=fil)
-                    fpm = Kyc_pm.objects.filter(FILIALE=fil)
-                    tpp_f, tpm_f = fpp.count(), fpm.count()
-                    miss_pp = sum(fpp.filter(empty_field_q(fn)).count()
-                                  for fn, _ in pp_fields_to_analyze)
-                    miss_pm = sum(fpm.filter(empty_field_q(fn)).count()
-                                  for fn, _ in pm_fields_to_analyze)
-                    ev_pp = tpp_f * len(pp_fields_to_analyze)
-                    ev_pm = tpm_f * len(pm_fields_to_analyze)
-                    c_pp = completeness_rate_r(miss_pp, ev_pp)
-                    c_pm = completeness_rate_r(miss_pm, ev_pm)
-                    c_g = completeness_rate_r(miss_pp + miss_pm, ev_pp + ev_pm)
-                    ok_pp = ev_q_pp = ok_pm = ev_q_pm = 0
-                    for rule in rules_to_evaluate:
-                        st = evaluate_data_quality_rule(rule, filiale=fil)
-                        if rule.applicability == 'PP':
-                            ok_pp += st.get('ok_count', 0); ev_q_pp += st.get('total', 0)
-                        else:
-                            ok_pm += st.get('ok_count', 0); ev_q_pm += st.get('total', 0)
-                    q_pp = round(ok_pp / ev_q_pp * 100, 1) if ev_q_pp else None
-                    q_pm = round(ok_pm / ev_q_pm * 100, 1) if ev_q_pm else None
-                    q_g = round((ok_pp + ok_pm) / (ev_q_pp + ev_q_pm) * 100, 1) if (ev_q_pp + ev_q_pm) else None
-                    if tpp_f or tpm_f:
-                        filiale_rates.append({
-                            'filiale': fil,
-                            'comp_global': c_g, 'comp_pp': c_pp, 'comp_pm': c_pm,
-                            'qual_global': q_g, 'qual_pp': q_pp, 'qual_pm': q_pm,
-                        })
             return export_pilotage_pptx(scope_data, summary_dict, completeness_rows, quality_rows,
                                         notations_list=notations_list, notation_kpis=notation_kpis,
                                         filiale_rates=filiale_rates)
         elif export_format == 'excel':
-            return export_pilotage_excel(scope_data, summary_dict, completeness_rows, quality_rows, notations_list, notation_kpis)
+            return export_pilotage_excel(scope_data, summary_dict, completeness_rows, quality_rows,
+                                         notations_list, notation_kpis,
+                                         filiale_rates=filiale_rates)
 
                           
-    chart_comp_pp_labels = [r['field_label'] for r in completeness_rows_pp]
-    chart_comp_pp_values = [r['rate'] for r in completeness_rows_pp]
-    chart_comp_pp_colors = [get_rate_color(r['rate'], threshold) for r in completeness_rows_pp]
+    def _rate_desc(rows):
+        return sorted(rows, key=lambda r: r['rate'] if r.get('rate') is not None else -1, reverse=True)
 
-    chart_comp_pm_labels = [r['field_label'] for r in completeness_rows_pm]
-    chart_comp_pm_values = [r['rate'] for r in completeness_rows_pm]
-    chart_comp_pm_colors = [get_rate_color(r['rate'], threshold) for r in completeness_rows_pm]
+    comp_rows_pp_sorted = _rate_desc(completeness_rows_pp)
+    comp_rows_pm_sorted = _rate_desc(completeness_rows_pm)
+    qual_rows_pp_sorted = _rate_desc(quality_rows_pp)
+    qual_rows_pm_sorted = _rate_desc(quality_rows_pm)
 
-    chart_qual_pp_labels = [r['rule_name'] for r in quality_rows_pp]
-    chart_qual_pp_values = [r['rate'] for r in quality_rows_pp]
-    chart_qual_pp_colors = [get_rate_color(r['rate'], threshold) for r in quality_rows_pp]
+    chart_comp_pp_labels = [r['field_label'] for r in comp_rows_pp_sorted]
+    chart_comp_pp_values = [r['rate'] for r in comp_rows_pp_sorted]
+    chart_comp_pp_colors = [get_rate_color(r['rate'], threshold) for r in comp_rows_pp_sorted]
 
-    chart_qual_pm_labels = [r['rule_name'] for r in quality_rows_pm]
-    chart_qual_pm_values = [r['rate'] for r in quality_rows_pm]
-    chart_qual_pm_colors = [get_rate_color(r['rate'], threshold) for r in quality_rows_pm]
+    chart_comp_pm_labels = [r['field_label'] for r in comp_rows_pm_sorted]
+    chart_comp_pm_values = [r['rate'] for r in comp_rows_pm_sorted]
+    chart_comp_pm_colors = [get_rate_color(r['rate'], threshold) for r in comp_rows_pm_sorted]
+
+    chart_qual_pp_labels = [r['rule_name'] for r in qual_rows_pp_sorted]
+    chart_qual_pp_values = [r['rate'] for r in qual_rows_pp_sorted]
+    chart_qual_pp_colors = [get_rate_color(r['rate'], threshold) for r in qual_rows_pp_sorted]
+
+    chart_qual_pm_labels = [r['rule_name'] for r in qual_rows_pm_sorted]
+    chart_qual_pm_values = [r['rate'] for r in qual_rows_pm_sorted]
+    chart_qual_pm_colors = [get_rate_color(r['rate'], threshold) for r in qual_rows_pm_sorted]
 
     chart_notation_overall_labels = ['Très Bien', 'Bien', 'Passable', 'Insuffisant']
     chart_notation_overall_values = [
@@ -10142,7 +10337,7 @@ def pilotage_kyc(request):
         'pm_active_fields': pm_active_fields,
         'selected_report_fields': selected_report_fields,
         'selected_report_rules': [int(rid) for rid in selected_report_rules if rid.isdigit()],
-        'all_quality_rules': all_quality_rules,
+        'all_quality_rules': list(all_quality_rules),
         
         'low_completeness_rows': low_completeness_rows,
         'low_quality_rows': low_quality_rows,
@@ -10175,6 +10370,9 @@ def pilotage_kyc(request):
         'pp_fields_json': json.dumps(pp_active_fields),
         'pm_fields_json': json.dumps(pm_active_fields),
     }
+
+    if _page_cache_key is not None:
+        cache.set(_page_cache_key, context, timeout=86400)
 
     return render(request, 'pilotage_kyc.html', context)
 

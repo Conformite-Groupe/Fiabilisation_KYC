@@ -19,7 +19,6 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
-# ---------------------------------------------------------------- palette --
 GREEN = RGBColor(0x00, 0x9A, 0x56)
 GREEN_BRIGHT = RGBColor(0x00, 0xC0, 0x60)
 GREEN_PALE = RGBColor(0xC8, 0xE6, 0xC9)
@@ -44,19 +43,17 @@ GREEN_OK = RGBColor(0x70, 0xAD, 0x47)
 FONT = "Calibri"
 W, H = 10.0, 5.625
 
-# Gouttières du modèle
 LEFT = 0.4
 RIGHT = 9.6
-BAND_H = 0.62          # hauteur du bandeau de titre
-RULE_Y = 1.08          # filet vert sous l'intitulé de bloc
-BODY_TOP = 1.22        # première ligne de contenu
-BODY_BOTTOM = 5.30     # au-dessus du pied de page
+BAND_H = 0.62
+RULE_Y = 1.08
+BODY_TOP = 1.22
+BODY_BOTTOM = 5.30
 FOOTER_Y = 5.35
 
 LOGO = next((p for p in ("assets_tpl/tpl_image1.png",) if os.path.exists(p)), None)
 
 
-# ------------------------------------------------------------- primitives --
 def _set_bg(slide, color):
     """Fond de diapositive plein (le modèle utilise <p:bg> et non une forme)."""
     xml = slide._element
@@ -132,7 +129,6 @@ def _logo(slide):
         slide.shapes.add_picture(LOGO, Inches(7.45), Inches(0.0), Inches(2.55))
 
 
-# ---------------------------------------------------------------- pages ----
 def couverture(prs, titre, sous_titre, date_txt, pied):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     _set_bg(s, GREEN)
@@ -207,8 +203,7 @@ def bloc(slide, y, intitule):
     return y + 0.42
 
 
-# ---------------------------------------------------------------- blocs ----
-KPI_H = 0.86          # hauteur de référence d'une carte chiffre-clé
+KPI_H = 0.86
 
 
 def kpi(slide, x, y, w, h=KPI_H, valeur="", libelle="", note=None, couleur=GREEN,
@@ -293,7 +288,6 @@ def note(slide, y, texte, size=7.5):
     txt(slide, LEFT, y, 9.2, 0.28, texte, size=size, color=MUTED, italic=True)
 
 
-# --------------------------------------------------------------- charts ----
 def _axes(ch, size, maxval=None):
     va = ch.value_axis
     va.has_major_gridlines = True
@@ -345,7 +339,6 @@ def barres(slide, x, y, w, h, categories, series, couleurs=None, horizontal=Fals
             pass
     if couleurs:
         for si, ser in enumerate(plot.series):
-            # RGBColor dérive de tuple : tester RGBColor AVANT tuple.
             if isinstance(couleurs[si], RGBColor):
                 ser.format.fill.solid()
                 ser.format.fill.fore_color.rgb = couleurs[si]
@@ -371,12 +364,10 @@ def anneau(slide, x, y, w, h, categories, valeurs, couleurs, size=7.5, labels=Tr
     ch.legend.include_in_layout = False
     ch.legend.font.size = Pt(size)
     plot = ch.plots[0]
-    # labels=False dès que plusieurs parts sont très fines : leurs étiquettes se
-    # superposeraient au centre. Les valeurs sont alors portées par le tableau.
     plot.has_data_labels = labels
     if labels:
         dl = plot.data_labels
-        dl.number_format = '0.0%'      # '0.0%' multiplie par 100, pas '0.0"%"'
+        dl.number_format = '0.0%'
         dl.number_format_is_linked = False
         dl.show_percentage = True
         dl.show_value = False
@@ -392,7 +383,6 @@ def anneau(slide, x, y, w, h, categories, valeurs, couleurs, size=7.5, labels=Tr
     return ch
 
 
-# ------------------------------------------------------------- utilitaires -
 def fr(n):
     return f"{n:,}".replace(",", " ")
 

@@ -12,9 +12,7 @@ module.exports = {
    * Set mode to "jit" if you want to generate your styles on-demand as you author your templates;
    * Set mode to "aot" if you want to generate the stylesheet in advance and purge later (aka legacy mode).
    */
-  mode: "jit",
-
-  purge: [
+  content: [
       /**
        * HTML. Paths to Django template files that will contain Tailwind CSS classes.
        */
@@ -33,6 +31,13 @@ module.exports = {
        * Adjust the following line to match your project structure.
        */
       '../../**/templates/**/*.html',
+
+      /* Python: classes Tailwind construites cote serveur (forms.py, audit_views.py, ...) */
+      '../../kyc/**/*.py',
+      '../../accounts/**/*.py',
+
+      /* JS applicatif embarque dans les templates/static du projet */
+      '../../templates/**/*.js',
 
       /**
        * JS: If you use Tailwind CSS in JavaScript, uncomment the following lines and make sure
@@ -357,7 +362,6 @@ module.exports = {
        */
       require('@tailwindcss/forms'),
       require('@tailwindcss/typography'),
-      require('@tailwindcss/line-clamp'),
       require('@tailwindcss/aspect-ratio'),
   ],
 }

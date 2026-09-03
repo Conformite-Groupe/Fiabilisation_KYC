@@ -5,7 +5,6 @@ from collections import Counter, defaultdict
 from .config import ECHEANCES, ECHEANCE_LOINTAINE, RETARDS, RETARD_LOINTAIN
 from .dataset import parse_date
 
-# Ordre d'affichage des niveaux de risque
 NIVEAUX = ["Risque faible", "Risque moyen faible", "Risque moyen eleve",
            "Risque eleve", "(non renseigné)"]
 NIVEAUX_LIB = {"Risque faible": "Faible",
@@ -17,7 +16,6 @@ NIVEAUX_LIB = {"Risque faible": "Faible",
 STATUTS = ["Échue", "Non renseignée", "À échoir < 3 mois", "À échoir 3–6 mois",
            "À échoir 6–12 mois", "À échoir > 12 mois", "Format invalide"]
 
-# Statuts traduisant l'absence de révision opposable
 SANS_REVISION = ("Échue", "Non renseignée", "Format invalide")
 
 
@@ -54,7 +52,7 @@ def analyser(t, today):
 
     for r in t.rows:
         niveau = (r[ir] if ir is not None else "") or "(non renseigné)"
-        if niveau not in NIVEAUX:                    # valeurs parasites de l'export
+        if niveau not in NIVEAUX:
             niveau = niveau if niveau in NIVEAUX else (
                 niveau if niveau.startswith("Risque") else "(hors référentiel)")
         risque[niveau] += 1
@@ -67,7 +65,6 @@ def analyser(t, today):
 
     sans_rev = sum(statuts.get(s, 0) for s in SANS_REVISION)
 
-    # Zone critique : risque élevé sans révision opposable
     eleve = croise.get("Risque eleve", Counter())
     eleve_total = sum(eleve.values())
     eleve_ko = sum(eleve.get(s, 0) for s in SANS_REVISION)

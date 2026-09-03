@@ -1,13 +1,4 @@
 #####-----------------------IMPORTATION DES LIBRAIRIES-------------###########
-      
-cat("###############################################\n")
-cat("######### P3 - FIABILISATION DES DONNEES KYC \n")
-cat("######### ETAPE 1/3: CHAMPS A FIABILISER\n")
-cat("##############################################\n")
-
-options(warn = -1)
-
-suppressPackageStartupMessages({
 library(kableExtra)
 library(officer)
 library(flextable)
@@ -27,55 +18,808 @@ library(readxl)
 library(readr)
 library(stringi)
 library(data.table)
+library(DBI)
+library(odbc)
 
-})
+  
+cat("###############################################\n")
+cat("######### P3 - FIABILISATION DES DONNEES KYC \n")
+cat("######### ETAPE 1/3: CHAMPS A FIABILISER\n")
+cat("##############################################\n")
 
-#####-----------------------CONFIG ET FONCTIONS-------------###########
+
+
+#####-----------------------####-------------###########
 chemin="C://Fiabilisation KYC//R//"
 chemin2="C://KYC_Filiales//"
+chemin_python="C://Fiabilisation KYC//Python//data//"
 chemin_7z <- '"C://Program Files//7-Zip//7z.exe"'
 #####-----------------------####-------------###########
 
-#####--------------DATES ( à modifier en prod) ------###########
-#
-  #premier_jour_mois_courant <- floor_date(premier_jour_mois_precedent, "month")
-  #premier_jour_mois_precedent <- premier_jour_mois_courant %m-% months(1)
-
- #premier_jour_mois_courant <- "2026-07-01"
- #premier_jour_mois_precedent <- "2026-06-01"
-#
- # premier_jour_mois_courant <- premier_jour_mois_precedent
-
- # premier_jour_mois_precedent <- premier_jour_mois_precedent-1
 
 
-  date_limite <- as.Date("2024/10/01") %m-% months(3)
+## ID pour l'envoi via smtp
+
+id=read.csv2(paste0(chemin,"id_sfkyc.csv"))
+
+from <- id[1,1]
 
 
 
 #####-----------------------####-------------###########
 
-prerequis=read.csv2(paste(sep="",chemin,"prerequis.csv"),header=F)
+#####-------- LECTURE DE prerequis.csv --------###########
+# Le fichier contient un bloc d'entete libre (ligne "Trimestre", lignes vides)
+# puis une ligne de titres de colonnes suivie d'une ligne par filiale :
+#
+#   Trimestre;1;;;;;
+#   ;;;;;;
+#   Filiales;y/n;Devise;Flux(mois/jour);pm_exclure;pp_exclure;rc_exclure
+#   SN;y;XOF;jour;EIN,ORG;;
+#
+# On repere la ligne de titres, on l'utilise comme noms de colonnes et on ne
+# garde que les lignes situees en dessous. Les colonnes sont ensuite adressees
+# PAR NOM (prerequis_col) : ajouter, deplacer ou renommer une colonne dans le
+# CSV ne casse plus le script.
+prerequis_brut <- read.csv2(paste(sep="",chemin,"prerequis.csv"),
+                            header = FALSE, stringsAsFactors = FALSE,
+                            colClasses = "character")
 
-colnames(prerequis)=c("infos","argument","LIB_ETUDIANT","LIB_MINEUR")
+# "Flux(mois/jour)" -> "flux_mois_jour" ; "y/n" -> "y_n"
+normaliser_nom <- function(x) {
+  x <- tolower(trimws(as.character(x)))
+  x <- gsub("[^a-z0-9]+", "_", x)
+  gsub("^_+|_+$", "", x)
+}
+
+# Ligne de titres = premiere ligne dont la 1re cellule vaut "filiale(s)".
+# Repli : premiere ligne contenant une cellule "pm_exclure".
+ligne_titres <- {
+  c1 <- normaliser_nom(prerequis_brut[[1]])
+  i  <- which(c1 %in% c("filiale", "filiales"))
+  if (length(i) == 0) {
+    i <- which(apply(prerequis_brut, 1,
+                     function(l) any(normaliser_nom(l) == "pm_exclure")))
+  }
+  if (length(i) == 0) NA_integer_ else i[1]
+}
+if (is.na(ligne_titres)) {
+  stop("prerequis.csv : ligne de titres introuvable (attendue : 'Filiales;y/n;Devise;...').")
+}
+
+# Trimestre : valeur en 2e colonne de la ligne "Trimestre" (cherchee dans le
+# bloc d'entete), avec repli sur l'ancien emplacement (1re ligne, 2e colonne).
+trimestre_actuel <- {
+  c1 <- normaliser_nom(prerequis_brut[[1]])
+  i  <- which(c1 == "trimestre")
+  as.character(prerequis_brut[[2]][if (length(i)) i[1] else 1])
+}
+
+prerequis <- prerequis_brut[seq.int(ligne_titres + 1, nrow(prerequis_brut)), , drop = FALSE]
+noms_prerequis <- normaliser_nom(unlist(prerequis_brut[ligne_titres, ], use.names = FALSE))
+noms_prerequis[noms_prerequis == ""] <- paste0("col_", which(noms_prerequis == ""))
+colnames(prerequis) <- noms_prerequis
+rownames(prerequis) <- NULL
+
+# Alias historiques : le reste du script manipule prerequis$infos / $argument.
+prerequis$infos    <- trimws(as.character(prerequis[[1]]))
+prerequis$argument <- trimws(as.character(prerequis[[2]]))
+prerequis <- prerequis[prerequis$infos != "", , drop = FALSE]
+
+# Indice de la premiere colonne portant l'un des noms donnes (NA si aucune).
+prerequis_col <- function(...) {
+  noms <- normaliser_nom(c(...))
+  i <- which(colnames(prerequis) %in% noms)
+  if (length(i) == 0) NA_integer_ else i[1]
+}
+
+# Valeur brute d'une colonne pour une filiale ("" si colonne ou ligne absente).
+prerequis_valeur <- function(fil, ...) {
+  j <- prerequis_col(...)
+  if (is.na(j)) return("")
+  v <- prerequis[[j]][prerequis$infos == fil]
+  if (length(v) == 0 || is.na(v[1])) "" else trimws(as.character(v[1]))
+}
 
 
 filiale=prerequis$infos[prerequis$argument=="y"]
 
 
-trimestre_actuel=as.character(prerequis[1,2])
+#####-------- PERIODE DE TRAITEMENT PAR FILIALE --------###########
+# La periode flux est definie par filiale via une colonne "PERIODE" de
+# prerequis.csv (sur la ligne de la filiale) :
+#   "jour" (ou colonne vide / absente) -> la derniere journee presente dans les
+#                                         donnees de la filiale
+#   "mois"                             -> le mois calendaire precedant le mois
+#                                         en cours (base sur Sys.Date())
+# La valeur est cherchee dans toute la ligne, donc la position de la colonne
+# dans le CSV n'a pas d'importance.
+periode_mode <- function(fil) {
+  # Colonne "Flux(mois/jour)" (alias PERIODE) de prerequis.csv.
+  v <- tolower(prerequis_valeur(fil, "flux_mois_jour", "flux", "periode"))
+  if (v %in% c("mois", "mois_precedent", "m")) return("mois")
+  if (v %in% c("jour", "j")) return("jour")
+
+  # Repli : colonne absente ou vide -> on cherche la valeur n'importe ou sur la
+  # ligne de la filiale (ancien comportement).
+  ligne <- prerequis[prerequis$infos == fil, , drop = FALSE]
+  if (nrow(ligne) == 0) return("jour")
+  vals <- tolower(trimws(as.character(unlist(ligne, use.names = FALSE))))
+  if (any(vals %in% c("mois", "mois_precedent", "m"), na.rm = TRUE)) return("mois")
+  "jour"
+}
+
+
+#####-------- CODES EXCLUS (pm_exclure / pp_exclure / rc_exclure) --------#####
+# La colonne "pm_exclure" de prerequis.csv porte, sur la ligne de la filiale,
+# les codes AGEC a exclure de la liste des PM sans RCSNO, separes par une
+# virgule. Parentheses, espaces et casse sont tolerees : "EIN,ORG",
+# "(EIN, ORG)" et "ein ; org" donnent le meme resultat.
+# Colonne vide ou absente -> repli sur PM_EXCLURE_DEFAUT.
+#PM_EXCLURE_DEFAUT <- c("ORG", "ISB")
+PM_EXCLURE_DEFAUT <- c()
+
+# "(EIN, ORG)" -> c("EIN","ORG") ; "" / NA -> character(0)
+parse_codes_agec <- function(x) {
+  if (length(x) == 0 || is.na(x[1])) return(character(0))
+  codes <- toupper(trimws(unlist(strsplit(gsub("[()]", "", as.character(x[1])), "[,;]"))))
+  codes[codes != "" & !is.na(codes)]
+}
+
+# Codes d'une colonne "*_exclure" pour une filiale.
+codes_exclure <- function(fil, colonne, defaut = character(0)) {
+  codes <- parse_codes_agec(prerequis_valeur(fil, colonne))
+  if (length(codes) == 0) defaut else codes
+}
+
+pm_agec_exclus <- function(fil) codes_exclure(fil, "pm_exclure", PM_EXCLURE_DEFAUT)
+
+# Bornes de la periode.
+#   premier_jour = debut INCLUS
+#   jour_recent  = borne haute EXCLUE
+# Les filtres flux utilisent DATOUV >= premier_jour & DATOUV < jour_recent.
+#
+#   mode "mois" : premier_jour = 1er jour du mois calendaire precedent,
+#                 dernier jour couvert = dernier jour de ce meme mois.
+#                 Libelle rapport : la periode complete "du .. au ..".
+#   mode "jour" : premier_jour = DATOUV la plus recente de pp_stock ET pm_stock,
+#                 jour_recent  = le lendemain (la periode ne couvre que ce jour).
+#                 Libelle rapport : cette seule date.
+#
+# dates_dispo = ensemble des DATOUV disponibles (PP et PM reunies).
+bornes_periode <- function(fil, dates_dispo) {
+  mode <- periode_mode(fil)
+  if (mode == "mois") {
+    fin   <- floor_date(Sys.Date(), "month")
+    debut <- fin %m-% months(1)
+  } else {
+    # Les fichiers sources contiennent des DATOUV aberrantes (saisies erronees,
+    # annees futures type 2090). On ignore tout ce qui est posterieur a
+    # aujourd'hui, sinon la periode entiere est calee sur la date fantaisiste.
+    dates_ok <- dates_dispo[!is.na(dates_dispo) & dates_dispo <= Sys.Date()]
+    if (length(dates_ok) == 0) {
+      stop("Aucune date exploitable (<= aujourd'hui) dans les donnees de ", fil)
+    }
+    ignorees <- sum(!is.na(dates_dispo) & dates_dispo > Sys.Date())
+    if (ignorees > 0) {
+      cat("######### ATTENTION", fil, ":", ignorees,
+          "date(s) DATOUV posterieure(s) a aujourd'hui ignoree(s), max =",
+          format(max(dates_dispo, na.rm = TRUE), "%d/%m/%Y"), "\n")
+    }
+    derniere <- max(dates_ok)
+    debut <- derniere
+    fin   <- derniere + 1
+  }
+  # Libelle affiche dans le rapport : periode complete en mode mois,
+  # date unique en mode jour.
+  libelle <- if (mode == "mois") {
+    paste0("du ", format(debut, "%d/%m/%Y"), " au ", format(fin - 1, "%d/%m/%Y"))
+  } else {
+    paste0("du ", format(fin - 1, "%d/%m/%Y"))
+  }
+  cat("######### Periode retenue pour", fil, "(mode", mode, ") :",
+      libelle, "\n")
+  list(debut = debut, fin = fin, mode = mode, libelle = libelle)
+}
 
 
 inc=c("")
 
 
-  pp_fields <- c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU","PAYS_RESID")
-  pm_fields <- c("CODAPE","AGEC","CAPITAL","CA","RESULTAT","RCSNO","ORIGINE_REVENU","TEL")
+pp_fields <- c("PAYNAIS","PROFESSION","SALAIRE","NUMID","CODAPE","TEL","DATNAIS","ADRESSE","DATVALID","ORIGINE_REVENU","PAYS_RESID")
+pp_labels <- c("Lieu de Naissance","Profession","Salaire","NIN","Code agent économique","Téléphone","Adresse","Date de naissance","Date de validité CIN","Origine du revenu", "Pays de résidence")
+
+pm_fields <- c("CODAPE","AGEC","CAPITAL","CA","RESULTAT","RCSNO","ORIGINE_REVENU","TEL")
+pm_labels <- c("Secteur d'activité","Code agent économique","Capital social","Chiffre d'affaires","Résultat net","Numéro de registre de commerce","Origine du revenu","Téléphone")
+
+
+
+
+filiale <- prerequis$infos[prerequis$argument == "y"]
+
+# Fonctions utilitaires de nettoyage
+is_rep <- function(x) {
+  (grepl("XX", x) & nchar(x)==2) | (grepl("RAS", x) & nchar(x)==3) | (grepl("R.A.S.", x) & nchar(x)==6) | (grepl("R.A.S", x) & nchar(x)==5) | nchar(x)==1
+}
+
+clean_and_mark_anomalies <- function(df, start_col = 4) {
+  if (is.null(df) || ncol(df) < start_col) return(df)
+  df[] <- lapply(df, function(x) if (is.character(x)) trimws(x) else x)
+  cols <- start_col:ncol(df)
+  df[cols] <- Map(function(x, nm) {
+    x[is.na(x)] <- ""
+    rep_idx <- is_rep(x)
+    if (any(rep_idx, na.rm = TRUE)) x[rep_idx] <- paste("ANOMALIE", nm)
+    x
+  }, df[cols], names(df)[cols])
+  df
+}
+
+# Fonctions de calcul des taux
+to_pct <- function(x) {
+  x_num <- suppressWarnings(as.numeric(x))
+  ifelse(is.na(x_num), "N/A", paste0(floor(x_num), "%"))
+}
+
+# Taux de complétude tronqué à l'entier (jamais arrondi). 100 % uniquement si
+# aucun défaut (n_vide == 0) ; sinon plafonné à 99 % pour ne jamais afficher un
+# 100 % trompeur (protège aussi d'un arrondi flottant à 100). Même logique que
+# _rate_floor_1dec côté Django.
+rate_floor_no100 <- function(n_vide, total) {
+  if (is.null(total) || length(total) == 0 || is.na(total) || total <= 0) return(NA_real_)
+  if (is.na(n_vide) || n_vide <= 0) return(100)
+  min(floor(100 * (1 - (n_vide / total))), 99)
+}
+
+champ_rate <- function(df, champ) {
+  if (is.null(df) || nrow(df) == 0 || !(champ %in% colnames(df))) return(NA_real_)
+  n_vide <- nrow(df[trimws(as.character(df[[champ]])) == "" | is.na(df[[champ]]), , drop = FALSE])
+  rate_floor_no100(n_vide, nrow(df))
+}
+
+global_rate <- function(df, fields) {
+  if (is.null(df) || nrow(df) == 0) return(NA_real_)
+  total_cells <- length(fields) * nrow(df)
+  n_empty <- sum(sapply(df[, intersect(fields, colnames(df)), drop=FALSE], function(x) sum(trimws(as.character(x)) == "" | is.na(x))))
+  rate_floor_no100(n_empty, total_cells)
+}
+
+client_completion_rate <- function(df, fields) {
+  if (is.null(df) || nrow(df) == 0) return(NA_real_)
+  block <- df[, intersect(fields, colnames(df)), drop = FALSE]
+  row_has_empty <- Reduce(`|`, lapply(block, function(x) trimws(as.character(x)) == "" | is.na(x)))
+  rate_floor_no100(sum(row_has_empty), nrow(df))
+}
+
+# --- FONCTION DE STYLE (RENDU EXACT DE L'IMAGE) ---
+style_ft_exact <- function(df) {
+  ft <- flextable(df)
+  
+  # Fusion verticale de la premià¨re colonne (Libellés de groupe)
+  ft <- merge_v(ft, j = 1) %>% valign(j = 1, valign = "center")
+  
+  # En-tàªte : bleu marine, texte blanc, gras (palette "exemple rapport")
+  ft <- bg(ft, part = "header", bg = "#1B2A4A") %>%
+        color(part = "header", color = "white") %>%
+        bold(part = "header", bold = TRUE)
+  ft <- font(ft, fontname = "Calibri", part = "all")
+  ft <- color(ft, color = "#333333", part = "body")
+  # Colonne de regroupement : fond vert tres clair
+  ft <- bg(ft, j = 1, bg = "#F0F7F4", part = "body")
+  ft <- color(ft, j = 1, color = "#1B2A4A", part = "body")
+  ft <- bold(ft, j = 1, bold = TRUE, part = "body")
+
+  # Alignements
+  ft <- align(ft, align = "center", part = "header")
+  ft <- align(ft, j = 1:2, align = "left", part = "body")
+  ft <- align(ft, j = 3:4, align = "center", part = "body")
+  
+  # Lignes de synthà¨se du bas : Gras + Alignement spécifique
+  n_rows <- nrow(df)
+  ft <- bold(ft, i = (n_rows-1):n_rows, bold = TRUE)
+  ft <- align(ft, i = (n_rows-1):n_rows, j = 2, align = "right") # Aligne "Approche par..." à  droite
+  
+  # Lignes de synthese : fond vert clair
+  ft <- bg(ft, i = (n_rows-1):n_rows, bg = "#C8E6C9", part = "body")
+  ft <- color(ft, i = (n_rows-1):n_rows, color = "#1B2A4A", part = "body")
+
+  # Hors seuil : rouge doux sur fond rose (au lieu de l'orange)
+  ft <- bg(ft, j = "Flux (3)",
+           i = ~ as.numeric(gsub("%", "", `Flux (3)`)) < 100,
+           bg = "#FDE2E1", part = "body")
+  ft <- color(ft, j = "Flux (3)",
+              i = ~ as.numeric(gsub("%", "", `Flux (3)`)) < 100,
+              color = "#C0392B", part = "body")
+
+  ft <- bg(ft, j = "Stock (4)",
+           i = ~ as.numeric(gsub("%", "", `Stock (4)`)) < 90,
+           bg = "#FDE2E1", part = "body")
+  ft <- color(ft, j = "Stock (4)",
+              i = ~ as.numeric(gsub("%", "", `Stock (4)`)) < 90,
+              color = "#C0392B", part = "body")
+
+  ft <- bold(ft, j = c("Flux (3)", "Stock (4)"), bold = TRUE, part = "body")
+
+  # Filets gris clairs uniquement (plus de bordures noires)
+  ft <- border_remove(ft)
+  ft <- hline(ft, border = fp_border(color = "#E0E0E0", width = 0.75), part = "body")
+  ft <- vline(ft, border = fp_border(color = "#E0E0E0", width = 0.75), part = "all")
+  ft <- border_outer(ft, border = fp_border(color = "#E0E0E0", width = 0.75))
+
+  # Tailles et dimensions compactes pour une slide 10 x 5.625 pouces
+  ft <- fontsize(ft, size = 9, part = "all")
+  ft <- padding(ft, padding.top = 1, padding.bottom = 1, padding.left = 2, padding.right = 2, part = "all")
+  ft <- height_all(ft, height = 0.24, part = "all")
+  ft <- width(ft, j = 1, width = 2.1)
+  ft <- width(ft, j = 2, width = 4.25)
+  ft <- width(ft, j = 3, width = 1.5)
+  ft <- width(ft, j = 4, width = 1.5)
+  
+  return(ft)
+}
+
+agent_completion_rates <- function(df, fields) {
+  if (is.null(df) || nrow(df) == 0 || !("EXPL" %in% colnames(df))) return(numeric(0))
+  agents <- sort(unique(trimws(as.character(df$EXPL))))
+  agents <- agents[agents != "" & !is.na(agents)]
+  rates <- sapply(agents, function(agent) {
+    global_rate(df[trimws(as.character(df$EXPL)) == agent, , drop = FALSE], fields)
+  })
+  as.numeric(rates[!is.na(rates)])
+}
+
+agent_distribution_row <- function(rates) {
+  labels <- c("[0, 50%]", "]50% , 60%]", "]60% , 80%]", "]80% , 100%]")
+  if (length(rates) == 0) return(setNames(rep("0%", length(labels)), labels))
+  cuts <- cut(rates, breaks = c(0, 50, 60, 80, 100), include.lowest = TRUE, right = TRUE, labels = labels)
+  counts <- table(factor(cuts, levels = labels))
+  setNames(paste0(floor(100 * as.numeric(counts) / length(rates)), "%"), labels)
+}
+
+style_slide5_table <- function(df, widths = NULL) {
+  ft <- flextable(df)
+  ft <- bg(ft, part = "header", bg = "#1B2A4A") %>%
+    color(part = "header", color = "white") %>%
+    bold(part = "header", bold = TRUE)
+  ft <- font(ft, fontname = "Calibri", part = "all")
+  ft <- color(ft, color = "#333333", part = "body")
+  ft <- fontsize(ft, size = 9, part = "all")
+  ft <- padding(ft, padding.top = 3, padding.bottom = 3, padding.left = 4, padding.right = 4, part = "all")
+  ft <- align(ft, align = "center", part = "all")
+  ft <- align(ft, j = 1, align = "left", part = "body")
+  ft <- bold(ft, j = 1, bold = TRUE, part = "body")
+  # lignes alternees, filets gris clairs uniquement
+  if (nrow(df) > 1) {
+    pairs <- seq(2, nrow(df), by = 2)
+    if (length(pairs) > 0) ft <- bg(ft, i = pairs, bg = "#F0F7F4", part = "body")
+  }
+  ft <- border_remove(ft)
+  ft <- hline(ft, border = fp_border(color = "#E0E0E0", width = 0.75), part = "body")
+  ft <- border_outer(ft, border = fp_border(color = "#E0E0E0", width = 0.75))
+  if (!is.null(widths)) {
+    for (j in seq_along(widths)) ft <- width(ft, j = j, width = widths[j])
+  }
+  ft
+}
+
+
+#####--------- CONSTRUCTION DU RAPPORT DG ---------#####
+# Charte reprise a l'identique de "exemple rapport.pptx" : couleurs, police,
+# geometrie des bandeaux, cartouches et pied de page ont ete releves dans le
+# XML de ce fichier et sont reproduits tels quels ci-dessous.
+
+DG_VERT   <- "#009A56"   # vert BOA : bandeau de titre, pastilles, libelles
+DG_VERT_C <- "#C8E6C9"   # vert clair : lignes de synthese
+DG_NAVY   <- "#1B2A4A"   # bleu marine : texte fort, barres de cartouche
+DG_PANEL  <- "#F5F5F5"   # fond des cartouches
+DG_FOND   <- "#F0F7F4"   # fond vert tres pale
+DG_GRIS   <- "#E0E0E0"   # filets, bande de pied de page
+DG_TXT    <- "#333333"   # texte courant
+DG_MUET   <- "#888888"   # texte de pied de page
+DG_FONT   <- "Calibri"
+
+# Geometrie relevee dans "exemple rapport.pptx" (slide 10 x 5,625 po)
+# Palette des cartes KPI : tons sobres de facture bancaire (vert BOA, marine,
+# bleus ardoise, gris-bleu). DG_ALERTE, un brique attenue, remplace la couleur
+# d'origine quand un seuil n'est pas tenu.
+DG_FUN    <- c("#009A56", "#1B2A4A", "#2E7D8F", "#3D5A80", "#4E6E5D", "#5B6B7B")
+DG_ALERTE <- "#B03A2E"
+
+DG_HDR_H    <- 0.62      # hauteur du bandeau vert de titre
+DG_MARGE    <- 0.40      # marge de contenu
+DG_RULE_Y   <- 1.08      # filet vert sous le libelle de section
+DG_FOOT_Y   <- 5.35      # bande grise de pied de page
+DG_FOOT_H   <- 0.28
+
+# Base de presentation : on repart de "exemple rapport.pptx" pour heriter
+# exactement de son theme, de son masque, de ses polices et de son format 16/9,
+# en supprimant ses slides. Si le fichier est absent, on retombe sur un
+# template 16/9 genere a partir de celui d'officer.
+.dg_tpl169 <- NULL
+
+# Maquette prete a remplir : en-tetes, pieds de page, logo, sommaire et pages
+# de garde y sont deja composes. Le script n'y depose que le contenu.
+dg_maquette_path <- function() {
+  for (f in c("exemple_rapport_kyc.pptx", "exemple rapport kyc.pptx",
+              "exemple_rapport_KYC.pptx")) {
+    p <- paste0(chemin, f)
+    if (file.exists(p)) return(p)
+  }
+  NULL
+}
+
+dg_base_path <- function() {
+  for (f in c("exemple rapport.pptx", "exemple_rapport.pptx")) {
+    p <- paste0(chemin, f)
+    if (file.exists(p)) return(p)
+  }
+  NULL
+}
+
+dg_pptx <- function() {
+  # 1) maquette prete a remplir : on garde ses slides telles quelles
+  maq <- dg_maquette_path()
+  if (!is.null(maq)) {
+    p <- tryCatch(read_pptx(maq), error = function(e) NULL)
+    if (!is.null(p)) {
+      if (length(p) < 7) {
+        cat("######### ATTENTION : la maquette ne contient que", length(p),
+            "slides (7 attendues)\n")
+      }
+      return(p)
+    }
+    cat("######### ATTENTION : maquette 'exemple_rapport_kyc.pptx' illisible\n")
+  } else {
+    cat("######### ATTENTION : 'exemple_rapport_kyc.pptx' introuvable dans",
+        chemin, "-> deck reconstruit\n")
+  }
+  # 2) repli : theme de "exemple rapport.pptx", slides supprimees
+  base <- dg_base_path()
+  if (!is.null(base)) {
+    p <- tryCatch({
+      x <- read_pptx(base)
+      while (length(x) > 0) x <- remove_slide(x, 1)
+      x
+    }, error = function(e) NULL)
+    if (!is.null(p)) return(p)
+    cat("######### ATTENTION : 'exemple rapport.pptx' illisible, theme par defaut utilise\n")
+  } else {
+    cat("######### ATTENTION : 'exemple rapport.pptx' introuvable dans", chemin,
+        "-> theme par defaut\n")
+  }
+  dg_pptx_fallback()
+}
+
+dg_pptx_fallback <- function() {
+  if (is.null(.dg_tpl169) || !file.exists(.dg_tpl169)) {
+    src <- system.file(package = "officer", "template", "template.pptx")
+    ok <- src != "" && requireNamespace("zip", quietly = TRUE)
+    if (ok) {
+      d <- file.path(tempdir(), "dg_tpl169_src")
+      unlink(d, recursive = TRUE); dir.create(d, recursive = TRUE)
+      utils::unzip(src, exdir = d)
+      p <- file.path(d, "ppt", "presentation.xml")
+      x <- paste(readLines(p, warn = FALSE), collapse = "")
+      x <- sub('sldSz[^/]*?/>', 'sldSz cx="9144000" cy="5143500" type="screen16x9"/>', x)
+      con <- file(p, open = "wb"); writeBin(charToRaw(x), con); close(con)
+      out <- file.path(tempdir(), "dg_template_169.pptx"); unlink(out)
+      zip::zip(zipfile = out, files = list.files(d, recursive = TRUE, all.files = TRUE),
+               root = d, mode = "mirror")
+      .dg_tpl169 <<- out
+    }
+  }
+  if (!is.null(.dg_tpl169) && file.exists(.dg_tpl169)) read_pptx(.dg_tpl169) else read_pptx()
+}
+
+# Layout sans placeholder : on positionne tout en coordonnees absolues.
+dg_layout <- function(ppt) {
+  ls <- layout_summary(ppt)
+  i <- which(ls$layout %in% c("Blank", "Vide"))[1]
+  if (is.na(i)) i <- which(ls$layout %in% c("Title Only", "Titre seul"))[1]
+  if (is.na(i)) i <- nrow(ls)
+  list(layout = ls$layout[i], master = ls$master[i])
+}
+
+dg_add <- function(ppt) {
+  lay <- dg_layout(ppt)
+  add_slide(ppt, layout = lay$layout, master = lay$master)
+}
+
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
+# --- Bloc colore ---
+# ATTENTION : officer n'exporte PAS fp_par(shading.color) vers PowerPoint.
+# Le seul aplat de couleur reellement rendu passe par une table. Toute zone
+# coloree du rapport est donc construite ici, via un flextable sans en-tete.
+# `lignes` : liste de list(txt, size, bold, color, bg, align, h)
+dg_bloc <- function(lignes, largeur, pad_left = 6) {
+  ft <- flextable(data.frame(x = vapply(lignes, function(l) l$txt, character(1)),
+                             stringsAsFactors = FALSE))
+  ft <- delete_part(ft, part = "header")
+  ft <- border_remove(ft)
+  ft <- font(ft, fontname = DG_FONT, part = "all")
+  ft <- width(ft, j = 1, width = largeur)
+  for (i in seq_along(lignes)) {
+    l <- lignes[[i]]
+    ft <- bg(ft, i = i, bg = l$bg %||% "transparent", part = "body")
+    ft <- color(ft, i = i, color = l$color %||% DG_TXT, part = "body")
+    ft <- fontsize(ft, i = i, size = l$size %||% 11, part = "body")
+    ft <- bold(ft, i = i, bold = isTRUE(l$bold), part = "body")
+    ft <- align(ft, i = i, align = l$align %||% "left", part = "body")
+    if (!is.null(l$h)) ft <- height(ft, i = i, height = l$h, part = "body")
+  }
+  ft <- padding(ft, padding.top = 2, padding.bottom = 2,
+                padding.left = pad_left, padding.right = 6, part = "body")
+  set_table_properties(ft, layout = "fixed")
+}
+
+# Bandeau plein de couleur unie (filet, fond de section)
+dg_filet <- function(couleur, largeur, hauteur = 0.06) {
+  dg_bloc(list(list(txt = "", bg = couleur, size = 4, h = hauteur)), largeur)
+}
+
+# Paragraphe simple (texte sans aplat : `bg` est ignore, cf. dg_bloc)
+dg_par <- function(txt, size = 12, bold = FALSE, color = "black",
+                   align = "left", bg = "transparent", italic = FALSE) {
+  fpar(ftext(txt, fp_text(color = color, font.size = size, bold = bold,
+                          italic = italic, font.family = DG_FONT)),
+       fp_p = fp_par(text.align = align, shading.color = bg,
+                     padding.top = 3, padding.bottom = 3,
+                     padding.left = 6, padding.right = 6))
+}
+
+# --- En-tete de slide ---
+# Bandeau bleu marine pleine largeur : eyebrow "BANK OF AFRICA - BMCE GROUP",
+# titre de section, et sous-titre optionnel aligne a droite (date, perimetre).
+# Un filet vert souligne le bandeau.
+# Bandeau vert pleine largeur + cartouche blanc "BANK OF AFRICA / BMCE GROUP"
+# a droite, exactement comme dans "exemple rapport.pptx".
+dg_entete <- function(ppt, ppt_titre, W, sous_titre = NULL, M = DG_MARGE) {
+  # bandeau vert + titre blanc 18 pt
+  ppt <- ph_with(ppt, value = dg_bloc(list(
+      list(txt = ppt_titre, size = 18, bold = TRUE, color = "white",
+           bg = DG_VERT, h = DG_HDR_H)), W, pad_left = 22),
+    location = ph_location(left = 0, top = 0, width = W, height = DG_HDR_H))
+  # cartouche blanc en surimpression a droite : logo si disponible, sinon texte
+  ppt <- ph_with(ppt, value = dg_bloc(list(
+      list(txt = "", bg = "white", size = 4, h = 0.55)), 1.5),
+    location = ph_location(left = W - 1.5, top = 0, width = 1.5, height = 0.55))
+  p_logo <- dg_logo_path()
+  if (!is.null(p_logo)) {
+    r <- dg_logo_ratio(p_logo)
+    lh <- 0.36; lw <- lh * r
+    if (lw > 1.34) { lw <- 1.34; lh <- lw / r }
+    ppt <- ph_with(ppt, value = external_img(p_logo, width = lw, height = lh),
+                   location = ph_location(left = W - 1.5 + (1.5 - lw)/2,
+                                          top = (0.55 - lh)/2, width = lw, height = lh))
+  } else {
+    ppt <- ph_with(ppt, value = dg_bloc(list(
+        list(txt = "BANK OF AFRICA", size = 7, bold = TRUE, color = DG_NAVY,
+             align = "center", bg = "white", h = 0.28),
+        list(txt = "BMCE GROUP", size = 6, color = DG_NAVY,
+             align = "center", bg = "white", h = 0.24)), 1.5),
+      location = ph_location(left = W - 1.5, top = 0, width = 1.5, height = 0.55))
+  }
+  if (!is.null(sous_titre)) {
+    ppt <- ph_with(ppt, value = block_list(
+        dg_par(sous_titre, size = 9, bold = TRUE, color = DG_MUET, align = "right")),
+      location = ph_location(left = W/2, top = DG_RULE_Y - 0.3, width = W/2 - M, height = 0.26))
+  }
+  ppt
+}
+
+# Libelle de section (pastille verte) + filet vert, sous le bandeau de titre
+dg_section <- function(ppt, txt, W, largeur = 2.4, M = DG_MARGE) {
+  ppt <- ph_with(ppt, value = dg_bloc(list(
+      list(txt = txt, size = 11, bold = TRUE, color = "white",
+           bg = DG_VERT, h = 0.32)), largeur, pad_left = 10),
+    location = ph_location(left = M, top = 0.80, width = largeur, height = 0.32))
+  ph_with(ppt, value = dg_filet(DG_VERT, W - 2*M, 0.04),
+          location = ph_location(left = M, top = DG_RULE_Y, width = W - 2*M, height = 0.04))
+}
+
+# Cartouche : panneau gris clair coiffe d'une barre de titre coloree
+dg_cartouche <- function(ppt, titre, left, top, largeur, hauteur,
+                         couleur = DG_NAVY) {
+  ppt <- ph_with(ppt, value = dg_bloc(list(
+      list(txt = titre, size = 9, bold = TRUE, color = "white",
+           bg = couleur, h = 0.28)), largeur, pad_left = 10),
+    location = ph_location(left = left, top = top, width = largeur, height = 0.28))
+  ph_with(ppt, value = dg_bloc(list(
+      list(txt = "", bg = DG_PANEL, size = 4, h = hauteur - 0.28)), largeur),
+    location = ph_location(left = left, top = top + 0.28,
+                           width = largeur, height = hauteur - 0.28))
+}
+
+# Compatibilite : ancien nom
+dg_titre <- function(ppt, txt, W, M = 0.3) dg_entete(ppt, txt, W, NULL, M)
+
+# --- Pied de page --- bande grise pleine largeur + mention a droite
+dg_pied <- function(ppt, W, H, num = NULL, M = DG_MARGE) {
+  ppt <- ph_with(ppt, value = dg_filet(DG_GRIS, W, DG_FOOT_H),
+                 location = ph_location(left = 0, top = DG_FOOT_Y, width = W, height = DG_FOOT_H))
+  mention <- if (is.null(num)) "Conformité BOA Group  |  Pôle Projet"
+             else paste0("Conformité BOA Group  |  Pôle Projet        ", num)
+  ppt <- ph_with(ppt, value = block_list(
+      dg_par(mention, size = 8, color = DG_MUET, align = "right")),
+    location = ph_location(left = W - 3.6, top = DG_FOOT_Y + 0.02, width = 3.4, height = 0.24))
+  ppt
+}
+
+# --- Carte KPI ---
+# Pastille verte facon "01/02/03" de l'exemple : valeur sur aplat colore,
+# libelle en bleu marine sur le panneau gris.
+dg_kpi <- function(valeur, libelle, couleur = DG_VERT, largeur = 1.5) {
+  dg_bloc(list(
+    list(txt = valeur,  size = 20, bold = TRUE, color = "white",
+         align = "center", bg = couleur, h = 0.50),
+    list(txt = libelle, size = 7.5, bold = TRUE, color = DG_NAVY,
+         align = "center", bg = DG_PANEL, h = 0.38)), largeur, pad_left = 3)
+}
+
+# Depose une rangee de cartes KPI reparties sur la largeur utile.
+dg_kpi_row <- function(ppt, kpis, W, top, M = 0.3, hauteur = 0.9, gap = 0.1) {
+  n <- length(kpis)
+  if (n == 0) return(ppt)
+  larg <- (W - 2*M - (n - 1) * gap) / n
+  for (i in seq_len(n)) {
+    k <- kpis[[i]]
+    ppt <- ph_with(ppt, value = dg_kpi(k$valeur, k$libelle, k$couleur %||% DG_VERT, larg),
+                   location = ph_location(left = M + (i - 1) * (larg + gap),
+                                          top = top, width = larg, height = hauteur))
+  }
+  ppt
+}
+
+# Logo de la banque (depose dans `chemin`). Absent -> slide generee sans logo.
+dg_logo_path <- function() {
+  for (f in c("logo_PNG.png", "logo_PNG.PNG", "logo_PNG", "logo_PNG.jpg",
+              "logo_BOA.png", "logo.png")) {
+    p <- paste0(chemin, f)
+    if (file.exists(p)) return(p)
+  }
+  NULL
+}
+
+# Largeur/hauteur reelle du logo, pour ne pas le deformer.
+# Lecture directe de l'en-tete PNG (octets 17-24) : exacte et sans dependance.
+# Repli sur le package png (JPEG ou en-tete illisible), puis sur 3.
+dg_logo_ratio <- function(p) {
+  r <- tryCatch({
+    con <- file(p, "rb"); on.exit(close(con), add = TRUE)
+    h <- readBin(con, "raw", n = 24)
+    if (length(h) == 24 && identical(as.integer(h[2:4]), c(80L, 78L, 71L))) {
+      w  <- sum(as.integer(h[17:20]) * 256^(3:0))
+      ht <- sum(as.integer(h[21:24]) * 256^(3:0))
+      if (ht > 0) w / ht else NA_real_
+    } else NA_real_
+  }, error = function(e) NA_real_)
+  if (!is.na(r) && r > 0) return(r)
+
+  if (requireNamespace("png", quietly = TRUE)) {
+    d <- tryCatch(dim(png::readPNG(p)), error = function(e) NULL)
+    if (!is.null(d) && length(d) >= 2 && d[1] > 0) return(d[2] / d[1])
+  }
+  3
+}
+
+# pos = "footer" (bas droite des slides de contenu) ou "center" (pages de garde).
+# "coin"/"centre" acceptes comme synonymes.
+dg_logo <- function(ppt, W, H, pos = "footer", hauteur = NULL, top = NULL, M = 0.3) {
+  if (pos == "centre") pos <- "center"
+  if (pos == "coin")   pos <- "footer"
+  p <- dg_logo_path()
+  if (is.null(p)) return(ppt)
+  if (is.null(hauteur)) hauteur <- if (pos == "center") 0.75 else 0.32
+  larg <- hauteur * dg_logo_ratio(p)
+  if (larg > W - 2*M) { larg <- W - 2*M; hauteur <- larg / dg_logo_ratio(p) }
+  if (pos == "center") {
+    left <- (W - larg) / 2
+    if (is.null(top)) top <- 0.35
+  } else {
+    left <- W - M - larg
+    if (is.null(top)) top <- H - 0.12 - hauteur
+  }
+  ph_with(ppt, value = external_img(p, width = larg, height = hauteur),
+          location = ph_location(left = left, top = top, width = larg, height = hauteur))
+}
+
+# Liste a puces
+dg_puces <- function(txt, size = 11) {
+  do.call(block_list, lapply(txt, function(t)
+    dg_par(paste0("▪  ", t), size = size, color = DG_TXT)))
+}
+
+# Formate un vecteur nomme de taux en "Libelle (xx%)" separes par des ;
+dg_liste_champs <- function(v, max_n = 6) {
+  if (length(v) == 0) return(NULL)
+  v <- sort(v)
+  n <- length(v)
+  v <- utils::head(v, max_n)
+  s <- paste0(names(v), " (", floor(as.numeric(v)), "%)", collapse = " ; ")
+  if (n > max_n) s <- paste0(s, " ; ...")
+  s
+}
+
+# "12,5%" / "12.5%" -> 12.5
+dg_num <- function(x) {
+  suppressWarnings(as.numeric(gsub(",", ".", gsub("[^0-9,.]", "", as.character(x)))))
+}
+
+pm_without_rcsno <- function(df, pm_exclure) {
+  if (is.null(df) || nrow(df) == 0 || !("RCSNO" %in% names(df))) return(df[0, , drop = FALSE])
+
+  pm_exclure_clients <- if (!is.null(pm_exclure) && "CLIENT" %in% names(pm_exclure)) {
+    unique(trimws(as.character(pm_exclure$CLIENT)))
+  } else {
+    character(0)
+  }
+  pm_exclure_clients <- pm_exclure_clients[pm_exclure_clients != "" & !is.na(pm_exclure_clients)]
+
+  liste_pm <- df %>%
+    filter(is.na(RCSNO) | trimws(as.character(RCSNO)) == "")
+
+  if ("CLIENT" %in% names(liste_pm) && length(pm_exclure_clients) > 0) {
+    liste_pm <- liste_pm %>%
+      filter(!(trimws(as.character(CLIENT)) %in% pm_exclure_clients))
+  }
+
+  liste_pm %>%
+    distinct() %>%
+    arrange(AGENCE, EXPL, CLIENT)
+}
+
+pp_birthdate_01011900 <- function(df) {
+  if (is.null(df) || nrow(df) == 0 || !("DATNAIS" %in% names(df))) return(df[0, , drop = FALSE])
+
+  datnais_chr <- trimws(as.character(df$DATNAIS))
+  datnais_chr <- gsub("-", "/", datnais_chr)
+
+  df %>%
+    filter(datnais_chr %in% c("01/01/1900", "1900/01/01")) %>%
+    distinct() %>%
+    arrange(AGENCE, EXPL, CLIENT)
+}
+
+
+    # Repartition notation et taux de complétude des agents par intervalle de taux
+
+
+    notation=read.csv2(paste0(chemin,"notation.csv"), header = FALSE, row.names = NULL)
+
+    colnames(notation)=c("Agent","Filiale","Note","Date_notation")
+    
+    filiale_note=unique(notation$Filiale)
+
+
+notation= notation  %>%
+    group_by(Filiale, Note) %>%
+    summarise(Count = n(), .groups = "drop") %>%
+    group_by(Filiale) %>%
+    mutate(Nombre_notes = sum(Count)) %>%
+    mutate(Percent = Count / Nombre_notes) %>%    # proportion (0 à  1)
+    mutate(Percent = percent(Percent, accuracy = 0.2)) %>%  # transforme en Ã¢â‚¬Å“xx.x%Ã¢â‚¬Â
+    select(Filiale, Nombre_notes, Note, Percent) %>%
+    pivot_wider(names_from = Note, values_from = Percent, values_fill = "0%")
+
+
+    
+
+
+          note_cols <- c("Insuffisant", "Passable", "Bien", "Trà¨s Bien")
+          for (col in note_cols) {
+            if (!(col %in% colnames(notation))) notation[[col]] <- "0%"
+          }
+
+
+
+
+
+
  
 for (r in filiale) {
     repertoire=file.path(chemin,r)
     dir.create(repertoire)
-
 }
 
 ## Fonctions 
@@ -110,7 +854,7 @@ is_alphanumeric <- function(x) {
 
 remove_spaces <- function(x) {
   if (is.character(x)) {
-    # Normalise encodage (gère les octets invalides)
+    # Normalise encodage (gà¨re les octets invalides)
     x2 <- suppressWarnings(iconv(x, from = "", to = "UTF-8", sub = ""))
     bad <- is.na(x2)
     if (any(bad)) {
@@ -184,13 +928,13 @@ count_empty_fields <- function(df, fields) {
 field_completion_rate <- function(df, field, inc = c("")) {
   if (is.null(df) || nrow(df) == 0 || !(field %in% names(df))) return(NA_real_)
   x <- trimws(as.character(df[[field]]))
-  floor(100 - (sum(is.na(x) | x %in% inc) / nrow(df)) * 100)
+  rate_floor_no100(sum(is.na(x) | x %in% inc), nrow(df))
 }
 
 compute_taux <- function(df, fields) {
   if (is.null(df) || nrow(df) == 0 || length(fields) == 0) return(NA_real_)
   cv <- count_empty_fields(df, fields)
-  floor(100 * (1 - (cv / (length(fields) * nrow(df)))))
+  rate_floor_no100(cv, length(fields) * nrow(df))
 }
 
 format_percent <- function(x) {
@@ -200,6 +944,41 @@ format_percent <- function(x) {
 min_rate <- function(...) {
   values <- c(...)
   if (length(values) == 0 || all(is.na(values))) NA_real_ else min(values, na.rm = TRUE)
+}
+
+# Retire les lignes dont la colonne `col` est vide (ligne gabarit de
+# bind_results). df[-which(...), ] renverrait un tableau VIDE si which() ne
+# trouve rien (`-integer(0)` selectionne zero ligne) : d'ou ce garde-fou.
+drop_lignes_vides <- function(df, col) {
+  if (is.null(df) || nrow(df) == 0 || !(col %in% names(df))) return(df)
+  idx <- which(trimws(as.character(df[[col]])) == "")
+  if (length(idx) == 0) return(df)
+  df[-idx, , drop = FALSE]
+}
+
+# Table des taux de completude par agent.
+# Robuste au cas ou aucun agent n'est concerne (flux vide sur la periode) :
+# data.frame() refuse de recycler une valeur de longueur 1 avec des colonnes de
+# longueur 0 ("arguments imply differing number of rows: 0, 1").
+taux_completude_table <- function(tab, date_periode, flux_stock, pp_pm) {
+  n <- if (is.null(tab)) 0L else nrow(tab)
+  if (n == 0) {
+    return(data.frame(Agents = character(0), Taux = character(0),
+                      Date = character(0), flux_stock = character(0),
+                      pp_pm = character(0), stringsAsFactors = FALSE))
+  }
+  # La colonne du taux s'appelle "Taux.de.fiabilisation" apres le mangling de
+  # data.frame(), mais peut rester "Taux de fiabilisation" si construite avec
+  # check.names = FALSE : on accepte les deux.
+  col_taux <- intersect(c("Taux.de.fiabilisation", "Taux de fiabilisation"), names(tab))
+  taux <- if (length(col_taux) > 0) tab[[col_taux[1]]] else rep(NA_character_, n)
+
+  data.frame(Agents     = tab$Agents,
+             Taux       = taux,
+             Date       = rep(as.character(date_periode), n),
+             flux_stock = rep(flux_stock, n),
+             pp_pm      = rep(pp_pm, n),
+             stringsAsFactors = FALSE)
 }
 
 get_appreciation <- function(taux, faible, moyen) {
@@ -271,7 +1050,7 @@ select_pm_fields <- function(df, fields) {
   df
 }
 
-# Nettoie le fichier source si "RCS N°" empêche la lecture
+# Nettoie le fichier source si "RCS NÃ‚Â°" empàªche la lecture
 sanitize_rcsno_file <- function(path) {
   if (!file.exists(path)) return(path)
   txt <- readLines(path, encoding = "Latin1", warn = FALSE, skipNul = TRUE)
@@ -325,8 +1104,8 @@ apply_status_style <- function(wb, sheet, data, value_col,
 
 # Fonction pour nettoyer les noms de colonnes (BOM et mauvais encodage)
 clean_colnames <- function(data) {
-    # Supprime les caractères de BOM et mauvais encodage au début
-    names(data) <- gsub("^[\\xef\\xbb\\xbf\\u00ef\\u00bb\\u00bf]|^ï\\.\\.\\.?|^ï\\.\\.|^ï\\.\\xef", "", names(data))
+    # Supprime les caractà¨res de BOM et mauvais encodage au début
+    names(data) <- gsub("^[\\xef\\xbb\\xbf\\u00ef\\u00bb\\u00bf]|^à¯\\.\\.\\.?|^à¯\\.\\.|^à¯\\.\\xef", "", names(data))
     return(data)
 }
 
@@ -362,11 +1141,11 @@ detect_encoding <- function(path, n = 100000) {
 # Lecture CSV2 avec encodage auto + correction si besoin
 
 
-# Nettoyage post-lecture : enlève les guillemets, préserve accents/trémas/@
+# Nettoyage post-lecture : enlà¨ve les guillemets, préserve accents/trémas/@
 clean_quotes_df <- function(df) {
   char_cols <- vapply(df, is.character, logical(1))
   df[char_cols] <- lapply(df[char_cols], function(x) {
-    # Sécurise l'encodage (préserve é, ï, @, etc.)
+    # Sécurise l'encodage (préserve é, à¯, @, etc.)
     x <- enc2utf8(x)
     # Supprime tous les guillemets doubles
     x <- gsub('"', "", x, fixed = TRUE)
@@ -385,7 +1164,7 @@ read_csv2_auto <- function(path, ...) {
   last_error <- NULL
   dots <- list(...)
   if (!"strip.white" %in% names(dots)) dots$strip.white <- TRUE
-  # Force la lecture en caractères (évite les conversions en facteurs)
+  # Force la lecture en caractà¨res (évite les conversions en facteurs)
   if (!"stringsAsFactors" %in% names(dots)) dots$stringsAsFactors <- FALSE
 
   for (enc in encodings) {
@@ -420,7 +1199,7 @@ read_csv2_auto <- function(path, ...) {
 
     last_error <- res
 
-    # Retry sans guillemets si EOF dans chaîne quotée ou entrée invalide
+    # Retry sans guillemets si EOF dans chaà®ne quotée ou entrée invalide
     msg <- conditionMessage(res)
     if (grepl("eof_quoted_string|invalid_input_warning|invalid input|input string|entrée incorrecte|entree incorrecte", msg, ignore.case = TRUE)) {
       dots2 <- dots
@@ -470,7 +1249,7 @@ read_csv2_big <- function(path, cache = TRUE, drop = NULL) {
   message("[read_csv2_big] Encodage fread: ", enc_fread)
 
   # fill = Inf : certaines lignes ont des champs en trop (";" dans un libellé),
-  # sans cela fread s'arrête en cours de fichier (lecture TRONQUEE silencieuse).
+  # sans cela fread s'arràªte en cours de fichier (lecture TRONQUEE silencieuse).
   # Le warning "Stopped early" est donc traité comme un échec.
   fread_try <- function(q, skip = 0L, nrows = Inf, col_names = NULL, nthread = NULL,
                         dropcols = NULL) {
@@ -517,8 +1296,8 @@ read_csv2_big <- function(path, cache = TRUE, drop = NULL) {
   }
 
   # Répare les octets invalides (fichiers UTF-8 contenant des restes Latin-1),
-  # enlève les guillemets et espaces résiduels, puis retype comme read.csv2.
-  # validEnc (test C rapide) évite de convertir chaque chaîne : seules les
+  # enlà¨ve les guillemets et espaces résiduels, puis retype comme read.csv2.
+  # validEnc (test C rapide) évite de convertir chaque chaà®ne : seules les
   # valeurs réellement invalides passent par iconv.
   fix_utf8 <- function(x) {
     bad <- !validEnc(x)
@@ -911,31 +1690,24 @@ ppt_dg=read_pptx(paste(chemin,"Rapport de suivi.pptx",sep=""))
 
 
 
-    # Repartition notation et taux de complétude des agents par intervalle de taux
-
-
-    notation=read.csv2(paste0(chemin,"notation.csv"), header = FALSE, row.names = NULL)
-
-    colnames(notation)=c("Agent","Filiale","Note","Date_notation")
-    
-    filiale_note=unique(notation$Filiale)
-
-
-notation= notation  %>%
-    group_by(Filiale, Note) %>%
-    summarise(Count = n(), .groups = "drop") %>%
-    group_by(Filiale) %>%
-    mutate(Percent = Count / sum(Count)) %>%    # proportion (0 à 1)
-    mutate(Percent = percent(Percent, accuracy = 0.2)) %>%  # transforme en “xx.x%”
-    select(-Count) %>%
-    pivot_wider(names_from = Note, values_from = Percent, values_fill = "0%")
-
-
-  
-
 production = function(fil) {
 
-   # Traitements des données filiales initiales
+# Décrompession des fichiers
+     sigle=paste("BOA_",fil, sep="")
+
+  
+            cat("######################################################\n")
+            cat("######### Extraction des données de \n",sigle, "#######\n")
+            cat("#####################################################\n")
+
+	chemin_fichier_zip <- paste0("C:\\KYC_Filiales\\sftpkycboa",tolower(fil),"\\INKYC\\",fil,".7z")
+	dossier_sortie <- paste0("C:\\Fiabilisation KYC\\R\\",fil,"\\data")
+	mot_de_passe <- id[2,2]
+	# On extrait tout sauf le fichier de scoring (conservé tel quel dans //data//)
+	fichier_exclu <- paste0("scoring_", fil, ".csv")
+	commande <- sprintf('%s x "%s" -o"%s" -p"%s" -xr!"%s" -y',chemin_7z, chemin_fichier_zip, dossier_sortie, mot_de_passe, fichier_exclu)
+	system(commande)
+  # Traitements des données filiales initiales
 
    ## Clients non fiabilisables
 
@@ -985,10 +1757,53 @@ pm_stock <- read_csv2_big(chemin_pm, drop = cols_ignorees)
 # Un meme CLIENT peut apparaitre sur plusieurs lignes : on les regroupe des le
 # depart, en concatenant par une virgule les valeurs differentes de chaque colonne.
 pm_stock <- agreger_doublons(pm_stock, "CLIENT")
+pm_stock=unique(pm_stock )
 
-dates_triees <- sort(unique(dmy(pm_stock$DATOUV)), decreasing = TRUE)
-premier_jour_mois_courant <- dates_triees[1]+1
-premier_jour_mois_precedent <- dates_triees[1]
+# ============================
+# 3 bis. Clients PM exclus du controle RCSNO
+# ============================
+# Codes AGEC lus dans la colonne pm_exclure de prerequis.csv. La liste des
+# CLIENT concernes ne depend que de pm_stock : on la calcule une seule fois ici,
+# a l'import, au lieu de la reconstruire au moment du rapport Direction generale.
+pm_exclure_codes <- pm_agec_exclus(fil)
+cat("######### AGEC exclus du controle RCSNO pour", fil, ":",
+    paste(pm_exclure_codes, collapse = ", "), "\n")
+
+pm_exclure <- (function(df, codes) {
+  df <- clean_colnames(df)
+  names(df) <- toupper(names(df))
+  if (!all(c("AGEC", "CLIENT") %in% names(df))) return(df[0, , drop = FALSE])
+  df[trimws(toupper(as.character(df$AGEC))) %in% codes, , drop = FALSE]
+})(pm_stock, pm_exclure_codes)
+cat("#########", nrow(pm_exclure), "client(s) PM exclus du controle RCSNO\n")
+
+# La periode doit etre connue avant le filtrage du flux PM (plus bas), donc
+# avant le chargement complet de pp_stock. On lit ici la seule colonne DATOUV
+# du fichier PP : lecture rapide, sans toucher au cache de read_csv2_big.
+datouv_pp <- tryCatch({
+  f_pp <- file.path(chemin, fil, "data", "pp_stock.csv")
+  if (file.exists(f_pp)) {
+    data.table::fread(f_pp, sep = ";", select = "DATOUV",
+                      showProgress = FALSE, nThread = 1)$DATOUV
+  } else character(0)
+}, error = function(e) {
+  cat("######### ATTENTION", fil,
+      ": DATOUV de pp_stock.csv illisible, periode calee sur les PM seules\n")
+  character(0)
+})
+
+dates_dispo <- sort(unique(c(dmy(pm_stock$DATOUV), dmy(datouv_pp))), decreasing = TRUE)
+dates_triees <- dates_dispo   # conserve pour compatibilite
+
+# Bornes de la periode consideree pour cette filiale (cf. bornes_periode /
+# colonne PERIODE de prerequis.csv).
+# premier_jour = premier jour de la periode (inclus)
+# jour_recent  = lendemain du dernier jour de la periode (exclu)
+periode <- bornes_periode(fil, dates_dispo)
+premier_jour  <- periode$debut
+jour_recent   <- periode$fin
+periode_libelle <- periode$libelle
+periode_mode_fil <- periode$mode
 
 
 ## Traitement des PM
@@ -1060,9 +1875,10 @@ if ("LIB_AGENCE" %in% names(pm_stock)) {
 
     pm_stock= pm_stock[pm_stock$CLIENT %in% diff_s,]
 
-    devise =  data.frame(Filiales=prerequis[,1], Devise=prerequis[,6])
-
-    devise_fil= strsplit(devise[devise$Filiales==fil,2],split=",")
+    # Devise(s) de la filiale : colonne "Devise" de prerequis.csv, adressee par
+    # nom (elle etait auparavant lue par indice, ce qui cassait au moindre
+    # ajout de colonne). Plusieurs devises possibles, separees par une virgule.
+    devise_fil = strsplit(prerequis_valeur(fil, "devise"), split = ",")
 
     clients_devise_pm = which(pm_stock$DEVISE %in% devise_fil)
 
@@ -1072,8 +1888,8 @@ if ("LIB_AGENCE" %in% names(pm_stock)) {
 
     pm_flux <- pm_stock %>%
     filter(
-        DATOUV >= as.Date(premier_jour_mois_precedent),
-        DATOUV < as.Date(premier_jour_mois_courant)
+        DATOUV >= as.Date(premier_jour),
+        DATOUV < as.Date(jour_recent)
     )
 
   
@@ -1134,6 +1950,7 @@ if (!file.exists(chemin_pp)) {
 # read_csv2_big : lecture rapide fread (multi-thread) + cache .rds,
 # gère encodage, espaces parasites, guillemets ; fallback read_csv2_auto
 pp_stock <- read_csv2_big(chemin_pp, drop = cols_ignorees)
+pp_stock=unique(pp_stock)
 
 # Vérification
 
@@ -1221,8 +2038,8 @@ if ("LIB_AGENCE" %in% names(pp_stock)) {
 
     pp_flux <- pp_stock %>%
     filter(
-        DATOUV >= as.Date(premier_jour_mois_precedent),
-        DATOUV < as.Date(premier_jour_mois_courant)
+        DATOUV >= as.Date(premier_jour),
+        DATOUV < as.Date(jour_recent)
     )
 
 
@@ -1290,7 +2107,7 @@ if ("LIB_AGENCE" %in% names(pp_stock)) {
 
       if (length(fichiers_a_archiver)!=0) {
           repertoire=paste0(chemin,fil,"//",fichiers_a_archiver)
-      zipr(paste0(chemin,fil,"//Archives","//Archives ",fil," _ ",premier_jour_mois_precedent,".zip"), repertoire)
+      zipr(paste0(chemin,fil,"//Archives","//Archives ",fil," _ ",premier_jour,".zip"), repertoire)
 
           unlink(repertoire, recursive = TRUE)
           }
@@ -1301,20 +2118,12 @@ if ("LIB_AGENCE" %in% names(pp_stock)) {
      sigle=paste("BOA_",fil, sep="")
   
          ## les fichiers excel
-     cp_flux=read.csv2(paste(sep="",chemin,fil,"//contrôle qualité_CP_Flux.csv"), fileEncoding = "UTF-8-BOM")
-     cp_flux <- clean_colnames(cp_flux)
-          cp_flux$Agents=as.character(cp_flux$Agents)
-
-
-     cp_stock=read.csv2(paste(sep="",chemin,fil,"//contrôle qualité_CP_Stock.csv"), fileEncoding = "UTF-8-BOM")
-     cp_stock <- clean_colnames(cp_stock)
-          cp_stock$Agents=as.character(cp_stock$Agents)
-
      zone=read.csv2(paste(sep="",chemin,"zone_",fil,".csv"), fileEncoding = "UTF-8-BOM")
      zone <- clean_colnames(zone)
 
      zone$AGENCE=as.numeric(zone$AGENCE)
-     ppt=read_pptx(paste(chemin,"Temp rapport suivi.pptx",sep=""))
+     # (l'ancien read_pptx de "Temp rapport suivi.pptx" etait inutilise :
+     #  l'objet etait ecrase plus bas. Le rapport DG est genere par code.)
     
    
       
@@ -1639,7 +2448,7 @@ taux_function_pp=function(x) {
              taux_filiale = lapply(agents,taux_function_pp)
             
             taux_filiale_t=bind_results(taux_filiale, etat_expl)
-            taux_filiale_t=taux_filiale_t[-which(taux_filiale_t$NIN==""),]
+            taux_filiale_t = drop_lignes_vides(taux_filiale_t, "NIN")
             
       
      
@@ -1655,7 +2464,7 @@ taux_function_pp=function(x) {
             taux_filiale_pm = lapply(agents_pm,taux_function_pm)
             
             taux_filiale_pm=bind_results(taux_filiale_pm, etat_expl)
-            taux_filiale_pm=taux_filiale_pm[-which(taux_filiale_pm$RCSNO==""),]
+            taux_filiale_pm = drop_lignes_vides(taux_filiale_pm, "RCSNO")
             
          
                
@@ -1867,7 +2676,7 @@ taux_function_pp=function(x) {
              taux_filiale = lapply(agents,taux_function_pp)
 
             taux_filiale_t_stock=bind_results(taux_filiale, etat_expl)
-            taux_filiale_t_stock=taux_filiale_t_stock[-which(taux_filiale_t_stock$NIN==""),]
+            taux_filiale_t_stock = drop_lignes_vides(taux_filiale_t_stock, "NIN")
   
             
             
@@ -1883,7 +2692,7 @@ taux_function_pp=function(x) {
             taux_filiale_pm_stock = lapply(agents_pm,taux_function_pm)
             
             taux_filiale_pm_stock=bind_results(taux_filiale_pm_stock, etat_expl)
-            taux_filiale_pm_stock=taux_filiale_pm_stock[-which(taux_filiale_pm_stock$RCSNO==""),]
+            taux_filiale_pm_stock = drop_lignes_vides(taux_filiale_pm_stock, "RCSNO")
             
       
             
@@ -2054,24 +2863,7 @@ if (file.exists(paste0(chemin,fil,"//suivi_fiabilisation.txt"))) {
 
     sigle=paste("BOA_",fil, sep="")
  
-    wb_cp=createWorkbook()  
-    addWorksheet(wb_cp,"Notation CP flux")
-    
-    writeData(wb_cp,"Notation CP flux", x=cp_flux, startRow=1, startCol=1)
-    addStyle(wb_cp,"Notation CP flux",headerStyle, cols=1:ncol(cp_flux), rows=1)
 
-
-    addWorksheet(wb_cp,"Notation CP stock")
-    
-    writeData(wb_cp,"Notation CP stock", x=cp_stock, startRow=1, startCol=1)
-    addStyle(wb_cp,"Notation CP stock",headerStyle, cols=1:ncol(cp_stock), rows=1)
-
-    saveWorkbook(wb_cp, paste(sep="",paste0(chemin,fil),"//Notation Contrôle Permanent BOA_",fil,".xlsx"), overwrite=T)
-
-
-
-     
- 
             cat("######### Chargement des données de\n",sigle, "\n")
 
         # pp_flux/pm_flux déjà en mémoire, pas de relecture des CSV
@@ -2254,10 +3046,10 @@ if (nrow(pm_ne)!=0) {
         taux_filiale = lapply(agents, taux_function_pp )
         
         taux_filiale_t=bind_results(taux_filiale, etat_expl)
-        taux_filiale_t=taux_filiale_t[-which(taux_filiale_t$NIN==""),]
+        taux_filiale_t = drop_lignes_vides(taux_filiale_t, "NIN")
         
 
-        taux_completude_pp = data.frame(Agents=taux_filiale_t$Agents, Taux=taux_filiale_t$Taux.de.fiabilisation, Date=premier_jour_mois_precedent, flux_stock=rep("F", nrow(taux_filiale_t)), pp_pm=rep("P", nrow(taux_filiale_t)))
+        taux_completude_pp = taux_completude_table(taux_filiale_t, premier_jour, "F", "P")
 
 
 
@@ -2287,10 +3079,10 @@ if (nrow(pm_ne)!=0) {
         taux_filiale_pm = lapply(agents_pm,taux_function_pm)
         
         taux_filiale_pm=bind_results(taux_filiale_pm, etat_expl)
-        taux_filiale_pm=taux_filiale_pm[-which(taux_filiale_pm$RCSNO==""),]
+        taux_filiale_pm = drop_lignes_vides(taux_filiale_pm, "RCSNO")
 
 
-        taux_completude_pm = data.frame(Agents=taux_filiale_pm$Agents, Taux=taux_filiale_pm$Taux.de.fiabilisation, Date=premier_jour_mois_precedent, flux_stock=rep("F", nrow(taux_filiale_pm)), pp_pm=rep("M", nrow(taux_filiale_pm)))
+        taux_completude_pm = taux_completude_table(taux_filiale_pm, premier_jour, "F", "M")
 
 
 
@@ -2492,9 +3284,9 @@ if (nrow(pm_ne)!=0) {
         taux_filiale = lapply(agents,taux_function_pp)
 
         taux_filiale_t_stock=bind_results(taux_filiale, etat_expl)
-        taux_filiale_t_stock=taux_filiale_t_stock[-which(taux_filiale_t_stock$NIN==""),]
+        taux_filiale_t_stock = drop_lignes_vides(taux_filiale_t_stock, "NIN")
 
-        taux_completude_stock_pp = data.frame(Agents=taux_filiale_t_stock$Agents, Taux=taux_filiale_t_stock$Taux.de.fiabilisation, Date=rep(premier_jour_mois_precedent,nrow(taux_filiale_t_stock)), flux_stock=rep("S", nrow(taux_filiale_t_stock)), pp_pm=rep("P", nrow(taux_filiale_t_stock)))
+        taux_completude_stock_pp = taux_completude_table(taux_filiale_t_stock, premier_jour, "S", "P")
 
 
 
@@ -2507,11 +3299,11 @@ if (nrow(pm_ne)!=0) {
         taux_filiale_pm_stock = lapply(agents_pm,taux_function_pm)
         
         taux_filiale_pm_stock=bind_results(taux_filiale_pm_stock, etat_expl)
-        taux_filiale_pm_stock=taux_filiale_pm_stock[-which(taux_filiale_pm_stock$RCSNO==""),]
+        taux_filiale_pm_stock = drop_lignes_vides(taux_filiale_pm_stock, "RCSNO")
       
 
       
-        taux_completude_stock_pm = data.frame(Agents=taux_filiale_pm_stock$Agents, Taux=taux_filiale_pm_stock$Taux.de.fiabilisation, Date=premier_jour_mois_precedent, flux_stock=rep("S", nrow(taux_filiale_pm_stock)), pp_pm=rep("M", nrow(taux_filiale_pm_stock)))
+        taux_completude_stock_pm = taux_completude_table(taux_filiale_pm_stock, premier_jour, "S", "M")
 
 
 
@@ -2757,36 +3549,71 @@ k=ncol(tableau_suivi)
             }
 
 
-              cat("######################################################################################\n")
-              cat("######### Génération du rapport de suivi de ",sigle," pour la Direction générale ######\n")
-              cat("######################################################################################\n")
-
-
+            
 
 
             ## les graphiques Fiabilisation PP
 
-          suivi_fiabilisation_i=as.data.frame(c(tableau_suivi_t[,-1],tableau_suivi_stock_t[,-1],as.Date(premier_jour_mois_courant)-1))
-          colnames(suivi_fiabilisation_i)=c("Flux PM","Flux PP","Stock PM", "Stock PP","Date")
-          suivi_fiabilisation_i$Date=as.Date(suivi_fiabilisation_i$Date)
-          suivi_fiabilisation_i=suivi_fiabilisation_i[-1,]
+          # Ligne "Taux de fiabilisation" (2e ligne) des 2 dernieres colonnes (PM, PP).
+          # Robuste que le tableau ait ou non sa colonne de libelles en tete.
+          taux_row <- function(tab) {
+            tab <- as.data.frame(tab)
+            n <- ncol(tab)
+            if (n < 2 || nrow(tab) < 2) return(c(NA_character_, NA_character_))
+            as.character(unlist(tab[2, (n-1):n, drop = FALSE], use.names = FALSE))
+          }
+
+          v_flux  <- taux_row(tableau_suivi_t)
+          v_stock <- taux_row(tableau_suivi_stock_t)
+
+          suivi_fiabilisation_i <- data.frame(
+            "Flux PM"  = v_flux[1],
+            "Flux PP"  = v_flux[2],
+            "Stock PM" = v_stock[1],
+            "Stock PP" = v_stock[2],
+            Date       = as.Date(jour_recent) - 1,
+            check.names = FALSE, stringsAsFactors = FALSE
+          )
 
          
-          suivi_fiabilisation$Date=parse_date_any(suivi_fiabilisation$Date)
-            
-          colnames(suivi_fiabilisation)=c("Flux PM","Flux PP","Stock PM", "Stock PP","Date")
+          fichier_suivi <- paste0(chemin,fil,"//suivi_fiabilisation.txt")
 
-          suivi_fiabilisation=rbind(suivi_fiabilisation,suivi_fiabilisation_i)
+          # L'historique ne doit JAMAIS etre perdu : s'il est illisible ou n'a pas
+          # le format attendu, on n'ecrase rien et on signale.
+          historique_ok <- !is.null(suivi_fiabilisation) &&
+                           is.data.frame(suivi_fiabilisation) &&
+                           ncol(suivi_fiabilisation) == 5
 
-      
-          suivi_fiabilisation_out <- suivi_fiabilisation
-          suivi_fiabilisation_out$Date <- format(suivi_fiabilisation_out$Date, "%d/%m/%Y")
-          suivi_fiabilisation_out =unique(suivi_fiabilisation_out)
+          if (!historique_ok && !is.null(suivi_fiabilisation) &&
+              is.data.frame(suivi_fiabilisation) && ncol(suivi_fiabilisation) > 0) {
+            cat("######### ATTENTION", fil, ": suivi_fiabilisation.txt a",
+                ncol(suivi_fiabilisation), "colonnes au lieu de 5 -> fichier NON modifie\n")
+          } else {
+            if (historique_ok) {
+              colnames(suivi_fiabilisation)=c("Flux PM","Flux PP","Stock PM", "Stock PP","Date")
+              suivi_fiabilisation$Date=parse_date_any(suivi_fiabilisation$Date)
+            } else {
+              # Pas d'historique (premier passage) : on part de la ligne du mois
+              suivi_fiabilisation <- suivi_fiabilisation_i[0, , drop = FALSE]
+            }
 
+            suivi_fiabilisation=rbind(suivi_fiabilisation,suivi_fiabilisation_i)
 
-          write.csv2(suivi_fiabilisation_out, paste0(chemin,fil,"//suivi_fiabilisation.txt"))
-          
-          write.csv2(suivi_fiabilisation_out, paste0(chemin,fil,"//data//suivi_fiabilisation_",fil,".csv"), row.names=FALSE)
+            # Sauvegarde de l'historique avant reecriture
+            if (file.exists(fichier_suivi)) {
+              file.copy(fichier_suivi,
+                        paste0(chemin,fil,"//suivi_fiabilisation_backup.txt"),
+                        overwrite = TRUE)
+            }
+
+            suivi_fiabilisation_out <- suivi_fiabilisation
+            suivi_fiabilisation_out$Date <- format(suivi_fiabilisation_out$Date, "%d/%m/%Y")
+            suivi_fiabilisation_out =unique(suivi_fiabilisation_out)
+
+            write.csv2(suivi_fiabilisation_out, fichier_suivi)
+
+            write.csv2(suivi_fiabilisation_out, paste0(chemin,fil,"//data//suivi_fiabilisation_",fil,".csv"), row.names=FALSE)
+          }
 
 
           
@@ -2808,13 +3635,12 @@ k=ncol(tableau_suivi)
      data_dir <- paste0(chemin, fil, "//data//")
 
 dossier_A <- paste0(chemin,fil,"//data//")
-dossier_B <- "C://Fiabilisation KYC//Python//data//"
+dossier_B <- chemin_python
 
 
 fichiers <- c(
   paste0("taux_", fil, ".csv"),
   paste0("suivi_fiabilisation_", fil, ".csv"),
-  paste0("scoring_", fil, ".csv"),
   paste0("agents_", fil, ".csv"),
   paste0("pp_", fil, "_STOCK_F.csv"),
   paste0("pm_", fil, "_STOCK_F.csv"),
@@ -2828,9 +3654,312 @@ chemins_destinations <- file.path(dossier_B, fichiers)
 
 # 4. Copier les fichiers
 # Utilisation de 'overwrite = TRUE' si vous voulez remplacer les fichiers existants dans B
+
+
 file.copy(from = chemins_sources, to = chemins_destinations, overwrite = TRUE)
+  cat("######################################################################################\n")
+              cat("######### Génération du rapport de suivi de ",sigle," pour la Direction générale ######\n")
+              cat("######################################################################################\n")
 
 
+
+ sigle <- paste0("BOA_", fil)
+  ppt <- dg_pptx()                   # presentation vierge 16/9, aucun template externe
+  W <- slide_size(ppt)$width
+  H <- slide_size(ppt)$height
+  M <- 0.3
+
+
+    # 0. Configuration des libellés EXACTS de l'image
+
+  # 1. Chargement et nettoyage des données (PP et PM)
+  # pp_stock/pm_stock déjà en mémoire, pas de relecture des CSV _STOCK
+  pp_ne <- clean_colnames(pp_stock)
+  pp_ne$AGENCE <- as.numeric(pp_ne$AGENCE)
+  colnames(pp_ne) <- toupper(colnames(pp_ne))
+
+  pm_ne <- clean_colnames(pm_stock)
+  pm_ne$AGENCE <- as.numeric(pm_ne$AGENCE)
+   pm_ne=select_pm_fields(pm_ne, pm_fields)
+  colnames(pm_ne) <- toupper(colnames(pm_ne))
+  
+  # Correction EXPL et Marquage Anomalies
+  pp_ne$EXPL[is_alphanumeric(pp_ne$EXPL) == FALSE] <- paste0("DIR_AGENCE_", pp_ne$AGENCE[is_alphanumeric(pp_ne$EXPL) == FALSE])
+  pm_ne$EXPL[is_alphanumeric(pm_ne$EXPL) == FALSE] <- paste0("DIR_AGENCE_", pm_ne$AGENCE[is_alphanumeric(pm_ne$EXPL) == FALSE])
+  pp_ne <- clean_and_mark_anomalies(pp_ne, start_col = 4)
+  pm_ne <- clean_and_mark_anomalies(pm_ne, start_col = 4)
+  
+  # Filtre Flux
+  pp_flux <- pp_ne %>% filter(DATOUV >= as.Date(premier_jour), DATOUV < as.Date(jour_recent))
+  pm_flux <- pm_ne %>% filter(DATOUV >= as.Date(premier_jour), DATOUV < as.Date(jour_recent))
+
+  # pm_exclure a ete calcule a l'import (cf. section "3 bis"), a partir de la
+  # colonne pm_exclure de prerequis.csv.
+  pm_sans_rcsno_stock <- pm_without_rcsno(pm_ne, pm_exclure)
+  pm_sans_rcsno_flux <- pm_without_rcsno(pm_flux, pm_exclure)
+
+  readr::write_delim(pm_sans_rcsno_stock,
+                     paste0(chemin, fil, "//data//pm_", fil, "_sans_RCSNO_STOCK.csv"),
+                     delim = ";", quote = "all", escape = "double", na = "")
+  readr::write_delim(pm_sans_rcsno_flux,
+                     paste0(chemin, fil, "//data//pm_", fil, "_sans_RCSNO_FLUX.csv"),
+                     delim = ";", quote = "all", escape = "double", na = "")
+
+  pp_datnais_01011900_stock <- pp_birthdate_01011900(pp_ne)
+  readr::write_delim(pp_datnais_01011900_stock,
+                     paste0(chemin, fil, "//data//pp_", fil, "_DATNAIS_01011900_STOCK.csv"),
+                     delim = ";", quote = "all", escape = "double", na = "")
+  
+
+  # 2 bis. Indicateurs calcules UNE SEULE FOIS
+  # Ces taux sont reutilises par les tableaux des slides, les KPI et les
+  # observations. Chaque appel balaie l'integralite du stock : on les evalue
+  # ici une fois pour toutes au lieu de les recalculer a chaque usage.
+  stock_pp <- setNames(sapply(pp_fields, function(f) champ_rate(pp_ne, f)),   pp_labels)
+  stock_pm <- setNames(sapply(pm_fields, function(f) champ_rate(pm_ne, f)),   pm_labels)
+  flux_pp  <- setNames(sapply(pp_fields, function(f) champ_rate(pp_flux, f)), pp_labels)
+  flux_pm  <- setNames(sapply(pm_fields, function(f) champ_rate(pm_flux, f)), pm_labels)
+
+  g_pp      <- global_rate(pp_ne, pp_fields)
+  g_pm      <- global_rate(pm_ne, pm_fields)
+  g_pp_flux <- global_rate(pp_flux, pp_fields)
+  g_pm_flux <- global_rate(pm_flux, pm_fields)
+
+  rates_pp <- agent_completion_rates(pp_ne, pp_fields)
+  rates_pm <- agent_completion_rates(pm_ne, pm_fields)
+
+  # 3. Construction des Dataframes pour PP
+  pp_table_ppt <- data.frame(
+    Col1 = c(rep("Taux par champs", length(pp_labels)), rep("Taux de complétude global", 2)),
+    Champs = c(pp_labels, "Approche par champs (1)", "Approche par clients (2)"),
+    Flux = c(unname(sapply(flux_pp, to_pct)),
+             to_pct(g_pp_flux),
+             to_pct(client_completion_rate(pp_flux, pp_fields))),
+    Stock = c(unname(sapply(stock_pp, to_pct)),
+              to_pct(g_pp),
+              to_pct(client_completion_rate(pp_ne, pp_fields))),
+    stringsAsFactors = FALSE
+  )
+  colnames(pp_table_ppt) <- c(" ", "Champs", "Flux (3)", "Stock (4)")
+
+  # 4. Construction des Dataframes pour PM
+  pm_table_ppt <- data.frame(
+    Col1 = c(rep("Taux par champs", length(pm_labels)), rep("Taux de complétude global", 2)),
+    Champs = c(pm_labels, "Approche par champs (1)", "Approche par clients (2)"),
+    Flux = c(unname(sapply(flux_pm, to_pct)),
+             to_pct(g_pm_flux),
+             to_pct(client_completion_rate(pm_flux, pm_fields))),
+    Stock = c(unname(sapply(stock_pm, to_pct)),
+              to_pct(g_pm),
+              to_pct(client_completion_rate(pm_ne, pm_fields))),
+    stringsAsFactors = FALSE
+  )
+  colnames(pm_table_ppt) <- c(" ", "Champs", "Flux (3)", "Stock (4)")
+
+  # 5. Application du style
+  ft_pp <- style_ft_exact(pp_table_ppt)
+  ft_pm <- style_ft_exact(pm_table_ppt)
+
+          notation_fil=notation[notation$Filiale==paste0("BOA ",fil),]
+          if (nrow(notation_fil) == 0) {
+            notation_fil <- data.frame(
+              Filiale = paste0("BOA ", fil),
+              Nombre_notes = 0,
+              Insuffisant = "0%",
+              Passable = "0%",
+              Bien = "0%",
+              "Très Bien" = "0%",
+              check.names = FALSE
+            )
+          } else {
+            notation_fil <- notation_fil[, c("Filiale", "Nombre_notes", note_cols), drop = FALSE]
+          }
+          colnames(notation_fil)=c("Filiale","Nombre notes","Insuffisant","Passable","Bien","Très Bien")
+
+          repartition_pp <- agent_distribution_row(rates_pp)
+          repartition_pm <- agent_distribution_row(rates_pm)
+          taux_compl <- as.data.frame(rbind(repartition_pp, repartition_pm), check.names = FALSE)
+          taux_compl <- data.frame(
+            Taux = c("Taux stock PP", "Taux stock PM"),
+            taux_compl,
+            check.names = FALSE
+          )
+
+          ft_taux_compl <- style_slide5_table(taux_compl, widths = c(2.5, 1.35, 1.35, 1.35, 1.35))
+          ft_notation <- style_slide5_table(notation_fil, widths = c(1.45, 1.35, 1.3, 1.3, 1.3, 1.3))
+
+# Nombre de clients non fiabilisés
+
+  # non_fiab est deja charge et filtre (CODE == "OI") a l'import : on le
+  # reutilise tel quel plutot que de relire le CSV.
+
+
+  #####--------- CALCUL DES OBSERVATIONS (avant-derniere slide) ---------#####
+  # Toutes les observations sont chiffrees a partir des donnees de la filiale.
+
+  # Libelle de periode : plage complete en mode "mois", date unique en mode
+  # "jour" (cf. bornes_periode). Repli calcule si la variable n'existe pas.
+  periode_lib <- if (exists("periode_libelle") && !is.null(periode_libelle)) {
+    periode_libelle
+  } else {
+    paste0("du ", format(as.Date(premier_jour), "%d/%m/%Y"),
+           " au ", format(as.Date(jour_recent) - 1, "%d/%m/%Y"))
+  }
+  date_arrete <- format(as.Date(jour_recent) - 1, "%d/%m/%Y")
+
+  # rates_pp / rates_pm et les taux par champ (stock_*, flux_*) sont calcules
+  # plus haut, section "2 bis".
+  pct80 <- function(r) if (length(r) == 0) 0 else round(100 * mean(r > 80))
+  nb80  <- function(r) sum(r > 80)
+
+  # Champs hors seuil : stock < 90%, flux < 100%
+  hs_stock_pp <- stock_pp[!is.na(stock_pp) & stock_pp < 90]
+  hs_stock_pm <- stock_pm[!is.na(stock_pm) & stock_pm < 90]
+  hs_flux_pp  <- flux_pp[!is.na(flux_pp)  & flux_pp  < 100]
+  hs_flux_pm  <- flux_pm[!is.na(flux_pm)  & flux_pm  < 100]
+
+  # Notation du Controle permanent
+  n_notes  <- suppressWarnings(as.numeric(notation_fil[["Nombre notes"]]))[1]
+  if (is.na(n_notes)) n_notes <- 0
+  p_bien   <- sum(dg_num(notation_fil[["Bien"]]), dg_num(notation_fil[["Très Bien"]]), na.rm = TRUE)
+  p_faible <- sum(dg_num(notation_fil[["Passable"]]), dg_num(notation_fil[["Insuffisant"]]), na.rm = TRUE)
+  n_agents <- length(unique(c(trimws(as.character(pp_ne$EXPL)), trimws(as.character(pm_ne$EXPL)))))
+  couv <- if (n_agents > 0) round(100 * n_notes / n_agents) else 0
+
+  obs <- c(
+    sprintf("Complétude globale au %s : PP %s en stock (%s en flux), PM %s en stock (%s en flux).",
+            date_arrete,
+            to_pct(g_pp), to_pct(g_pp_flux),
+            to_pct(g_pm), to_pct(g_pm_flux)),
+
+    sprintf("Chargés de compte au-dessus du seuil de 80 %% : %d %% en PP (%d agents) et %d %% en PM (%d agents), sur %d chargés de compte actifs.",
+            pct80(rates_pp), nb80(rates_pp), pct80(rates_pm), nb80(rates_pm), n_agents),
+
+    if (length(hs_stock_pp) > 0)
+      sprintf("PP - champs sous le seuil stock de 90 %% : %s.", dg_liste_champs(hs_stock_pp))
+    else "PP - tous les champs critiques atteignent le seuil stock de 90 %.",
+
+    if (length(hs_stock_pm) > 0)
+      sprintf("PM - champs sous le seuil stock de 90 %% : %s.", dg_liste_champs(hs_stock_pm))
+    else "PM - tous les champs critiques atteignent le seuil stock de 90 %.",
+
+    if (length(hs_flux_pp) + length(hs_flux_pm) > 0)
+      sprintf("Flux non conforme au seuil de 100 %% : %s.",
+              paste(na.omit(c(if (length(hs_flux_pp)) paste0("PP ", dg_liste_champs(hs_flux_pp)),
+                              if (length(hs_flux_pm)) paste0("PM ", dg_liste_champs(hs_flux_pm)))),
+                    collapse = " / "))
+    else "Flux conforme : 100 % de complétude sur l'ensemble des champs critiques PP et PM.",
+
+    if (n_notes > 0)
+      sprintf("Contrôle permanent : %d agents notés (%d %% des chargés de compte) ; %g %% notés Bien ou Très Bien, %g %% à améliorer (Passable ou Insuffisant).",
+              n_notes, couv, p_bien, p_faible)
+    else "Contrôle permanent : aucun agent noté sur la plateforme KYC pour cette période.",
+
+    sprintf("%d comptes sous interdit crédit et débit sont exclus du périmètre à fiabiliser.",
+            nrow(non_fiab))
+  )
+
+
+  # Cartes KPI de la slide Observations.
+  # Une couleur vive par carte ; bascule sur DG_ALERTE si le seuil n'est pas tenu.
+  kpi_col <- function(i, v = NULL, seuil = NULL) {
+    if (!is.null(seuil) && (is.na(v) || v < seuil)) DG_ALERTE else DG_FUN[i]
+  }
+  n_hs <- length(hs_stock_pp) + length(hs_stock_pm)
+
+  kpis <- list(
+    list(valeur = to_pct(g_pp), libelle = "COMPLÉTUDE PP — STOCK",
+         couleur = kpi_col(1, g_pp, 90)),
+    list(valeur = to_pct(g_pm), libelle = "COMPLÉTUDE PM — STOCK",
+         couleur = kpi_col(2, g_pm, 90)),
+    list(valeur = paste0(pct80(rates_pp), "%"), libelle = "CC AU-DESSUS DE 80 % — PP",
+         couleur = kpi_col(3, pct80(rates_pp), 80)),
+    list(valeur = paste0(pct80(rates_pm), "%"), libelle = "CC AU-DESSUS DE 80 % — PM",
+         couleur = kpi_col(4, pct80(rates_pm), 80)),
+    list(valeur = as.character(n_hs), libelle = "CHAMPS SOUS SEUIL",
+         couleur = if (n_hs == 0) DG_FUN[5] else DG_ALERTE),
+    list(valeur = as.character(n_notes), libelle = "AGENTS NOTÉS PAR LE CP",
+         couleur = DG_FUN[6])
+  )
+
+
+  #####--------- REMPLISSAGE DE LA MAQUETTE ---------#####
+  # La maquette "exemple_rapport_kyc.pptx" fournit deja en-tetes, pieds de page,
+  # logo, sommaire et pages de garde/fin. On n'y depose que le contenu.
+  # Zone utile d'une slide de contenu : y de 0,70 a 5,30 ; x de 0,30 a 9,70.
+
+  note_1 <- "(1) Taux de complétude par champs : proportion d'informations renseignées rapportée au nombre total d'informations attendues sur les champs critiques."
+  note_2 <- "(2) Taux de complétude par clients : proportion de clients présentant au moins une information manquante sur les champs critiques."
+  note_3 <- "(3) Le taux de complétude doit être égal à 100 % pour le flux."
+  note_4 <- "(4) Le taux de complétude doit être supérieur ou égal à 90 % pour le stock."
+  notes_bas <- block_list(dg_par(note_1, size = 7, color = DG_MUET),
+                          dg_par(note_2, size = 7, color = DG_MUET),
+                          dg_par(note_3, size = 7, color = DG_MUET),
+                          dg_par(note_4, size = 7, color = DG_MUET))
+
+  # Ligne de periode, en haut a droite des slides de contenu
+  bandeau_periode <- function(ppt, txt) {
+    ph_with(ppt, value = block_list(
+        dg_par(txt, size = 9, bold = TRUE, color = DG_MUET, align = "right")),
+      location = ph_location(left = 4.9, top = 0.70, width = 4.8, height = 0.26))
+  }
+
+  ## Slide 1 - page de garde (fond vert) : titre et periode
+  ppt <- on_slide(ppt, index = 1)
+  ppt <- ph_with(ppt, value = block_list(
+      dg_par(paste0("FIABILISATION KYC BOA ", fil), size = 30, bold = TRUE, color = "white"),
+      dg_par("CONTRÔLE ET SUIVI DES TRAVAUX DE FIABILISATION KYC", size = 13, color = "#C8F0D8")),
+    location = ph_location(left = 0.50, top = 1.95, width = 7.2, height = 1.15))
+  ppt <- ph_with(ppt, value = block_list(
+      dg_par(paste0("Données ", periode_lib), size = 12, bold = TRUE, color = "white")),
+    location = ph_location(left = 0.50, top = 3.40, width = 7.0, height = 0.34))
+
+  ## Slide 3 - completude PP
+  ppt <- on_slide(ppt, index = 3)
+  ppt <- bandeau_periode(ppt, paste0("Données ", periode_lib))
+  ppt <- ph_with(ppt, value = ft_pp,
+                 location = ph_location(left = 0.30, top = 1.00, width = 9.40, height = 3.38))
+  ppt <- ph_with(ppt, value = notes_bas,
+                 location = ph_location(left = 0.30, top = 4.46, width = 9.40, height = 0.84))
+
+  ## Slide 4 - completude PM
+  ppt <- on_slide(ppt, index = 4)
+  ppt <- bandeau_periode(ppt, paste0("Données ", periode_lib))
+  ppt <- ph_with(ppt, value = ft_pm,
+                 location = ph_location(left = 0.30, top = 1.00, width = 9.40, height = 3.38))
+  ppt <- ph_with(ppt, value = notes_bas,
+                 location = ph_location(left = 0.30, top = 4.46, width = 9.40, height = 0.84))
+
+  ## Slide 5 - repartition des taux + notation
+  ppt <- on_slide(ppt, index = 5)
+  ppt <- bandeau_periode(ppt, paste0("Données ", periode_lib))
+  ppt <- ph_with(ppt, value = dg_bloc(list(
+      list(txt = "1.  RÉPARTITION DES CHARGÉS DE COMPTE PAR TRANCHE DE TAUX (STOCK)",
+           size = 10, bold = TRUE, color = "white", bg = DG_VERT, h = 0.30)), 9.40, pad_left = 10),
+    location = ph_location(left = 0.30, top = 1.05, width = 9.40, height = 0.30))
+  ppt <- ph_with(ppt, value = ft_taux_compl,
+                 location = ph_location(left = 0.42, top = 1.48, width = 9.16, height = 1.05))
+  ppt <- ph_with(ppt, value = dg_bloc(list(
+      list(txt = "2.  RÉPARTITION DES NOTES ATTRIBUÉES PAR LE CONTRÔLE PERMANENT",
+           size = 10, bold = TRUE, color = "white", bg = DG_NAVY, h = 0.30)), 9.40, pad_left = 10),
+    location = ph_location(left = 0.30, top = 2.95, width = 9.40, height = 0.30))
+  ppt <- ph_with(ppt, value = ft_notation,
+                 location = ph_location(left = 0.42, top = 3.38, width = 9.16, height = 0.90))
+
+  ## Slide 6 - OBSERVATIONS : cartes KPI colorees + points d'attention
+  ppt <- on_slide(ppt, index = 6)
+  ppt <- bandeau_periode(ppt, paste0("BOA ", fil, "  |  ", periode_lib))
+  ppt <- dg_kpi_row(ppt, kpis, W, top = 1.02, M = 0.30, hauteur = 0.88)
+  ppt <- ph_with(ppt, value = dg_bloc(list(
+      list(txt = "POINTS D'ATTENTION", size = 9, bold = TRUE,
+           color = "white", bg = DG_NAVY, h = 0.26)), 9.40, pad_left = 10),
+    location = ph_location(left = 0.30, top = 2.10, width = 9.40, height = 0.26))
+  ppt <- ph_with(ppt, value = dg_puces(obs, size = 9),
+                 location = ph_location(left = 0.35, top = 2.46, width = 9.30, height = 2.80))
+
+   print(ppt,target=paste(chemin,fil,"//Rapport fiabilisation KYC BOA ",fil," _ V2 ",format(Sys.Date(),"%B %Y"),".pptx",sep=""))
+
+  cat("PPT généré avec succès pour", fil, "\n")
 
 }
 

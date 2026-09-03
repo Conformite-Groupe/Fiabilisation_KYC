@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-07-28T17:09:37",
+  "exported_at": "2026-08-05T09:26:35",
   "format": "kyc_glossary_fr_en_v1",
   "count": 890,
   "terms": [
@@ -1265,9 +1265,9 @@
     },
     {
       "terme_fr": "Comptes Non-Résidents",
-      "terme_en": "Non-Resident Accounts",
+      "terme_en": "Non-Resident",
       "note": "",
-      "updated_at": "2026-07-02T12:38:50.916570+00:00"
+      "updated_at": "2026-07-31T11:30:29.355423+00:00"
     },
     {
       "terme_fr": "Comptes PM Incomplets",
@@ -1277,15 +1277,15 @@
     },
     {
       "terme_fr": "Comptes PM en devise",
-      "terme_en": "LE foreign currency accounts",
+      "terme_en": "LE foreign currency",
       "note": "",
-      "updated_at": "2026-07-02T18:10:36.412620+00:00"
+      "updated_at": "2026-07-31T11:30:10.360447+00:00"
     },
     {
       "terme_fr": "Comptes en devise",
-      "terme_en": "Foreign currency accounts",
+      "terme_en": "Foreign currency",
       "note": "",
-      "updated_at": "2026-07-02T12:38:50.919716+00:00"
+      "updated_at": "2026-07-31T11:29:49.924383+00:00"
     },
     {
       "terme_fr": "Comptes en devise à fiabiliser",
@@ -1295,9 +1295,9 @@
     },
     {
       "terme_fr": "Comptes en devise étrangère",
-      "terme_en": "Foreign currency accounts",
+      "terme_en": "Foreign currency",
       "note": "",
-      "updated_at": "2026-07-02T18:10:36.403433+00:00"
+      "updated_at": "2026-07-31T11:29:49.930453+00:00"
     },
     {
       "terme_fr": "Comptes spécifiques",
@@ -3538,8 +3538,8 @@
       "updated_at": "2026-07-02T12:38:51.884961+00:00"
     },
     {
-      "terme_fr": "Pourcentage par type d'évaluation",
-      "terme_en": "Percentage by rating type",
+      "terme_fr": "Nombre par type d'évaluation",
+      "terme_en": "Count by rating ",
       "note": "",
       "updated_at": "2026-07-01T17:28:57.530578+00:00"
     },
@@ -3574,7 +3574,7 @@
       "updated_at": "2026-07-02T12:38:51.899831+00:00"
     },
     {
-      "terme_fr": "Prochaine date revue (Scoring)",
+      "terme_fr": "Prochaine date revue (DATEREV)",
       "terme_en": "Next review date (DATEREV)",
       "note": "",
       "updated_at": "2026-07-02T12:38:51.902976+00:00"

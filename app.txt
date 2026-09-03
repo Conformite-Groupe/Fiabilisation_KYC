@@ -1,0 +1,135 @@
+@echo off
+REM ══════════════════════════════════════════════════════════════════
+REM  Relance le script dans une console VISIBLE (tache planifiee)
+REM  puis la fenetre se ferme d'elle-meme a la fin du traitement.
+REM ══════════════════════════════════════════════════════════════════
+if /i not "%~1"=="RUN" (
+    start "COMPLIANCE BOA GROUP - Fiabilisation KYC" cmd /c ""%~f0" RUN"
+    exit /b 0
+)
+
+chcp 65001 >nul
+title COMPLIANCE BOA GROUP - Fiabilisation KYC  [traitement en cours...]
+color 0A
+mode con: cols=80 lines=45
+
+set "DJANGO_DIR=C:\Fiabilisation KYC\Python\Fiabilisation_kyc"
+set "DJANGO_IP=10.170.82.20"
+set "DJANGO_PORT=8080"
+set "DJANGO_HOST=%DJANGO_IP%:%DJANGO_PORT%"
+
+echo.
+echo  ╔══════════════════════════════════════════════════════════════╗
+echo  ║                                                              ║
+echo  ║                  COMPLIANCE  BOA  GROUP                      ║
+echo  ║                                                              ║
+echo  ║             FIABILISATION DES DONNEES  KYC                   ║
+echo  ║                                                              ║
+echo  ╠══════════════════════════════════════════════════════════════╣
+echo  ║   Traitements quotidiens :                                   ║
+echo  ║     [0] Redemarrage du serveur Django                        ║
+echo  ║     [1] Production des etats R     (script_V3.R)             ║
+echo  ║     [2] Importation KYC            (import_kyc.py)           ║
+echo  ║     [3] Importation evolutions     (import_premier.py)       ║
+echo  ║     [4] Importation taux agents    (import_taux_agent.py)    ║
+echo  ║     [5] Calcul des taux de qualite                           ║
+echo  ║     [6] Prechauffe des caches                                ║
+echo  ║     [7] Appreciations globales                               ║
+echo  ║     [8] Rappels DATEREV + rapport email                      ║
+echo  ╚══════════════════════════════════════════════════════════════╝
+echo.
+echo  Demarrage : %date% %time%
+echo  ────────────────────────────────────────────────────────────────
+echo.
+
+REM ── Etape 0 : arret CIBLE du serveur Django ────────────────────────
+title COMPLIANCE BOA GROUP - [0/8] Arret de Django...
+echo  [START] Etape 0 : Fermeture du serveur Django...
+
+REM 0.a - fenetres console Django lancees par ce script
+taskkill /F /FI "WINDOWTITLE eq Django - Fiabilisation KYC*" /T >nul 2>&1
+
+REM 0.b - tout processus qui ecoute encore sur le port Django
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr /R /C:":%DJANGO_PORT% .*LISTENING"') do (
+    echo         - arret du PID %%P (port %DJANGO_PORT%)
+    taskkill /F /PID %%P /T >nul 2>&1
+)
+
+REM 0.c - processus python residuels issus du venv Django uniquement
+for /f "skip=1 tokens=2 delims=," %%P in ('wmic process where "name='python.exe'" get processid^,commandline /format:csv 2^>nul ^| findstr /I "manage.py runserver"') do (
+    taskkill /F /PID %%P /T >nul 2>&1
+)
+
+timeout /t 2 /nobreak >nul
+echo  [OK] Django est ferme.
+echo.
+echo  [START] Lancement du serveur Django...
+start "Django - Fiabilisation KYC" /D "%DJANGO_DIR%" cmd /k venv\Scripts\python.exe manage.py runserver %DJANGO_HOST%
+echo  [OK] Serveur Django lance sur %DJANGO_HOST%
+echo.
+echo  ────────────────────────────────────────────────────────────────
+echo  [START] Etape 1 : Production des etats R (script_V3.R)
+echo.
+
+REM ── Etape 1 : traitement R ─────────────────────────────────────────
+title COMPLIANCE BOA GROUP - [1/8] Production des etats R...
+
+REM  Resolution dynamique de Rscript.exe (derniere version installee)
+set "RSCRIPT="
+for /f "delims=" %%D in ('dir /b /o-n "C:\Program Files\R\R-*" 2^>nul') do (
+    if not defined RSCRIPT if exist "C:\Program Files\R\%%D\bin\x64\Rscript.exe" set "RSCRIPT=C:\Program Files\R\%%D\bin\x64\Rscript.exe"
+)
+if not defined RSCRIPT for /f "delims=" %%P in ('where Rscript.exe 2^>nul') do if not defined RSCRIPT set "RSCRIPT=%%P"
+
+if not defined RSCRIPT goto :r_absent
+
+echo  Rscript : %RSCRIPT%
+pushd "C:\Fiabilisation KYC\R"
+powershell -NoProfile -Command "& '%RSCRIPT%' script_V3.R 2>&1 | Tee-Object -FilePath 'C:\Fiabilisation KYC\R\run_r.log' -Append; exit $LASTEXITCODE"
+set RC_R=%ERRORLEVEL%
+popd
+goto :r_fait
+
+:r_absent
+echo  [ECHEC] Rscript.exe introuvable - installez R ou corrigez le PATH.
+set RC_R=9
+:r_fait
+
+if %RC_R%==0 (
+    echo  [OK] Etats R produits avec succes.
+) else (
+    echo  [ECHEC] script_V3.R - code retour %RC_R%
+)
+
+echo.
+echo  ────────────────────────────────────────────────────────────────
+echo  [START] Etapes 2 a 8 : traitements Django
+echo  ────────────────────────────────────────────────────────────────
+echo.
+
+REM ── Etapes 2 a 8 : traitements Django ──────────────────────────────
+title COMPLIANCE BOA GROUP - [2-8/8] Traitements Django...
+cd /d "%DJANGO_DIR%"
+powershell -NoProfile -Command "& 'venv\Scripts\python.exe' manage.py run_daily_jobs 2>&1 | Tee-Object -FilePath 'logs\run_daily_jobs.log' -Append; exit $LASTEXITCODE"
+set RC_PY=%ERRORLEVEL%
+
+echo.
+echo  ────────────────────────────────────────────────────────────────
+echo  Fin : %date% %time%
+if %RC_R%==0 if %RC_PY%==0 (
+    title COMPLIANCE BOA GROUP - Termine avec succes
+    echo  ✔  TOUS LES TRAITEMENTS TERMINES AVEC SUCCES
+    echo.
+    timeout /t 5 /nobreak >nul
+    exit /b 0
+)
+
+color 0C
+title COMPLIANCE BOA GROUP - ERREURS
+echo  ✖  DES ERREURS SONT SURVENUES
+if not %RC_R%==0  echo     - Etats R : voir "C:\Fiabilisation KYC\R\run_r.log"
+if not %RC_PY%==0 echo     - Traitements Django : voir "%DJANGO_DIR%\logs\run_daily_jobs.log"
+echo.
+echo  Cette fenetre se fermera dans 60 secondes...
+timeout /t 60 /nobreak >nul
+exit /b 1

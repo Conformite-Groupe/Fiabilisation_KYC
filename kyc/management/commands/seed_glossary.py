@@ -190,12 +190,12 @@ GLOSSARY = {
         'Export': 'Export', 'Flux / Stock': 'Flow / Stock', 'Global': 'Overall',
         'Historique complet': 'Full history', 'Historique des notations': 'Ratings history',
         'Incomplets': 'Incomplete',
-        'Mode Groupe actif — Les indicateurs agrègent toutes les filiales autorisées':
-            'Group mode active — Indicators aggregate all authorized subsidiaries',
+        'Les indicateurs agrègent toutes les filiales':
+            'Indicators aggregate all subsidiaries',
         'Nombre de notations par filiale': 'Number of ratings by subsidiary', 'Note': 'Rating',
         'PM — Entreprises': 'PM — Companies', 'PP — Particuliers': 'PP — Individuals',
         'Performance des agents notés': 'Rated officers performance',
-        'Portefeuille unique': 'Unique portfolio',
+        'Chargé(s) de compte': 'Account manager(s)',
         "Pourcentage par type d'évaluation": 'Percentage by rating type',
         'Progression': 'Progress', 'Périmètre': 'Scope', 'Qualité PM': 'Quality PM',
         'Qualité PP': 'Quality PP', 'Qualité des Données': 'Data quality',

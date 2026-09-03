@@ -253,7 +253,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Labels en franà§ais
         const fieldLabels = {
             id_name: 'Nom de la règle',
             id_applicability: 'Segment Cible',
@@ -307,7 +306,6 @@
             }
         }
 
-        // Le connecteur ET/OU n'a de sens qu'à partir du 2e noeud : on masque celui du 1er.
         function updateLogicVisibility() {
             const rows = document.querySelectorAll('#conditionContainer .condition-row');
             rows.forEach((row, idx) => {
@@ -316,7 +314,6 @@
             });
         }
 
-        // Libellés lisibles des opérateurs pour l'aperçu de formule.
         const operatorLabels = {
             '=': '=', '!=': '≠', '>': '>', '<': '<', '>=': '≥', '<=': '≤',
             'contains': 'contient', 'not_contains': 'ne contient pas',
@@ -327,9 +324,6 @@
             'min_length': 'longueur <', 'max_length': 'longueur >'
         };
 
-        // Découpe les noeuds en groupes : un connecteur OU démarre un nouveau groupe,
-        // les noeuds d'un même groupe sont reliés par ET (forme normale disjonctive,
-        // identique à _dq_conditions_flag côté serveur).
         function readGroups() {
             const groups = [];
             let kept = 0;
@@ -340,7 +334,6 @@
                 const op = row.querySelector('select[name$="-operator"]')?.value || '';
                 const val = row.querySelector('[name$="-value"]')?.value || '';
                 const logic = row.querySelector('.js-cond-logic')?.value || 'AND';
-                // Le connecteur du 1er noeud conservé est ignoré côté serveur.
                 if (kept === 0 || logic === 'OR') groups.push([]);
                 kept += 1;
                 groups[groups.length - 1].push({ row, field, op, val });
@@ -386,7 +379,6 @@
 
         applicabilitySelect?.addEventListener('change', refreshAllNodes);
 
-        // Handle Form Loading
         const editForm = document.querySelector('form');
         const submitBtn = document.getElementById('submitEditBtn');
         if (editForm && submitBtn) {
@@ -412,7 +404,6 @@
             if (e.target.name && e.target.name.endsWith('-value')) updateGroupsAndFormula();
         });
 
-        // Forcer le type composite et cacher le champ
         if (controlTypeSelect) {
             controlTypeSelect.value = 'composite';
             controlTypeSelect.parentElement.style.display = 'none';
@@ -434,7 +425,6 @@
                 newRow.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked = false);
                 const idInput = newRow.querySelector('input[type="hidden"][name$="-id"]');
                 if (idInput) idInput.remove();
-                // Connecteur du nouveau noeud : ET par défaut (blanking l'avait mis à -1)
                 const logicSel = newRow.querySelector('.js-cond-logic');
                 if (logicSel) logicSel.value = 'AND';
 
@@ -450,7 +440,6 @@
 
         refreshAllNodes();
 
-        // Handle Form Loading
         const ruleForm = document.getElementById('ruleForm');
         const submitRuleBtn = document.getElementById('submitRuleBtn');
         if (ruleForm && submitRuleBtn) {

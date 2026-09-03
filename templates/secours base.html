@@ -306,7 +306,6 @@
  {% if selected_expl %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Données PM
     const datesPM = JSON.parse('{{ dates_pm|escapejs }}');
     const tauxPM = JSON.parse('{{ taux_pm|escapejs }}');
 
@@ -335,7 +334,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Données PP
     const datesPP = JSON.parse('{{ dates_pp|escapejs }}');
     const tauxPP = JSON.parse('{{ taux_pp|escapejs }}');
 

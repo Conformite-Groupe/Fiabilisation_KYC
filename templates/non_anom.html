@@ -64,22 +64,16 @@
         overflow-wrap: anywhere;
     }
 
-    .progress-glow-circle {
-        filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.35));
-    }
-
-    .progress-glow-orange {
-        filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.35));
+    .stat-rate-circle {
+        transition: stroke 0.4s ease;
     }
 
     .rule-number {
         font-family: 'Outfit', sans-serif;
     }
 
-    /* ── Mini navbar segmentée (onglets PP / PM / Toutes) ── */
     .rule-tab {
         color: #64748b;
-        /* slate-500 */
         cursor: pointer;
     }
 
@@ -87,10 +81,8 @@
         color: #0f172a;
     }
 
-    /* slate-900 */
     .rule-tab .rule-tab-count {
         background: #f1f5f9;
-        /* slate-100 */
         color: #64748b;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -352,16 +344,14 @@
             {% for item in rules %}
             <a href="?{% if base_querystring %}{{ base_querystring }}&{% endif %}rule={{ item.rule.pk }}"
                 data-app="{{ item.rule.applicability }}" class="rule-card glass-panel border-2 rounded-[1.25rem] p-4 flex flex-col justify-between shadow-lg bg-white/90 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300
-                      {% if item.stat.fail_count == 0 %}border-emerald-400 shadow-[0_14px_30px_rgba(16,185,129,0.25)]
-                      {% elif 'PM' in item.rule.applicability and 'PP' not in item.rule.applicability %}border-orange-400 shadow-[0_14px_30px_rgba(249,115,22,0.25)]
-                      {% elif 'PP' in item.rule.applicability and 'PM' not in item.rule.applicability %}border-emerald-400 shadow-[0_14px_30px_rgba(16,185,129,0.25)]
-                      {% else %}border-blue-400 shadow-[0_14px_30px_rgba(59,130,246,0.25)]{% endif %}">
+                      {% if 'PM' in item.rule.applicability and 'PP' not in item.rule.applicability %}border-slate-400 shadow-[0_14px_30px_rgba(71,85,105,0.25)]
+                      {% elif 'PP' in item.rule.applicability and 'PM' not in item.rule.applicability %}border-blue-400 shadow-[0_14px_30px_rgba(37,99,235,0.25)]
+                      {% else %}border-indigo-400 shadow-[0_14px_30px_rgba(99,102,241,0.25)]{% endif %}">
 
                 <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-2xl transition-colors
-                            {% if item.stat.fail_count == 0 %}bg-emerald-300/20 group-hover:bg-emerald-300/30
-                            {% elif 'PM' in item.rule.applicability and 'PP' not in item.rule.applicability %}bg-orange-300/20 group-hover:bg-orange-300/30
-                            {% elif 'PP' in item.rule.applicability and 'PM' not in item.rule.applicability %}bg-emerald-300/20 group-hover:bg-emerald-300/30
-                            {% else %}bg-blue-300/20 group-hover:bg-blue-300/30{% endif %}"></div>
+                            {% if 'PM' in item.rule.applicability and 'PP' not in item.rule.applicability %}bg-slate-300/20 group-hover:bg-slate-300/30
+                            {% elif 'PP' in item.rule.applicability and 'PM' not in item.rule.applicability %}bg-blue-300/20 group-hover:bg-blue-300/30
+                            {% else %}bg-indigo-300/20 group-hover:bg-indigo-300/30{% endif %}"></div>
                 <div class="absolute right-4 top-4 z-20">
                     <span
                         class="js-rule-index rule-number w-7 h-7 bg-white border-[3px] border-slate-900 rounded-xl flex items-center justify-center text-[10px] font-black text-slate-900 shadow-lg">
@@ -373,9 +363,9 @@
                     <div class="flex items-center gap-2 mb-3">
                         <div
                             class="px-2 py-0.5 rounded-md text-white text-[9px] font-black tracking-widest shadow-md
-                                    {% if 'PM' in item.rule.applicability and 'PP' not in item.rule.applicability %}bg-gradient-to-br from-orange-400 to-orange-600 shadow-orange-500/30
-                                    {% elif 'PP' in item.rule.applicability and 'PM' not in item.rule.applicability %}bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/30
-                                    {% else %}bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-500/30{% endif %}">
+                                    {% if 'PM' in item.rule.applicability and 'PP' not in item.rule.applicability %}bg-gradient-to-br from-slate-500 to-slate-700 shadow-slate-500/30
+                                    {% elif 'PP' in item.rule.applicability and 'PM' not in item.rule.applicability %}bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-500/30
+                                    {% else %}bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-indigo-500/30{% endif %}">
                             {{ item.rule.applicability }}
                         </div>
                     </div>
@@ -408,10 +398,7 @@
                                 <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10"
                                     class="text-slate-100"></circle>
                                 <circle cx="56" cy="56" r="50" fill="none" stroke="currentColor" stroke-width="10"
-                                    class="stat-rate-circle
-                                               {% if 'PM' in item.rule.applicability and 'PP' not in item.rule.applicability %}text-orange-500 progress-glow-orange
-                                               {% elif 'PP' in item.rule.applicability and 'PM' not in item.rule.applicability %}text-emerald-500 progress-glow-circle
-                                               {% else %}text-blue-500 drop-shadow-[0_0_4px_rgba(59,130,246,0.35)]{% endif %}"
+                                    class="stat-rate-circle"
                                     stroke-dasharray="314" stroke-dashoffset="314"
                                     data-rate="{{ item.stat.compliance_rate|default:0|floatformat:1 }}"
                                     stroke-linecap="round"></circle>
@@ -631,11 +618,18 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const RATE_THRESHOLD = 90;
+        const RATE_COLOR_OK = '#10b981';
+        const RATE_COLOR_LOW = '#f97316';
+
         document.querySelectorAll('circle.stat-rate-circle').forEach(circle => {
             const rate = parseFloat(circle.getAttribute('data-rate') || 0);
             const bounded = Math.max(0, Math.min(100, rate));
             const circumference = 314;
             const offset = circumference - (bounded / 100) * circumference;
+            const color = (!isNaN(rate) && rate >= RATE_THRESHOLD) ? RATE_COLOR_OK : RATE_COLOR_LOW;
+            circle.style.stroke = color;
+            circle.style.filter = 'drop-shadow(0 0 4px ' + color + '59)';
             circle.style.strokeDashoffset = circumference;
             setTimeout(() => {
                 circle.style.transition = 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -643,7 +637,6 @@
             }, 250);
         });
 
-        // ── Mini navbar : filtrage PP / PM / Toutes ──
         const tabsBox = document.getElementById('ruleTabs');
         if (tabsBox) {
             const tabs = Array.from(tabsBox.querySelectorAll('.rule-tab'));
@@ -657,7 +650,7 @@
                     const match = (filter === 'all') || (card.dataset.app === filter);
                     card.classList.toggle('is-hidden', !match);
                     if (match) {
-                        shown += 1;   // le numéro affiché reste l'ID de la règle (stable entre les pages)
+                        shown += 1;
                     }
                 });
                 tabs.forEach(t => {
@@ -671,8 +664,6 @@
 
             tabs.forEach(t => t.addEventListener('click', () => applyFilter(t.dataset.filter)));
 
-            // Onglet « Toutes » systématiquement actif à l'ouverture de la page :
-            // le choix PP / PM n'est plus mémorisé d'une visite à l'autre.
             applyFilter('all');
         }
     });

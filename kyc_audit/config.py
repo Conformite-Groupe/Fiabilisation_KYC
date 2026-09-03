@@ -5,15 +5,11 @@ Toute adaptation (nouveau champ, nouveau libellé, nouvelle filiale) se fait ici
 """
 from datetime import date
 
-# --------------------------------------------------------------- champs ----
-# Champs de complétude — strictement ceux de Script_V3.r (pp_fields / pm_fields)
 PP_FIELDS = ["PAYNAIS", "PROFESSION", "SALAIRE", "NUMID", "CODAPE", "TEL",
              "DATNAIS", "ADRESSE", "DATVALID", "ORIGINE_REVENU", "PAYS_RESID"]
 PM_FIELDS = ["CODAPE", "AGEC", "CAPITAL", "CA", "RESULTAT", "RCSNO",
              "ORIGINE_REVENU", "TEL"]
 
-# Libellés métier affichés dans le rapport (pp_labels / pm_labels).
-# PAYS_RESID n'a pas de libellé fourni : valeur par défaut ci-dessous.
 PP_LABELS = {
     "PAYNAIS": "Lieu de naissance",
     "PROFESSION": "Profession",
@@ -38,7 +34,6 @@ PM_LABELS = {
     "TEL": "Téléphone",
 }
 
-# Libellés des champs hors complétude, utilisés dans les tableaux de qualité
 AUTRES_LABELS = {
     "DATREV": "Date de révision KYC",
     "RISQUE": "Niveau de risque",
@@ -65,8 +60,6 @@ def label(field, typologie):
     return src.get(field) or AUTRES_LABELS.get(field) or field
 
 
-# ------------------------------------------------------------- filiales ----
-# ISO 2 -> (nom de filiale utilisé par le référentiel de règles, pays affiché)
 FILIALES = {
     "SN": ("BOA SN", "Sénégal"),
     "CI": ("BOA CI", "Côte d'Ivoire"),
@@ -77,7 +70,8 @@ FILIALES = {
     "TG": ("BOA TG", "Togo"),
     "MG": ("BOA MG", "Madagascar"),
     "MR": ("BOA MR", "Mauritanie"),
-    "RDC": ("BOA RDC", "RD Congo"),
+    "CD": ("BOA CD", "RD Congo"),
+    "RDC": ("BOA CD", "RD Congo"),  # ancien code, conserve pour les donnees historiques
     "KE": ("BOA KE", "Kenya"),
     "TZ": ("BOA TZ", "Tanzanie"),
     "UG": ("BOA UG", "Ouganda"),
@@ -94,25 +88,20 @@ def filiale_info(iso2):
     iso2 = iso2.strip().upper()
     if iso2 in FILIALES:
         nom, pays = FILIALES[iso2]
-    else:                                    # filiale non répertoriée
+    else:
         nom, pays = f"BOA {iso2}", iso2
     return {"iso2": iso2, "nom_regles": nom, "pays": pays,
             "libelle": f"BOA {iso2}"}
 
 
-# --------------------------------------------------------------- seuils ----
-# Appréciation de la complétude — Script_V3.r (Faible=80, Moyen=100)
 SEUIL_FAIBLE = 80
 SEUIL_MOYEN = 100
 
-# Valeur du champ RISQUE identifiant le niveau le plus élevé
 RISQUE_ELEVE = "Risque eleve"
 
-# Devises considérées comme locales (jamais comptées comme « compte en devise »)
 DEVISES_LOCALES = {"XOF", "XAF", "FCFA", "CFA", "F CFA", "MGA", "MRU", "CDF",
                    "KES", "TZS", "UGX", "RWF", "GHS", "KMF", "BIF", "EUR_LOCAL"}
 
-# Fenêtres d'échéance appliquées à DATREV (en jours)
 ECHEANCES = [(92, "À échoir < 3 mois"),
              (183, "À échoir 3–6 mois"),
              (365, "À échoir 6–12 mois")]
@@ -120,7 +109,6 @@ ECHEANCE_LOINTAINE = "À échoir > 12 mois"
 RETARDS = [(182, "< 6 mois"), (365, "6 à 12 mois"), (730, "1 à 2 ans")]
 RETARD_LOINTAIN = "> 2 ans"
 
-# ---------------------------------------------------------------- divers ---
 REGLES_JSON = "quality_rules_export.json"
 TEMPLATE_PPTX = "exemple rapport.pptx"
 PIED_DE_PAGE = "Conformité BOA Group | Fiabilisation KYC"

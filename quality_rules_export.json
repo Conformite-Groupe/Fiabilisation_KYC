@@ -1,74 +1,325 @@
 {
-  "exported_at": "2026-07-31T08:20:08",
+  "exported_at": "2026-08-05T09:26:21",
   "format": "kyc_data_quality_rules_v1",
-  "count": 54,
+  "count": 25,
   "rules": [
     {
-      "name": "Mineur de plus de plus de 21 ans",
-      "applicability": "PP",
-      "field_name": "PROFESSION",
+      "name": "Format téléphone invalide",
+      "applicability": "PM",
+      "field_name": "TEL",
       "control_type": "composite",
-      "parameter": "Etudiant",
-      "description": "",
+      "parameter": "8 / 15",
+      "description": "Le numéro de téléphone comporte moins de 8 caractères ou plus de 15 caractères.",
       "active": true,
-      "filiale": "|BOA NE|BOA CI|BOA TG|BOA SN|BOA ML|BOA BF|BOA BJ|BOA RDC|CG|BCB|BOA MR|BOA MG|BOA UG|BOA TZ|BOA RW|BOA KE|BOA FR|BOA KM|BOA GH|",
-      "created_at": "2026-05-05T11:29:26.528242+00:00",
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.076374+00:00",
       "conditions": [
         {
           "logic": "AND",
-          "field_name": "PROFESSION",
-          "operator": "contains",
-          "value": "Mineur"
+          "field_name": "TEL",
+          "operator": "min_length",
+          "value": "9"
         },
         {
-          "logic": "AND",
-          "field_name": "DATNAIS",
-          "operator": "age_gt",
-          "value": "21"
-        },
-        {
-          "logic": "AND",
-          "field_name": "PROFESSION",
-          "operator": "contains",
-          "value": "Enfant"
-        },
-        {
-          "logic": "AND",
-          "field_name": "PROFESSION",
-          "operator": "contains",
-          "value": "Eleve"
+          "logic": "OR",
+          "field_name": "TEL",
+          "operator": "max_length",
+          "value": "15"
         }
       ]
     },
     {
-      "name": "Sociétés sans adresse sociale",
+      "name": "Capital social nul",
       "applicability": "PM",
-      "field_name": "",
+      "field_name": "CAPITAL",
       "control_type": "composite",
-      "parameter": "",
-      "description": "Recenser les PM sans adresse sociale",
+      "parameter": "0",
+      "description": "Le capital social déclaré est égal à 0.",
       "active": true,
       "filiale": "|BOA SN|",
-      "created_at": "2026-05-05T17:05:50.788340+00:00",
+      "created_at": "2026-07-31T15:15:31.237748+00:00",
       "conditions": [
         {
           "logic": "AND",
-          "field_name": "ADRESSE_SOCIALE",
+          "field_name": "CAPITAL",
+          "operator": "=",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "name": "Numéro RCS trop court",
+      "applicability": "PM",
+      "field_name": "RCSNO",
+      "control_type": "composite",
+      "parameter": "6",
+      "description": "Le numéro RCS renseigné comporte moins de 6 caractères.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.242031+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "RCSNO",
+          "operator": "min_length",
+          "value": "6"
+        }
+      ]
+    },
+    {
+      "name": "Société avec capital sans actionnaire",
+      "applicability": "PM",
+      "field_name": "CAPITAL",
+      "control_type": "composite",
+      "parameter": "",
+      "description": "Capital social > 0 alors qu'aucun actionnaire n'est renseigné.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.245476+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "CAPITAL",
+          "operator": ">",
+          "value": "0"
+        },
+        {
+          "logic": "AND",
+          "field_name": "ACTIONNAIRE",
           "operator": "is_empty",
           "value": ""
         }
       ]
     },
     {
-      "name": "Document d'identité expiré",
-      "applicability": "PP",
-      "field_name": "",
+      "name": "Résultat sans CA renseigné",
+      "applicability": "PM",
+      "field_name": "RESULTAT",
       "control_type": "composite",
       "parameter": "",
-      "description": "",
+      "description": "Le résultat est renseigné mais le chiffre d'affaires (CA) est vide.",
       "active": true,
       "filiale": "|BOA SN|",
-      "created_at": "2026-05-05T18:39:07.727249+00:00",
+      "created_at": "2026-07-31T15:15:31.250578+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "RESULTAT",
+          "operator": "is_not_empty",
+          "value": ""
+        },
+        {
+          "logic": "AND",
+          "field_name": "CA",
+          "operator": "is_empty",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "RCS renseigné mais sans numéro fiscal",
+      "applicability": "PM",
+      "field_name": "RCSNO",
+      "control_type": "composite",
+      "parameter": "",
+      "description": "Numéro RCS présent mais numéro fiscal absent.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.253488+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "RCSNO",
+          "operator": "is_not_empty",
+          "value": ""
+        },
+        {
+          "logic": "AND",
+          "field_name": "NUMERO_FISCAL",
+          "operator": "is_empty",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "CA positif mais résultat vide",
+      "applicability": "PM",
+      "field_name": "CA",
+      "control_type": "composite",
+      "parameter": "",
+      "description": "Chiffre d'affaires > 0 alors que le résultat n'est pas renseigné.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.256172+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "CA",
+          "operator": ">",
+          "value": "0"
+        },
+        {
+          "logic": "AND",
+          "field_name": "RESULTAT",
+          "operator": "is_empty",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "PM à risque élevé dont la date de revue du scoring AML a été dépassée",
+      "applicability": "PM",
+      "field_name": "RISQUE",
+      "control_type": "composite",
+      "parameter": "",
+      "description": "Société à risque élevé dont la date de révision KYC (DATEREV) est dépassée.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.258399+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "RISQUE",
+          "operator": "=",
+          "value": "Risque eleve"
+        },
+        {
+          "logic": "AND",
+          "field_name": "DATEREV",
+          "operator": "expired",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "Client PM faisant du chiffre d'affaires sans mandataire",
+      "applicability": "PM",
+      "field_name": "MANDATAIRE",
+      "control_type": "composite",
+      "parameter": "",
+      "description": "Société avec chiffre d'affaires > 0 mais sans mandataire renseigné.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.260333+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "CA",
+          "operator": ">",
+          "value": "0"
+        },
+        {
+          "logic": "AND",
+          "field_name": "MANDATAIRE",
+          "operator": "is_empty",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "Client PM sans domaine d'activité",
+      "applicability": "PM",
+      "field_name": "CODAPE",
+      "control_type": "composite",
+      "parameter": "",
+      "description": "Le code d'activité économique (CODAPE) n'est pas renseigné.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.262220+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "CODAPE",
+          "operator": "is_empty",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "PPE non classe à risque élevé",
+      "applicability": "PM",
+      "field_name": "PPE",
+      "control_type": "composite",
+      "parameter": "",
+      "description": "Société marquée PPE (PPE=O) dont la classe de risque n'est pas 'Risque eleve'.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.265765+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "PPE",
+          "operator": "=",
+          "value": "O"
+        },
+        {
+          "logic": "AND",
+          "field_name": "RISQUE",
+          "operator": "!=",
+          "value": "Risque eleve"
+        }
+      ]
+    },
+    {
+      "name": "Format téléphone invalide",
+      "applicability": "PP",
+      "field_name": "TEL",
+      "control_type": "composite",
+      "parameter": "8 / 15",
+      "description": "Téléphone de moins de 8 caractères, de plus de 15 caractères ou contenant des lettres.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.268482+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "TEL",
+          "operator": "min_length",
+          "value": "9"
+        },
+        {
+          "logic": "OR",
+          "field_name": "TEL",
+          "operator": "max_length",
+          "value": "15"
+        },
+        {
+          "logic": "OR",
+          "field_name": "TEL",
+          "operator": "contains_alpha",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "Âge client supérieur à 100 ans (aberrant)",
+      "applicability": "PP",
+      "field_name": "DATNAIS",
+      "control_type": "composite",
+      "parameter": "100",
+      "description": "La date de naissance implique un âge supérieur à 100 ans.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.270366+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "DATNAIS",
+          "operator": "age_gt",
+          "value": "100"
+        }
+      ]
+    },
+    {
+      "name": "Document d'identité expiré",
+      "applicability": "PP",
+      "field_name": "DATVALID",
+      "control_type": "composite",
+      "parameter": "",
+      "description": "La date de validité de la pièce d'identité est dépassée.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.271657+00:00",
       "conditions": [
         {
           "logic": "AND",
@@ -79,15 +330,84 @@
       ]
     },
     {
-      "name": "Détection des employés de banque sans salaire",
+      "name": "Date de révision KYC (scoring) expirée",
       "applicability": "PP",
-      "field_name": "",
+      "field_name": "DATEREV",
       "control_type": "composite",
       "parameter": "",
-      "description": "",
+      "description": "La date de révision KYC (DATEREV) est dépassée.",
       "active": true,
-      "filiale": "|BOA SN|BOA BF|",
-      "created_at": "2026-05-18T11:43:56.360711+00:00",
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.273234+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "DATEREV",
+          "operator": "expired",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "Numéro d'identification nationale invalide",
+      "applicability": "PP",
+      "field_name": "NUMID",
+      "control_type": "composite",
+      "parameter": "8 / 15",
+      "description": "Le numéro de pièce d'identité comporte moins de 8 ou plus de 15 caractères.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.274439+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "NUMID",
+          "operator": "min_length",
+          "value": "8"
+        },
+        {
+          "logic": "OR",
+          "field_name": "NUMID",
+          "operator": "max_length",
+          "value": "15"
+        }
+      ]
+    },
+    {
+      "name": "PPE déclarée sans risque élevé",
+      "applicability": "PP",
+      "field_name": "PPE",
+      "control_type": "composite",
+      "parameter": "",
+      "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.275693+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "PPE",
+          "operator": "=",
+          "value": "O"
+        },
+        {
+          "logic": "AND",
+          "field_name": "RISQUE",
+          "operator": "!=",
+          "value": "Risque eleve"
+        }
+      ]
+    },
+    {
+      "name": "Employé de banque sans salaire",
+      "applicability": "PP",
+      "field_name": "PROFESSION",
+      "control_type": "composite",
+      "parameter": "EMPLOYE DE BANQUE",
+      "description": "Profession \"Employé de banque\" sans salaire.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.276863+00:00",
       "conditions": [
         {
           "logic": "AND",
@@ -100,1078 +420,56 @@
           "field_name": "SALAIRE",
           "operator": "is_empty",
           "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Client sans domaine d'activité (CODAPE)",
-      "applicability": "PM",
-      "field_name": "CODAPE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le code d'activité économique (CODAPE) du client PM n'est pas renseigné.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T15:35:18.225250+00:00",
-      "conditions": [
+        },
         {
-          "logic": "AND",
-          "field_name": "CODAPE",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Revenus élevés sans origine déclarée",
-      "applicability": "PP",
-      "field_name": "SALAIRE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Salaire numérique supérieur à 50 000 000 sans origine des revenus renseignée.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T15:35:18.288754+00:00",
-      "conditions": [
+          "logic": "OR",
+          "field_name": "PROFESSION",
+          "operator": "contains",
+          "value": "EMPLOYE DE BANQUE"
+        },
         {
           "logic": "AND",
           "field_name": "SALAIRE",
-          "operator": ">",
-          "value": "50000000"
-        },
-        {
-          "logic": "AND",
-          "field_name": "ORIGINE_REV",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Revenus élevés sans origine déclarée",
-      "applicability": "PP",
-      "field_name": "",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Revenu supérieur à 10.000 USD sans origine des revenus renseignée.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:16:43.115418+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "SALAIRE",
-          "operator": ">=",
-          "value": "10000"
-        },
-        {
-          "logic": "AND",
-          "field_name": "ORIGINE_REV",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Format téléphone court ou contenant des lettres (PM)",
-      "applicability": "PM",
-      "field_name": "TEL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:00.964288+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "min_length",
-          "value": "9"
-        },
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "contains_alpha",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Format téléphone invalide (trop court)",
-      "applicability": "PM",
-      "field_name": "TEL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:00.972056+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "min_length",
-          "value": "9"
-        }
-      ]
-    },
-    {
-      "name": "Format téléphone invalide (trop long)",
-      "applicability": "PM",
-      "field_name": "TEL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:00.977158+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "max_length",
-          "value": "18"
-        }
-      ]
-    },
-    {
-      "name": "Format téléphone invalide (trop long)",
-      "applicability": "PM",
-      "field_name": "TEL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:00.978743+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "max_length",
-          "value": "18"
-        }
-      ]
-    },
-    {
-      "name": "Capital social nul",
-      "applicability": "PM",
-      "field_name": "CAPITAL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le capital social déclaré est égal à 0.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:00.983046+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "CAPITAL",
           "operator": "=",
           "value": "0"
         }
       ]
     },
     {
-      "name": "Capital social nul",
-      "applicability": "PM",
-      "field_name": "CAPITAL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le capital social déclaré est égal à 0.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:00.986098+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "CAPITAL",
-          "operator": "=",
-          "value": "0"
-        }
-      ]
-    },
-    {
-      "name": "Numéro RCS trop court",
-      "applicability": "PM",
-      "field_name": "RCSNO",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro RCS renseigné comporte moins de 6 caractères.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:00.989201+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "RCSNO",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "RCSNO",
-          "operator": "min_length",
-          "value": "6"
-        }
-      ]
-    },
-    {
-      "name": "Numéro RCS trop court",
-      "applicability": "PM",
-      "field_name": "RCSNO",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro RCS renseigné comporte moins de 6 caractères.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:00.991237+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "RCSNO",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "RCSNO",
-          "operator": "min_length",
-          "value": "6"
-        }
-      ]
-    },
-    {
-      "name": "PPE déclarée sans risque élevé",
-      "applicability": "PM",
-      "field_name": "PPE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:00.995029+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "PPE",
-          "operator": "=",
-          "value": "O"
-        },
-        {
-          "logic": "AND",
-          "field_name": "RISQUE",
-          "operator": "!=",
-          "value": "Risque eleve"
-        }
-      ]
-    },
-    {
-      "name": "PPE déclarée sans risque élevé",
-      "applicability": "PM",
-      "field_name": "PPE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:00.996300+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "PPE",
-          "operator": "=",
-          "value": "O"
-        },
-        {
-          "logic": "AND",
-          "field_name": "RISQUE",
-          "operator": "!=",
-          "value": "Risque eleve"
-        }
-      ]
-    },
-    {
-      "name": "Société avec capital mais sans actionnaire",
-      "applicability": "PM",
-      "field_name": "CAPITAL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Capital social > 0 alors qu'aucun actionnaire n'est renseigné.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.003751+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "CAPITAL",
-          "operator": ">",
-          "value": "0"
-        },
-        {
-          "logic": "AND",
-          "field_name": "ACTIONNAIRE",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Société avec capital mais sans actionnaire",
-      "applicability": "PM",
-      "field_name": "CAPITAL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Capital social > 0 alors qu'aucun actionnaire n'est renseigné.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.005874+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "CAPITAL",
-          "operator": ">",
-          "value": "0"
-        },
-        {
-          "logic": "AND",
-          "field_name": "ACTIONNAIRE",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Résultat renseigné sans chiffre d'affaires",
-      "applicability": "PM",
-      "field_name": "RESULTAT",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le résultat est renseigné mais le chiffre d'affaires (CA) est vide.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.010289+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "RESULTAT",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "CA",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Résultat renseigné sans chiffre d'affaires",
-      "applicability": "PM",
-      "field_name": "RESULTAT",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le résultat est renseigné mais le chiffre d'affaires (CA) est vide.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.012023+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "RESULTAT",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "CA",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "RCS renseigné mais sans numéro fiscal",
-      "applicability": "PM",
-      "field_name": "RCSNO",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Numéro RCS présent mais numéro fiscal absent.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.015720+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "RCSNO",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "NUMERO_FISCAL",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "RCS renseigné mais sans numéro fiscal",
-      "applicability": "PM",
-      "field_name": "RCSNO",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Numéro RCS présent mais numéro fiscal absent.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.019054+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "RCSNO",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "NUMERO_FISCAL",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "CA positif mais résultat vide",
-      "applicability": "PM",
-      "field_name": "CA",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Chiffre d'affaires > 0 alors que le résultat n'est pas renseigné.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.022594+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "CA",
-          "operator": ">",
-          "value": "0"
-        },
-        {
-          "logic": "AND",
-          "field_name": "RESULTAT",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "CA positif mais résultat vide",
-      "applicability": "PM",
-      "field_name": "CA",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Chiffre d'affaires > 0 alors que le résultat n'est pas renseigné.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.023850+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "CA",
-          "operator": ">",
-          "value": "0"
-        },
-        {
-          "logic": "AND",
-          "field_name": "RESULTAT",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Risque élevé sans révision KYC à jour",
-      "applicability": "PM",
-      "field_name": "RISQUE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.026201+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "RISQUE",
-          "operator": "=",
-          "value": "Risque eleve"
-        },
-        {
-          "logic": "AND",
-          "field_name": "DATEREV",
-          "operator": "expired",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Risque élevé sans révision KYC à jour",
-      "applicability": "PM",
-      "field_name": "RISQUE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.027348+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "RISQUE",
-          "operator": "=",
-          "value": "Risque eleve"
-        },
-        {
-          "logic": "AND",
-          "field_name": "DATEREV",
-          "operator": "expired",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Mandataire absent pour société active",
-      "applicability": "PM",
-      "field_name": "MANDATAIRE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Société avec chiffre d'affaires > 0 mais sans mandataire renseigné.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.029700+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "CA",
-          "operator": ">",
-          "value": "0"
-        },
-        {
-          "logic": "AND",
-          "field_name": "MANDATAIRE",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Mandataire absent pour société active",
-      "applicability": "PM",
-      "field_name": "MANDATAIRE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Société avec chiffre d'affaires > 0 mais sans mandataire renseigné.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.030844+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "CA",
-          "operator": ">",
-          "value": "0"
-        },
-        {
-          "logic": "AND",
-          "field_name": "MANDATAIRE",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Format téléphone invalide (trop court)",
-      "applicability": "PP",
-      "field_name": "TEL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.036893+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "min_length",
-          "value": "9"
-        }
-      ]
-    },
-    {
-      "name": "Format téléphone invalide (trop court)",
-      "applicability": "PP",
-      "field_name": "TEL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro de téléphone renseigné comporte moins de 9 caractères.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.038200+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "min_length",
-          "value": "9"
-        }
-      ]
-    },
-    {
-      "name": "Format téléphone invalide (trop long)",
-      "applicability": "PP",
-      "field_name": "TEL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.040667+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "max_length",
-          "value": "18"
-        }
-      ]
-    },
-    {
-      "name": "Format téléphone invalide (trop long)",
-      "applicability": "PP",
-      "field_name": "TEL",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro de téléphone renseigné dépasse 18 caractères.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.041799+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "TEL",
-          "operator": "max_length",
-          "value": "18"
-        }
-      ]
-    },
-    {
-      "name": "Âge client supérieur à 100 ans (aberrant)",
-      "applicability": "PP",
-      "field_name": "DATNAIS",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "La date de naissance implique un âge supérieur à 100 ans.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.044166+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "DATNAIS",
-          "operator": "age_gt",
-          "value": "100"
-        }
-      ]
-    },
-    {
-      "name": "Âge client supérieur à 100 ans (aberrant)",
-      "applicability": "PP",
-      "field_name": "DATNAIS",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "La date de naissance implique un âge supérieur à 100 ans.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.045255+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "DATNAIS",
-          "operator": "age_gt",
-          "value": "100"
-        }
-      ]
-    },
-    {
-      "name": "Pièce d'identité expirée",
+      "name": "Document d'identité expiré avec risque élevé",
       "applicability": "PP",
       "field_name": "DATVALID",
       "control_type": "composite",
       "parameter": "",
-      "description": "La date de validité de la pièce d'identité est dépassée.",
+      "description": "Pièce d'identité expirée pour un client classé 'Risque eleve'.",
       "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.050942+00:00",
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.284748+00:00",
       "conditions": [
         {
           "logic": "AND",
           "field_name": "DATVALID",
           "operator": "expired",
           "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Date de révision KYC expirée",
-      "applicability": "PP",
-      "field_name": "DATEREV",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "La date de révision KYC (DATEREV) est dépassée.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.054886+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "DATEREV",
-          "operator": "expired",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Date de révision KYC expirée",
-      "applicability": "PP",
-      "field_name": "DATEREV",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "La date de révision KYC (DATEREV) est dépassée.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.056043+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "DATEREV",
-          "operator": "expired",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "NUMID trop court",
-      "applicability": "PP",
-      "field_name": "NUMID",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro de pièce d'identité comporte moins de 5 caractères.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.058275+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "NUMID",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "NUMID",
-          "operator": "min_length",
-          "value": "5"
-        }
-      ]
-    },
-    {
-      "name": "NUMID trop court",
-      "applicability": "PP",
-      "field_name": "NUMID",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Le numéro de pièce d'identité comporte moins de 5 caractères.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.059425+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "NUMID",
-          "operator": "is_not_empty",
-          "value": ""
-        },
-        {
-          "logic": "AND",
-          "field_name": "NUMID",
-          "operator": "min_length",
-          "value": "5"
-        }
-      ]
-    },
-    {
-      "name": "PPE déclaré sans risque élevé",
-      "applicability": "PP",
-      "field_name": "PPE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.069861+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "PPE",
-          "operator": "=",
-          "value": "O"
         },
         {
           "logic": "AND",
           "field_name": "RISQUE",
-          "operator": "!=",
+          "operator": "=",
           "value": "Risque eleve"
         }
       ]
     },
     {
-      "name": "PPE déclaré sans risque élevé",
-      "applicability": "PP",
-      "field_name": "PPE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Client marqué PPE (PPE=O) mais dont la classe de risque n'est pas 'Risque eleve'.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.072067+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "PPE",
-          "operator": "=",
-          "value": "O"
-        },
-        {
-          "logic": "AND",
-          "field_name": "RISQUE",
-          "operator": "!=",
-          "value": "Risque eleve"
-        }
-      ]
-    },
-    {
-      "name": "Salarié sans employeur",
-      "applicability": "PP",
-      "field_name": "PROFESSION",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Profession de type salarié (EMPLOYE) mais employeur non renseigné.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.075436+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "PROFESSION",
-          "operator": "contains",
-          "value": "EMPLOYE"
-        },
-        {
-          "logic": "AND",
-          "field_name": "EMPLOYEUR",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Salarié sans employeur",
-      "applicability": "PP",
-      "field_name": "PROFESSION",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Profession de type salarié (EMPLOYE) mais employeur non renseigné.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.076670+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "PROFESSION",
-          "operator": "contains",
-          "value": "EMPLOYE"
-        },
-        {
-          "logic": "AND",
-          "field_name": "EMPLOYEUR",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Salarié sans revenu",
-      "applicability": "PP",
-      "field_name": "PROFESSION",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Profession de type salarié (EMPLOYE) mais salaire non renseigné.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.080890+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "PROFESSION",
-          "operator": "contains",
-          "value": "EMPLOYE"
-        },
-        {
-          "logic": "AND",
-          "field_name": "SALAIRE",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Salarié sans revenu",
-      "applicability": "PP",
-      "field_name": "PROFESSION",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Profession de type salarié (EMPLOYE) mais salaire non renseigné.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.085117+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "PROFESSION",
-          "operator": "contains",
-          "value": "EMPLOYE"
-        },
-        {
-          "logic": "AND",
-          "field_name": "SALAIRE",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Retraité avec revenu positif",
-      "applicability": "PP",
-      "field_name": "PROFESSION",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Profession de type retraité (RETRAIT) avec un salaire numérique > 0.",
-      "active": true,
-      "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.087907+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "PROFESSION",
-          "operator": "contains",
-          "value": "RETRAIT"
-        },
-        {
-          "logic": "AND",
-          "field_name": "SALAIRE",
-          "operator": ">",
-          "value": "0"
-        }
-      ]
-    },
-    {
-      "name": "Retraité avec revenu positif",
-      "applicability": "PP",
-      "field_name": "PROFESSION",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Profession de type retraité (RETRAIT) avec un salaire numérique > 0.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.089171+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "PROFESSION",
-          "operator": "contains",
-          "value": "RETRAIT"
-        },
-        {
-          "logic": "AND",
-          "field_name": "SALAIRE",
-          "operator": ">",
-          "value": "0"
-        }
-      ]
-    },
-    {
-      "name": "Risque élevé sans révision KYC à jour",
+      "name": "PP à risque élevé dont la date de revue du scoring AML a été dépassée",
       "applicability": "PP",
       "field_name": "RISQUE",
       "control_type": "composite",
       "parameter": "",
-      "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
+      "description": "Client à risque élevé dont la date de révision KYC (DATEREV) est dépassée.",
       "active": true,
       "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.091806+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "RISQUE",
-          "operator": "=",
-          "value": "Risque eleve"
-        },
-        {
-          "logic": "AND",
-          "field_name": "DATEREV",
-          "operator": "expired",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Risque élevé sans révision KYC à jour",
-      "applicability": "PP",
-      "field_name": "RISQUE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Client à risque élevé dont la date de révision (DATEREV) est dépassée.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.092975+00:00",
+      "created_at": "2026-07-31T15:15:31.287329+00:00",
       "conditions": [
         {
           "logic": "AND",
@@ -1193,10 +491,10 @@
       "field_name": "PPE",
       "control_type": "composite",
       "parameter": "",
-      "description": "Client PPE (PPE=O) sans origine des revenus renseignée.",
+      "description": "Client PPE sans origine des revenus renseignée.",
       "active": true,
       "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.095642+00:00",
+      "created_at": "2026-07-31T15:15:31.289876+00:00",
       "conditions": [
         {
           "logic": "AND",
@@ -1213,40 +511,15 @@
       ]
     },
     {
-      "name": "PPE sans origine des revenus",
-      "applicability": "PP",
-      "field_name": "PPE",
-      "control_type": "composite",
-      "parameter": "",
-      "description": "Client PPE (PPE=O) sans origine des revenus renseignée.",
-      "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.096796+00:00",
-      "conditions": [
-        {
-          "logic": "AND",
-          "field_name": "PPE",
-          "operator": "=",
-          "value": "O"
-        },
-        {
-          "logic": "AND",
-          "field_name": "ORIGINE_REV",
-          "operator": "is_empty",
-          "value": ""
-        }
-      ]
-    },
-    {
-      "name": "Non-résident sans boîte postale",
+      "name": "Client PP non-résident sans boîte postale",
       "applicability": "PP",
       "field_name": "RESID",
       "control_type": "composite",
-      "parameter": "",
-      "description": "Client non-résident (RESID=N) sans boîte postale renseignée.",
+      "parameter": "N",
+      "description": "Client PP non-résident (RESID=N) sans boîte postale renseignée.",
       "active": true,
       "filiale": "|BOA SN|",
-      "created_at": "2026-07-05T19:50:01.102181+00:00",
+      "created_at": "2026-07-31T15:15:31.292742+00:00",
       "conditions": [
         {
           "logic": "AND",
@@ -1263,15 +536,89 @@
       ]
     },
     {
-      "name": "Non-résident sans boîte postale",
+      "name": "Mineur de plus de 21 ans",
       "applicability": "PP",
+      "field_name": "PROFESSION",
+      "control_type": "composite",
+      "parameter": "21",
+      "description": "Profession de type Mineur / Enfant / Elève alors que l'âge dépasse 21 ans.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.295545+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "PROFESSION",
+          "operator": "contains",
+          "value": "MINEUR"
+        },
+        {
+          "logic": "AND",
+          "field_name": "DATNAIS",
+          "operator": "age_gt",
+          "value": "21"
+        },
+        {
+          "logic": "OR",
+          "field_name": "PROFESSION",
+          "operator": "contains",
+          "value": "ENFANT"
+        },
+        {
+          "logic": "AND",
+          "field_name": "DATNAIS",
+          "operator": "age_gt",
+          "value": "21"
+        },
+        {
+          "logic": "OR",
+          "field_name": "PROFESSION",
+          "operator": "contains",
+          "value": "ELEVE"
+        },
+        {
+          "logic": "AND",
+          "field_name": "DATNAIS",
+          "operator": "age_gt",
+          "value": "21"
+        }
+      ]
+    },
+    {
+      "name": "Revenus élevés sans origine déclarée",
+      "applicability": "PP",
+      "field_name": "SALAIRE",
+      "control_type": "composite",
+      "parameter": "5000000",
+      "description": "Salaire numérique supérieur à 5 000 000 sans origine des revenus renseignée.",
+      "active": true,
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T15:15:31.312574+00:00",
+      "conditions": [
+        {
+          "logic": "AND",
+          "field_name": "SALAIRE",
+          "operator": ">",
+          "value": "5000000"
+        },
+        {
+          "logic": "AND",
+          "field_name": "ORIGINE_REV",
+          "operator": "is_empty",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "name": "Client PM non-résident sans boîte postale",
+      "applicability": "PM",
       "field_name": "RESID",
       "control_type": "composite",
-      "parameter": "",
-      "description": "Client non-résident (RESID=N) sans boîte postale renseignée.",
+      "parameter": "O",
+      "description": "Client PM non-résident (RESID=N) sans boîte postale renseignée.",
       "active": true,
-      "filiale": "|BOA RDC|",
-      "created_at": "2026-07-05T19:50:01.103472+00:00",
+      "filiale": "|BOA SN|",
+      "created_at": "2026-07-31T16:35:03.541068+00:00",
       "conditions": [
         {
           "logic": "AND",

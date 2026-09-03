@@ -788,7 +788,7 @@ class Notation(models.Model):
 
     def __str__(self):
         code = getattr(self.agent, "code_expl", "") or getattr(self.agent, "username", "")
-        return f"{code} - {self.note} - {self.recommandation[:20]}..."
+        return f"{code} - {self.note} - {(self.recommandation or '')[:20]}..."
 
 class Historique(models.Model):
       agent= models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE, related_name="historiques")
@@ -833,12 +833,12 @@ class Kyc_pm(models.Model):
     DATEREV = models.CharField(blank=True, max_length=200)
     PPE = models.CharField(blank=True, max_length=200)
     RISQUE = models.CharField(blank=True, max_length=200)
-    ACTIONNAIRE = models.CharField(blank=True, max_length=200)
+    ACTIONNAIRE = models.CharField(blank=True, max_length=4000)
     ADRESSE_SOCIALE = models.CharField(blank=True, max_length=200)
     BOITE_POSTALE = models.CharField(blank=True, max_length=200)
     CONSENT_BIC = models.CharField(blank=True, max_length=200)
     INTITULE_COMPTE = models.CharField(blank=True, max_length=200)
-    MANDATAIRE = models.CharField(blank=True, max_length=200)
+    MANDATAIRE = models.CharField(blank=True, max_length=4000)
     NUMERO_FISCAL = models.CharField(blank=True, max_length=200)
     PAYS_JUR = models.CharField(blank=True, max_length=200)
 

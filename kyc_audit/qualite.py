@@ -17,7 +17,6 @@ from collections import Counter
 from .dataset import parse_date
 
 
-# ------------------------------------------------------------ opérateurs ---
 def _age(valeur, today):
     d = parse_date(valeur)
     if not d:
@@ -105,7 +104,6 @@ def combiner(conditions, lire, today):
     return (resultat or courant) if demarre else False
 
 
-# ----------------------------------------------------------------- règles --
 def charger_regles(path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)["rules"]
@@ -172,7 +170,6 @@ def evaluer(t, regles, filiale, typologie, exemples=0):
     }
 
 
-# La date de référence est injectée par le pipeline (opérateurs expired / age_gt).
 _TODAY = [None]
 
 

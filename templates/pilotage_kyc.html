@@ -108,7 +108,7 @@
         {% if scope == "groupe" %}
         <div class="mt-3 flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
             <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <p class="text-[10px] font-bold text-emerald-700">{{ "Mode Groupe actif — Les indicateurs agrègent toutes les filiales autorisées"|t }}</p>
+            <p class="text-[10px] font-bold text-emerald-700">{{ "Les indicateurs agrègent toutes les filiales"|t }}</p>
         </div>
         {% endif %}
     </form>
@@ -156,7 +156,7 @@
                     <div class="p-5 text-center">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Global"|t }}</p>
                         <p class="text-4xl font-black {% if summary.completeness_rate is not None and summary.completeness_rate < threshold %}text-red-600{% else %}text-slate-900{% endif %}">
-                            {% if summary.completeness_rate or summary.completeness_rate == 0 %}{{ summary.completeness_rate|floatformat:1 }}<span class="text-base text-slate-400">%</span>{% else %}--{% endif %}
+                            {% if summary.completeness_rate or summary.completeness_rate == 0 %}{{ summary.completeness_rate|floatformat:"-1" }}<span class="text-base text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
                         <div class="mt-3 mx-auto max-w-[80px] h-2 rounded-full bg-slate-100 overflow-hidden">
                             <div class="h-full rounded-full {% if summary.completeness_rate is not None and summary.completeness_rate < threshold %}bg-red-500{% else %}bg-emerald-500{% endif %}" style="width: {{ summary.completeness_rate|floatformat:0|default:0 }}%"></div>
@@ -166,7 +166,7 @@
                     <div class="p-5 text-center {% if summary.completeness_rate_pp is not None and summary.completeness_rate_pp < threshold %}bg-red-50{% endif %}">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PP — Particuliers"|t }}</p>
                         <p class="text-3xl font-black {% if summary.completeness_rate_pp is not None and summary.completeness_rate_pp < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
-                            {% if summary.completeness_rate_pp or summary.completeness_rate_pp == 0 %}{{ summary.completeness_rate_pp|floatformat:1 }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
+                            {% if summary.completeness_rate_pp or summary.completeness_rate_pp == 0 %}{{ summary.completeness_rate_pp|floatformat:"-1" }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
                         <div class="mt-3 mx-auto max-w-[80px] h-2 rounded-full bg-slate-100 overflow-hidden">
                             <div class="h-full rounded-full {% if summary.completeness_rate_pp is not None and summary.completeness_rate_pp < threshold %}bg-red-400{% else %}bg-emerald-400{% endif %}" style="width: {{ summary.completeness_rate_pp|floatformat:0|default:0 }}%"></div>
@@ -176,7 +176,7 @@
                     <div class="p-5 text-center {% if summary.completeness_rate_pm is not None and summary.completeness_rate_pm < threshold %}bg-red-50{% endif %}">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PM — Entreprises"|t }}</p>
                         <p class="text-3xl font-black {% if summary.completeness_rate_pm is not None and summary.completeness_rate_pm < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
-                            {% if summary.completeness_rate_pm or summary.completeness_rate_pm == 0 %}{{ summary.completeness_rate_pm|floatformat:1 }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
+                            {% if summary.completeness_rate_pm or summary.completeness_rate_pm == 0 %}{{ summary.completeness_rate_pm|floatformat:"-1" }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
                         <div class="mt-3 mx-auto max-w-[80px] h-2 rounded-full bg-slate-100 overflow-hidden">
                             <div class="h-full rounded-full {% if summary.completeness_rate_pm is not None and summary.completeness_rate_pm < threshold %}bg-red-400{% else %}bg-emerald-400{% endif %}" style="width: {{ summary.completeness_rate_pm|floatformat:0|default:0 }}%"></div>
@@ -291,7 +291,7 @@
                         <thead>
                             <tr class="bg-slate-50">
                                 <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Type"|t }}</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Périmètre"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Filiale"|t }}</th>
                                 <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Champ"|t }}</th>
                                 <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Total"|t }}</th>
                                 <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Incomplets"|t }}</th>
@@ -310,7 +310,7 @@
                                 <td class="px-4 py-3 text-right font-bold text-slate-600">{{ row.total_clients }}</td>
                                 <td class="px-4 py-3 text-right font-bold text-red-600">{{ row.missing_count }}</td>
                                 <td class="px-4 py-3 text-right">
-                                    <span class="inline-flex rounded-full bg-red-50 px-3 py-1 text-[10px] font-black text-red-600">{{ row.rate|floatformat:1 }}%</span>
+                                    <span class="inline-flex rounded-full bg-red-50 px-3 py-1 text-[10px] font-black text-red-600">{{ row.rate|floatformat:0 }}%</span>
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="w-24 h-2 rounded-full bg-slate-100 overflow-hidden">
@@ -352,7 +352,7 @@
                     <div class="p-5 text-center">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Global"|t }}</p>
                         <p class="text-4xl font-black {% if summary.quality_rate is not None and summary.quality_rate < threshold %}text-red-600{% else %}text-slate-900{% endif %}">
-                            {% if summary.quality_rate or summary.quality_rate == 0 %}{{ summary.quality_rate|floatformat:1 }}<span class="text-base text-slate-400">%</span>{% else %}--{% endif %}
+                            {% if summary.quality_rate or summary.quality_rate == 0 %}{{ summary.quality_rate|floatformat:"-1" }}<span class="text-base text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
                         <div class="mt-3 mx-auto max-w-[80px] h-2 rounded-full bg-slate-100 overflow-hidden">
                             <div class="h-full rounded-full {% if summary.quality_rate is not None and summary.quality_rate < threshold %}bg-red-500{% else %}bg-emerald-500{% endif %}" style="width: {{ summary.quality_rate|floatformat:0|default:0 }}%"></div>
@@ -362,7 +362,7 @@
                     <div class="p-5 text-center {% if summary.quality_rate_pp is not None and summary.quality_rate_pp < threshold %}bg-red-50{% endif %}">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PP — Particuliers"|t }}</p>
                         <p class="text-3xl font-black {% if summary.quality_rate_pp is not None and summary.quality_rate_pp < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
-                            {% if summary.quality_rate_pp or summary.quality_rate_pp == 0 %}{{ summary.quality_rate_pp|floatformat:1 }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
+                            {% if summary.quality_rate_pp or summary.quality_rate_pp == 0 %}{{ summary.quality_rate_pp|floatformat:"-1" }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
                         <div class="mt-3 mx-auto max-w-[80px] h-2 rounded-full bg-slate-100 overflow-hidden">
                             <div class="h-full rounded-full {% if summary.quality_rate_pp is not None and summary.quality_rate_pp < threshold %}bg-red-400{% else %}bg-emerald-400{% endif %}" style="width: {{ summary.quality_rate_pp|floatformat:0|default:0 }}%"></div>
@@ -372,7 +372,7 @@
                     <div class="p-5 text-center {% if summary.quality_rate_pm is not None and summary.quality_rate_pm < threshold %}bg-red-50{% endif %}">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "PM — Entreprises"|t }}</p>
                         <p class="text-3xl font-black {% if summary.quality_rate_pm is not None and summary.quality_rate_pm < threshold %}text-red-600{% else %}text-slate-700{% endif %}">
-                            {% if summary.quality_rate_pm or summary.quality_rate_pm == 0 %}{{ summary.quality_rate_pm|floatformat:1 }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
+                            {% if summary.quality_rate_pm or summary.quality_rate_pm == 0 %}{{ summary.quality_rate_pm|floatformat:"-1" }}<span class="text-sm text-slate-400">%</span>{% else %}--{% endif %}
                         </p>
                         <div class="mt-3 mx-auto max-w-[80px] h-2 rounded-full bg-slate-100 overflow-hidden">
                             <div class="h-full rounded-full {% if summary.quality_rate_pm is not None and summary.quality_rate_pm < threshold %}bg-red-400{% else %}bg-emerald-400{% endif %}" style="width: {{ summary.quality_rate_pm|floatformat:0|default:0 }}%"></div>
@@ -387,8 +387,33 @@
                 </div>
             </div>
 
-            
-            <section id="qualityCharts" class="grid grid-cols-1 gap-6 lg:grid-cols-2"></section>
+
+            <section class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
+                        <div>
+                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-300">{{ "Qualité PP"|t }}</p>
+                            <h2 class="text-sm font-black text-white">{{ "Conformité par règle — Particuliers"|t }}</h2>
+                        </div>
+                        <span class="text-[9px] text-slate-400 font-black uppercase">Seuil {{ threshold|floatformat:1 }}%</span>
+                    </div>
+                    <div class="p-4" id="chartQualityppWrap" style="height: 300px; position: relative;">
+                        <canvas id="chartQualitypp"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
+                        <div>
+                            <p class="text-[9px] font-black uppercase tracking-[0.25em] text-amber-300">{{ "Qualité PM"|t }}</p>
+                            <h2 class="text-sm font-black text-white">{{ "Conformité par règle — Entreprises"|t }}</h2>
+                        </div>
+                        <span class="text-[9px] text-slate-400 font-black uppercase">Seuil {{ threshold|floatformat:1 }}%</span>
+                    </div>
+                    <div class="p-4" id="chartQualitypmWrap" style="height: 300px; position: relative;">
+                        <canvas id="chartQualitypm"></canvas>
+                    </div>
+                </div>
+            </section>
 
             
             <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" x-data="{ open: false }">
@@ -445,14 +470,13 @@
                         <thead>
                             <tr class="bg-slate-50">
                                 <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Type"|t }}</th>
-                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Périmètre"|t }}</th>
+                                <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Filiale"|t }}</th>
                                 <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Règle"|t }}</th>
                                 <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Champ"|t }}</th>
                                 <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Total"|t }}</th>
                                 <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Anomalies"|t }}</th>
                                 <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Taux"|t }}</th>
                                 <th class="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400">{{ "Progression"|t }}</th>
-                                <th class="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400">{{ "Export"|t }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -467,19 +491,16 @@
                                 <td class="px-4 py-3 text-right font-bold text-slate-600">{{ row.total_clients }}</td>
                                 <td class="px-4 py-3 text-right font-bold text-red-600">{{ row.fail_count }}</td>
                                 <td class="px-4 py-3 text-right">
-                                    <span class="inline-flex rounded-full bg-red-50 px-3 py-1 text-[10px] font-black text-red-600">{{ row.rate|floatformat:1 }}%</span>
+                                    <span class="inline-flex rounded-full bg-red-50 px-3 py-1 text-[10px] font-black text-red-600">{{ row.rate|floatformat:"-1" }}%</span>
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="w-24 h-2 rounded-full bg-slate-100 overflow-hidden">
                                         <div class="h-full rounded-full bg-red-500" style="width: {{ row.rate|floatformat:0 }}%"></div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 text-right">
-                                    <a href="{{ row.export_url }}" class="inline-flex rounded-xl bg-slate-900 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-700 transition-all">{{ "Clients"|t }}</a>
-                                </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="9" class="px-4 py-10 text-center">
+                            <tr><td colspan="8" class="px-4 py-10 text-center">
                                 <div class="flex flex-col items-center gap-2">
                                     <svg class="w-10 h-10 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ "Aucune règle sous le seuil"|t }}</p>
@@ -507,20 +528,14 @@
                     <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
                     <p class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">{{ "Performance des agents notés"|t }}</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 p-0">
-                    
+                <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100 p-0">
+
                     <div class="p-5 text-center">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Agents évalués"|t }}</p>
                         <p class="text-4xl font-black text-slate-900">{{ notation_kpis.total_agents }}</p>
-                        <span class="text-[9px] font-bold text-slate-400">{{ "Portefeuille unique"|t }}</span>
+                        <span class="text-[9px] font-bold text-slate-400">{{ "Chargé(s) de compte"|t }}</span>
                     </div>
-                    
-                    <div class="p-5 text-center">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Total évaluations"|t }}</p>
-                        <p class="text-4xl font-black text-indigo-600">{{ notation_kpis.total_notations }}</p>
-                        <span class="text-[9px] font-bold text-slate-400">{{ "Historique complet"|t }}</span>
-                    </div>
-                    
+
                     <div class="p-5 text-center">
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{{ "Taux d'excellence"|t }}</p>
                         <p class="text-4xl font-black text-emerald-600">{{ notation_kpis.excellence_rate|floatformat:1 }}%</p>
@@ -550,7 +565,7 @@
                     <div class="px-5 py-4 bg-slate-950 flex items-center justify-between">
                         <div>
                             <p class="text-[9px] font-black uppercase tracking-[0.25em] text-indigo-300">{{ "Répartition Globale"|t }}</p>
-                            <h2 class="text-sm font-black text-white">{{ "Pourcentage par type d'évaluation"|t }}</h2>
+                            <h2 class="text-sm font-black text-white">{{ "Nombre par type d'évaluation"|t }}</h2>
                         </div>
                     </div>
                     <div class="p-4 flex items-center justify-center" style="height: 300px; position: relative;">
@@ -625,7 +640,6 @@
 
 {% block extra_js %}
 <script>
-// ── Données graphiques (PP et PM séparés) ──────────────────────────────────
 const chartData = {
     comp_pp_labels: JSON.parse('{{ chart_comp_pp_labels|to_json|escapejs }}'),
     comp_pp_values: JSON.parse('{{ chart_comp_pp_values|to_json|escapejs }}'),
@@ -645,7 +659,6 @@ const currentScope = "{{ scope }}";
 const ppFields = JSON.parse('{{ pp_fields_json|escapejs }}');
 const pmFields = JSON.parse('{{ pm_fields_json|escapejs }}');
 
-// ── Gestion scope groupe/filiale ───────────────────────────────────────────
 function handleScopeChange(val) {
     const sel = document.getElementById('filialeSelect');
     const lbl = document.getElementById('filialeLabel');
@@ -659,10 +672,8 @@ function handleScopeChange(val) {
         lbl.innerHTML = 'Filiale';
     }
 }
-// Appliquer au chargement
 handleScopeChange(document.getElementById('scopeSelect').value);
 
-// ── Graphiques ─────────────────────────────────────────────────────────────
 function makeHBar(canvasId, labels, values, colors, subtitle) {
     const el = document.getElementById(canvasId);
     if (!el || !values.length) {
@@ -711,61 +722,20 @@ function makeHBar(canvasId, labels, values, colors, subtitle) {
     });
 }
 
-// Titres traduits pour les panneaux qualité générés dynamiquement.
-const QUAL_TITLES = {
-    PP: "{{ 'Conformité par règle — Particuliers'|t|escapejs }}",
-    PM: "{{ 'Conformité par règle — Entreprises'|t|escapejs }}",
-};
-const QUAL_EMPTY = "{{ 'Aucune donnée disponible'|t|escapejs }}";
-
-// Découpe les règles en blocs de 10 max et crée un panneau (carte + graphe)
-// par bloc, pour PP comme pour PM.
-function renderQualityCharts(containerId, kind, labels, values, colors) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    const CHUNK = 10;
-    const accent = kind === 'PP' ? 'text-emerald-300' : 'text-amber-300';
-    const title = QUAL_TITLES[kind];
-
-    if (!labels.length) {
-        const card = document.createElement('div');
-        card.className = 'bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden';
-        card.innerHTML =
-            '<div class="px-5 py-4 bg-slate-950"><p class="text-[9px] font-black uppercase tracking-[0.25em] ' + accent + '">Qualité ' + kind + '</p>' +
-            '<h2 class="text-sm font-black text-white">' + title + '</h2></div>' +
-            '<div class="flex items-center justify-center" style="height:120px"><span class="text-[10px] text-slate-300 font-black uppercase">' + QUAL_EMPTY + '</span></div>';
-        container.appendChild(card);
-        return;
-    }
-
-    const nChunks = Math.ceil(labels.length / CHUNK);
-    for (let i = 0; i < nChunks; i++) {
-        const l = labels.slice(i * CHUNK, (i + 1) * CHUNK);
-        const v = values.slice(i * CHUNK, (i + 1) * CHUNK);
-        const c = colors.slice(i * CHUNK, (i + 1) * CHUNK);
-        const suffix = nChunks > 1 ? ' (' + (i + 1) + '/' + nChunks + ')' : '';
-        const canvasId = 'chartQuality' + kind + '_' + i;
-        // Hauteur proportionnelle au nombre de barres pour garder les libellés lisibles.
-        const height = Math.max(160, l.length * 30 + 24);
-        const card = document.createElement('div');
-        card.className = 'bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden';
-        card.innerHTML =
-            '<div class="px-5 py-4 bg-slate-950 flex items-center justify-between">' +
-            '<div><p class="text-[9px] font-black uppercase tracking-[0.25em] ' + accent + '">Qualité ' + kind + suffix + '</p>' +
-            '<h2 class="text-sm font-black text-white">' + title + '</h2></div></div>' +
-            '<div class="p-4" style="height:' + height + 'px; position:relative;"><canvas id="' + canvasId + '"></canvas></div>';
-        container.appendChild(card);
-        makeHBar(canvasId, l, v, c);
-    }
+function setChartHeight(wrapId, nItems) {
+    const wrap = document.getElementById(wrapId);
+    if (wrap) wrap.style.height = Math.max(300, nItems * 26 + 40) + 'px';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     makeHBar('chartCompletenesspp', chartData.comp_pp_labels, chartData.comp_pp_values, chartData.comp_pp_colors);
     makeHBar('chartCompletenesspm', chartData.comp_pm_labels, chartData.comp_pm_values, chartData.comp_pm_colors);
-    renderQualityCharts('qualityCharts', 'PP', chartData.qual_pp_labels, chartData.qual_pp_values, chartData.qual_pp_colors);
-    renderQualityCharts('qualityCharts', 'PM', chartData.qual_pm_labels, chartData.qual_pm_values, chartData.qual_pm_colors);
 
-    // ── Graphiques de notation ─────────────────────────────────────────────
+    setChartHeight('chartQualityppWrap', chartData.qual_pp_labels.length);
+    setChartHeight('chartQualitypmWrap', chartData.qual_pm_labels.length);
+    makeHBar('chartQualitypp', chartData.qual_pp_labels, chartData.qual_pp_values, chartData.qual_pp_colors);
+    makeHBar('chartQualitypm', chartData.qual_pm_labels, chartData.qual_pm_values, chartData.qual_pm_colors);
+
     const overallLabels = JSON.parse('{{ chart_notation_overall_labels|to_json|escapejs }}');
     const overallValues = JSON.parse('{{ chart_notation_overall_values|to_json|escapejs }}');
     const overallColors = JSON.parse('{{ chart_notation_overall_colors|to_json|escapejs }}');
@@ -822,7 +792,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ── Configuration rapport ──────────────────────────────────────────────────
 function selectAllFields()   { document.querySelectorAll('.field-checkbox').forEach(cb => cb.checked = true); }
 function deselectAllFields() { document.querySelectorAll('.field-checkbox').forEach(cb => cb.checked = false); }
 function selectAllRules()    { document.querySelectorAll('.rule-checkbox').forEach(cb => cb.checked = true); }

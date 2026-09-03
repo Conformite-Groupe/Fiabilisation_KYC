@@ -30,7 +30,6 @@ def _date_fr(d):
     return f"{d.day} {MOIS[d.month - 1]} {d.year}"
 
 
-# ============================================================== couverture ==
 def _couverture(prs, R, d):
     couverture(
         prs,
@@ -45,7 +44,6 @@ def _sommaire(prs):
     sommaire(prs, [(rom, lib) for rom, lib in SECTIONS], PIED_DE_PAGE)
 
 
-# ================================================== I. périmètre & méthode ==
 def _perimetre(prs, R, d):
     s = page(prs, BANDEAU["I"], "Base de l'audit", PIED_DE_PAGE)
     spp, spm = R["source"]["pp"], R["source"]["pm"]
@@ -94,7 +92,6 @@ def _perimetre(prs, R, d):
            ton="amber", size=7.5)
 
 
-# ========================================================= I. synthèse ======
 def _synthese(prs, R):
     s = page(prs, BANDEAU["I"], "Synthèse exécutive", PIED_DE_PAGE)
     cpp, cpm = R["completude"]["pp"], R["completude"]["pm"]
@@ -172,7 +169,6 @@ def _synthese(prs, R):
                   "de la plateforme KYC restreint aux règles applicables à la filiale.")
 
 
-# ================================================== II. complétude PP/PM ====
 def _completude(prs, R, typo):
     c = R["completude"]["pp" if typo == "PP" else "pm"]
     champs = PP_FIELDS if typo == "PP" else PM_FIELDS
@@ -197,8 +193,6 @@ def _completude(prs, R, typo):
                    key=lambda kv: kv[1])
     cats = [label(f, typo) for f, _ in ordre]
     vals = [v for _, v in ordre]
-    # Le graphe occupe toute la hauteur restante à gauche : avec 11 champs,
-    # le comprimer rendrait les libellés d'axe illisibles.
     txt(s, LEFT, 2.14, 5.4, 0.22, "Taux de complétude par champ (%)", size=9,
         bold=True, color=NAVY)
     barres(s, LEFT, 2.36, 5.4, 2.92, cats, [("Complétude", vals)],
@@ -218,7 +212,7 @@ def _completude(prs, R, typo):
         rows.append(["Aucun", "—", "—"])
     txt(s, 6.0, 2.14, 3.6, 0.22, "Détail des champs incomplets", size=9,
         bold=True, color=NAVY)
-    rows = rows[:9]                       # au-delà, le tableau passerait sous le pied de page
+    rows = rows[:9]
     ytab = 2.36
     table(s, 6.0, ytab, 3.6, rows, col_w=[52, 22, 26], font_size=7.5,
           row_h=0.245, head_h=0.26, fills=fills)
@@ -317,12 +311,11 @@ def _completude_reelle(prs, R):
                 fills2[(len(rows2) - 1, 2)] = RED_PALE if taux < 5 else AMBER_PALE
     if len(rows2) == 1:
         rows2.append(["Aucun", "—", "—", "—"])
-    rows2 = rows2[:5]                     # au-delà, le tableau passerait sous le pied de page
+    rows2 = rows2[:5]
     table(s, LEFT, y2, 9.2, rows2, col_w=[26, 16, 20, 38], font_size=7.5,
           row_h=0.24, head_h=0.26, fills=fills2)
 
 
-# ================================================== III. qualité ============
 def _dispositif(prs, R):
     s = page(prs, BANDEAU["III"], "Dispositif de contrôle et taux de conformité", PIED_DE_PAGE)
     qpp, qpm = R["qualite"]["pp"], R["qualite"]["pm"]
@@ -376,7 +369,6 @@ def _anomalies(prs, R, typo):
     n = R["completude"]["pp" if typo == "PP" else "pm"]["n"]
     s = page(prs, BANDEAU["III"], f"{nom} — anomalies détectées par règle", PIED_DE_PAGE)
 
-    # Colonne « risque élevé » : anomalies de la même règle sur ce seul niveau
     re_bloc = R["risque_eleve"]["pp" if typo == "PP" else "pm"]
     re_par_nom = {r["nom"]: r for r in (re_bloc["qualite"]["regles"] if re_bloc["n"] else [])}
 
@@ -421,7 +413,6 @@ def _anomalies(prs, R, typo):
     encart(s, 6.25, 3.45, 3.35, 1.83, "Constats", lignes[:4], ton="red", size=7)
 
 
-# ============================ IV. PPE / devises / non-résidents =============
 def _segments_carto(prs, R):
     s = page(prs, BANDEAU["IV"], "Cartographie des segments sensibles", PIED_DE_PAGE)
     spp, spm = R["segments"]["pp"], R["segments"]["pm"]
@@ -477,7 +468,6 @@ def _segments_carto(prs, R):
                couleurs=[GREEN, GREEN_OK], size=6.5, num_fmt='#,##0',
                legende=True, gap=45)
 
-    # Une ligne par croisement, avec les deux typologies (« — » si non évaluable côté PM)
     cpp_x, cpm_x = spp["_croisements"], spm["_croisements"]
     lignes = []
     for k in dict.fromkeys(list(cpp_x) + list(cpm_x)):
@@ -608,7 +598,6 @@ def _segments_qualite(prs, R):
            lignes[:3] or ["Aucun segment sensible identifié."], ton="amber", size=7.5)
 
 
-# ================================================= V. revue scoring AML =====
 def _risque(prs, R):
     s = page(prs, BANDEAU["V"], "Cartographie du risque client (champ RISQUE)", PIED_DE_PAGE)
     a, b = R["scoring"]["pp"], R["scoring"]["pm"]
@@ -627,7 +616,6 @@ def _risque(prs, R):
 
     couleurs = [GREEN_OK, GREEN, AMBER, RED, MUTED]
     cats = [NIVEAUX_LIB[n] for n in NIVEAUX]
-    # Étiquettes désactivées : plusieurs parts sont trop fines pour être lisibles.
     txt(s, 0.5, 2.18, 3.0, 0.22, "Particuliers", size=9, bold=True, color=NAVY,
         align=PP_ALIGN.CENTER)
     anneau(s, 0.4, 2.40, 3.0, 2.55, cats, [a["risque"].get(n, 0) for n in NIVEAUX],
@@ -797,7 +785,6 @@ def _profil_risque_eleve(prs, R):
     for lib, gp, rp, gm, rm in lignes_cmp:
         rows.append([lib, f"{gp} %", f"{rp} %" if rp is not None else "—",
                      f"{gm} %", f"{rm} %" if rm is not None else "—"])
-        # Rouge dès que le sous-ensemble à risque élevé est moins bon que le global
         pire = "Sans révision" in lib
         if rp is not None and ((rp > gp) if pire else (rp < gp)):
             fills[(len(rows) - 1, 2)] = RED_PALE
@@ -832,7 +819,6 @@ def _profil_risque_eleve(prs, R):
            ton="red", size=7.5)
 
 
-# =========================================== VI. synthèse et plan d'action ==
 def _plan(R):
     """Construit le plan d'action à partir des résultats (valable pour toute filiale)."""
     cpp, cpm = R["completude"]["pp"], R["completude"]["pm"]
@@ -949,7 +935,6 @@ def _plan_slides(prs, R):
                           "« Moyenne » : dette de qualité à résorber.")
 
 
-# ================================================================= build ====
 def construire(R, sortie):
     from datetime import date
     d = date.fromisoformat(R["date_audit"])

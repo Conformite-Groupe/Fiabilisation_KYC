@@ -1,0 +1,82 @@
+@echo off
+chcp 65001 >nul
+title COMPLIANCE BOA GROUP - Fiabilisation KYC
+color 0A
+
+set "DJANGO_DIR=C:\Fiabilisation KYC\Python\Fiabilisation_kyc"
+set "DJANGO_HOST=10.170.82.20:8080"
+
+echo.
+echo  ╔══════════════════════════════════════════════════════════════╗
+echo  ║                                                              ║
+echo  ║                  COMPLIANCE  BOA  GROUP                      ║
+echo  ║                                                              ║
+echo  ║             FIABILISATION DES DONNEES  KYC                   ║
+echo  ║                                                              ║
+echo  ╠══════════════════════════════════════════════════════════════╣
+echo  ║   Traitements quotidiens :                                   ║
+echo  ║     [0] Redemarrage du serveur Django                        ║
+echo  ║     [1] Production des etats R     (script_V3.R)             ║
+echo  ║     [2] Importation KYC            (import_kyc.py)           ║
+echo  ║     [3] Importation evolutions     (import_premier.py)       ║
+echo  ║     [4] Importation taux agents    (import_taux_agent.py)    ║
+echo  ║     [5] Calcul des taux de qualite                           ║
+echo  ║     [6] Prechauffe des caches                                ║
+echo  ║     [7] Appreciations globales                               ║
+echo  ║     [8] Rappels DATEREV + rapport email                      ║
+echo  ╚══════════════════════════════════════════════════════════════╝
+echo.
+echo  Demarrage : %date% %time%
+echo  ────────────────────────────────────────────────────────────────
+echo.
+
+REM ── Etape 0 : redemarrage du serveur Django ────────────────────────
+echo  [START] Etape 0 : Fermeture de Django...
+taskkill /F /IM python.exe /T >nul 2>&1
+echo  [OK] Django est ferme.
+echo.
+echo  [START] Lancement du serveur Django...
+start "Django - Fiabilisation KYC" /D "%DJANGO_DIR%" cmd /k venv\Scripts\python.exe manage.py runserver %DJANGO_HOST%
+echo  [OK] Serveur Django lance sur %DJANGO_HOST%
+echo.
+echo  ────────────────────────────────────────────────────────────────
+echo  [START] Etape 1 : Production des etats R (script_V3.R)
+echo.
+
+REM ── Etape 1 : traitement R ─────────────────────────────────────────
+set "PATH=C:\Program Files\R\R-4.6.1\bin\x64;%PATH%"
+pushd "C:\Fiabilisation KYC\R"
+Rscript script_V3.R 2>&1 | powershell -NoProfile -Command "$input | Tee-Object -FilePath 'C:\Fiabilisation KYC\R\run_r.log' -Append"
+set RC_R=%ERRORLEVEL%
+popd
+
+if %RC_R%==0 (
+    echo  [OK] Etats R produits avec succes.
+) else (
+    echo  [ECHEC] script_V3.R - code retour %RC_R%
+)
+
+echo.
+echo  ────────────────────────────────────────────────────────────────
+echo  [START] Etapes 2 a 8 : traitements Django
+echo  ────────────────────────────────────────────────────────────────
+echo.
+
+REM ── Etapes 2 a 8 : traitements Django ──────────────────────────────
+cd /d "%DJANGO_DIR%"
+"venv\Scripts\python.exe" manage.py run_daily_jobs 2>&1 | powershell -NoProfile -Command "$input | Tee-Object -FilePath 'logs\run_daily_jobs.log' -Append"
+set RC_PY=%ERRORLEVEL%
+
+echo.
+echo  ────────────────────────────────────────────────────────────────
+echo  Fin : %date% %time%
+if %RC_R%==0 if %RC_PY%==0 (
+    echo  ✔  TOUS LES TRAITEMENTS TERMINES AVEC SUCCES
+    echo.
+    exit /b 0
+)
+color 0C
+echo  ✖  DES ERREURS SONT SURVENUES
+if not %RC_R%==0  echo     - Etats R : voir "C:\Fiabilisation KYC\R\run_r.log"
+if not %RC_PY%==0 echo     - Traitements Django : voir logs\run_daily_jobs.log
+echo.

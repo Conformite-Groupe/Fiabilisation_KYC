@@ -29,9 +29,15 @@ def open_smtp(cfg):
     if cfg.smtp_user and cfg.smtp_password:
         try:
             srv.login(cfg.smtp_user, cfg.smtp_password)
-        except smtplib.SMTPAuthenticationError:
-            srv.quit()
-            srv = _conn()                                         
+        except (smtplib.SMTPAuthenticationError, smtplib.SMTPNotSupportedError):
+            # Relais interne : soit il refuse ces identifiants, soit il n'annonce
+            # pas l'extension AUTH (cas du port 25 sans TLS). Dans les deux cas on
+            # repart sur une connexion propre, sans authentification.
+            try:
+                srv.quit()
+            except Exception:
+                pass
+            srv = _conn()
     return srv
 
 
@@ -117,18 +123,39 @@ def parse_recipients(raw):
     return [p for p in parts if p]
 
 
-def send_html_email(config, recipients, subject, html_body):
-    """Envoie un email HTML simple à une liste de destinataires. Retourne le nb de destinataires."""
+def send_html_email(config, recipients, subject, html_body, attachments=None):
+    """Envoie un email HTML à une liste de destinataires. Retourne le nb de destinataires.
+
+    `attachments` : liste facultative de chemins de fichiers à joindre. Un fichier
+    illisible est ignoré (l'email part quand même, sans la pièce jointe).
+    """
+    import os
+
     recipients = [r for r in (recipients or []) if r]
     if not recipients:
         return 0
     server = open_smtp(config)
     try:
-        msg = MIMEMultipart('alternative')
+        if attachments:
+            msg = MIMEMultipart('mixed')
+        else:
+            msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
         msg['From'] = f"{config.from_name} <{config.from_email}>"
         msg['To'] = ", ".join(recipients)
         msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+        for path in (attachments or []):
+            try:
+                with open(path, 'rb') as fh:
+                    data = fh.read()
+            except OSError:
+                continue
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(data)
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition',
+                            f'attachment; filename="{os.path.basename(path)}"')
+            msg.attach(part)
         server.sendmail(config.from_email, recipients, msg.as_string())
     finally:
         try:

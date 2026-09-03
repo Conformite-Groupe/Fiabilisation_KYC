@@ -265,7 +265,6 @@
         const clientTypeInput = document.getElementById('inputClientType');
         clientTypeInput.value = clientType || "pp";
 
-        // Don't allow changing the code, filiale, or client_type of core categories to prevent issues
         if (code === 'piece_identite' || code === 'passeport') {
             codeInput.readOnly = true;
             codeInput.classList.add('bg-slate-50', 'text-slate-400');

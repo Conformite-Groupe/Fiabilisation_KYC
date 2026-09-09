@@ -61,6 +61,8 @@ from <- id[1,1]
 # garde que les lignes situees en dessous. Les colonnes sont ensuite adressees
 # PAR NOM (prerequis_col) : ajouter, deplacer ou renommer une colonne dans le
 # CSV ne casse plus le script.
+# NB : la colonne "Flux(mois/jour)" n'est plus lue (le flux est toujours la
+# derniere journee enregistree) ; on la laisse dans le CSV sans effet.
 prerequis_brut <- read.csv2(paste(sep="",chemin,"prerequis.csv"),
                             header = FALSE, stringsAsFactors = FALSE,
                             colClasses = "character")
@@ -126,28 +128,16 @@ filiale=prerequis$infos[prerequis$argument=="y"]
 
 
 #####-------- PERIODE DE TRAITEMENT PAR FILIALE --------###########
-# La periode flux est definie par filiale via une colonne "PERIODE" de
-# prerequis.csv (sur la ligne de la filiale) :
-#   "jour" (ou colonne vide / absente) -> la derniere journee presente dans les
-#                                         donnees de la filiale
-#   "mois"                             -> le mois calendaire precedant le mois
-#                                         en cours (base sur Sys.Date())
-# La valeur est cherchee dans toute la ligne, donc la position de la colonne
-# dans le CSV n'a pas d'importance.
-periode_mode <- function(fil) {
-  # Colonne "Flux(mois/jour)" (alias PERIODE) de prerequis.csv.
-  v <- tolower(prerequis_valeur(fil, "flux_mois_jour", "flux", "periode"))
-  if (v %in% c("mois", "mois_precedent", "m")) return("mois")
-  if (v %in% c("jour", "j")) return("jour")
-
-  # Repli : colonne absente ou vide -> on cherche la valeur n'importe ou sur la
-  # ligne de la filiale (ancien comportement).
-  ligne <- prerequis[prerequis$infos == fil, , drop = FALSE]
-  if (nrow(ligne) == 0) return("jour")
-  vals <- tolower(trimws(as.character(unlist(ligne, use.names = FALSE))))
-  if (any(vals %in% c("mois", "mois_precedent", "m"), na.rm = TRUE)) return("mois")
-  "jour"
-}
+# Le flux est desormais TOUJOURS la derniere journee d'ouverture enregistree.
+# Au niveau FILIALE / rapport : la DATOUV la plus recente (<= aujourd'hui) de
+# la filiale, calculee par bornes_periode() -> premier_jour / jour_recent
+# (sert au libelle du rapport, au nom des archives et a la date d'arrete).
+# Au niveau AGENT (EXPL) : chaque charge prend SA propre derniere journee
+# d'ouverture (cf. flux_derniere_journee) -> un CC sans ouverture le dernier
+# jour de la filiale garde quand meme un flux (sa derniere date).
+# L'ancien mode "mois" et la colonne "Flux(mois/jour)" de prerequis.csv ne
+# sont plus pris en compte.
+periode_mode <- function(fil) "jour"
 
 
 #####-------- CODES EXCLUS (pm_exclure / pp_exclure / rc_exclure) --------#####
@@ -174,52 +164,33 @@ codes_exclure <- function(fil, colonne, defaut = character(0)) {
 
 pm_agec_exclus <- function(fil) codes_exclure(fil, "pm_exclure", PM_EXCLURE_DEFAUT)
 
-# Bornes de la periode.
-#   premier_jour = debut INCLUS
-#   jour_recent  = borne haute EXCLUE
-# Les filtres flux utilisent DATOUV >= premier_jour & DATOUV < jour_recent.
-#
-#   mode "mois" : premier_jour = 1er jour du mois calendaire precedent,
-#                 dernier jour couvert = dernier jour de ce meme mois.
-#                 Libelle rapport : la periode complete "du .. au ..".
-#   mode "jour" : premier_jour = DATOUV la plus recente de pp_stock ET pm_stock,
-#                 jour_recent  = le lendemain (la periode ne couvre que ce jour).
-#                 Libelle rapport : cette seule date.
-#
-# dates_dispo = ensemble des DATOUV disponibles (PP et PM reunies).
+# Derniere journee d'ouverture AU NIVEAU FILIALE (libelle du rapport, nom des
+# archives, date d'arrete). Le filtrage du flux par agent, lui, passe par
+# flux_derniere_journee() et n'utilise PAS ces bornes.
+#   premier_jour = DATOUV la plus recente (<= aujourd'hui) de la filiale, PP+PM
+#   jour_recent  = le lendemain
+# dates_dispo = DATOUV disponibles pour cette filiale (PP et PM reunies).
 bornes_periode <- function(fil, dates_dispo) {
-  mode <- periode_mode(fil)
-  if (mode == "mois") {
-    fin   <- floor_date(Sys.Date(), "month")
-    debut <- fin %m-% months(1)
-  } else {
-    # Les fichiers sources contiennent des DATOUV aberrantes (saisies erronees,
-    # annees futures type 2090). On ignore tout ce qui est posterieur a
-    # aujourd'hui, sinon la periode entiere est calee sur la date fantaisiste.
-    dates_ok <- dates_dispo[!is.na(dates_dispo) & dates_dispo <= Sys.Date()]
-    if (length(dates_ok) == 0) {
-      stop("Aucune date exploitable (<= aujourd'hui) dans les donnees de ", fil)
-    }
-    ignorees <- sum(!is.na(dates_dispo) & dates_dispo > Sys.Date())
-    if (ignorees > 0) {
-      cat("######### ATTENTION", fil, ":", ignorees,
-          "date(s) DATOUV posterieure(s) a aujourd'hui ignoree(s), max =",
-          format(max(dates_dispo, na.rm = TRUE), "%d/%m/%Y"), "\n")
-    }
-    derniere <- max(dates_ok)
-    debut <- derniere
-    fin   <- derniere + 1
+  # Les fichiers sources contiennent des DATOUV aberrantes (saisies erronees,
+  # annees futures type 2090). On ignore tout ce qui est posterieur a
+  # aujourd'hui, sinon la periode entiere est calee sur la date fantaisiste.
+  dates_ok <- dates_dispo[!is.na(dates_dispo) & dates_dispo <= Sys.Date()]
+  if (length(dates_ok) == 0) {
+    stop("Aucune date exploitable (<= aujourd'hui) dans les donnees de ", fil)
   }
-  # Libelle affiche dans le rapport : periode complete en mode mois,
-  # date unique en mode jour.
-  libelle <- if (mode == "mois") {
-    paste0("du ", format(debut, "%d/%m/%Y"), " au ", format(fin - 1, "%d/%m/%Y"))
-  } else {
-    paste0("du ", format(fin - 1, "%d/%m/%Y"))
+  ignorees <- sum(!is.na(dates_dispo) & dates_dispo > Sys.Date())
+  if (ignorees > 0) {
+    cat("######### ATTENTION", fil, ":", ignorees,
+        "date(s) DATOUV posterieure(s) a aujourd'hui ignoree(s), max =",
+        format(max(dates_dispo, na.rm = TRUE), "%d/%m/%Y"), "\n")
   }
-  cat("######### Periode retenue pour", fil, "(mode", mode, ") :",
+  derniere <- max(dates_ok)
+  debut <- derniere
+  fin   <- derniere + 1
+  libelle <- paste0("du ", format(fin - 1, "%d/%m/%Y"))
+  cat("######### Periode flux retenue pour", fil, "(derniere journee) :",
       libelle, "\n")
-  list(debut = debut, fin = fin, mode = mode, libelle = libelle)
+  list(debut = debut, fin = fin, mode = "jour", libelle = libelle)
 }
 
 
@@ -1048,6 +1019,33 @@ select_pm_fields <- function(df, fields) {
   df <- df[, selected_fields, drop = FALSE]
   names(df)[names(df) == "ORIGINE_REV"] <- "ORIGINE_REVENU"
   df
+}
+
+# FLUX = derniere journee d'ouverture de CHAQUE agent (EXPL). Un CC sans
+# ouverture le dernier jour de la filiale conserve ainsi SA propre derniere
+# date d'ouverture. Cle : EXPL alphanumerique, sinon DIR_AGENCE_<agence> (memes
+# pseudo-agents que les tableaux). df$DATOUV : Date ou chaine ISO/JJ-MM-AAAA.
+flux_derniere_journee <- function(df) {
+  if (is.null(df) || nrow(df) == 0) return(df)
+  d <- df$DATOUV
+  if (!inherits(d, "Date")) {
+    # Dans ce projet DATOUV est deja une Date (dmy() a l'import) ; ce repli ne
+    # sert qu'aux appels hors pipeline. dmy() d'abord (format JJ/MM/AAAA source),
+    # puis ISO en secours.
+    d2 <- suppressWarnings(lubridate::dmy(as.character(d)))
+    if (all(is.na(d2))) d2 <- suppressWarnings(as.Date(as.character(d)))
+    d <- d2
+  }
+  ok <- !is.na(d) & d <= Sys.Date()
+  if (!any(ok)) return(df[0, , drop = FALSE])
+  cle <- ifelse(is_alphanumeric(as.character(df$EXPL)),
+                as.character(df$EXPL),
+                paste0("DIR_AGENCE_", df$AGENCE))
+  maxi <- tapply(as.numeric(d[ok]), cle[ok], max)
+  cible <- maxi[cle]
+  keep <- ok & !is.na(cible) & as.numeric(d) == cible
+  keep[is.na(keep)] <- FALSE
+  df[keep, , drop = FALSE]
 }
 
 # Nettoie le fichier source si "RCS NÃ‚Â°" empàªche la lecture
@@ -1891,11 +1889,8 @@ if ("LIB_AGENCE" %in% names(pm_stock)) {
 
  
 
-    pm_flux <- pm_stock %>%
-    filter(
-        DATOUV >= as.Date(premier_jour),
-        DATOUV < as.Date(jour_recent)
-    )
+    # Flux = derniere journee d'ouverture de chaque agent (cf. flux_derniere_journee).
+    pm_flux <- flux_derniere_journee(pm_stock)
 
   
 
@@ -2041,11 +2036,8 @@ if ("LIB_AGENCE" %in% names(pp_stock)) {
     pp_stock[clients_devise_pp,"DEVISE"]= ""
 
 
-    pp_flux <- pp_stock %>%
-    filter(
-        DATOUV >= as.Date(premier_jour),
-        DATOUV < as.Date(jour_recent)
-    )
+    # Flux = derniere journee d'ouverture de chaque agent (cf. flux_derniere_journee).
+    pp_flux <- flux_derniere_journee(pp_stock)
 
 
  cols_vides_pp <- c("CODAPE","PAYNAIS","DATNAIS","PROFESSION","ADRESSE","PAYS_RESID",
@@ -3694,9 +3686,9 @@ file.copy(from = chemins_sources, to = chemins_destinations, overwrite = TRUE)
   pp_ne <- clean_and_mark_anomalies(pp_ne, start_col = 4)
   pm_ne <- clean_and_mark_anomalies(pm_ne, start_col = 4)
   
-  # Filtre Flux
-  pp_flux <- pp_ne %>% filter(DATOUV >= as.Date(premier_jour), DATOUV < as.Date(jour_recent))
-  pm_flux <- pm_ne %>% filter(DATOUV >= as.Date(premier_jour), DATOUV < as.Date(jour_recent))
+  # Filtre Flux = derniere journee d'ouverture de chaque agent (cf. flux_derniere_journee)
+  pp_flux <- flux_derniere_journee(pp_ne)
+  pm_flux <- flux_derniere_journee(pm_ne)
 
   # pm_exclure a ete calcule a l'import (cf. section "3 bis"), a partir de la
   # colonne pm_exclure de prerequis.csv.
@@ -3802,8 +3794,8 @@ file.copy(from = chemins_sources, to = chemins_destinations, overwrite = TRUE)
   #####--------- CALCUL DES OBSERVATIONS (avant-derniere slide) ---------#####
   # Toutes les observations sont chiffrees a partir des donnees de la filiale.
 
-  # Libelle de periode : plage complete en mode "mois", date unique en mode
-  # "jour" (cf. bornes_periode). Repli calcule si la variable n'existe pas.
+  # Libelle de periode : la derniere journee enregistree (cf. bornes_periode).
+  # Repli calcule si la variable n'existe pas.
   periode_lib <- if (exists("periode_libelle") && !is.null(periode_libelle)) {
     periode_libelle
   } else {

@@ -55,7 +55,6 @@ class Command(BaseCommand):
             return methode_par_filiale.get((fil or "").strip().upper(), "flux")
 
         from kyc.views import flux_datouv_window
-        flux_start, flux_end = flux_datouv_window()
 
         filiale_filter = options.get("filiale")
 
@@ -122,7 +121,13 @@ class Command(BaseCommand):
         rules = list(DataQualityRule.objects.filter(active=True))
 
         def taux_qualite_agent(fil, expl, methode):
-            ds, de = (flux_start, flux_end) if methode == "flux" else (None, None)
+            # Flux = dernière journée d'ouverture enregistrée de ce chargé
+            # (repli sur sa propre dernière date s'il n'a rien ouvert le dernier
+            # jour de la filiale).
+            ds, de = flux_datouv_window(fil, expl=expl) if methode == "flux" else (None, None)
+            if methode == "flux" and not ds:
+                # Aucune DATOUV exploitable : pas de flux ce jour-là.
+                return 100.0
             ok = tot = 0
             for rule in rules:
                 stat = evaluate_data_quality_rule(rule, filiale=fil, expl=expl,

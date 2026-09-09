@@ -5,14 +5,7 @@ from .models import (KycDocumentExtraction, KycDocumentMatchJob, KycDocumentMatc
                      KycExpiredDocumentScanMatch, FilialeModuleConfig, EmailReminderConfig,
                      AppreciationConfig, Appreciation_globale, TermTranslation, KycDocumentOcrJob,
                      KycMatchValidatorRole, KycMatchDecision, KycScreeningAccess,
-                     SidebarAccess, DataQualityRule, DataQualityCondition, QualityFluxConfig, TauxQualite)
-
-
-@admin.register(QualityFluxConfig)
-class QualityFluxConfigAdmin(admin.ModelAdmin):
-    list_display = ("flux_window", "active", "updated_at")
-    list_editable = ("active",)
-    list_display_links = ("flux_window",)
+                     SidebarAccess, DataQualityRule, DataQualityCondition, TauxQualite)
 
 
 @admin.register(TauxQualite)

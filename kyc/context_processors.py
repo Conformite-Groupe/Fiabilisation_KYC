@@ -132,47 +132,36 @@ def kyc_display_fields_processor(request):
         if filiale:
             filiale = filiale.strip()
 
-                          
-    pp_config = None
-    if filiale:
-        filiale_configs = [c for c in KycFieldVisibilityConfig.objects.filter(client_type='pp') if filiale in (c.filiales or [])]
-        if filiale_configs:
-            pp_config = filiale_configs[0]
+    def _clean_labels(cfg):
+        return {k: v for k, v in ((cfg.field_labels if cfg else None) or {}).items() if v}
 
-    if not pp_config:
-        global_configs = [c for c in KycFieldVisibilityConfig.objects.filter(client_type='pp') if not c.filiales]
-        if global_configs:
-            pp_config = global_configs[0]
+    def _resolve(client_type, base_labels):
+        all_configs = list(KycFieldVisibilityConfig.objects.filter(client_type=client_type))
+        global_config = next((c for c in all_configs if not c.filiales), None)
+        filiale_config = next((c for c in all_configs if filiale and filiale in (c.filiales or [])), None)
 
-    if pp_config and pp_config.display_fields is not None:
-        pp_fields = pp_config.display_fields
-    else:
-        pp_fields = [f[0] for f in KYC_PP_FIELD_LABELS]
 
-    kyc_pp_display_fields = [f for f in KYC_PP_FIELD_LABELS if f[0] in pp_fields]
+        fields = None
+        for cfg in (filiale_config, global_config):
+            if cfg and cfg.display_fields is not None:
+                fields = cfg.display_fields
+                break
+        if fields is None:
+            fields = [f[0] for f in base_labels]
 
-                          
-    pm_config = None
-    if filiale:
-        filiale_configs = [c for c in KycFieldVisibilityConfig.objects.filter(client_type='pm') if filiale in (c.filiales or [])]
-        if filiale_configs:
-            pm_config = filiale_configs[0]
 
-    if not pm_config:
-        global_configs = [c for c in KycFieldVisibilityConfig.objects.filter(client_type='pm') if not c.filiales]
-        if global_configs:
-            pm_config = global_configs[0]
+        labels = {**_clean_labels(global_config), **_clean_labels(filiale_config)}
+        display = [(f[0], labels.get(f[0]) or f[1]) for f in base_labels if f[0] in fields]
+        return display, labels
 
-    if pm_config and pm_config.display_fields is not None:
-        pm_fields = pm_config.display_fields
-    else:
-        pm_fields = [f[0] for f in KYC_PM_FIELD_LABELS]
-
-    kyc_pm_display_fields = [f for f in KYC_PM_FIELD_LABELS if f[0] in pm_fields]
+    kyc_pp_display_fields, kyc_pp_field_labels = _resolve('pp', KYC_PP_FIELD_LABELS)
+    kyc_pm_display_fields, kyc_pm_field_labels = _resolve('pm', KYC_PM_FIELD_LABELS)
 
     return {
         'kyc_pp_display_fields': kyc_pp_display_fields,
         'kyc_pm_display_fields': kyc_pm_display_fields,
+        'kyc_pp_field_labels': kyc_pp_field_labels,
+        'kyc_pm_field_labels': kyc_pm_field_labels,
     }
 
 def module_screening_processor(request):

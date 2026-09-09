@@ -41,14 +41,6 @@
     </div>
 
     <div class="flex items-center space-x-4 no-print">
-        <div class="inline-flex p-1 bg-gray-100 rounded-xl border border-gray-200">
-            <a href="{% url 'scoring' %}" class="px-5 py-2 text-[10px] font-black rounded-lg transition-all {% if 'sans_classe' not in request.path %} nav-link-active text-white shadow-md {% else %} text-gray-400 hover:text-green-700 {% endif %}">
-                {{ "REVUE SCORING"|t }}
-            </a>
-            <a href="{% url 'sans_classe' %}" class="px-5 py-2 text-[10px] font-black rounded-lg transition-all {% if 'sans_classe' in request.path %} nav-link-active text-white shadow-md {% else %} text-gray-500 hover:text-green-700 {% endif %}">
-                {{ "SANS CLASSE"|t }}
-            </a>
-        </div>
 
         <a href="{% url 'export_scoring' %}?{{ request.GET.urlencode }}"
            class="flex items-center px-5 py-2.5 bg-gray-800 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg uppercase tracking-widest">
@@ -149,17 +141,17 @@
                 <thead>
                 <tr class="sticky top-0 z-50">
                             {% if user.organe not in user_filiale %}
-                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Filiale"|t }}</th>
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ kyc_pp_field_labels.FILIALE|default:"Filiale"|t }}</th>
                                     {% endif %}
-                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Agence"|t }}</th>
-                            
-                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Agencelib"|t }}</th>
-                            
-                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Exploitant"|t }}</th>
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ kyc_pp_field_labels.AGENCE|default:"Agence"|t }}</th>
+
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ kyc_pp_field_labels.LIB_AGENCE|default:"Agencelib"|t }}</th>
+
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ kyc_pp_field_labels.EXPL|default:"Exploitant"|t }}</th>
                             <th class="px-4 py-3 text-center font-black text-white uppercase tracking-widest sticky left-0 top-0 z-[60] bg-green-800 shadow-xl min-w-[130px] border-b border-green-900">
-                                {{ "Client"|t }}
+                                {{ kyc_pp_field_labels.CLIENT|default:"Client"|t }}
                             </th>
-                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ "Prochaine Date Revue (*)"|t }}</th>
+                            <th class="px-2 py-2 text-center font-black text-slate-300 bg-slate-900 uppercase tracking-widest border-b border-slate-700">{{ kyc_pp_field_labels.DATEREV|default:"Prochaine Date Revue (*)"|t }}</th>
 
                         </tr>
                     </thead>

@@ -1002,34 +1002,9 @@ class TauxQualite(models.Model):
         return f"{self.filiale or 'GROUPE'}/{self.agence or '-'}/{self.expl or '-'} {self.applicability} {self.date}: {self.rate}%"
 
 
-class QualityFluxConfig(models.Model):
-    """Configuration (admin Django) de la fenêtre « flux » du taux de qualité.
-
-    Définit quels clients PP/PM constituent le flux, via leur DATOUV (format ISO
-    YYYY-MM-DD) : la dernière journée (veille du calcul) ou le mois calendaire
-    précédent. Utilisée par compute_quality_rates pour historiser le taux
-    qualité flux dans TauxQualite (flux_stock='flux'), comme les taux de
-    complétude le sont dans TauxEvolution.
-    """
-    WINDOW_CHOICES = [
-        ("veille", "Dernière journée (DATOUV = hier)"),
-        ("mois", "Mois précédent (DATOUV dans le mois calendaire précédent)"),
-    ]
-
-    flux_window = models.CharField(
-        max_length=10, choices=WINDOW_CHOICES, default="veille",
-        verbose_name="Fenêtre du flux",
-        help_text="Clients comptés dans le flux : DATOUV de la veille, ou du mois calendaire précédent.",
-    )
-    active = models.BooleanField(default=True, verbose_name="Active")
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name = "Configuration flux qualité"
-        verbose_name_plural = "Configuration flux qualité"
-
-    def __str__(self):
-        return f"Flux qualité : {self.get_flux_window_display()}"
+# Le flux n'est plus configurable : il désigne toujours la dernière journée
+# d'ouverture enregistrée (DATOUV max de la filiale). Voir flux_datouv_window()
+# dans kyc/views.py. L'ancien modèle QualityFluxConfig a été supprimé.
 
 
 class DATEREV(models.Model):

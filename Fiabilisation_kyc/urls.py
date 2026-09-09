@@ -4,8 +4,8 @@ from kyc import audit_views, views
 from kyc.views import accueil, change_user_password, edit_user, perso, profile, ChangePasswordView, profil, perso_stock,\
     agent_detail, agent, agent_stock, notes, historique, register, reset_user_password,\
     user_list, user_statistics_view, non_anom, statistiques, non_rens, ppe, devise, non_resid, scoring,\
-    sans_classe, devise_pm, non_resid_pm, taux_evolution_view,\
-    taux_evolution_view_stock, sans_classe_s, export_devise_pp, export_non_resid_pm, export_non_resid_pp,\
+    devise_pm, non_resid_pm, taux_evolution_view,\
+    taux_evolution_view_stock, export_devise_pp, export_non_resid_pm, export_non_resid_pp,\
     export_devise_pm
 from django.urls import path, include, re_path
 from accounts.views import login_kyc, logout_user, force_password_change
@@ -46,13 +46,10 @@ urlpatterns = [
                   path('non_resid_pm/', non_resid_pm, name='non_resid_pm'),
                   path('scoring/', scoring, name='scoring'),
 
-                  path('sans_class_s/', sans_classe_s, name='sans_classe_s'),
-                  path('sans_classe/', sans_classe, name='sans_classe'),
                   path('non_rens/', views.non_rens, name='non_rens'),
                   path('non_rens_pm/', views.non_rens_pm, name='non_rens_pm'),
                   path('kyc-field-config/', views.kyc_field_config, name='kyc_field_config'),
                   path('pilotage-kyc/', views.pilotage_kyc, name='pilotage_kyc'),
-                  path('daterev_ppe/', views.daterev_ppe, name='daterev_ppe'),
                   path('export_ppe/', views.export_ppe, name='export_ppe'),
                   path('export_csv_scoring_ppe/', views.export_csv_scoring_ppe, name='export_csv_scoring_ppe'),
                   path('export_csv_pm/', views.export_csv_pm, name='export_csv_pm'),
@@ -60,9 +57,6 @@ urlpatterns = [
                   path('export_csv_scoring_clients/', views.export_csv_scoring_clients, name='export_csv_scoring_clients'),
                   path('clients_scorer/', views.clients_scorer, name='clients_scorer'),
                   path('evolution_taux/', views.evolution_taux, name='evolution_taux'),
-                  path('export_sans_classe/', views.export_sans_classe, name='export_sans_classe'),
-
-                  path('export_sans_classe_s/', views.export_sans_classe_s, name='export_sans_classe_s'),
                   path('export_scoring/', views.export_csv_scoring, name='export_scoring'),
 
                   path('export_csv_pp/', views.export_csv_pp, name='export_csv_pp'),

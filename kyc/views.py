@@ -456,25 +456,42 @@ def get_incomplete_clients_queryset(queryset, client_type):
             
     return queryset.filter(combined_q)
 
-def flux_datouv_window(reference_date=None):
-    """Bornes ISO (début, fin) incluses de la fenêtre « flux » configurée.
+def flux_datouv_window(filiale=None, reference_date=None, agence=None, expl=None):
+    """Bornes ISO (début, fin) — ici identiques — de la fenêtre « flux ».
 
-    Lit QualityFluxConfig (admin Django) : 'veille' = DATOUV d'hier uniquement,
-    'mois' = mois calendaire précédent. DATOUV est stocké en ISO YYYY-MM-DD,
-    la comparaison lexicale équivaut donc à la comparaison chronologique
-    (même principe que DATEREV).
+    Le flux = les clients de la **dernière journée d'ouverture enregistrée** au
+    niveau observé : DATOUV maximale présente dans Kyc_pp ∪ Kyc_pm pour le scope
+    `(filiale, agence, expl)` fourni, bornée à `reference_date` (défaut
+    aujourd'hui), DATOUV vide exclue. Chaque niveau prend donc sa propre dernière
+    journée : un chargé (EXPL) sans ouverture le dernier jour de sa filiale garde
+    sa propre dernière date d'ouverture. DATOUV est stocké en ISO YYYY-MM-DD :
+    la comparaison lexicale équivaut à la comparaison chronologique.
+    Renvoie ``(None, None)`` si aucune DATOUV exploitable pour ce scope.
     """
-    from kyc.models import QualityFluxConfig
-    ref = reference_date or timezone.localdate()
-    config = QualityFluxConfig.objects.filter(active=True).order_by('-updated_at').first()
-    window = config.flux_window if config else 'veille'
-    if window == 'mois':
-        first_of_month = ref.replace(day=1)
-        end = first_of_month - timedelta(days=1)                                      
-        start = end.replace(day=1)                                                 
-    else:
-        start = end = ref - timedelta(days=1)                     
-    return start.isoformat(), end.isoformat()
+    ref = (reference_date or timezone.localdate()).isoformat()
+    fil = (filiale or '').strip()
+    ag = (agence or '').strip()
+    ex = (expl or '').strip()
+    scope_key = hashlib.md5(f"{fil or 'ALL'}|{ag}|{ex}".encode('utf-8')).hexdigest()[:12]
+    cache_key = f"flux_last_datouv:{scope_key}:{ref}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return (cached, cached) if cached else (None, None)
+
+    last = ''
+    for model in (Kyc_pp, Kyc_pm):
+        qs = model.objects.exclude(DATOUV='').filter(DATOUV__lte=ref)
+        if fil:
+            qs = qs.filter(FILIALE=fil)
+        if ag:
+            qs = qs.filter(AGENCE=ag)
+        if ex:
+            qs = qs.filter(EXPL=ex)
+        m = qs.aggregate(m=Max('DATOUV'))['m'] or ''
+        if m > last:
+            last = m
+    cache.set(cache_key, last, 3600)
+    return (last, last) if last else (None, None)
 
 
 def apply_datouv_period_filter(queryset, request):
@@ -3054,16 +3071,18 @@ DOCUMENT_PM_FIELD_LABELS = {
 
 def _kyc_custom_field_labels(client_type, filiale=""):
     """Intitules metier des champs KYC definis dans /kyc-field-config/ :
-    la regle filiale prime, sinon la regle globale, sinon {}."""
+    fusion regle globale + regle filiale (la filiale prime champ par champ,
+    un intitule vide ne masque pas celui de la regle globale)."""
     configs = [c for c in _get_cached_field_visibility_configs() if c.client_type == client_type]
+    merged = {}
+    for c in configs:
+        if not c.filiales:
+            merged.update({k: v for k, v in (c.field_labels or {}).items() if v})
     if filiale:
         for c in configs:
-            if filiale in (c.filiales or []) and (c.field_labels or {}):
-                return dict(c.field_labels)
-    for c in configs:
-        if not c.filiales and (c.field_labels or {}):
-            return dict(c.field_labels)
-    return {}
+            if filiale in (c.filiales or []):
+                merged.update({k: v for k, v in (c.field_labels or {}).items() if v})
+    return merged
 
 
 @login_required
@@ -6350,371 +6369,8 @@ def export_csv_scoring_clients(request):
     response['Content-Disposition'] = f'attachment; filename="Revue_scoring_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.xlsx"'
     return response
 
-@login_required
-def sans_classe(request):
-    user = request.user
-
-                             
-    roles_exclus = ["Chargé Client"]
-    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
-    users_groupe = [
-        "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
-    ]
-
-    filiale_param = request.GET.get('filiale', '')
-    agence_param = request.GET.get('agence', '')
-    expl_param = request.GET.get('expl', '')
-    filiale_txt = request.GET.get('filiale_txt', '').strip()
-    agence_txt = request.GET.get('agence_txt', '').strip()
-    lib_agence = request.GET.get('lib_agence', '').strip()
-    expl_txt = request.GET.get('expl_txt', '').strip()
-    client_txt = request.GET.get('client', '').strip()
-    risque_txt = request.GET.get('risque', '').strip()
-
-                                                                     
-                                                      
-    donnees_queryset = DATEREV.objects.filter(Q(RISQUE__isnull=True) | Q(RISQUE=""))
-
-                                                               
-    is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
-    if not is_group_user:
-        if user.organe == "Chargé Client":
-            donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
-        elif user.organe == "Directeur Agence":
-            donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale, AGENCE=user.agence)
-        elif user.organe in users_filiale:
-            donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale)
-
-                                                
-    if filiale_param:
-        donnees_queryset = donnees_queryset.filter(FILIALE__icontains=filiale_param)
-    if agence_param:
-        donnees_queryset = donnees_queryset.filter(AGENCE__icontains=agence_param)
-    if expl_param:
-        donnees_queryset = donnees_queryset.filter(EXPL__icontains=expl_param)
-    if filiale_txt:
-        donnees_queryset = donnees_queryset.filter(FILIALE__icontains=filiale_txt)
-    if agence_txt:
-        donnees_queryset = donnees_queryset.filter(AGENCE__icontains=agence_txt)
-    if lib_agence:
-        donnees_queryset = donnees_queryset.filter(LIB_AGENCE__icontains=lib_agence)
-    if expl_txt:
-        donnees_queryset = donnees_queryset.filter(EXPL__icontains=expl_txt)
-    if client_txt:
-        donnees_queryset = donnees_queryset.filter(CLIENT__icontains=client_txt)
-    if risque_txt:
-        donnees_queryset = donnees_queryset.filter(RISQUE__icontains=risque_txt)
-
-                                     
-    donnees_queryset = donnees_queryset.order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
-
-                                                                     
-    options_qs = DATEREV.objects.filter(Q(RISQUE__isnull=True) | Q(RISQUE=""))
-    if not is_group_user:
-        if user.organe == "Chargé Client":
-            options_qs = options_qs.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
-        elif user.organe == "Directeur Agence":
-            options_qs = options_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
-        elif user.organe in users_filiale:
-            options_qs = options_qs.filter(FILIALE=user.filiale)
-
-    filiales = options_qs.values_list('FILIALE', flat=True).distinct().order_by('FILIALE')
-    agences = options_qs.values_list('AGENCE', flat=True).distinct().order_by('AGENCE')
-    exploitants = options_qs.values_list('EXPL', flat=True).distinct().order_by('EXPL')
-
-                              
-    get_params = request.GET.copy()
-    if 'page' in get_params:
-        del get_params['page']
-
-    paginator = Paginator(donnees_queryset, 100)
-    page = request.GET.get('page')
-
-    try:
-        donnees_page = paginator.page(page)
-    except (PageNotAnInteger, EmptyPage):
-        donnees_page = paginator.page(1)
-
-    context = {
-        'donnees': donnees_page,
-        'filiales': filiales,
-        'agences': agences,
-        'exploitants': exploitants,
-        'roles_exclus': roles_exclus,
-        'users_groupe': users_groupe,
-        'users_filiale': users_filiale,
-        'get_params': get_params.urlencode(),
-        'filiale_param': filiale_param,
-        'agence_param': agence_param,
-        'expl_param': expl_param,
-    }
-
-    return render(request, 'sans_classe.html', context)
-
-
-@login_required
-def export_sans_classe(request):
-    user = request.user
-    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
-    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
-
-                               
-    filiale_param = request.GET.get('filiale', '')
-    agence_param = request.GET.get('agence', '')
-    expl_param = request.GET.get('expl', '')
-
-                                                              
-    donnees = DATEREV.objects.filter(Q(RISQUE__isnull=True) | Q(RISQUE=""))
-
-    is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
-                            
-    if is_group_user:
-        pass
-    elif user.organe == "Chargé Client":
-        donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
-    elif user.organe == "Directeur Agence":
-        donnees = donnees.filter(FILIALE=user.filiale, AGENCE=user.agence)
-    elif user.organe in users_filiale:
-        donnees = donnees.filter(FILIALE=user.filiale)
-    else:
-                                                                           
-        donnees = DATEREV.objects.none()
-
-                                           
-    if filiale_param:
-        donnees = donnees.filter(FILIALE__icontains=filiale_param)
-    if agence_param:
-        donnees = donnees.filter(AGENCE__icontains=agence_param)
-    if expl_param:
-        donnees = donnees.filter(EXPL__icontains=expl_param)
-    if filiale_txt:
-        donnees = donnees.filter(FILIALE__icontains=filiale_txt)
-    if agence_txt:
-        donnees = donnees.filter(AGENCE__icontains=agence_txt)
-    if lib_agence:
-        donnees = donnees.filter(LIB_AGENCE__icontains=lib_agence)
-    if expl_txt:
-        donnees = donnees.filter(EXPL__icontains=expl_txt)
-    if client_txt:
-        donnees = donnees.filter(CLIENT__icontains=client_txt)
-    if risque_txt:
-        donnees = donnees.filter(RISQUE__icontains=risque_txt)
-
-                               
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Sans_Classe_Export"
-
-    headers = ['FILIALE', 'AGENCE', 'EXPL', 'CLIENT', 'DATEREV', 'PPE', 'RISQUE']
-    ws.append(headers)
-
-    for d in donnees:
-        daterev = d.DATEREV
-        if hasattr(daterev, 'tzinfo'):
-            daterev = daterev.replace(tzinfo=None)
-        ws.append([
-            d.FILIALE, d.AGENCE, d.EXPL, d.CLIENT, daterev, d.PPE, d.RISQUE
-        ])
-
-    for col_num, _ in enumerate(headers, 1):
-        col_letter = get_column_letter(col_num)
-        ws.column_dimensions[col_letter].width = 15
-
-    output = BytesIO()
-    wb.save(output)
-    output.seek(0)
-
-    response = HttpResponse(
-        output.read(),
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    date_str = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    filename = f"Sans_Classe_{date_str}.xlsx"
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
-
 
 from django.db.models import Q, Max
-
-
-@login_required
-def sans_classe_s(request):
-    user = request.user
-
-                             
-    roles_exclus = ["Chargé Client"]
-    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
-    users_groupe = [
-        "Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-        "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"
-    ]
-
-    filiale_param = request.GET.get('filiale', '')
-    agence_param = request.GET.get('agence', '')
-    expl_param = request.GET.get('expl', '')
-
-                                                                          
-    notes = Notation.objects.filter(flux_stock='Flux')
-    latest_notes = notes.values('agent').annotate(latest_date=Max('date_notation'))
-    notation = notes.filter(date_notation__in=[n['latest_date'] for n in latest_notes])
-
-                                           
-    if user.organe == "Chargé Client":
-        notation = notation.filter(agent__filiale=user.filiale, agent__code_expl=user.code_expl)
-    elif user.organe == "Directeur Agence":
-        notation = notation.filter(agent__filiale=user.filiale, agent__agence=user.agence)
-    elif user.organe in users_filiale:
-        notation = notation.filter(agent__filiale=user.filiale)
-                                                                        
-
-                                                                    
-                                                  
-    donnees_queryset = DATEREV.objects.filter(Q(RISQUE__isnull=True) | Q(RISQUE=""))
-
-                                                   
-    if user.organe == "Chargé Client":
-        donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
-    elif user.organe == "Directeur Agence":
-        donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale, AGENCE=user.agence)
-    elif user.organe in users_filiale:
-        donnees_queryset = donnees_queryset.filter(FILIALE=user.filiale)
-
-                                             
-    if filiale_param:
-        donnees_queryset = donnees_queryset.filter(FILIALE__icontains=filiale_param)
-    if agence_param:
-        donnees_queryset = donnees_queryset.filter(AGENCE__icontains=agence_param)
-    if expl_param:
-        donnees_queryset = donnees_queryset.filter(EXPL__icontains=expl_param)
-    if filiale_txt:
-        donnees_queryset = donnees_queryset.filter(FILIALE__icontains=filiale_txt)
-    if agence_txt:
-        donnees_queryset = donnees_queryset.filter(AGENCE__icontains=agence_txt)
-    if expl_txt:
-        donnees_queryset = donnees_queryset.filter(EXPL__icontains=expl_txt)
-    if client_txt:
-        donnees_queryset = donnees_queryset.filter(CLIENT__icontains=client_txt)
-    if risque_txt:
-        donnees_queryset = donnees_queryset.filter(RISQUE__icontains=risque_txt)
-
-    donnees_queryset = donnees_queryset.order_by("FILIALE", "AGENCE", "EXPL", "CLIENT")
-
-                                                    
-    options_qs = DATEREV.objects.all()
-    if user.organe == "Chargé Client":
-        options_qs = options_qs.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
-    elif user.organe == "Directeur Agence":
-        options_qs = options_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
-    elif user.organe in users_filiale:
-        options_qs = options_qs.filter(FILIALE=user.filiale)
-
-    filiales = options_qs.values_list('FILIALE', flat=True).distinct().order_by('FILIALE')
-    agences = options_qs.values_list('AGENCE', flat=True).distinct().order_by('AGENCE')
-    exploitants = options_qs.values_list('EXPL', flat=True).distinct().order_by('EXPL')
-
-                   
-    get_params = request.GET.copy()
-    if 'page' in get_params:
-        del get_params['page']
-
-    paginator = Paginator(donnees_queryset, 100)
-    page = request.GET.get('page')
-
-    try:
-        donnees_page = paginator.page(page)
-    except (PageNotAnInteger, EmptyPage):
-        donnees_page = paginator.page(1)
-
-    context = {
-        'donnees': donnees_page,
-        'filiales': filiales,
-        'notation': notation,
-        'agences': agences,
-        'exploitants': exploitants,
-        'roles_exclus': roles_exclus,
-        'users_groupe': users_groupe,
-        'users_filiale': users_filiale,
-        'get_params': get_params.urlencode(),
-        'filiale_param': filiale_param,
-        'agence_param': agence_param,
-        'expl_param': expl_param,
-    }
-
-    return render(request, 'sans_classe_s.html', context)
-
-
-@login_required
-def export_sans_classe_s(request):
-    def strip_tz(value):
-        if hasattr(value, 'tzinfo'):
-            return value.replace(tzinfo=None)
-        return value
-
-    user = request.user
-    filiale_param = request.GET.get('filiale', '')
-    agence_param = request.GET.get('agence', '')
-    expl_param = request.GET.get('expl', '')
-    filiale_txt = request.GET.get('filiale_txt', '').strip()
-    agence_txt = request.GET.get('agence_txt', '').strip()
-    expl_txt = request.GET.get('expl_txt', '').strip()
-    client_txt = request.GET.get('client', '').strip()
-    risque_txt = request.GET.get('risque', '').strip()
-
-    donnees = DATEREV.objects.filter(FILIALE=user.filiale, AGENCE=user.agence , EXPL=user.code_expl)
-
-    donnees = donnees.filter(Q(RISQUE__isnull=True) | Q(RISQUE=""))
-    if filiale_param:
-        donnees = donnees.filter(FILIALE__icontains=filiale_param)
-    if agence_param:
-        donnees = donnees.filter(AGENCE__icontains=agence_param)
-    if expl_param:
-        donnees = donnees.filter(EXPL__icontains=expl_param)
-    if filiale_txt:
-        donnees = donnees.filter(FILIALE__icontains=filiale_txt)
-    if agence_txt:
-        donnees = donnees.filter(AGENCE__icontains=agence_txt)
-    if expl_txt:
-        donnees = donnees.filter(EXPL__icontains=expl_txt)
-    if client_txt:
-        donnees = donnees.filter(CLIENT__icontains=client_txt)
-    if risque_txt:
-        donnees = donnees.filter(RISQUE__icontains=risque_txt)
-
-
-                                
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Clients non classés"
-
-              
-    headers = ['AGENCE', 'AGENCE', 'EXPL', 'CLIENT', 'DATEREV', 'PPE', 'RISQUE']
-    ws.append(headers)
-
-             
-    for d in donnees:
-        ws.append([
-            d.FILIALE, d.AGENCE, d.EXPL, d.CLIENT, d.DATEREV, d.PPE, d.RISQUE
-
-        ])
-
-                                                 
-    for col_num, column_title in enumerate(headers, 1):
-        column_letter = get_column_letter(col_num)
-        ws.column_dimensions[column_letter].width = 15
-
-                              
-    output = BytesIO()
-    wb.save(output)
-    output.seek(0)
-
-    response = HttpResponse(output.read(),
-                            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    date_str = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    filename = f"Clients sans classe de risque {date_str}.xlsx"
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
 
 
 
@@ -7260,8 +6916,9 @@ def _export_taux_completude(request, group_field, group_header, slug):
     Calcul « maison » sur Kyc_pp / Kyc_pm : pour chaque groupe, taux de
     complétude de chaque champ configuré dans /champs_kyc (empty_check_fields,
     critère « vide » identique au filtre d'affichage de /non_rens), et taux de
-    fiabilisation final = minimum des taux par champ. Flux = clients dont la
-    DATOUV (ISO) tombe dans la fenêtre QualityFluxConfig ; Stock = toute la base.
+    fiabilisation final = minimum des taux par champ. Flux = clients de la
+    dernière journée d'ouverture enregistrée de la filiale (DATOUV max) ;
+    Stock = toute la base.
     Réservé à tous les profils sauf Chargé Client et Directeur Agence.
     """
     import math
@@ -7277,8 +6934,6 @@ def _export_taux_completude(request, group_field, group_header, slug):
     users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
                     "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
     is_group_user = user.organe in users_groupe or not getattr(user, "filiale", None)
-
-    flux_start, flux_end = flux_datouv_window()
 
     wb = Workbook()
     wb.remove(wb.active)
@@ -7335,7 +6990,7 @@ def _export_taux_completude(request, group_field, group_header, slug):
         show_filiale_col = len(filiales) > 1
         _write_taux_sheets(wb, model, label, filiales, fields_by_filiale, all_fields,
                            field_labels, show_filiale_col, group_field, group_header,
-                           flux_start, flux_end, header_fill, header_font, low_fill,
+                           header_fill, header_font, low_fill,
                            low_font, ok_fill, ok_font, cell_border, center, math)
 
     output = BytesIO()
@@ -7354,7 +7009,7 @@ def _export_taux_completude(request, group_field, group_header, slug):
 
 def _write_taux_sheets(wb, model, label, filiales, fields_by_filiale, all_fields,
                        field_labels, show_filiale_col, group_field, group_header,
-                       flux_start, flux_end, header_fill, header_font, low_fill,
+                       header_fill, header_font, low_fill,
                        low_font, ok_fill, ok_font, cell_border, center, math):
     for mode, sheet_name in (("flux", f"Flux {label}"), ("stock", f"Stock {label}")):
         ws = wb.create_sheet(sheet_name)
@@ -7376,8 +7031,23 @@ def _write_taux_sheets(wb, model, label, filiales, fields_by_filiale, all_fields
 
             qs = model.objects.filter(FILIALE=filiale)
             if mode == "flux":
-                qs = (qs.exclude(DATOUV="").exclude(DATOUV__isnull=True)
-                        .filter(DATOUV__gte=flux_start, DATOUV__lte=flux_end))
+                # Chaque groupe (agence ou chargé) sur SA propre dernière journée
+                # d'ouverture : un chargé sans ouverture le dernier jour de la
+                # filiale garde sa propre dernière date.
+                ref_iso = timezone.localdate().isoformat()
+                last_by_group = {
+                    r[group_field]: r["last"]
+                    for r in (model.objects.filter(FILIALE=filiale)
+                              .exclude(DATOUV="").filter(DATOUV__lte=ref_iso)
+                              .values(group_field).annotate(last=Max("DATOUV")))
+                    if r["last"]
+                }
+                if not last_by_group:
+                    continue
+                grp_q = Q()
+                for g, d in last_by_group.items():
+                    grp_q |= Q(**{group_field: g, "DATOUV": d})
+                qs = qs.filter(grp_q)
 
             concerned_q = None
             for f in fields:
@@ -7583,11 +7253,21 @@ def _quality_rate_snapshot(quality_scope, applicability, flux_stock='stock'):
     return snapshot.rate
 
 
-def _flux_window_label():
-    """Libellé court de la fenêtre flux configurée, pour affichage dashboard."""
-    from kyc.models import QualityFluxConfig
-    config = QualityFluxConfig.objects.filter(active=True).order_by('-updated_at').first()
-    return 'mois précédent' if (config and config.flux_window == 'mois') else 'veille'
+def _flux_window_label(quality_scope=None):
+    """Libellé de la fenêtre flux pour l'affichage dashboard : la dernière
+    journée d'ouverture enregistrée au niveau du scope (filiale / agence /
+    chargé). Un chargé sans ouverture le dernier jour de sa filiale voit donc
+    sa propre dernière date."""
+    scope = quality_scope or {}
+    start, _ = flux_datouv_window(
+        scope.get('filiale'), agence=scope.get('agence'), expl=scope.get('expl'),
+    )
+    if not start:
+        return 'dernière journée enregistrée'
+    try:
+        return "journée du " + datetime.strptime(start, "%Y-%m-%d").strftime("%d/%m/%Y")
+    except ValueError:
+        return "journée du " + start
 
 
 def _build_dashboard_cache_key(prefix, user, request, extra=""):
@@ -7858,7 +7538,7 @@ def statistiques(request):
         'quality_rate_pm': quality_rate_pm,
         'quality_rate_pp_flux': _quality_rate_snapshot(quality_scope, 'PP', flux_stock='flux'),
         'quality_rate_pm_flux': _quality_rate_snapshot(quality_scope, 'PM', flux_stock='flux'),
-        'flux_window_label': _flux_window_label(),
+        'flux_window_label': _flux_window_label(quality_scope),
         'quality_scope_label': quality_scope.get('label'),
         'latest_taux_date': latest_taux_date,
     }
@@ -7896,108 +7576,6 @@ def export_stats_pp(request):
     df.to_excel(response, index=False)
     return response
 
-
-@login_required
-def daterev_ppe(request):
-           
-    users_filiale = ["DSI", "Conformité", "Contrôle Permanent", "Directeur Réseau",'Risques', 'DAI', 'Qualité']
-    users_groupe = ["Directeur Zone UEMOA", "Directeur Zone Centre", "Directeur Zone Anglophone",
-                    "Conformité Groupe", "Contrôle Permanent Groupe", "PASS", "GUEST"]
-
-    user = request.user
-
-                
-    periode_param = request.GET.get("periode", "")
-    filiale_param = request.GET.get("filiale", "")
-    agence_param = request.GET.get("agence", "")
-    expl_param = request.GET.get("expl", "")
-
-    base_qs = DATEREV.objects.all().filter(DATEREV__isnull=False, PPE='O')
-
-    is_group_user = (user.organe in users_groupe) or (user.filiale in ["BOA Group", "BOA GROUP"]) or (not user.filiale)
-    if not is_group_user:
-        if getattr(user, "organe", "") == "Chargé Client":
-            base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence, EXPL=user.code_expl)
-        elif user.organe == "Directeur Agence":
-            base_qs = base_qs.filter(FILIALE=user.filiale, AGENCE=user.agence)
-        elif user.organe in users_filiale:
-            base_qs = base_qs.filter(FILIALE=user.filiale)
-
-    today = date.today()
-    qs_period = base_qs
-    if periode_param == "today":
-        qs_period = qs_period.filter(DATEREV__lte=today)
-    elif periode_param == "3m":
-        qs_period = qs_period.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=90))
-    elif periode_param == "6m":
-        qs_period = qs_period.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=180))
-    elif periode_param == "1y":
-        qs_period = qs_period.filter(DATEREV__gte=today, DATEREV__lte=today + timedelta(days=365))
-
-    can_pick_filiale = is_group_user
-
-    selected_filiale = filiale_param if can_pick_filiale else getattr(user, "filiale", "")
-
-    filiales_opts = qs_period.values_list("FILIALE", flat=True).distinct().order_by("FILIALE")
-
-    qs_filiale = qs_period
-    if selected_filiale:
-        qs_filiale = qs_filiale.filter(FILIALE=selected_filiale)
-
-    can_pick_agence = (user.organe in users_groupe) or (user.organe in users_filiale) or (
-            user.organe == "Directeur Agence")
-
-    if user.organe == "Directeur Agence":
-        selected_agence = getattr(user, "agence", "")
-    else:
-        selected_agence = agence_param
-
-    agences_opts = qs_filiale.values_list("AGENCE", flat=True).distinct().order_by("AGENCE")
-
-    qs_agence = qs_filiale
-    if selected_agence:
-        qs_agence = qs_agence.filter(AGENCE=selected_agence)
-
-    can_pick_expl = (user.organe in users_groupe) or (user.organe in users_filiale) or (
-            user.organe == "Directeur Agence")
-
-    if getattr(user, "organe", "") == "Chargé Client":
-        selected_expl = getattr(user, "code_expl", "")
-    else:
-        selected_expl = expl_param
-
-    exploitants_opts = qs_agence.values_list("EXPL", flat=True).distinct().order_by("EXPL")
-
-    donnees = qs_agence
-    if selected_expl:
-        donnees = donnees.filter(EXPL=selected_expl)
-    count_risque_non_eleve = donnees.exclude(RISQUE="Risque eleve").count()
-
-    context = {
-        "donnees": donnees.order_by("FILIALE", "AGENCE", "EXPL", "CLIENT"),
-        "total_count": donnees.count(),                               
-        "count_risque_non_eleve": count_risque_non_eleve,                      
-                 
-        "filiales": filiales_opts,
-        "agences": agences_opts,
-        "exploitants": exploitants_opts,
-
-                              
-        "periode": periode_param,
-        "filiale_param": selected_filiale,
-        "agence_param": selected_agence,
-        "expl_param": selected_expl,
-
-                                                     
-        "users_groupe": users_groupe,
-        "users_filiale": users_filiale,
-
-                                      
-        "can_pick_filiale": can_pick_filiale,
-        "can_pick_agence": can_pick_agence,
-        "can_pick_expl": can_pick_expl,
-    }
-    return render(request, 'daterev_ppe.html', context)
 
 
 
@@ -8316,9 +7894,12 @@ def non_anom(request):
                     parsed_filiales = []
             selected_rule_filiales_display = ", ".join(parsed_filiales) if parsed_filiales else "Toutes les filiales"
             
+            _anom_label_filiale = parsed_filiales[0] if parsed_filiales else (getattr(user, "filiale", "") or "")
+            _anom_labels = _kyc_custom_field_labels(
+                'pp' if selected_rule.applicability == 'PP' else 'pm', _anom_label_filiale)
             if selected_rule.control_type == 'simple':
                 failure_columns = [{
-                    'name': selected_rule.field_name.upper(),
+                    'name': _anom_labels.get(selected_rule.field_name.upper()) or selected_rule.field_name.upper(),
                     'param': f'failure_{selected_rule.field_name}',
                     'filter_value': request.GET.get(f'failure_{selected_rule.field_name}', '')
                 }]
@@ -8326,7 +7907,7 @@ def non_anom(request):
                 cond_fields = [c.field_name for c in selected_rule_conditions]
                 unique_cond_fields = list(dict.fromkeys(cond_fields))
                 failure_columns = [{
-                    'name': f.upper(),
+                    'name': _anom_labels.get(f.upper()) or f.upper(),
                     'param': f'failure_{f}',
                     'filter_value': request.GET.get(f'failure_{f}', '')
                 } for f in unique_cond_fields]
@@ -9079,7 +8660,7 @@ def taux_evolution_view(request):
         'kpi_pp': kpi_pp,
         'quality_rate_pp': flux_rate_pp,
         'quality_rate_pm': flux_rate_pm,
-        'flux_window_label': _flux_window_label(),
+        'flux_window_label': _flux_window_label(quality_scope),
         'quality_scope_label': quality_scope.get('label'),
         'history_rows': list(reversed(history_rows[-10:])),
         'latest_taux_date': latest_taux_date,
@@ -9506,18 +9087,31 @@ def kyc_field_config(request):
         c.display_field_names = c.display_fields
         c.custom_labels = c.field_labels or {}
 
+
+
+    for ct in ['pp', 'pm']:
+        globals_ct = [c for c in configs_list if c.client_type == ct and c.is_global]
+        if len(globals_ct) > 1:
+            richest = max(globals_ct, key=lambda c: (len(c.field_labels or {}),
+                                                     len(c.display_fields or []),
+                                                     len(c.empty_check_fields or [])))
+            extra_ids = [c.id for c in globals_ct if c.id != richest.id]
+            KycFieldVisibilityConfig.objects.filter(id__in=extra_ids).delete()
+            configs_list = [c for c in configs_list if c.id not in extra_ids]
+            messages.warning(request, f"{len(extra_ids)} règle(s) globale(s) {ct.upper()} en double supprimée(s).")
+
     sections = [
         {
             'client_type': 'pp',
             'title': 'Particuliers (PP)',
             'fields': KYC_PP_FIELD_LABELS,
-            'configs': [c for c in configs_list if c.client_type == 'pp']
+            'configs': [c for c in configs_list if c.client_type == 'pp' and c.is_global]
         },
         {
             'client_type': 'pm',
             'title': 'Entreprises (PM)',
             'fields': KYC_PM_FIELD_LABELS,
-            'configs': [c for c in configs_list if c.client_type == 'pm']
+            'configs': [c for c in configs_list if c.client_type == 'pm' and c.is_global]
         }
     ]
 
@@ -10107,7 +9701,8 @@ def pilotage_kyc(request):
     else:
         pp_fields_list = [f[0] for f in KYC_PP_FIELD_LABELS]
         
-    pp_active_fields = [(f_name, dict(KYC_PP_FIELD_LABELS).get(f_name, f_name)) for f_name in pp_fields_list]
+    pp_labels = _kyc_custom_field_labels('pp', selected_filiale or "")
+    pp_active_fields = [(f_name, pp_labels.get(f_name) or dict(KYC_PP_FIELD_LABELS).get(f_name, f_name)) for f_name in pp_fields_list]
 
                       
     pm_config = None
@@ -10123,7 +9718,8 @@ def pilotage_kyc(request):
     else:
         pm_fields_list = [f[0] for f in KYC_PM_FIELD_LABELS]
         
-    pm_active_fields = [(f_name, dict(KYC_PM_FIELD_LABELS).get(f_name, f_name)) for f_name in pm_fields_list]
+    pm_labels = _kyc_custom_field_labels('pm', selected_filiale or "")
+    pm_active_fields = [(f_name, pm_labels.get(f_name) or dict(KYC_PM_FIELD_LABELS).get(f_name, f_name)) for f_name in pm_fields_list]
 
                                          
     selected_report_fields = request.GET.getlist('report_fields')

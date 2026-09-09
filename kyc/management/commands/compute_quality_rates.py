@@ -72,20 +72,28 @@ class Command(BaseCommand):
                                                                             
                                                                          
                                               
-        modes = [] if options["flux_only"] else [("stock", None, None)]
-        if not options["skip_flux"]:
-            flux_start, flux_end = flux_datouv_window(target_date)
-            modes.append(("flux", flux_start, flux_end))
-            self.stdout.write(f"Fenêtre flux (DATOUV) : {flux_start} -> {flux_end}.")
+        want_stock = not options["flux_only"]
+        want_flux = not options["skip_flux"]
 
         rows = []
         for filiale, agence, expl in scopes:
+            modes = [("stock", None, None)] if want_stock else []
+            if want_flux:
+                # Flux = dernière journée d'ouverture enregistrée à ce niveau
+                # (un chargé sans ouverture ce jour-là garde sa propre dernière date).
+                flux_start, flux_end = flux_datouv_window(
+                    filiale, target_date, agence=agence, expl=expl,
+                )
+                modes.append(("flux", flux_start, flux_end))
             for applicability in ("PP", "PM"):
                 for flux_stock, d_start, d_end in modes:
-                    ok_count, total = self._compute_scope(
-                        applicability, filiale, agence, expl,
-                        datouv_start=d_start, datouv_end=d_end,
-                    )
+                    if flux_stock == "flux" and not d_start:
+                        ok_count, total = 0, 0
+                    else:
+                        ok_count, total = self._compute_scope(
+                            applicability, filiale, agence, expl,
+                            datouv_start=d_start, datouv_end=d_end,
+                        )
                     rate = round(ok_count / total * 100, 1) if total else 0
                     rows.append((filiale, agence, expl, applicability, flux_stock,
                                  {"rate": rate, "ok_count": ok_count, "total": total}))

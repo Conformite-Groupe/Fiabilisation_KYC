@@ -150,18 +150,26 @@ def kyc_display_fields_processor(request):
             fields = [f[0] for f in base_labels]
 
 
+        empty_fields = None
+        for cfg in (filiale_config, global_config):
+            if cfg and cfg.empty_check_fields is not None:
+                empty_fields = cfg.empty_check_fields
+                break
+
         labels = {**_clean_labels(global_config), **_clean_labels(filiale_config)}
         display = [(f[0], labels.get(f[0]) or f[1]) for f in base_labels if f[0] in fields]
-        return display, labels
+        return display, labels, list(empty_fields or [])
 
-    kyc_pp_display_fields, kyc_pp_field_labels = _resolve('pp', KYC_PP_FIELD_LABELS)
-    kyc_pm_display_fields, kyc_pm_field_labels = _resolve('pm', KYC_PM_FIELD_LABELS)
+    kyc_pp_display_fields, kyc_pp_field_labels, kyc_pp_empty_fields = _resolve('pp', KYC_PP_FIELD_LABELS)
+    kyc_pm_display_fields, kyc_pm_field_labels, kyc_pm_empty_fields = _resolve('pm', KYC_PM_FIELD_LABELS)
 
     return {
         'kyc_pp_display_fields': kyc_pp_display_fields,
         'kyc_pm_display_fields': kyc_pm_display_fields,
         'kyc_pp_field_labels': kyc_pp_field_labels,
         'kyc_pm_field_labels': kyc_pm_field_labels,
+        'kyc_pp_empty_fields': kyc_pp_empty_fields,
+        'kyc_pm_empty_fields': kyc_pm_empty_fields,
     }
 
 def module_screening_processor(request):

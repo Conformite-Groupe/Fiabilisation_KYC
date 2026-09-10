@@ -6462,6 +6462,45 @@ def apply_kyc_field_config_filter(queryset, client_type):
         
     return queryset.filter(combined_q)
 
+
+def kyc_config_display_fields(request, client_type):
+    """Champs (code, intitule) configures dans /kyc-field-config/ pour la filiale courante."""
+    from kyc.context_processors import kyc_display_fields_processor
+    key = "kyc_pm_display_fields" if client_type == "pm" else "kyc_pp_display_fields"
+    return kyc_display_fields_processor(request).get(key, [])
+
+
+def kyc_config_empty_fields(request, client_type):
+    """Champs coches dans /kyc-field-config/ « au moins un de ces champs doit etre vide »."""
+    from kyc.context_processors import kyc_display_fields_processor
+    key = "kyc_pm_empty_fields" if client_type == "pm" else "kyc_pp_empty_fields"
+    return set(kyc_display_fields_processor(request).get(key, []))
+
+
+def highlight_empty_export_cells(ws, row_index, display_fields, obj, empty_fields):
+    """Colore en rose les cellules vides des champs de controle, comme sur /non_rens."""
+    from openpyxl.styles import Font, PatternFill
+    fill = PatternFill(start_color="FFFEF2F2", end_color="FFFEF2F2", fill_type="solid")
+    font = Font(color="FFDC2626", bold=True)
+    for col_index, (field, _label) in enumerate(display_fields, 1):
+        if field not in empty_fields:
+            continue
+        if str(getattr(obj, field, "") or "").strip():
+            continue
+        cell = ws.cell(row=row_index, column=col_index)
+        cell.fill = fill
+        cell.font = font
+
+
+def apply_kyc_column_filters(queryset, request, client_type):
+    """Filtres de colonne col_<champ> sur les champs configures dans /kyc-field-config/."""
+    for field, _label in kyc_config_display_fields(request, client_type):
+        value = (request.GET.get("col_%s" % field.lower()) or "").strip()
+        if value:
+            queryset = queryset.filter(**{"%s__icontains" % field: value})
+    return queryset
+
+
                                                            
 def get_filtered_queryset_pm(request):
     """Garantit que l'utilisateur ne voit que les entreprises (PM) de son périmètre."""
@@ -6537,38 +6576,13 @@ def non_rens_pm(request):
     f_filiale = request.GET.get('filiale')
     f_agence = request.GET.get('agence')
     f_expl = request.GET.get('expl')
-    f_lib_agence = request.GET.get('col_lib_agence') or request.GET.get('lib_agence')
-    f_client = request.GET.get('col_client') or request.GET.get('client')
-    f_idm = request.GET.get('col_idm') or request.GET.get('idm')
-    f_agec = request.GET.get('col_agec') or request.GET.get('agec')
-    f_codape = request.GET.get('col_codape') or request.GET.get('codape')
-    f_rcsno = request.GET.get('col_rcsno') or request.GET.get('rcsno')
-    f_capital = request.GET.get('col_capital') or request.GET.get('capital')
-    f_ca = request.GET.get('col_ca') or request.GET.get('ca')
-    f_resultat = request.GET.get('col_resultat') or request.GET.get('resultat')
-
-    col_agence = request.GET.get('col_agence')
-    col_expl = request.GET.get('col_expl')
-    col_datouv = request.GET.get('col_datouv')
 
     if f_filiale: queryset = queryset.filter(FILIALE=f_filiale)
     if f_agence: queryset = queryset.filter(AGENCE=f_agence)
     if f_expl: queryset = queryset.filter(EXPL=f_expl)
 
-    if col_agence: queryset = queryset.filter(AGENCE__icontains=col_agence)
-    if col_expl: queryset = queryset.filter(EXPL__icontains=col_expl)
-    if col_datouv: queryset = queryset.filter(DATOUV__icontains=col_datouv)
     queryset = apply_datouv_period_filter(queryset, request)
-
-    if f_lib_agence: queryset = queryset.filter(LIB_AGENCE__icontains=f_lib_agence)
-    if f_client: queryset = queryset.filter(CLIENT__icontains=f_client)
-    if f_idm: queryset = queryset.filter(IDM__icontains=f_idm)
-    if f_agec: queryset = queryset.filter(AGEC__icontains=f_agec)
-    if f_codape: queryset = queryset.filter(CODAPE__icontains=f_codape)
-    if f_rcsno: queryset = queryset.filter(RCSNO__icontains=f_rcsno)
-    if f_capital: queryset = queryset.filter(CAPITAL__icontains=f_capital)
-    if f_ca: queryset = queryset.filter(CA__icontains=f_ca)
-    if f_resultat: queryset = queryset.filter(RESULTAT__icontains=f_resultat)
+    queryset = apply_kyc_column_filters(queryset, request, "pm")
 
                                                      
     notes = Notation.objects.filter(flux_stock='Flux')
@@ -6634,15 +6648,6 @@ def export_csv_pm(request):
     f_filiale = request.GET.get("filiale")
     f_agence = request.GET.get("agence")
     f_expl = request.GET.get("expl")
-    f_lib_agence = request.GET.get("lib_agence")
-    f_client = request.GET.get("client")
-    f_idm = request.GET.get("idm")
-    f_agec = request.GET.get("agec")
-    f_codape = request.GET.get("codape")
-    f_rcsno = request.GET.get("rcsno")
-    f_capital = request.GET.get("capital")
-    f_ca = request.GET.get("ca")
-    f_resultat = request.GET.get("resultat")
 
                                                         
     if user.organe == "Chargé Client":
@@ -6659,24 +6664,8 @@ def export_csv_pm(request):
         donnees = donnees.filter(AGENCE=f_agence)
     if f_expl:
         donnees = donnees.filter(EXPL=f_expl)
-    if f_lib_agence:
-        donnees = donnees.filter(LIB_AGENCE__icontains=f_lib_agence)
-    if f_client:
-        donnees = donnees.filter(CLIENT__icontains=f_client)
-    if f_idm:
-        donnees = donnees.filter(IDM__icontains=f_idm)
-    if f_agec:
-        donnees = donnees.filter(AGEC__icontains=f_agec)
-    if f_codape:
-        donnees = donnees.filter(CODAPE__icontains=f_codape)
-    if f_rcsno:
-        donnees = donnees.filter(RCSNO__icontains=f_rcsno)
-    if f_capital:
-        donnees = donnees.filter(CAPITAL__icontains=f_capital)
-    if f_ca:
-        donnees = donnees.filter(CA__icontains=f_ca)
-    if f_resultat:
-        donnees = donnees.filter(RESULTAT__icontains=f_resultat)
+
+    donnees = apply_kyc_column_filters(donnees, request, "pm")
 
                                                                            
     donnees = apply_datouv_period_filter(donnees, request)
@@ -6687,13 +6676,12 @@ def export_csv_pm(request):
     ws.title = "Export KYC PM"
 
                                                                
-    from kyc.context_processors import kyc_display_fields_processor
-    ctx = kyc_display_fields_processor(request)
-    display_fields = ctx.get('kyc_pm_display_fields', [])
+    display_fields = kyc_config_display_fields(request, "pm")
     headers = [label for field, label in display_fields]
     ws.append(headers)
 
                             
+    empty_fields = kyc_config_empty_fields(request, "pm")
     for d in donnees:
         row = []
         for field, label in display_fields:
@@ -6703,6 +6691,7 @@ def export_csv_pm(request):
             else:
                 row.append(str(val) if val is not None else "")
         ws.append(row)
+        highlight_empty_export_cells(ws, ws.max_row, display_fields, d, empty_fields)
 
                                                                        
     for col_num, _ in enumerate(headers, 1):
@@ -6816,46 +6805,13 @@ def non_rens(request):
     f_filiale = request.GET.get('filiale')
     f_agence = request.GET.get('agence')
     f_expl = request.GET.get('expl')
-    f_lib_agence = request.GET.get('col_lib_agence') or request.GET.get('lib_agence')
-    f_client = request.GET.get('col_client') or request.GET.get('client')
-    f_idp = request.GET.get('col_idp') or request.GET.get('idp')
-    f_numid = request.GET.get('col_numid') or request.GET.get('numid')
-    f_datnais = request.GET.get('col_datnais') or request.GET.get('datnais')
-    f_paynais = request.GET.get('col_paynais') or request.GET.get('paynais')
-    f_adresse = request.GET.get('col_adresse') or request.GET.get('adresse')
-    f_codape = request.GET.get('col_codape') or request.GET.get('codape')
-    f_profession = request.GET.get('col_profession') or request.GET.get('profession')
-    f_salaire = request.GET.get('col_salaire') or request.GET.get('salaire')
-    f_origine_rev = request.GET.get('col_origine_rev') or request.GET.get('origine_rev')
-    f_datvalid = request.GET.get('col_datvalid') or request.GET.get('datvalid')
-    f_tel = request.GET.get('col_tel') or request.GET.get('tel')
-
-    col_agence = request.GET.get('col_agence')
-    col_expl = request.GET.get('col_expl')
-    col_datouv = request.GET.get('col_datouv')
 
     if f_filiale: queryset = queryset.filter(FILIALE=f_filiale)
     if f_agence: queryset = queryset.filter(AGENCE=f_agence)
     if f_expl: queryset = queryset.filter(EXPL=f_expl)
 
-    if col_agence: queryset = queryset.filter(AGENCE__icontains=col_agence)
-    if col_expl: queryset = queryset.filter(EXPL__icontains=col_expl)
-    if col_datouv: queryset = queryset.filter(DATOUV__icontains=col_datouv)
     queryset = apply_datouv_period_filter(queryset, request)
-
-    if f_lib_agence: queryset = queryset.filter(LIB_AGENCE__icontains=f_lib_agence)
-    if f_client: queryset = queryset.filter(CLIENT__icontains=f_client)
-    if f_idp: queryset = queryset.filter(IDP__icontains=f_idp)
-    if f_numid: queryset = queryset.filter(NUMID__icontains=f_numid)
-    if f_datnais: queryset = queryset.filter(DATNAIS__icontains=f_datnais)
-    if f_paynais: queryset = queryset.filter(PAYNAIS__icontains=f_paynais)
-    if f_adresse: queryset = queryset.filter(ADRESSE__icontains=f_adresse)
-    if f_codape: queryset = queryset.filter(CODAPE__icontains=f_codape)
-    if f_profession: queryset = queryset.filter(PROFESSION__icontains=f_profession)
-    if f_salaire: queryset = queryset.filter(SALAIRE__icontains=f_salaire)
-    if f_origine_rev: queryset = queryset.filter(ORIGINE_REV__icontains=f_origine_rev)
-    if f_datvalid: queryset = queryset.filter(DATVALID__icontains=f_datvalid)
-    if f_tel: queryset = queryset.filter(TEL__icontains=f_tel)
+    queryset = apply_kyc_column_filters(queryset, request, "pp")
 
                                                            
     notes = Notation.objects.filter(flux_stock='Flux')
@@ -7135,18 +7091,17 @@ def export_csv_pp(request):
             donnees = donnees.filter(EXPL=expl_filter)
 
     donnees = apply_datouv_period_filter(donnees, request)
+    donnees = apply_kyc_column_filters(donnees, request, "pp")
 
-                                                                 
     wb = Workbook()
     ws = wb.active
     ws.title = "Export KYC"
 
-    from kyc.context_processors import kyc_display_fields_processor
-    ctx = kyc_display_fields_processor(request)
-    display_fields = ctx.get('kyc_pp_display_fields', [])
+    display_fields = kyc_config_display_fields(request, "pp")
     headers = [label for field, label in display_fields]
     ws.append(headers)
 
+    empty_fields = kyc_config_empty_fields(request, "pp")
     for d in donnees:
         row = []
         for field, label in display_fields:
@@ -7156,6 +7111,7 @@ def export_csv_pp(request):
             else:
                 row.append(str(val) if val is not None else "")
         ws.append(row)
+        highlight_empty_export_cells(ws, ws.max_row, display_fields, d, empty_fields)
 
     for col_num, _ in enumerate(headers, 1):
         col_letter = get_column_letter(col_num)

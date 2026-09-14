@@ -204,7 +204,7 @@ class DataQualityRuleAudit(models.Model):
 
 
 Filiales = (
-    ('BOA SN', 'BOA SN'),
+    ('BOA RDC', 'BOA RDC'),
 )
 
 class FilialeModuleConfig(models.Model):

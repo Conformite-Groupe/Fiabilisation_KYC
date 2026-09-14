@@ -175,13 +175,18 @@
     </div>
 
 
+<div class="px-6 py-2 flex items-center gap-5 text-[9px] font-bold uppercase tracking-widest text-slate-400 border-b border-gray-100 bg-gray-50/50">
+        <span class="flex items-center gap-1.5"><span class="inline-block w-4 h-0.5 bg-green-500 rounded"></span>{{ "Champs controles"|t }}</span>
+        <span class="flex items-center gap-1.5"><span class="inline-block w-2.5 h-2.5 rounded-sm bg-red-50 border border-red-200"></span>{{ "Valeur manquante"|t }}</span>
+        <span class="flex items-center gap-1.5"><span class="inline-block w-2.5 h-2.5 rounded-sm bg-slate-200"></span>{{ "Champs informatifs"|t }}</span>
+    </div>
     <div class="overflow-x-auto overflow-y-auto max-h-[550px] relative custom-scrollbar">
         <table class="kyc-wide-table w-full border-separate border-spacing-0 text-[9px]">
     <thead>
         <tr class="sticky top-0 z-50">
             {% for field, label in kyc_pp_display_fields %}
                 {% if field != "FILIALE" or user.organe in user_groupe %}
-                <th class="px-1 py-2 text-center font-black text-white {% if field == 'CLIENT' %}bg-green-800 sticky left-0 z-[60] shadow-xl{% else %}bg-slate-900{% endif %} uppercase tracking-tighter border-b border-slate-800 whitespace-nowrap">
+                <th class="px-1 py-2 text-center font-black text-white {% if field == 'CLIENT' %}bg-green-800 sticky left-0 z-[60] shadow-xl{% else %}bg-slate-900{% endif %} uppercase tracking-tighter border-b-2 {% if field in kyc_pp_empty_fields %}th-controle{% else %}th-info{% endif %} whitespace-nowrap">
                     {{ label|t }}
                 </th>
                 {% endif %}
@@ -203,7 +208,7 @@
             {% for field, label in kyc_pp_display_fields %}
                 {% if field != "FILIALE" or user.organe in user_groupe %}
                 {% with value=item|attr:field %}
-                <td class="px-1 py-1 text-center border-b border-slate-100 whitespace-nowrap {% if field == 'CLIENT' %}group-hover:bg-green-800 group-hover:text-gray-100 sticky left-0 z-20 font-bold uppercase shadow-md bg-inherit max-w-[140px] truncate{% elif not value %}bg-red-50 text-red-600 font-bold{% else %}text-slate-600{% endif %}" title="{{ value|default:'-' }}">
+                <td class="px-1 py-1 text-center border-b border-slate-100 whitespace-nowrap {% if field == 'CLIENT' %}group-hover:bg-green-800 group-hover:text-gray-100 sticky left-0 z-20 font-bold uppercase shadow-md bg-inherit max-w-[140px] truncate{% elif not value and field in kyc_pp_empty_fields %}bg-red-50 text-red-600 font-bold{% elif field in kyc_pp_empty_fields %}text-slate-700{% else %}text-slate-400{% endif %}" title="{{ value|default:'-' }}">
                     {{ value|default:"-" }}
                 </td>
                 {% endwith %}
@@ -246,6 +251,13 @@
         background: #0f172a !important;
         color: #ffffff !important;
         border-bottom-color: #1e293b !important;
+    }
+    .kyc-wide-table thead th.th-controle {
+        border-bottom-color: #22c55e !important;
+    }
+    .kyc-wide-table thead th.th-info {
+        color: #94a3b8 !important;
+        font-weight: 700;
     }
     .kyc-wide-table thead th.sticky,
     .kyc-wide-table thead th[class*="sticky left-0"] {

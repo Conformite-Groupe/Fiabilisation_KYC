@@ -48,8 +48,6 @@ Thumbs.db
 # Base de donnees
 *.sqlite3
 
-# CM
-*.claude
 
 
 

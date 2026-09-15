@@ -4661,6 +4661,16 @@ def notes(request):
                 notation.date_notation = timezone.now()
                 notation.save()
                 messages.success(request, 'La notation a bien été sauvegardée.')
+                # Avertissement de l'exploitant : un échec SMTP ne doit pas annuler la notation
+                from kyc.daterev_mailer import send_notation_email
+                try:
+                    envoye, motif = send_notation_email(notation)
+                    if not envoye:
+                        messages.warning(request, f"Email non envoyé à l'exploitant : {motif}.")
+                except Exception as exc:
+                    import logging
+                    logging.getLogger(__name__).exception("Email de notation non envoyé")
+                    messages.warning(request, f"Email non envoyé à l'exploitant : {exc}")
 
                 return redirect('agent')
     else:

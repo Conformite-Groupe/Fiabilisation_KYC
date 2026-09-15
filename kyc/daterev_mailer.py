@@ -163,3 +163,36 @@ def send_html_email(config, recipients, subject, html_body, attachments=None):
         except Exception:
             pass
     return len(recipients)
+
+
+def send_notation_email(notation):
+    """Avertit l'exploitant noté par email. Retourne (envoyé: bool, motif)."""
+    from django.utils import timezone
+    from kyc.models import EmailReminderConfig, Notation
+
+    agent = notation.agent
+    recipient = (getattr(agent, 'email', '') or '').strip()
+    if not recipient:
+        return False, "adresse email de l'exploitant absente"
+    config = EmailReminderConfig.objects.filter(active=True).order_by('-updated_at').first()
+    if not config:
+        return False, "aucune configuration SMTP active"
+
+    precedente = (Notation.objects
+                  .filter(agent=agent, flux_stock=notation.flux_stock,
+                          date_notation__lt=notation.date_notation)
+                  .exclude(pk=notation.pk)
+                  .order_by('-date_notation').first())
+    evaluateur = notation.note_par
+    html_body = render_to_string('email_notation.html', {
+        'nom': f"{agent.first_name} {agent.last_name}".strip() or agent.username,
+        'agent': agent,
+        'notation': notation,
+        'date_notation': timezone.localtime(notation.date_notation),
+        'evaluateur_nom': f"{evaluateur.first_name} {evaluateur.last_name}".strip() or evaluateur.username,
+        'evaluateur': evaluateur,
+        'precedente': precedente,
+    })
+    subject = f"Notation KYC {notation.flux_stock} — {notation.note} ({agent.filiale})"
+    send_html_email(config, [recipient], subject, html_body)
+    return True, ""
